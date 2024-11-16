@@ -11,6 +11,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let conversationHistory = [];
 
+    // System message to instruct AI behavior
+    const systemMessage = {
+        role: 'system',
+        content: `You are a helpful AI assistant focused on coding and technical discussions. 
+        Maintain conversation context and remember previous messages.
+        When sharing code examples, use triple backticks or markdown code blocks.
+        Provide clear explanations along with your code.
+        Keep responses technical but friendly.
+        Format code properly with correct indentation and syntax.`
+    };
+
     async function fetchModels() {
         try {
             const response = await fetch('https://text.pollinations.ai/models');
@@ -29,28 +40,37 @@ document.addEventListener('DOMContentLoaded', function() {
         appendMessage('User: ' + message, 'user-message');
 
         try {
-            // Add user message to conversation history
+            // Add user message to history
             conversationHistory.push({ role: 'user', content: message });
 
-            // Create the full context with conversation history
-            const context = conversationHistory.map(msg => 
-                `${msg.role === 'user' ? 'Human' : 'Assistant'}: ${msg.content}`
-            ).join('\n');
+            // Keep last 10 messages from each participant
+            if (conversationHistory.length > 20) {
+                conversationHistory = conversationHistory.slice(-20);
+            }
 
-            const encodedMessage = encodeURIComponent(context);
-            const url = `https://text.pollinations.ai/${encodedMessage}?model=${selectedModel}`;
-            const response = await fetch(url);
+            // Prepare the POST request
+            const requestBody = {
+                messages: [systemMessage, ...conversationHistory],
+                model: selectedModel
+            };
+
+            const response = await fetch('https://text.pollinations.ai/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
+            });
+
             const aiResponse = await response.text();
             
             if (aiResponse) {
                 // Extract code blocks
-                const codeBlocks = aiResponse.match(/```[\s\S]*?```|\[CODE\][\s\S]*?\[\/CODE\]/g) || [];
+                const codeBlocks = aiResponse.match(/```[\s\S]*?```/g) || [];
                 
-                // Clean the message
+                // Clean the message for chat display
                 let cleanedMessage = aiResponse
-                    .replace(/```[\s\S]*?```|\[CODE\][\s\S]*?\[\/CODE\]/g, '')
-                    .replace(/###[\s\S]*?###/g, '')
-                    .replace(/\n{3,}/g, '\n\n')
+                    .replace(/```[\s\S]*?```/g, '')
                     .trim();
 
                 if (codeBlocks.length > 0) {
@@ -60,15 +80,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Display clean message in chat
                 appendMessage('AI: ' + cleanedMessage, 'ai-message');
 
-                // Add AI response to conversation history
+                // Add AI response to history
                 conversationHistory.push({ role: 'assistant', content: aiResponse });
 
-                // Limit conversation history to last 10 messages
-                if (conversationHistory.length > 10) {
-                    conversationHistory = conversationHistory.slice(-10);
-                }
-
-                // Handle code blocks if present
+                // Handle code blocks
                 if (codeBlocks.length > 0) {
                     codeOutput.innerHTML = '';
                     hiddenCodeArea.value = '';
@@ -76,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     codeBlocks.forEach((block, index) => {
                         const cleanCode = block
-                            .replace(/```\w*\n?|```$|\[CODE\]|\[\/CODE\]/g, '')
+                            .replace(/```\w*\n?|```$/g, '')
                             .trim();
                         
                         if (index > 0) {
@@ -111,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.innerHTML = '';
         codeOutput.innerHTML = '';
         hiddenCodeArea.value = '';
-        conversationHistory = [];  // Clear conversation history when model changes
+        conversationHistory = [];
         appendMessage('System: Switched to ' + modelSelect.options[modelSelect.selectedIndex].text, 'system-message');
     });
 
