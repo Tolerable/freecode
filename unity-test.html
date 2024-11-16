@@ -897,9 +897,11 @@
 	}
 
 	async function fetchModels() {
+		console.log('Fetching models from:', 'https://text.pollinations.ai/models');
 		try {
 			const response = await fetch('https://text.pollinations.ai/models');
 			const data = await response.json();
+			console.log('Models data:', data);  // See what we're getting back
 			
 			const modelSelect = document.querySelector('.model-select');
 			const personaSelect = document.querySelector('.persona-select');
@@ -921,7 +923,7 @@
 			
 			// Sort and add other models
 			data.forEach(model => {
-				if (model.name === 'unity') return; // Skip Unity as we already added it
+				if (model.name === 'unity') return;  // Skip Unity as we already added it
 				
 				const option = document.createElement('option');
 				option.value = model.name;
@@ -941,6 +943,12 @@
 					case 'mistral-large':
 						displayName = 'Mistral Large v2';
 						break;
+				}
+				
+				// Add creator if available from description
+				if (model.description) {
+					const creator = model.description.split('by')[1]?.trim() || '';
+					displayName = creator ? `${displayName} (${creator})` : displayName;
 				}
 				
 				option.textContent = displayName;
