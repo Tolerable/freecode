@@ -5,17 +5,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendButton = document.getElementById('send-button');
     const modelSelect = document.getElementById('model-select');
     const codeOutput = document.getElementById('code-output');
-    
+
     let conversationHistory = [];
 
     const systemMessage = {
         role: 'system',
-        content: `You are a helpful AI coding assistant. Format your responses clearly:
-        - Use natural paragraphs with proper spacing for explanations
-        - Put complete code solutions in a single code block using triple backticks
-        - Keep code blocks complete and self-contained
-        - Maintain conversation context and personality
-        - Add line breaks between thoughts for readability`
+        content: `You are a helpful AI coding assistant. Keep responses clear and well-formatted.
+        - Use line breaks between paragraphs for readability
+        - Place code in a single \`\`\` block
+        - Maintain natural conversation style
+        - Add proper spacing in explanations`
     };
 
     async function sendMessage(message) {
@@ -23,7 +22,6 @@ document.addEventListener('DOMContentLoaded', function() {
         appendMessage('User: ' + message, 'user-message');
 
         try {
-            // Keep conversation history limited but meaningful
             conversationHistory.push({ role: 'user', content: message });
             if (conversationHistory.length > 20) {
                 conversationHistory = conversationHistory.slice(-20);
@@ -41,37 +39,34 @@ document.addEventListener('DOMContentLoaded', function() {
             const aiResponse = await response.text();
             
             if (aiResponse) {
-                // Extract any code block
+                // Extract code block if present
                 const codeMatch = aiResponse.match(/```[\s\S]*?```/);
-                const code = codeMatch ? codeMatch[0].replace(/```/g, '').trim() : null;
                 
-                // Clean chat message and format with proper spacing
+                // Clean message and preserve line breaks
                 let cleanedMessage = aiResponse
                     .replace(/```[\s\S]*?```/g, '')
-                    .replace(/\n{3,}/g, '\n\n')  // Limit consecutive newlines
-                    .trim()
-                    .split('\n')
-                    .map(line => line.trim())
-                    .join('\n');
+                    .trim();
 
-                // Add indication if there's code
-                if (code) {
-                    cleanedMessage += '\n\nI\'ve provided the complete code solution in the code section below.';
+                // Indicate code presence
+                if (codeMatch) {
+                    cleanedMessage += '\n\nI\'ve provided the code solution below.';
                 }
 
+                // Display formatted message
                 appendMessage('AI: ' + cleanedMessage, 'ai-message');
-                
-                // Update code display if there's code
-                if (code) {
+
+                // Handle code display
+                if (codeMatch) {
+                    const code = codeMatch[0].replace(/```/g, '').trim();
                     codeOutput.innerHTML = `
-                        <div class="code-container">
-                            <div class="code-header">
-                                <span>Code Solution</span>
-                                <button class="copy-button" onclick="navigator.clipboard.writeText(\`${code}\`)">
-                                    Copy Code
-                                </button>
-                            </div>
-                            <pre class="code-block">${code}</pre>
+                        <div class="code-header">
+                            <span>Code Solution</span>
+                            <button onclick="navigator.clipboard.writeText(\`${code.replace(/`/g, '\\`')}\`)" class="copy-button">
+                                Copy Code
+                            </button>
+                        </div>
+                        <div class="code-content">
+                            <pre><code>${escapeHtml(code)}</code></pre>
                         </div>
                     `;
                 } else {
@@ -86,15 +81,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Escape HTML to prevent code execution
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Preserve line breaks in messages
     function appendMessage(message, className) {
         const messageDiv = document.createElement('div');
         messageDiv.className = className;
-        // Use <pre> for chat to maintain formatting but wrap text
-        const preElement = document.createElement('pre');
-        preElement.style.whiteSpace = 'pre-wrap';
-        preElement.style.wordBreak = 'break-word';
-        preElement.textContent = message;
-        messageDiv.appendChild(preElement);
+        
+        // Split by newlines and create paragraphs
+        const paragraphs = message.split('\n');
+        paragraphs.forEach((para, index) => {
+            if (para.trim()) {
+                const p = document.createElement('p');
+                p.textContent = para;
+                messageDiv.appendChild(p);
+            } else if (index < paragraphs.length - 1) {
+                // Add spacing for empty lines (except at the end)
+                messageDiv.appendChild(document.createElement('br'));
+            }
+        });
+
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
