@@ -5,13 +5,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendButton = document.getElementById('send-button');
     const modelSelect = document.getElementById('model-select');
     const codeOutput = document.getElementById('code-output');
+    const hiddenCodeArea = document.createElement('textarea');
+    hiddenCodeArea.style.display = 'none';
+    document.body.appendChild(hiddenCodeArea);
 
-    // Fetch available models when page loads
     async function fetchModels() {
         try {
             const response = await fetch('https://text.pollinations.ai/models');
             const models = await response.json();
-            
             modelSelect.innerHTML = models
                 .map(model => `<option value="${model.name}">${model.description}</option>`)
                 .join('');
@@ -26,28 +27,35 @@ document.addEventListener('DOMContentLoaded', function() {
         appendMessage('User: ' + message, 'user-message');
 
         try {
-            // Use URL encoded parameters for the request
             const encodedMessage = encodeURIComponent(message);
             const url = `https://text.pollinations.ai/${encodedMessage}?model=${selectedModel}`;
-
             const response = await fetch(url);
-            
-            // Get raw text response
             const aiResponse = await response.text();
             
             if (aiResponse) {
-                appendMessage('AI: ' + aiResponse, 'ai-message');
+                // Extract code blocks using either backticks or [CODE] tags
+                const codeBlocks = aiResponse.match(/```[\s\S]*?```|\[CODE\][\s\S]*?\[\/CODE\]/g) || [];
                 
-                // Process code blocks if present
-                const codeMatch = aiResponse.match(/\[CODE\]([\s\S]*?)\[\/CODE\]/g);
-                if (codeMatch) {
+                // Store all code blocks in hidden textarea
+                hiddenCodeArea.value = codeBlocks
+                    .map(block => block
+                        .replace(/```\w*\n?|```$|\[CODE\]|\[\/CODE\]/g, '')
+                        .trim())
+                    .join('\n\n// -------------------- //\n\n');
+
+                // Display cleaned message in chat (without code blocks)
+                const cleanedMessage = aiResponse
+                    .replace(/```[\s\S]*?```|\[CODE\][\s\S]*?\[\/CODE\]/g, '')
+                    .trim();
+                appendMessage('AI: ' + cleanedMessage, 'ai-message');
+
+                // Display code in code output area
+                if (hiddenCodeArea.value) {
                     codeOutput.innerHTML = '';
-                    codeMatch.forEach(block => {
-                        const codeContent = block.replace(/\[CODE\]|\[\/CODE\]/g, '').trim();
-                        const codeSection = document.createElement('pre');
-                        codeSection.textContent = codeContent;
-                        codeOutput.appendChild(codeSection);
-                    });
+                    const codeSection = document.createElement('pre');
+                    codeSection.className = 'code-block';
+                    codeSection.textContent = hiddenCodeArea.value;
+                    codeOutput.appendChild(codeSection);
                 }
             }
         } catch (error) {
@@ -64,10 +72,10 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // Event listeners
     modelSelect.addEventListener('change', () => {
         chatMessages.innerHTML = '';
         codeOutput.innerHTML = '';
+        hiddenCodeArea.value = '';
         appendMessage('System: Switched to ' + modelSelect.options[modelSelect.selectedIndex].text, 'system-message');
     });
 
@@ -86,6 +94,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Initialize
     fetchModels();
 });
