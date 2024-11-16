@@ -150,12 +150,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-	window.onload = function() {
-		if (document.readyState === 'complete') {
-			location.reload(true);  // Force a clean reload once
-		}
-	};
-
     // Initialize by loading models
     fetchModels();
 });
