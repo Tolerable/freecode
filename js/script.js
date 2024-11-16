@@ -56,9 +56,9 @@ document.addEventListener('DOMContentLoaded', function() {
 				// Extract code block if present
 				const codeMatch = aiResponse.match(/```[\s\S]*?```/);
 				
-				// Clean message and preserve line breaks
+				// Clean message but only remove the code block, keeping natural spacing
 				let cleanedMessage = aiResponse
-					.replace(/```[\s\S]*?```/g, '')
+					.replace(/```[\s\S]*?```/g, '\n')  // Replace code block with single newline
 					.trim();
 
 				// Display formatted message
@@ -149,6 +149,12 @@ document.addEventListener('DOMContentLoaded', function() {
             sendButton.click();
         }
     });
+
+	window.onload = function() {
+		if (document.readyState === 'complete') {
+			location.reload(true);  // Force a clean reload once
+		}
+	};
 
     // Initialize by loading models
     fetchModels();
