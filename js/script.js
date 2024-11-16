@@ -17,18 +17,19 @@ document.addEventListener('DOMContentLoaded', function() {
         - Add proper spacing in explanations`
     };
 
-    async function fetchModels() {
-        try {
-            const response = await fetch('https://text.pollinations.ai/models');
-            const models = await response.json();
-            modelSelect.innerHTML = models
-                .map(model => `<option value="${model.name}">${model.description}</option>`)
-                .join('');
-        } catch (error) {
-            console.error('Error fetching models:', error);
-            appendMessage('System: Failed to load models', 'error-message');
-        }
-    }
+	async function fetchModels() {
+		try {
+			const response = await fetch('https://text.pollinations.ai/models');
+			const models = await response.json();
+			modelSelect.innerHTML = models
+				.map(model => `<option value="${model.name}">${model.description} (${model.type})</option>`)
+				.join('');
+		} catch (error) {
+			console.error("Error fetching models:", error);
+			modelSelect.innerHTML = '<option value="openai">OpenAI GPT-4o (chat)</option>';  // Fallback option
+			appendMessage('System: Failed to load models, using default', 'error-message');
+		}
+	}
 
     async function sendMessage(message) {
         const selectedModel = modelSelect.value;
