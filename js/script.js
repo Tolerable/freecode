@@ -17,6 +17,19 @@ document.addEventListener('DOMContentLoaded', function() {
         - Add proper spacing in explanations`
     };
 
+    async function fetchModels() {
+        try {
+            const response = await fetch('https://text.pollinations.ai/models');
+            const models = await response.json();
+            modelSelect.innerHTML = models
+                .map(model => `<option value="${model.name}">${model.description}</option>`)
+                .join('');
+        } catch (error) {
+            console.error('Error fetching models:', error);
+            appendMessage('System: Failed to load models', 'error-message');
+        }
+    }
+
     async function sendMessage(message) {
         const selectedModel = modelSelect.value;
         appendMessage('User: ' + message, 'user-message');
@@ -60,15 +73,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     const code = codeMatch[0].replace(/```/g, '').trim();
                     codeOutput.innerHTML = `
                         <div class="code-header">
-                            <span>Code Solution</span>
-                            <button onclick="navigator.clipboard.writeText(\`${code.replace(/`/g, '\\`')}\`)" class="copy-button">
-                                Copy Code
-                            </button>
+                            <h3>Code Solution</h3>
+                            <button onclick="copyCode()" class="copy-button">Copy Code</button>
                         </div>
-                        <div class="code-content">
-                            <pre><code>${escapeHtml(code)}</code></pre>
-                        </div>
+                        <pre><code>${escapeHtml(code)}</code></pre>
                     `;
+
+                    // Add copy functionality
+                    window.copyCode = function() {
+                        const tempTextArea = document.createElement('textarea');
+                        tempTextArea.value = code;
+                        document.body.appendChild(tempTextArea);
+                        tempTextArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tempTextArea);
+                        
+                        const copyBtn = document.querySelector('.copy-button');
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout(() => copyBtn.textContent = 'Copy Code', 2000);
+                    };
                 } else {
                     codeOutput.innerHTML = '';
                 }
@@ -113,7 +136,6 @@ document.addEventListener('DOMContentLoaded', function() {
     modelSelect.addEventListener('change', () => {
         chatMessages.innerHTML = '';
         codeOutput.innerHTML = '';
-        hiddenCodeArea.value = '';
         conversationHistory = [];
         appendMessage('System: Switched to ' + modelSelect.options[modelSelect.selectedIndex].text, 'system-message');
     });
@@ -133,5 +155,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Initialize by loading models
     fetchModels();
 });
