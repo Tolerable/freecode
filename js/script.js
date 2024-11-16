@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Populate model select dropdown
             modelSelect.innerHTML = availableModels
-                .map(model => `<option value="${model.name}" data-type="${model.type}">${model.description}</option>`)
+                .map(model => `<option value="${model.name}">${model.description}</option>`)
                 .join('');
         } catch (error) {
             console.error('Error fetching models:', error);
@@ -27,56 +27,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function sendMessage(message) {
         const selectedModel = modelSelect.value;
-        const modelType = modelSelect.options[modelSelect.selectedIndex].dataset.type;
-        
         appendMessage('User: ' + message, 'user-message');
-        
-        // Add message to conversation history
-        conversationHistory.push({ role: 'user', content: message });
 
         try {
-            let payload = {
-                messages: [...conversationHistory],
-                model: selectedModel
-            };
+            // Create the URL with parameters
+            const encodedMessage = encodeURIComponent(message);
+            const seed = Math.floor(Math.random() * 1000000); // Random seed
+            const url = `https://text.pollinations.ai/${encodedMessage}?model=${selectedModel}&seed=${seed}&private=true`;
 
-            // Special handling for different model types
-            if (modelType === 'completion') {
-                // For completion-type models, format differently
-                payload = {
-                    prompt: message,
-                    model: selectedModel
-                };
-            }
-
-            // Some models require system message in each request
-            if (['mistral', 'mistral-large', 'unity'].includes(selectedModel)) {
-                payload.messages.unshift({
-                    role: 'system',
-                    content: 'You are a helpful AI assistant focused on coding and technical tasks.'
-                });
-            }
-
-            const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await response.json();
+            const response = await fetch(url);
             
-            if (data.choices && data.choices[0]) {
-                const aiResponse = data.choices[0].message.content;
+            // Handle the raw text response
+            const aiResponse = await response.text();
+            
+            if (aiResponse) {
                 appendMessage('AI: ' + aiResponse, 'ai-message');
                 
-                // Add AI response to conversation history
-                conversationHistory.push({
-                    role: 'assistant',
-                    content: aiResponse
-                });
-
                 // Handle code blocks
                 const codeBlocks = aiResponse.match(/```[\s\S]*?```/g);
                 if (codeBlocks) {
