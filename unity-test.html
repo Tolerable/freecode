@@ -898,6 +898,7 @@
 			
 			const modelSelect = document.querySelector('.model-select');
 			const personaSelect = document.querySelector('.persona-select');
+			
 			modelSelect.innerHTML = '';
 			
 			// Create option groups
@@ -906,13 +907,20 @@
 			
 			const customModelsGroup = document.createElement('optgroup');
 			customModelsGroup.label = "Custom Models";
+
+			// Add Unity first in custom models
+			const unityOption = document.createElement('option');
+			unityOption.value = "unity";
+			unityOption.textContent = "Unity AI";
+			customModelsGroup.appendChild(unityOption);
 			
-			// Sort and organize models
+			// Sort and add other models
 			data.forEach(model => {
+				if (model.name === 'unity') return; // Skip Unity as we already added it
+				
 				const option = document.createElement('option');
 				option.value = model.name;
 				
-				// Format display name
 				let displayName = model.name.split('-').map(word => 
 					word.charAt(0).toUpperCase() + word.slice(1)
 				).join(' ');
@@ -930,15 +938,8 @@
 						break;
 				}
 				
-				// Add creator if available
-				if (model.description) {
-					const creator = model.description.split('by')[1]?.trim() || '';
-					displayName = creator ? `${displayName} (${creator})` : displayName;
-				}
-				
 				option.textContent = displayName;
 				
-				// Add to appropriate group
 				if (model.baseModel) {
 					baseModelsGroup.appendChild(option);
 				} else {
@@ -947,25 +948,26 @@
 			});
 			
 			// Add groups to select
-			modelSelect.appendChild(baseModelsGroup);
 			modelSelect.appendChild(customModelsGroup);
+			modelSelect.appendChild(baseModelsGroup);
 			
-			// Set default selection
-			const savedModel = localStorage.getItem('selectedModel') || 'unity';
-			modelSelect.value = savedModel;
-			
-			// Update persona selector state
-			updatePersonaSelector(savedModel);
+			// Set default selection to Unity
+			modelSelect.value = 'unity';
 			
 			// Add change handler
 			modelSelect.addEventListener('change', (e) => {
 				const selectedModel = e.target.value;
-				localStorage.setItem('selectedModel', selectedModel);
-				updatePersonaSelector(selectedModel);
+				const isUnityModel = selectedModel === 'unity';
 				
-				// Reset conversation if model changes
-				conversationHistory = [];
-				localStorage.removeItem('conversationHistory');
+				// Update persona selector state
+				personaSelect.disabled = !isUnityModel;
+				personaSelect.style.opacity = isUnityModel ? '1' : '0.5';
+				
+				// Reset to default if not Unity model
+				if (!isUnityModel) {
+					personaSelect.value = 'default';
+					loadPersona({ dataset: { persona: 'default' } });
+				}
 				
 				// Add model switch message
 				const modelName = e.target.selectedOptions[0].textContent;
@@ -974,6 +976,7 @@
 			
 		} catch (error) {
 			console.error('Error fetching models:', error);
+			const modelSelect = document.querySelector('.model-select');
 			modelSelect.innerHTML = '<option value="unity">Unity AI</option>';
 		}
 	}
@@ -1694,127 +1697,165 @@ clearChat.addEventListener('click', () => {
         aiDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 
-    // Additional Styles
-    const additionalStyles = document.createElement('style');
-    additionalStyles.textContent = `
-        .layout-transitioning {
-            transition: all 0.3s ease-in-out;
-        }
+	// Additional Styles
+	const additionalStyles = document.createElement('style');
+	additionalStyles.textContent = `
+		.layout-transitioning {
+			transition: all 0.3s ease-in-out;
+		}
 
-        .button-press {
-            transform: scale(0.95);
-            transition: transform 0.15s ease;
-        }
+		.button-press {
+			transform: scale(0.95);
+			transition: transform 0.15s ease;
+		}
 
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--chat-primary);
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
+		.loading-spinner {
+			display: inline-block;
+			width: 20px;
+			height: 20px;
+			border: 2px solid var(--chat-primary);
+			border-radius: 50%;
+			border-top-color: transparent;
+			animation: spin 1s linear infinite;
+			margin-right: 10px;
+		}
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+		@keyframes spin {
+			to { transform: rotate(360deg); }
+		}
 
-        .error-popup {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #ef4444;
-            color: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            opacity: 0;
-            transform: translateX(100%);
-            transition: all 0.3s ease;
-        }
+		.error-popup {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			background: #ef4444;
+			color: white;
+			padding: 1rem;
+			border-radius: 0.5rem;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			opacity: 0;
+			transform: translateX(100%);
+			transition: all 0.3s ease;
+		}
 
-        .error-popup.show {
-            opacity: 1;
-            transform: translateX(0);
-        }
+		.error-popup.show {
+			opacity: 1;
+			transform: translateX(0);
+		}
 
-        .confirm-dialog {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
+		.confirm-dialog {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(0, 0, 0, 0.5);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			opacity: 0;
+			transition: opacity 0.3s ease;
+		}
 
-        .confirm-dialog.show {
-            opacity: 1;
-        }
+		.confirm-dialog.show {
+			opacity: 1;
+		}
 
-        .confirm-content {
-            background: var(--chat-bg);
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            border: 1px solid var(--chat-primary);
-        }
+		.confirm-content {
+			background: var(--chat-bg);
+			padding: 1.5rem;
+			border-radius: 0.5rem;
+			border: 1px solid var(--chat-primary);
+		}
 
-        .confirm-buttons {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-            justify-content: flex-end;
-        }
+		.confirm-buttons {
+			display: flex;
+			gap: 1rem;
+			margin-top: 1rem;
+			justify-content: flex-end;
+		}
 
-        .loading-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            animation: rotate 2s linear infinite;
-        }
+		.loading-overlay {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			animation: rotate 2s linear infinite;
+		}
 
-        @keyframes rotate {
-            from { transform: translate(-50%, -50%) rotate(0deg); }
-            to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
+		@keyframes rotate {
+			from { transform: translate(-50%, -50%) rotate(0deg); }
+			to { transform: translate(-50%, -50%) rotate(360deg); }
+		}
 
-        .drag-over {
-            border: 2px dashed var(--chat-primary) !important;
-            background: rgba(59, 130, 246, 0.1) !important;
-        }
+		.drag-over {
+			border: 2px dashed var(--chat-primary) !important;
+			background: rgba(59, 130, 246, 0.1) !important;
+		}
 
-        .image-upload-feedback {
-            position: absolute;
-            bottom: calc(100% + 5px);
-            right: 10px;
-            background: var(--chat-primary);
-            color: white;
-            padding: 0.5rem;
-            border-radius: 0.25rem;
-            animation: fadeInOut 2s ease forwards;
-        }
+		.image-upload-feedback {
+			position: absolute;
+			bottom: calc(100% + 5px);
+			right: 10px;
+			background: var(--chat-primary);
+			color: white;
+			padding: 0.5rem;
+			border-radius: 0.25rem;
+			animation: fadeInOut 2s ease forwards;
+		}
 
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateY(10px); }
-            10% { opacity: 1; transform: translateY(0); }
-            90% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-10px); }
-        }
-    `;
-    document.head.appendChild(additionalStyles);
+		@keyframes fadeInOut {
+			0% { opacity: 0; transform: translateY(10px); }
+			10% { opacity: 1; transform: translateY(0); }
+			90% { opacity: 1; transform: translateY(0); }
+			100% { opacity: 0; transform: translateY(-10px); }
+		}
+
+		.model-select,
+		.persona-select {
+			background: linear-gradient(to bottom, #1e293b 0%, #0f172a 100%) !important;
+			border: 1px solid #3b82f6 !important;
+			border-radius: 0.375rem !important;
+			color: #e2e8f0 !important;
+			padding: 0.5rem 2.5rem 0.5rem 1rem !important;
+			font-size: 0.875rem !important;
+			cursor: pointer !important;
+			appearance: none !important;
+			background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23e2e8f0'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+			background-repeat: no-repeat !important;
+			background-position: right 0.75rem center !important;
+			background-size: 1em !important;
+			min-width: 200px !important;
+		}
+
+		.model-select optgroup,
+		.model-select option,
+		.persona-select option {
+			background: #1e293b !important;
+			color: #e2e8f0 !important;
+			padding: 0.5rem !important;
+		}
+
+		.model-select:disabled,
+		.persona-select:disabled {
+			opacity: 0.5 !important;
+			cursor: not-allowed !important;
+		}
+
+		.menu-controls {
+			display: flex !important;
+			gap: 1rem !important;
+			align-items: center !important;
+		}
+	`;
+	document.head.appendChild(additionalStyles);
 
     // Initialize everything
     async function initialize() {
         setupEventListeners();
         initializeVoice();
         setupImageHandling();
+		fetchModels();
         await restoreState();
 
         // Make necessary functions available globally
