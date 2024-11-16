@@ -33,28 +33,49 @@ document.addEventListener('DOMContentLoaded', function() {
             const aiResponse = await response.text();
             
             if (aiResponse) {
-                // Extract code blocks using either backticks or [CODE] tags
+                // Extract code blocks
                 const codeBlocks = aiResponse.match(/```[\s\S]*?```|\[CODE\][\s\S]*?\[\/CODE\]/g) || [];
                 
-                // Store all code blocks in hidden textarea
-                hiddenCodeArea.value = codeBlocks
-                    .map(block => block
-                        .replace(/```\w*\n?|```$|\[CODE\]|\[\/CODE\]/g, '')
-                        .trim())
-                    .join('\n\n// -------------------- //\n\n');
-
-                // Display cleaned message in chat (without code blocks)
-                const cleanedMessage = aiResponse
-                    .replace(/```[\s\S]*?```|\[CODE\][\s\S]*?\[\/CODE\]/g, '')
+                // Clean the message by removing all code blocks and ### markers
+                let cleanedMessage = aiResponse
+                    .replace(/```[\s\S]*?```|\[CODE\][\s\S]*?\[\/CODE\]/g, '')  // Remove code blocks
+                    .replace(/###[\s\S]*?###/g, '')  // Remove ### sections
+                    .replace(/\n{3,}/g, '\n\n')  // Remove excessive newlines
                     .trim();
+
+                // Add indicator if there's code
+                if (codeBlocks.length > 0) {
+                    cleanedMessage += '\n(Code examples available in the code section below)';
+                }
+
+                // Display clean message in chat
                 appendMessage('AI: ' + cleanedMessage, 'ai-message');
 
-                // Display code in code output area
-                if (hiddenCodeArea.value) {
+                // Handle code blocks if present
+                if (codeBlocks.length > 0) {
                     codeOutput.innerHTML = '';
+                    hiddenCodeArea.value = '';
+                    let formattedCode = '';
+                    
+                    codeBlocks.forEach((block, index) => {
+                        // Clean the code block
+                        const cleanCode = block
+                            .replace(/```\w*\n?|```$|\[CODE\]|\[\/CODE\]/g, '')
+                            .trim();
+                        
+                        // Add separator between blocks
+                        if (index > 0) {
+                            formattedCode += '\n\n// -------------------- //\n\n';
+                        }
+                        
+                        formattedCode += cleanCode;
+                    });
+
+                    // Store in hidden textarea and display in code output
+                    hiddenCodeArea.value = formattedCode;
                     const codeSection = document.createElement('pre');
                     codeSection.className = 'code-block';
-                    codeSection.textContent = hiddenCodeArea.value;
+                    codeSection.textContent = formattedCode;
                     codeOutput.appendChild(codeSection);
                 }
             }
