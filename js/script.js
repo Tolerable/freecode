@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				
 				// Clean message but only remove the code block, keeping natural spacing
 				let cleanedMessage = aiResponse
-					.replace(/```[\s\S]*?```/g, '\n')  // Replace code block with single newline
+					.replace(/```[\s\S]*?```/g, '')
 					.trim();
 
 				// Display formatted message
