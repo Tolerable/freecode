@@ -111,26 +111,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Preserve line breaks in messages
-    function appendMessage(message, className) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = className;
-        
-        // Split by newlines and create paragraphs
-        const paragraphs = message.split('\n');
-        paragraphs.forEach((para, index) => {
-            if (para.trim()) {
-                const p = document.createElement('p');
-                p.textContent = para;
-                messageDiv.appendChild(p);
-            } else if (index < paragraphs.length - 1) {
-                // Add spacing for empty lines (except at the end)
-                messageDiv.appendChild(document.createElement('br'));
-            }
-        });
+	function appendMessage(message, className) {
+		const messageDiv = document.createElement('div');
+		messageDiv.className = className;
+		
+		// Split by newlines but handle spacing better
+		const paragraphs = message.split('\n')
+			.map(para => para.trim())
+			.filter(para => para.length > 0); // Remove empty lines
+		
+		paragraphs.forEach((para, index) => {
+			const p = document.createElement('p');
+			p.textContent = para;
+			messageDiv.appendChild(p);
+			
+			// Add only one line break between paragraphs, not after the last one
+			if (index < paragraphs.length - 1) {
+				messageDiv.appendChild(document.createElement('br'));
+			}
+		});
 
-        chatMessages.appendChild(messageDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+		chatMessages.appendChild(messageDiv);
+		chatMessages.scrollTop = chatMessages.scrollHeight;
+	}
 
     modelSelect.addEventListener('change', () => {
         chatMessages.innerHTML = '';
