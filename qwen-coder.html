@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #codeOutput {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            white-space: pre-wrap; /* Preserves whitespace in the output */
+        }
+    </style>
+</head>
+<body>
+    <h1>AI Code Generator</h1>
+    <form id="codeForm">
+        <label for="query">Enter your coding query:</label><br>
+        <textarea id="query" name="query" rows="4" cols="50" placeholder="e.g., 'Write a simple Java program to print 'Hello, World!'"></textarea><br><br>
+        <button type="submit">Generate Code</button>
+    </form>
+    <div id="codeOutput"></div>
+
+    <script>
+        document.getElementById('codeForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            const query = document.getElementById('query').value;
+            const apiUrl = `https://text.pollinations.ai/${encodeURIComponent(query)}?model=qwen-coder`;
+
+            fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Assuming the API returns an object with a 'code' property containing the generated code
+                document.getElementById('codeOutput').textContent = data.code;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('codeOutput').textContent = 'An error occurred while generating the code. Please try again later.';
+            });
+        });
+    </script>
+</body>
+</html>
