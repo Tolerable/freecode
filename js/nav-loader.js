@@ -1,18 +1,23 @@
-// js/nav-loader.js
 document.addEventListener('DOMContentLoaded', function() {
-    // Load the navigation bar
+    // Create a container div with a specific class for scoping
+    const navContainer = document.createElement('div');
+    navContainer.className = 'ai-ministries-nav-only'; // Scoping class
+    
     fetch('components/nav.html')
         .then(response => response.text())
-        .then(data => {
-            // Insert the navigation at the start of the body
-            document.body.insertAdjacentHTML('afterbegin', data);
+        .then(html => {
+            navContainer.innerHTML = html;
+            document.body.insertBefore(navContainer, document.body.firstChild);
             
-            // Add mobile menu functionality after nav is loaded
+            // Add mobile menu functionality
             const mobileMenuButton = document.getElementById('mobile-menu-button');
             const mobileMenu = document.getElementById('mobile-menu');
             
-            mobileMenuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-            });
-        });
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        })
+        .catch(error => console.error('Error loading navigation:', error));
 });
