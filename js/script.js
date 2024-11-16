@@ -66,10 +66,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 				// Only update code display if there's new code
 				if (codeMatch) {
-					const code = codeMatch[0].replace(/```/g, '').trim();
+					const code = codeMatch[0]
+						.replace(/```\w*\n/, '')  // Remove opening ``` and language identifier
+						.replace(/```$/, '')      // Remove closing ```
+						.trim();
+
 					codeOutput.innerHTML = `
 						<div class="code-header">
-							<h3>Code Solution</h3>
+							<span>Code Solution</span>
 							<button onclick="copyCode()" class="copy-button">Copy Code</button>
 						</div>
 						<pre><code>${escapeHtml(code)}</code></pre>
@@ -78,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					// Add copy functionality
 					window.copyCode = function() {
 						const tempTextArea = document.createElement('textarea');
-						tempTextArea.value = code;
+						tempTextArea.value = code;  // This will now have the clean code without language identifier
 						document.body.appendChild(tempTextArea);
 						tempTextArea.select();
 						document.execCommand('copy');
