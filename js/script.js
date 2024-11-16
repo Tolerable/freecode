@@ -5,108 +5,80 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendButton = document.getElementById('send-button');
     const modelSelect = document.getElementById('model-select');
     const codeOutput = document.getElementById('code-output');
-    const hiddenCodeArea = document.createElement('textarea');
-    hiddenCodeArea.style.display = 'none';
-    document.body.appendChild(hiddenCodeArea);
-
+    
     let conversationHistory = [];
 
-    // System message to instruct AI behavior
     const systemMessage = {
         role: 'system',
-        content: `You are a helpful AI assistant focused on coding and technical discussions. 
-        Maintain conversation context and remember previous messages.
-        When sharing code examples, use triple backticks or markdown code blocks.
-        Provide clear explanations along with your code.
-        Keep responses technical but friendly.
-        Format code properly with correct indentation and syntax.`
+        content: `You are a helpful AI coding assistant. Format your responses clearly:
+        - Use natural paragraphs with proper spacing for explanations
+        - Put complete code solutions in a single code block using triple backticks
+        - Keep code blocks complete and self-contained
+        - Maintain conversation context and personality
+        - Add line breaks between thoughts for readability`
     };
-
-    async function fetchModels() {
-        try {
-            const response = await fetch('https://text.pollinations.ai/models');
-            const models = await response.json();
-            modelSelect.innerHTML = models
-                .map(model => `<option value="${model.name}">${model.description}</option>`)
-                .join('');
-        } catch (error) {
-            console.error('Error fetching models:', error);
-            appendMessage('System: Failed to load models', 'error-message');
-        }
-    }
 
     async function sendMessage(message) {
         const selectedModel = modelSelect.value;
         appendMessage('User: ' + message, 'user-message');
 
         try {
-            // Add user message to history
+            // Keep conversation history limited but meaningful
             conversationHistory.push({ role: 'user', content: message });
-
-            // Keep last 10 messages from each participant
             if (conversationHistory.length > 20) {
                 conversationHistory = conversationHistory.slice(-20);
             }
 
-            // Prepare the POST request
-            const requestBody = {
-                messages: [systemMessage, ...conversationHistory],
-                model: selectedModel
-            };
-
             const response = await fetch('https://text.pollinations.ai/', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: [systemMessage, ...conversationHistory],
+                    model: selectedModel
+                })
             });
 
             const aiResponse = await response.text();
             
             if (aiResponse) {
-                // Extract code blocks
-                const codeBlocks = aiResponse.match(/```[\s\S]*?```/g) || [];
+                // Extract any code block
+                const codeMatch = aiResponse.match(/```[\s\S]*?```/);
+                const code = codeMatch ? codeMatch[0].replace(/```/g, '').trim() : null;
                 
-                // Clean the message for chat display
+                // Clean chat message and format with proper spacing
                 let cleanedMessage = aiResponse
                     .replace(/```[\s\S]*?```/g, '')
-                    .trim();
+                    .replace(/\n{3,}/g, '\n\n')  // Limit consecutive newlines
+                    .trim()
+                    .split('\n')
+                    .map(line => line.trim())
+                    .join('\n');
 
-                if (codeBlocks.length > 0) {
-                    cleanedMessage += '\n(Code examples available in the code section below)';
+                // Add indication if there's code
+                if (code) {
+                    cleanedMessage += '\n\nI\'ve provided the complete code solution in the code section below.';
                 }
 
-                // Display clean message in chat
                 appendMessage('AI: ' + cleanedMessage, 'ai-message');
-
-                // Add AI response to history
-                conversationHistory.push({ role: 'assistant', content: aiResponse });
-
-                // Handle code blocks
-                if (codeBlocks.length > 0) {
+                
+                // Update code display if there's code
+                if (code) {
+                    codeOutput.innerHTML = `
+                        <div class="code-container">
+                            <div class="code-header">
+                                <span>Code Solution</span>
+                                <button class="copy-button" onclick="navigator.clipboard.writeText(\`${code}\`)">
+                                    Copy Code
+                                </button>
+                            </div>
+                            <pre class="code-block">${code}</pre>
+                        </div>
+                    `;
+                } else {
                     codeOutput.innerHTML = '';
-                    hiddenCodeArea.value = '';
-                    let formattedCode = '';
-                    
-                    codeBlocks.forEach((block, index) => {
-                        const cleanCode = block
-                            .replace(/```\w*\n?|```$/g, '')
-                            .trim();
-                        
-                        if (index > 0) {
-                            formattedCode += '\n\n// -------------------- //\n\n';
-                        }
-                        
-                        formattedCode += cleanCode;
-                    });
-
-                    hiddenCodeArea.value = formattedCode;
-                    const codeSection = document.createElement('pre');
-                    codeSection.className = 'code-block';
-                    codeSection.textContent = formattedCode;
-                    codeOutput.appendChild(codeSection);
                 }
+
+                conversationHistory.push({ role: 'assistant', content: aiResponse });
             }
         } catch (error) {
             console.error('Error:', error);
@@ -117,7 +89,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function appendMessage(message, className) {
         const messageDiv = document.createElement('div');
         messageDiv.className = className;
-        messageDiv.textContent = message;
+        // Use <pre> for chat to maintain formatting but wrap text
+        const preElement = document.createElement('pre');
+        preElement.style.whiteSpace = 'pre-wrap';
+        preElement.style.wordBreak = 'break-word';
+        preElement.textContent = message;
+        messageDiv.appendChild(preElement);
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
