@@ -6,17 +6,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const modelSelect = document.getElementById('model-select');
     const codeOutput = document.getElementById('code-output');
 
-    let conversationHistory = [];
-    let availableModels = [];
-
     // Fetch available models when page loads
     async function fetchModels() {
         try {
             const response = await fetch('https://text.pollinations.ai/models');
-            availableModels = await response.json();
+            const models = await response.json();
             
-            // Populate model select dropdown
-            modelSelect.innerHTML = availableModels
+            modelSelect.innerHTML = models
                 .map(model => `<option value="${model.name}">${model.description}</option>`)
                 .join('');
         } catch (error) {
@@ -30,26 +26,26 @@ document.addEventListener('DOMContentLoaded', function() {
         appendMessage('User: ' + message, 'user-message');
 
         try {
-            // Create the URL with parameters
+            // Use URL encoded parameters for the request
             const encodedMessage = encodeURIComponent(message);
-            const seed = Math.floor(Math.random() * 1000000); // Random seed
-            const url = `https://text.pollinations.ai/${encodedMessage}?model=${selectedModel}&seed=${seed}&private=true`;
+            const url = `https://text.pollinations.ai/${encodedMessage}?model=${selectedModel}`;
 
             const response = await fetch(url);
             
-            // Handle the raw text response
+            // Get raw text response
             const aiResponse = await response.text();
             
             if (aiResponse) {
                 appendMessage('AI: ' + aiResponse, 'ai-message');
                 
-                // Handle code blocks
-                const codeBlocks = aiResponse.match(/```[\s\S]*?```/g);
-                if (codeBlocks) {
+                // Process code blocks if present
+                const codeMatch = aiResponse.match(/\[CODE\]([\s\S]*?)\[\/CODE\]/g);
+                if (codeMatch) {
                     codeOutput.innerHTML = '';
-                    codeBlocks.forEach(block => {
+                    codeMatch.forEach(block => {
+                        const codeContent = block.replace(/\[CODE\]|\[\/CODE\]/g, '').trim();
                         const codeSection = document.createElement('pre');
-                        codeSection.textContent = block.replace(/```\w*\n?|```$/g, '');
+                        codeSection.textContent = codeContent;
                         codeOutput.appendChild(codeSection);
                     });
                 }
@@ -68,9 +64,8 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // Clear history when model changes
+    // Event listeners
     modelSelect.addEventListener('change', () => {
-        conversationHistory = [];
         chatMessages.innerHTML = '';
         codeOutput.innerHTML = '';
         appendMessage('System: Switched to ' + modelSelect.options[modelSelect.selectedIndex].text, 'system-message');
@@ -91,6 +86,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Initialize by fetching models
+    // Initialize
     fetchModels();
 });
