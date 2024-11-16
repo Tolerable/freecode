@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
     hiddenCodeArea.style.display = 'none';
     document.body.appendChild(hiddenCodeArea);
 
+    let conversationHistory = [];
+
     async function fetchModels() {
         try {
             const response = await fetch('https://text.pollinations.ai/models');
@@ -27,7 +29,15 @@ document.addEventListener('DOMContentLoaded', function() {
         appendMessage('User: ' + message, 'user-message');
 
         try {
-            const encodedMessage = encodeURIComponent(message);
+            // Add user message to conversation history
+            conversationHistory.push({ role: 'user', content: message });
+
+            // Create the full context with conversation history
+            const context = conversationHistory.map(msg => 
+                `${msg.role === 'user' ? 'Human' : 'Assistant'}: ${msg.content}`
+            ).join('\n');
+
+            const encodedMessage = encodeURIComponent(context);
             const url = `https://text.pollinations.ai/${encodedMessage}?model=${selectedModel}`;
             const response = await fetch(url);
             const aiResponse = await response.text();
@@ -36,20 +46,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Extract code blocks
                 const codeBlocks = aiResponse.match(/```[\s\S]*?```|\[CODE\][\s\S]*?\[\/CODE\]/g) || [];
                 
-                // Clean the message by removing all code blocks and ### markers
+                // Clean the message
                 let cleanedMessage = aiResponse
-                    .replace(/```[\s\S]*?```|\[CODE\][\s\S]*?\[\/CODE\]/g, '')  // Remove code blocks
-                    .replace(/###[\s\S]*?###/g, '')  // Remove ### sections
-                    .replace(/\n{3,}/g, '\n\n')  // Remove excessive newlines
+                    .replace(/```[\s\S]*?```|\[CODE\][\s\S]*?\[\/CODE\]/g, '')
+                    .replace(/###[\s\S]*?###/g, '')
+                    .replace(/\n{3,}/g, '\n\n')
                     .trim();
 
-                // Add indicator if there's code
                 if (codeBlocks.length > 0) {
                     cleanedMessage += '\n(Code examples available in the code section below)';
                 }
 
                 // Display clean message in chat
                 appendMessage('AI: ' + cleanedMessage, 'ai-message');
+
+                // Add AI response to conversation history
+                conversationHistory.push({ role: 'assistant', content: aiResponse });
+
+                // Limit conversation history to last 10 messages
+                if (conversationHistory.length > 10) {
+                    conversationHistory = conversationHistory.slice(-10);
+                }
 
                 // Handle code blocks if present
                 if (codeBlocks.length > 0) {
@@ -58,12 +75,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     let formattedCode = '';
                     
                     codeBlocks.forEach((block, index) => {
-                        // Clean the code block
                         const cleanCode = block
                             .replace(/```\w*\n?|```$|\[CODE\]|\[\/CODE\]/g, '')
                             .trim();
                         
-                        // Add separator between blocks
                         if (index > 0) {
                             formattedCode += '\n\n// -------------------- //\n\n';
                         }
@@ -71,7 +86,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         formattedCode += cleanCode;
                     });
 
-                    // Store in hidden textarea and display in code output
                     hiddenCodeArea.value = formattedCode;
                     const codeSection = document.createElement('pre');
                     codeSection.className = 'code-block';
@@ -97,6 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.innerHTML = '';
         codeOutput.innerHTML = '';
         hiddenCodeArea.value = '';
+        conversationHistory = [];  // Clear conversation history when model changes
         appendMessage('System: Switched to ' + modelSelect.options[modelSelect.selectedIndex].text, 'system-message');
     });
 
