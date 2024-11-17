@@ -343,7 +343,8 @@
 			let isReferrerScrollPaused = false;
 			let referrerScrollTimeout = null;
 			let referrerScrollPauseTimeout = null;
-
+			let processing = false;
+			
             // Site history functions
             function updateSiteHistory() {
                 siteHistoryDiv.innerHTML = '';
@@ -612,30 +613,34 @@
 					return false;
 				}
 			}
-
+			
 			async function processNextImage() {
-				console.log("Processing next image...");  // Debugging log
-
-				// Check if the queue is empty or paused
-				if (isPaused || imageQueue.length === 0) {
-					console.log("Stream paused or no images in the queue.");  // Debugging log
-					setTimeout(processNextImage, 2000); // Wait and try again
+				if (isPaused || imageQueue.length === 0 || processing) {
+					setTimeout(processNextImage, 1000); // Check again after 1 second
 					return;
 				}
 
+				processing = true;
 				const { imageURL, referrer } = imageQueue.shift();  // Expect imageURL and referrer together
-				console.log("Next image to process:", imageURL, referrer);  // Debugging log
+				console.log("Processing image:", imageURL, referrer);
 
-				// Try to load and display the image
 				const success = await displayImage(imageURL, referrer);
 
 				if (success) {
-					console.log("Image processed successfully");
-					setTimeout(processNextImage, displayInterval); // Continue processing after a delay
+					console.log("Image processed successfully:", imageURL);
 				} else {
-					console.log("Failed to process image, retrying...");
-					processNextImage(); // Retry if the image failed to load
+					console.log("Error processing image:", imageURL);
 				}
+
+				// Ensure the queue does not grow indefinitely
+				if (imageQueue.length > MAX_QUEUE_SIZE) {
+					imageQueue = imageQueue.slice(0, MAX_QUEUE_SIZE);
+					console.log("Queue size exceeded max limit, trimmed to max size.");
+				}
+
+				// Continue processing after a delay
+				setTimeout(processNextImage, displayInterval);
+				processing = false;
 			}
 
 
@@ -715,17 +720,15 @@
 				evtSource.onmessage = function(event) {
 					try {
 						const data = JSON.parse(event.data);
-
-						// Log the received referrer and image URL for debugging
 						console.log("Received image data:", data);
 
 						// Check if image and prompt exist
 						if (data.imageURL && data.prompt) {
 							const prompt = decodeURIComponent(data.prompt);
 							const referrer = data.referrer;
-							
-							// Log referrer and the current site URL to verify
-							console.log("Referrer from feed:", referrer);
+
+							// Log referrer and the current site URL for debugging
+							console.log("Referrer:", referrer);
 							console.log("Current site URL:", currentSiteUrl);
 
 							// Check if the referrer matches the current site URL
@@ -758,6 +761,7 @@
 						console.error('Error parsing message:', e);
 					}
 				};
+
 
 
                 evtSource.onopen = function() {
