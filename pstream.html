@@ -785,7 +785,11 @@
 							} else {
 								// If no filter, add all images (excluding duplicates) to the queue
 								if (!isDuplicate(data.imageURL)) {
-									imageQueue.push({ imageURL: data.imageURL, referrer });
+									if (!imageQueue.some(item => item.imageURL === data.imageURL)) {
+										imageQueue.push({ imageURL: data.imageURL, referrer });
+										if (imageQueue.length === 1 && !isPaused) processNextImage();
+									}
+
 									if (imageQueue.length === 1 && !isPaused) processNextImage();
 								}
 							}
