@@ -701,41 +701,41 @@
                 statusEl.textContent = 'Connecting...';
                 const evtSource = new EventSource('https://image.pollinations.ai/feed?past_results=0');
 
-                evtSource.onmessage = function(event) {
-                    try {
-                        const data = JSON.parse(event.data);
-						if (data.referrer) updateReferrerList(data.referrer);
-                        if (data.imageURL && data.prompt) {
-                            const prompt = decodeURIComponent(data.prompt);
-                            const isFromSite = data.referrer && data.referrer.includes(currentSiteUrl);
-
-                            // If filter is on, ONLY accept images from specified site
-                            if (filterBySite) {
-                                if (isFromSite) {
-                                    imageQueue.push(data.imageURL);
-                                    if (imageQueue.length === 1 && !isPaused) {
-                                        processNextImage();
-                                    }
-                                }
-                            }
-                            // If filter is off, apply normal duplicate checking for non-site images
-                            else {
-                                if (isFromSite || !isDuplicate(data.imageURL)) {
-                                    if (imageQueue.length >= MAX_QUEUE_SIZE) {
-                                        imageQueue.shift();
-                                    }
-                                    imageQueue.push({ imageURL: data.imageURL, referrer: data.referrer });
-
-                                    if (imageQueue.length === 1 && !isPaused) {
-                                        processNextImage();
-                                    }
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        console.error('Error parsing message:', e);
-                    }
-                };
+				evtSource.onmessage = function(event) {
+					try {
+						const data = JSON.parse(event.data);
+						
+						// Make sure referrer is properly set
+						if (data.referrer) {
+							updateReferrerList(data.referrer);
+						}
+						
+						// Process the image if it has a valid URL and prompt
+						if (data.imageURL && data.prompt) {
+							const prompt = decodeURIComponent(data.prompt);
+							
+							// Check if the referrer matches the user's filter
+							const isFromSite = data.referrer && data.referrer.includes(currentSiteUrl);
+							
+							if (filterBySite && isFromSite) {
+								imageQueue.push(data.imageURL);
+								if (imageQueue.length === 1 && !isPaused) {
+									processNextImage();
+								}
+							} else {
+								if (!isDuplicate(data.imageURL)) {
+									imageQueue.push({ imageURL: data.imageURL, referrer: data.referrer });
+									
+									if (imageQueue.length === 1 && !isPaused) {
+										processNextImage();
+									}
+								}
+							}
+						}
+					} catch (e) {
+						console.error('Error parsing message:', e);
+					}
+				};
 
                 evtSource.onopen = function() {
                     statusEl.textContent = 'STREAM ACTIVE';
