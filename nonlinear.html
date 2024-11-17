@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concept Map Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        #intro-screen {
+            text-align: center;
+            padding: 20px;
+        }
+
+        #concept-map {
+            width: 100%;
+            height: 600px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #info-panel {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            width: 300px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #node-title {
+            margin-top: 0;
+            font-size: 1.5em;
+        }
+
+        #node-content {
+            margin: 15px 0;
+            line-height: 1.6;
+        }
+
+        #keyword-container {
+            margin-top: 20px;
+        }
+
+        .keyword {
+            display: inline-block;
+            background-color: #e9ecef;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="intro-screen">
+        <h1>Concept Map Visualization</h1>
+        <input type="text" id="concept-input" placeholder="Enter a concept...">
+        <button onclick="generateMap()">Generate Map</button>
+    </div>
+
+    <div id="concept-map"></div>
+
+    <div id="info-panel" style="display: none;">
+        <h2 id="node-title"></h2>
+        <div id="node-content"></div>
+        <div id="keyword-container">
+            <strong>Related Ideas:</strong>
+            <div id="keywords"></div>
+        </div>
+        <div>
+            <button onclick="regenerateInfo()">Regenerate Info</button>
+            <button onclick="regenerateNode()">Regenerate Node</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script>
+        async function callPollinationsAPI(prompt, isRegen = false) {
+            const systemPrompt = `You are an AI assistant for a concept map visualization. 
+                First, restate the given concept as a short question with user query as concept. 
+                Provide 3-5 detailed responses related to the given concept. 
+                Each response should have a short, descriptive title (3-5 words) and a detailed explanation. 
+                Also, provide a list of 3-5 associated topic keywords related to the concept, which can be used for further exploration. 
+                Be creative and consider various aspects of the concept or if multiple concepts use those as your 3-5 first detailed responses. 
+                Do not use numbering or bullet points. 
+                Format: 'Short Title: Detailed explanation (50-100 words)'. Keywords: [comma-separated keywords]${
+                    isRegen ? 
+                    "This is a regeneration request. Please provide a more detailed, creative, or alternative perspective on the concept." : 
+                    ""
+                }`;
+
+            const messages = [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: `Concept: ${prompt}` }
+            ];
+
+            try {
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ messages: messages })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const text = await response.text();
+                return parseResponse(text.trim(), prompt);
+            } catch (error) {
+                console.error('Error:', error);
+                throw error;
+            }
+        }
+
+        function parseResponse(text, prompt) {
+            const sections = text.split('\n\n');
+            const responses = [];
+            let keywords = [];
+
+            sections.forEach(section => {
+                if (section.startsWith('Keywords:')) {
+                    keywords = section.replace('Keywords:', '')
+                        .split(',')
+                        .map(k => ({ name: k.trim(), locked: false }));
+                } else if (section.includes(':')) {
+                    const [title, content] = section.split(':', 2);
+                    responses.push({
+                        title: title.trim(),
+                        content: content.trim()
+                    });
+                }
+            });
+
+            return {
+                prompt: prompt,
+                responses: responses,
+                keywords: keywords
+            };
+        }
+
+        async function generateMap() {
+            const prompt = document.getElementById('concept-input').value;
+            if (!prompt) return;
+
+            try {
+                const data = await callPollinationsAPI(prompt);
+                updateVisualization(data);
+                document.getElementById('info-panel').style.display = 'block';
+            } catch (error) {
+                console.error('Error generating map:', error);
+                alert('Error generating concept map. Please try again.');
+            }
+        }
+
+        function updateVisualization(data) {
+            // Clear previous visualization
+            d3.select("#concept-map").selectAll("*").remove();
+
+            // Create SVG
+            const svg = d3.select("#concept-map")
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%");
+
+            // Create nodes for each response
+            const nodes = data.responses.map((response, i) => ({
+                id: i,
+                ...response
+            }));
+
+            // Create simple circular layout
+            const centerX = document.getElementById('concept-map').clientWidth / 2;
+            const centerY = document.getElementById('concept-map').clientHeight / 2;
+            const radius = 150;
+
+            nodes.forEach((node, i) => {
+                const angle = (i / nodes.length) * 2 * Math.PI;
+                node.x = centerX + radius * Math.cos(angle);
+                node.y = centerY + radius * Math.sin(angle);
+            });
+
+            // Draw nodes
+            const nodeGroups = svg.selectAll("g")
+                .data(nodes)
+                .enter()
+                .append("g")
+                .attr("transform", d => `translate(${d.x},${d.y})`);
+
+            nodeGroups.append("circle")
+                .attr("r", 30)
+                .style("fill", "#007bff")
+                .style("cursor", "pointer")
+                .on("click", (event, d) => showNodeInfo(d));
+
+            nodeGroups.append("text")
+                .attr("text-anchor", "middle")
+                .attr("dy", "0.3em")
+                .style("fill", "white")
+                .style("pointer-events", "none")
+                .text(d => d.id + 1);
+
+            // Update info panel with first node
+            if (nodes.length > 0) {
+                showNodeInfo(nodes[0]);
+            }
+
+            // Update keywords
+            updateKeywords(data.keywords);
+        }
+
+        function showNodeInfo(node) {
+            document.getElementById('node-title').textContent = node.title;
+            document.getElementById('node-content').textContent = node.content;
+        }
+
+        function updateKeywords(keywords) {
+            const container = document.getElementById('keywords');
+            container.innerHTML = '';
+            keywords.forEach(keyword => {
+                const elem = document.createElement('span');
+                elem.className = 'keyword';
+                elem.textContent = keyword.name;
+                elem.onclick = () => {
+                    document.getElementById('concept-input').value = keyword.name;
+                    generateMap();
+                };
+                container.appendChild(elem);
+            });
+        }
+
+        async function regenerateInfo() {
+            const prompt = document.getElementById('concept-input').value;
+            try {
+                const data = await callPollinationsAPI(prompt, true);
+                updateVisualization(data);
+            } catch (error) {
+                console.error('Error regenerating info:', error);
+                alert('Error regenerating information. Please try again.');
+            }
+        }
+
+        async function regenerateNode() {
+            const prompt = document.getElementById('concept-input').value;
+            try {
+                const data = await callPollinationsAPI(prompt, true);
+                updateVisualization(data);
+            } catch (error) {
+                console.error('Error regenerating node:', error);
+                alert('Error regenerating node. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>
