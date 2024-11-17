@@ -25,12 +25,6 @@
 			overflow: hidden;  /* Add this to prevent content scrolling */
 		}
 
-		#concept-map {
-			flex: 1;
-			border: 1px solid #333;
-			overflow: hidden;
-			position: relative;  /* Add this */
-		}
         #intro-screen {
             position: fixed;
             top: 0;
@@ -51,11 +45,12 @@
             border: none;
             border-radius: 5px;
         }
-        #concept-map {
-            flex: 1;
-            border: 1px solid #333;
-            overflow: hidden;
-        }
+		#concept-map {
+			flex: 1;
+			border: 1px solid #333;
+			overflow: hidden;
+			position: relative;
+		}
         #info-panel {
             width: 450px;
             padding: 20px;
@@ -153,14 +148,27 @@
        </div>
    </div>
    <script>
-        const width = 1000;
-        const height = 800;
+		const width = 1000;
+		const height = 800;
+
+		const zoom = d3.zoom()
+			.scaleExtent([0.1, 4])
+			.on("zoom", zoomed)
+			.filter(event => {
+				if (event.type === 'wheel') {
+					if (!event.ctrlKey) {
+						event.preventDefault();
+						return false;
+					}
+				}
+				return true;
+			});
 
 		const svg = d3.select("#concept-map")
 			.append("svg")
 			.attr("width", "100%")
 			.attr("height", "100%")
-			.attr("viewBox", [-width/2, -height/2, width, height]);  // Center the viewBox
+			.attr("viewBox", [-width/2, -height/2, width, height]);
 
 		svg.call(zoom);
 
@@ -756,23 +764,6 @@
         // Add event listeners for regeneration buttons
 		d3.select("#regen-info").on("click", regenerateInfo);  // This button regenerates the info only
 		d3.select("#regen-node").on("click", regenerateNode);  // This button regenerates the entire node
-
-		const zoom = d3.zoom()
-			.scaleExtent([0.1, 4])
-			.on("zoom", zoomed)
-			.filter(event => {
-				// Only allow zoom on mouse wheel when Ctrl is pressed
-				if (event.type === 'wheel') {
-					if (!event.ctrlKey) {
-						event.preventDefault();
-						return false;
-					}
-				}
-				return true;
-			});
-
-        // svg.call(zoom);
-
 
         function zoomed(event) {
             svg.selectAll("g.node, line").attr("transform", event.transform);
