@@ -616,12 +616,13 @@
 			
 			async function processNextImage() {
 				if (isPaused || imageQueue.length === 0 || processing) {
-					setTimeout(processNextImage, 1000); // Check again after 1 second
+					console.log("Stream paused or no images in the queue.");
+					setTimeout(processNextImage, 1000); // Retry after 1 second
 					return;
 				}
 
 				processing = true;
-				const { imageURL, referrer } = imageQueue.shift();  // Expect imageURL and referrer together
+				const { imageURL, referrer } = imageQueue.shift();  // Process the first image in the queue
 				console.log("Processing image:", imageURL, referrer);
 
 				const success = await displayImage(imageURL, referrer);
@@ -632,15 +633,9 @@
 					console.log("Error processing image:", imageURL);
 				}
 
-				// Ensure the queue does not grow indefinitely
-				if (imageQueue.length > MAX_QUEUE_SIZE) {
-					imageQueue = imageQueue.slice(0, MAX_QUEUE_SIZE);
-					console.log("Queue size exceeded max limit, trimmed to max size.");
-				}
-
-				// Continue processing after a delay
-				setTimeout(processNextImage, displayInterval);
-				processing = false;
+				// Ensure we do not clear images unnecessarily, just process them and move on
+				setTimeout(processNextImage, displayInterval);  // Continue processing after a delay
+				processing = false;  // Reset the processing flag after the current image is done
 			}
 
 
@@ -761,8 +756,6 @@
 						console.error('Error parsing message:', e);
 					}
 				};
-
-
 
                 evtSource.onopen = function() {
                     statusEl.textContent = 'STREAM ACTIVE';
