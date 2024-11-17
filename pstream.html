@@ -251,9 +251,17 @@
     </style>
 </head>
 <body>
-	<script src="js/nav-loader.js"></script>
+    <script src="js/nav-loader.js"></script>
     <div class="container">
+        <!-- Single Cell to Display Last ai-ministries Image -->
+        <div id="lastAiImage" class="grid-tile">
+            <img id="lastAiImageImg" src="" alt="Last ai-ministries.com image">
+        </div>
+
+        <!-- Grid Container for Regular Images -->
         <div id="gridContainer"></div>
+
+        <!-- Controls Section -->
         <div id="controls">
             <button id="toggle-pause">Pause</button>
             <button id="toggle-filter">Filter by Site</button>
@@ -268,19 +276,22 @@
             <label for="display-interval">Interval (seconds):</label>
             <input id="display-interval" type="number" value="3" min="1" style="width: 50px;">
         </div>
-		<div class="footer">
-			<div class="referrer-list">
-				<div class="referrer-scroll" id="referrer-scroll"></div>
-			</div>
-			<div class="status" id="status">STREAM ACTIVE</div>
-		</div>
+
+        <!-- Footer Section -->
+        <div class="footer">
+            <div class="referrer-list">
+                <div class="referrer-scroll" id="referrer-scroll"></div>
+            </div>
+            <div class="status" id="status">STREAM ACTIVE</div>
+        </div>
     </div>
 
+    <!-- Fullscreen Image Display -->
     <div id="fullscreen-container">
         <img id="fullscreen-image" src="" alt="Fullscreen image">
     </div>
 
-	<script>
+    <script>
 		function setReferrer(ref) {
 			const siteUrlInput = document.getElementById('site-url');
 			const currentSiteUrl = ref;
@@ -616,24 +627,15 @@
 			
 			async function processNextImage() {
 				if (isPaused || imageQueue.length === 0 || processing) {
-					console.log("Stream paused or no images in the queue.");
 					setTimeout(processNextImage, 1000); // Retry after 1 second
 					return;
 				}
 
 				processing = true;
-				const { imageURL, referrer } = imageQueue.shift();  // Process the first image in the queue
-				console.log("Processing image:", imageURL, referrer);
+				const { imageURL, referrer } = imageQueue.shift();  // Get the next image from the queue
 
-				const success = await displayImage(imageURL, referrer);
+				await displayImage(imageURL, referrer);  // Process the image
 
-				if (success) {
-					console.log("Image processed successfully:", imageURL);
-				} else {
-					console.log("Error processing image:", imageURL);
-				}
-
-				// Ensure we do not clear images unnecessarily, just process them and move on
 				setTimeout(processNextImage, displayInterval);  // Continue processing after a delay
 				processing = false;  // Reset the processing flag after the current image is done
 			}
@@ -709,49 +711,57 @@
                 statusEl.textContent = 'Connecting...';
                 const evtSource = new EventSource('https://image.pollinations.ai/feed?past_results=0');
 
+				// Queue Management: Process images only after they meet the conditions
+				async function processNextImage() {
+					if (isPaused || imageQueue.length === 0 || processing) {
+						setTimeout(processNextImage, 1000); // Retry after 1 second
+						return;
+					}
+
+					processing = true;
+					const { imageURL, referrer } = imageQueue.shift();  // Get the next image from the queue
+
+					await displayImage(imageURL, referrer);  // Process the image
+
+					setTimeout(processNextImage, displayInterval);  // Continue processing after a delay
+					processing = false;  // Reset the processing flag after the current image is done
+				}
+
+				// Streaming data handling
 				evtSource.onmessage = function(event) {
 					try {
 						const data = JSON.parse(event.data);
-						console.log("Received image data:", data);
 
-						// Check if image and prompt exist
+						// Check if the image and prompt exist
 						if (data.imageURL && data.prompt) {
 							const prompt = decodeURIComponent(data.prompt);
 							const referrer = data.referrer;
 
-							// Log referrer and the current site URL for debugging
-							console.log("Referrer:", referrer);
-							console.log("Current site URL:", currentSiteUrl);
+							// Always show the last image from ai-ministries.com
+							if (referrer && referrer.includes("ai-ministries.com")) {
+								document.getElementById("lastAiImageImg").src = data.imageURL;  // Update last ai image cell
+							}
 
-							// Ensure that images from 'ai-ministries.com' are always shown
-							const isFromAiMinistries = referrer && referrer.includes("ai-ministries.com");
-
-							// If filtering is enabled, only add images from the correct site
+							// Filter logic: add to queue based on filter condition
+							const isFromSite = referrer && referrer === currentSiteUrl;
 							if (filterBySite) {
-								if (isFromAiMinistries || referrer === currentSiteUrl) {
-									console.log("Adding image to queue (matches site filter):", data.imageURL);
-									imageQueue.push(data.imageURL);
-									if (imageQueue.length === 1 && !isPaused) {
-										processNextImage(); // Process the first image immediately
-									}
-								} else {
-									console.log("Image does not match site filter, skipping:", data.imageURL);
+								if (isFromSite || referrer.includes("ai-ministries.com")) {
+									imageQueue.push(data.imageURL);  // Add image to the queue
+									if (imageQueue.length === 1 && !isPaused) processNextImage();  // Start processing immediately
 								}
 							} else {
-								// If no filtering is applied, add all images to the queue
-								console.log("No filter applied, adding image to queue:", data.imageURL);
+								// No filtering applied: add all images to the queue
 								if (!isDuplicate(data.imageURL)) {
 									imageQueue.push({ imageURL: data.imageURL, referrer: referrer });
-									if (imageQueue.length === 1 && !isPaused) {
-										processNextImage();
-									}
+									if (imageQueue.length === 1 && !isPaused) processNextImage();
 								}
 							}
 						}
 					} catch (e) {
-						console.error('Error parsing message:', e);
+						console.error('Error processing stream data:', e);
 					}
 				};
+
                 evtSource.onopen = function() {
                     statusEl.textContent = 'STREAM ACTIVE';
                     statusEl.style.color = '#4aff4a';
