@@ -9,19 +9,27 @@
     <style>
 		body {
 			display: flex;
-			flex-direction: column; /* New */
-			height: calc(100vh - 80px); /* New - accounts for nav height */
+			flex-direction: column;
+			min-height: 100vh;  /* Changed from height to min-height */
 			margin: 0;
 			font-family: Arial, sans-serif;
 			background-color: black;
 			color: white;
+			overflow: hidden;  /* Add this to prevent page scrolling */
 		}
 
-		/* Add this new class */
 		.concept-content {
 			display: flex;
 			flex: 1;
-			width: 100%;
+			height: calc(100vh - 80px);  /* Add explicit height calculation */
+			overflow: hidden;  /* Add this to prevent content scrolling */
+		}
+
+		#concept-map {
+			flex: 1;
+			border: 1px solid #333;
+			overflow: hidden;
+			position: relative;  /* Add this */
 		}
         #intro-screen {
             position: fixed;
@@ -55,7 +63,7 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            height: calc(100vh - 80px);
             box-sizing: border-box;
         }
         #node-title {
@@ -148,11 +156,13 @@
         const width = 1000;
         const height = 800;
 
-        const svg = d3.select("#concept-map")
-            .append("svg")
-            .attr("width", "100%")
-            .attr("height", "100%")
-            .attr("viewBox", [0, 0, width, height]);
+		const svg = d3.select("#concept-map")
+			.append("svg")
+			.attr("width", "100%")
+			.attr("height", "100%")
+			.attr("viewBox", [-width/2, -height/2, width, height]);  // Center the viewBox
+
+		svg.call(zoom);
 
         let currentNode = null;
         let nodes = [];
@@ -747,12 +757,21 @@
 		d3.select("#regen-info").on("click", regenerateInfo);  // This button regenerates the info only
 		d3.select("#regen-node").on("click", regenerateNode);  // This button regenerates the entire node
 
-        // Initialize zoom behavior
-        const zoom = d3.zoom()
-            .scaleExtent([0.1, 4])
-            .on("zoom", zoomed);
+		const zoom = d3.zoom()
+			.scaleExtent([0.1, 4])
+			.on("zoom", zoomed)
+			.filter(event => {
+				// Only allow zoom on mouse wheel when Ctrl is pressed
+				if (event.type === 'wheel') {
+					if (!event.ctrlKey) {
+						event.preventDefault();
+						return false;
+					}
+				}
+				return true;
+			});
 
-        svg.call(zoom);
+        // svg.call(zoom);
 
 
         function zoomed(event) {
