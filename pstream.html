@@ -638,9 +638,6 @@
 				processing = false;  // Reset the processing flag after the current image is done
 			}
 
-
-
-
 			function updateReferrerList(newReferrer) {
 				if (!newReferrer) return;
 
@@ -726,13 +723,12 @@
 							console.log("Referrer:", referrer);
 							console.log("Current site URL:", currentSiteUrl);
 
-							// Check if the referrer matches the current site URL
-							const isFromSite = referrer && referrer === currentSiteUrl;
-							console.log("Is image from the current site?", isFromSite);
+							// Ensure that images from 'ai-ministries.com' are always shown
+							const isFromAiMinistries = referrer && referrer.includes("ai-ministries.com");
 
-							// Apply filtering: only add the image to the queue if filtering is on and the referrer matches the current site URL
+							// If filtering is enabled, only add images from the correct site
 							if (filterBySite) {
-								if (isFromSite) {
+								if (isFromAiMinistries || referrer === currentSiteUrl) {
 									console.log("Adding image to queue (matches site filter):", data.imageURL);
 									imageQueue.push(data.imageURL);
 									if (imageQueue.length === 1 && !isPaused) {
@@ -756,7 +752,6 @@
 						console.error('Error parsing message:', e);
 					}
 				};
-
                 evtSource.onopen = function() {
                     statusEl.textContent = 'STREAM ACTIVE';
                     statusEl.style.color = '#4aff4a';
