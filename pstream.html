@@ -615,22 +615,29 @@
 
 			async function processNextImage() {
 				console.log("Processing next image...");  // Debugging log
+
+				// Check if the queue is empty or paused
 				if (isPaused || imageQueue.length === 0) {
 					console.log("Stream paused or no images in the queue.");  // Debugging log
-					setTimeout(processNextImage, 2000);
+					setTimeout(processNextImage, 2000); // Wait and try again
 					return;
 				}
 
 				const { imageURL, referrer } = imageQueue.shift();  // Expect imageURL and referrer together
-				console.log("Next image to display:", imageURL, referrer);  // Debugging log
+				console.log("Next image to process:", imageURL, referrer);  // Debugging log
+
+				// Try to load and display the image
 				const success = await displayImage(imageURL, referrer);
 
 				if (success) {
-					setTimeout(processNextImage, displayInterval);
+					console.log("Image processed successfully");
+					setTimeout(processNextImage, displayInterval); // Continue processing after a delay
 				} else {
-					processNextImage();
+					console.log("Failed to process image, retrying...");
+					processNextImage(); // Retry if the image failed to load
 				}
 			}
+
 
 
 
@@ -708,26 +715,37 @@
 				evtSource.onmessage = function(event) {
 					try {
 						const data = JSON.parse(event.data);
-						
+
+						// Log the received referrer and image URL for debugging
+						console.log("Received image data:", data);
+
 						// Check if image and prompt exist
 						if (data.imageURL && data.prompt) {
 							const prompt = decodeURIComponent(data.prompt);
 							const referrer = data.referrer;
+							
+							// Log referrer and the current site URL to verify
+							console.log("Referrer from feed:", referrer);
+							console.log("Current site URL:", currentSiteUrl);
 
-							// Compare the incoming referrer with the user's current site URL
+							// Check if the referrer matches the current site URL
 							const isFromSite = referrer && referrer === currentSiteUrl;
+							console.log("Is image from the current site?", isFromSite);
 
 							// Apply filtering: only add the image to the queue if filtering is on and the referrer matches the current site URL
 							if (filterBySite) {
 								if (isFromSite) {
-									// If filter is on and the referrer matches, add image to the queue
+									console.log("Adding image to queue (matches site filter):", data.imageURL);
 									imageQueue.push(data.imageURL);
 									if (imageQueue.length === 1 && !isPaused) {
 										processNextImage(); // Process the first image immediately
 									}
+								} else {
+									console.log("Image does not match site filter, skipping:", data.imageURL);
 								}
 							} else {
 								// If no filtering is applied, add all images to the queue
+								console.log("No filter applied, adding image to queue:", data.imageURL);
 								if (!isDuplicate(data.imageURL)) {
 									imageQueue.push({ imageURL: data.imageURL, referrer: referrer });
 									if (imageQueue.length === 1 && !isPaused) {
@@ -740,7 +758,6 @@
 						console.error('Error parsing message:', e);
 					}
 				};
-
 
 
                 evtSource.onopen = function() {
