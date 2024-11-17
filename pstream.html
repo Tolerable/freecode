@@ -732,27 +732,29 @@
 					try {
 						const data = JSON.parse(event.data);
 
-						// Check if the image and prompt exist
+						// Check if referrer exists before proceeding
+						const referrer = data.referrer || '';  // Default to empty string if undefined
+
+						// Proceed only if imageURL and prompt exist
 						if (data.imageURL && data.prompt) {
 							const prompt = decodeURIComponent(data.prompt);
-							const referrer = data.referrer;
 
 							// Always show the last image from ai-ministries.com
-							if (referrer && referrer.includes("ai-ministries.com")) {
-								document.getElementById("lastAiImageImg").src = data.imageURL;  // Update last ai image cell
+							if (referrer.includes("ai-ministries.com")) {
+								document.getElementById("lastAiImageImg").src = data.imageURL;
 							}
 
-							// Filter logic: add to queue based on filter condition
-							const isFromSite = referrer && referrer === currentSiteUrl;
+							// Filter logic: check if the referrer matches the current site
+							const isFromSite = referrer === currentSiteUrl;
+
 							if (filterBySite) {
 								if (isFromSite || referrer.includes("ai-ministries.com")) {
-									imageQueue.push(data.imageURL);  // Add image to the queue
-									if (imageQueue.length === 1 && !isPaused) processNextImage();  // Start processing immediately
+									imageQueue.push({ imageURL: data.imageURL, referrer });
+									if (imageQueue.length === 1 && !isPaused) processNextImage();
 								}
 							} else {
-								// No filtering applied: add all images to the queue
 								if (!isDuplicate(data.imageURL)) {
-									imageQueue.push({ imageURL: data.imageURL, referrer: referrer });
+									imageQueue.push({ imageURL: data.imageURL, referrer });
 									if (imageQueue.length === 1 && !isPaused) processNextImage();
 								}
 							}
