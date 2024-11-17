@@ -159,7 +159,17 @@
 
 		const zoom = d3.zoom()
 			.scaleExtent([0.1, 4])
-			.on("zoom", zoomed);
+			.on("zoom", zoomed)
+			.filter(event => {
+				// Only allow zoom on mouse wheel when Ctrl is pressed
+				if (event.type === 'wheel') {
+					if (!event.ctrlKey) {
+						event.preventDefault();
+						return false;
+					}
+				}
+				return true;
+			});
 
 		svg.call(zoom);
 
@@ -488,7 +498,7 @@
 
 			currentNode = d;
 			currentNode.fx = width / 2;
-			currentNode.fy = height / 2;
+			currentNode.fy = (height / 2) - 40;
 
 			// Update the visual appearance of the nodes
 			svg.selectAll("circle")
@@ -585,7 +595,7 @@
 						name: truncateText(cleanText(prompt), 30),
 						fullName: cleanText(prompt),
 						x: width / 2,
-						y: height / 2,
+						y: (height / 2) - 40,
 						isCenter: true,
 						hasImage: false
 					};
