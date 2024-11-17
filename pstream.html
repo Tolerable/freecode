@@ -705,7 +705,7 @@
 					try {
 						const data = JSON.parse(event.data);
 						
-						// Make sure referrer is properly set
+						// Ensure referrer is properly set in the referrer list
 						if (data.referrer) {
 							updateReferrerList(data.referrer);
 						}
@@ -713,19 +713,22 @@
 						// Process the image if it has a valid URL and prompt
 						if (data.imageURL && data.prompt) {
 							const prompt = decodeURIComponent(data.prompt);
-							
+
 							// Check if the referrer matches the user's filter
 							const isFromSite = data.referrer && data.referrer.includes(currentSiteUrl);
 							
-							if (filterBySite && isFromSite) {
-								imageQueue.push(data.imageURL);
-								if (imageQueue.length === 1 && !isPaused) {
-									processNextImage();
+							// Apply filtering based on the filter toggle
+							if (filterBySite) {
+								if (isFromSite) {
+									imageQueue.push(data.imageURL); // Add only images from the selected site
+									if (imageQueue.length === 1 && !isPaused) {
+										processNextImage(); // Process the first image immediately
+									}
 								}
 							} else {
+								// If filter is off, allow all images
 								if (!isDuplicate(data.imageURL)) {
 									imageQueue.push({ imageURL: data.imageURL, referrer: data.referrer });
-									
 									if (imageQueue.length === 1 && !isPaused) {
 										processNextImage();
 									}
