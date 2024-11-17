@@ -614,12 +614,15 @@
 			}
 
 			async function processNextImage() {
+				console.log("Processing next image...");  // Debugging log
 				if (isPaused || imageQueue.length === 0) {
+					console.log("Stream paused or no images in the queue.");  // Debugging log
 					setTimeout(processNextImage, 2000);
 					return;
 				}
 
 				const { imageURL, referrer } = imageQueue.shift();  // Expect imageURL and referrer together
+				console.log("Next image to display:", imageURL, referrer);  // Debugging log
 				const success = await displayImage(imageURL, referrer);
 
 				if (success) {
@@ -628,6 +631,7 @@
 					processNextImage();
 				}
 			}
+
 
 
 			function updateReferrerList(newReferrer) {
@@ -705,40 +709,44 @@
 					try {
 						const data = JSON.parse(event.data);
 						
-						// Ensure referrer is properly set in the referrer list
+						// Log the received referrer and check if it matches the current site
+						console.log("Received referrer:", data.referrer);
+						console.log("Current site URL:", currentSiteUrl);
+
+						// If referrer exists, update referrer list
 						if (data.referrer) {
 							updateReferrerList(data.referrer);
 						}
-						
-						// Process the image if it has a valid URL and prompt
+
 						if (data.imageURL && data.prompt) {
 							const prompt = decodeURIComponent(data.prompt);
 
-							// Check if the referrer matches the user's filter
+							// Check if the referrer matches the current site URL
 							const isFromSite = data.referrer && data.referrer.includes(currentSiteUrl);
-							
-							// Apply filtering based on the filter toggle
-							if (filterBySite) {
-								if (isFromSite) {
-									imageQueue.push(data.imageURL); // Add only images from the selected site
-									if (imageQueue.length === 1 && !isPaused) {
-										processNextImage(); // Process the first image immediately
-									}
+							console.log("Is from site?", isFromSite); // Debugging log
+
+							// Only process images from the current site if filter is on
+							if (filterBySite && isFromSite) {
+								console.log("Image matches current site, adding to queue");
+								imageQueue.push(data.imageURL);
+								if (imageQueue.length === 1 && !isPaused) {
+									processNextImage();
+								}
+							} else if (!filterBySite) {
+								console.log("No filter applied, adding image to queue");
+								imageQueue.push({ imageURL: data.imageURL, referrer: data.referrer });
+								if (imageQueue.length === 1 && !isPaused) {
+									processNextImage();
 								}
 							} else {
-								// If filter is off, allow all images
-								if (!isDuplicate(data.imageURL)) {
-									imageQueue.push({ imageURL: data.imageURL, referrer: data.referrer });
-									if (imageQueue.length === 1 && !isPaused) {
-										processNextImage();
-									}
-								}
+								console.log("Image doesn't match site filter, skipping");
 							}
 						}
 					} catch (e) {
 						console.error('Error parsing message:', e);
 					}
 				};
+
 
                 evtSource.onopen = function() {
                     statusEl.textContent = 'STREAM ACTIVE';
