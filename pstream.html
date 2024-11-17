@@ -732,10 +732,10 @@
 					try {
 						const data = JSON.parse(event.data);
 
-						// Check if referrer exists before proceeding
-						const referrer = data.referrer || '';  // Default to empty string if undefined
+						// Make sure referrer is always defined, even if missing
+						const referrer = data.referrer || 'unknown';  // Use 'unknown' or empty string as fallback
 
-						// Proceed only if imageURL and prompt exist
+						// Check if imageURL and prompt are available
 						if (data.imageURL && data.prompt) {
 							const prompt = decodeURIComponent(data.prompt);
 
@@ -744,7 +744,7 @@
 								document.getElementById("lastAiImageImg").src = data.imageURL;
 							}
 
-							// Filter logic: check if the referrer matches the current site
+							// Apply filter logic based on referrer
 							const isFromSite = referrer === currentSiteUrl;
 
 							if (filterBySite) {
@@ -761,6 +761,7 @@
 						}
 					} catch (e) {
 						console.error('Error processing stream data:', e);
+						console.error('Event Data:', event.data);  // Log the raw event data for further inspection
 					}
 				};
 
