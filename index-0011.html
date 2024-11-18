@@ -658,8 +658,7 @@
 	};
 
     // State variables
-	let currentModel = 'openai'; // Default model
-	let currentPersona = 'default'; // Default persona
+    let currentPersona = PERSONA;
     let voiceEnabled = true;
     let currentView = 'split';
     const synth = window.speechSynthesis;
@@ -673,9 +672,6 @@
     const input = document.getElementById('chat-input');
     const voiceToggle = document.getElementById('voice-toggle');
     const clearChat = document.getElementById('clear-chat');
-	const modelSelect = document.querySelector('.model-select');
-	const personaSelect = document.querySelector('.persona-select');
-
 
     // Code handling functions
     function detectLanguage(code) {
@@ -942,7 +938,6 @@
 		}
 	}
 
-
 	async function fetchModels() {
 		console.log('Fetching models from:', 'https://text.pollinations.ai/models');
 		try {
@@ -953,7 +948,6 @@
 			const modelSelect = document.querySelector('.model-select');
 			const personaSelect = document.querySelector('.persona-select');
 
-			// Clear current options
 			modelSelect.innerHTML = '';
 
 			// Create option groups
@@ -963,13 +957,18 @@
 			const customModelsGroup = document.createElement('optgroup');
 			customModelsGroup.label = "Custom Models";
 
-			// Add predefined "custom" model as a regular model
-			const storytellerOption = document.createElement('option');
-			storytellerOption.value = 'custom';
-			storytellerOption.textContent = 'Storyteller'; // Rename as needed
-			customModelsGroup.appendChild(storytellerOption);
+			// Prevent duplicate "Command R"
+			const commandRAlreadyAdded = data.some(model => model.name === 'custom');
 
-			// Dynamically populate models from API response
+			if (!commandRAlreadyAdded) {
+				// Explicitly add the `custom` model only if it's not fetched dynamically
+				const customOption = document.createElement('option');
+				customOption.value = 'custom';
+				customOption.textContent = 'Custom'; // Corrected to "Custom" as per your request
+				customModelsGroup.appendChild(customOption);
+			}
+
+			// Sort all models into their respective groups
 			data.forEach(model => {
 				const option = document.createElement('option');
 				option.value = model.name;
@@ -979,7 +978,7 @@
 					word.charAt(0).toUpperCase() + word.slice(1)
 				).join(' ');
 
-				// Special case formatting for well-known models
+				// Special case formatting
 				switch (model.name) {
 					case 'openai':
 						displayName = 'GPT-4';
@@ -990,11 +989,20 @@
 					case 'mistral-large':
 						displayName = 'Mistral Large v2';
 						break;
+					case 'custom':
+						displayName = 'Custom'; // Ensures consistency for the custom model
+						break;
+				}
+
+				// Add description if available
+				if (model.description) {
+					const descParts = model.description.split('by');
+					const creator = descParts[1]?.trim() || '';
+					displayName = creator ? `${displayName} (${creator})` : displayName;
 				}
 
 				option.textContent = displayName;
 
-				// Add to the appropriate group
 				if (model.baseModel) {
 					baseModelsGroup.appendChild(option);
 				} else {
@@ -1002,108 +1010,41 @@
 				}
 			});
 
-			// Append groups to the model select dropdown
-			modelSelect.appendChild(baseModelsGroup);
+			// Add groups to select
 			modelSelect.appendChild(customModelsGroup);
+			modelSelect.appendChild(baseModelsGroup);
 
-			// Set default model to "openai" at startup
-			modelSelect.value = 'openai';
+			// Update persona selector visibility based on selected model
+			modelSelect.addEventListener('change', (e) => {
+				const selectedModel = e.target.value;
+				const isCustomModel = selectedModel === 'custom';
 
-			// Add event listener for handling model changes
-			modelSelect.addEventListener('change', handleModelChange);
+				// Show/hide persona selector for "Custom"
+				personaSelect.style.display = isCustomModel ? 'block' : 'none';
+
+				// Reset to default if not "Custom" model
+				if (!isCustomModel) {
+					personaSelect.value = 'default';
+					loadPersona({ dataset: { persona: 'default' } });
+				}
+
+				// Add model switch message
+				const modelName = e.target.selectedOptions[0].textContent;
+				appendAIMessage(`Switched to ${modelName}`);
+			});
 
 			// Initialize persona selector visibility
-			updatePersonaVisibility();
+			personaSelect.style.display = modelSelect.value === 'custom' ? 'block' : 'none';
+
 		} catch (error) {
 			console.error('Error fetching models:', error);
-
-			// Fallback to predefined models if fetch fails
-			const fallbackModels = `
-				<optgroup label="Base Models">
-					<option value="openai">GPT-4</option>
-					<option value="mistral-large">Mistral Large v2</option>
-					<option value="p1">Pollinations 1</option>
-				</optgroup>
-				<optgroup label="Custom Models">
-					<option value="custom">Storyteller</option>
-				</optgroup>
-			`;
-			modelSelect.innerHTML = fallbackModels;
-			modelSelect.value = 'openai'; // Set default fallback model
+			// Fallback to Unity model if fetch fails
+			const modelSelect = document.querySelector('.model-select');
+			modelSelect.innerHTML = '<option value="unity">Unity AI</option>';
 		}
 	}
 
 
-	function handleModelChange(e) {
-		const selectedModel = e.target.value;
-		console.log(`Selected model: ${selectedModel}`);
-
-		// Clear chat and reset
-		clearChat();
-
-		// Update persona visibility
-		updatePersonaVisibility();
-
-		// Load default persona if Unity is selected
-		if (selectedModel === 'unity') {
-			loadPersona({ dataset: { persona: 'default' } });
-		}
-
-		// Log model changes (optional)
-		console.log(`Switched to ${selectedModel}`);
-	}
-
-
-
-	function updatePersonaVisibility() {
-		const modelSelect = document.querySelector('.model-select');
-		const personaSelect = document.querySelector('.persona-select');
-		const selectedModel = modelSelect.value;
-
-		if (selectedModel === 'unity') {
-			personaSelect.style.display = 'block'; // Show Unity-specific personas
-			personaSelect.value = 'default'; // Default Unity persona
-		} else {
-			personaSelect.style.display = 'none'; // Hide persona selector for non-Unity models
-			personaSelect.value = ''; // Reset persona selection
-		}
-	}
-
-	function clearChat() {
-		const chatBox = document.getElementById('chat-box');
-		chatBox.innerHTML = ''; // Clear chat messages
-		conversationHistory = []; // Reset conversation history
-		console.log('Chat cleared');
-	}
-
-
-	function loadCustomStorytellerPrompt() {
-		const storytellerPrompt = `
-			You are a master storyteller, adept at weaving narratives with vivid descriptions and compelling characters.
-			Your task is to craft immersive stories using the selected model, Mistral Large.
-		`;
-		currentPersona = storytellerPrompt;
-		conversationHistory = [
-			{ role: 'system', content: storytellerPrompt }
-		];
-
-		// Reset chat and display storyteller message
-		clearChat();
-		appendAIMessage("Storyteller mode activated. Begin your tale...");
-	}
-
-	// Load Default Model Message
-	function loadDefaultModelMessage() {
-		const systemMessage = MODEL_CONFIG.systemMessages[currentModel] || "You are a helpful assistant.";
-		currentPersona = systemMessage;
-		conversationHistory = [
-			{ role: 'system', content: systemMessage }
-		];
-
-		// Reset chat and display default model message
-		clearChat();
-		appendAIMessage(`Switched to ${currentModel}.`);
-	}
 
 	// Add this new function to handle persona selector state
 	function updatePersonaSelector(modelName) {
@@ -1122,55 +1063,54 @@
 		}
 	}
 
-	// Process Messages
-	function processMessage(text) {
-		// Handle code blocks first
-		text = processCodeBlocks(text);
+    function processMessage(text) {
+        // Handle code blocks first
+        text = processCodeBlocks(text);
 
-		// Basic cleanup without touching image patterns
-		text = text.replace(/^\s*[.…`]{3}\s*$/gm, '');
-		text = text.replace(/^"*markdown"*\s*/gm, '');
-		text = text.replace(/^```\s*$/gm, '');
-		text = text.replace(/```/g, '');
-		text = text.replace(/\[Unity's [Ss]elfie\]/g, '');
+        // Basic cleanup without touching image patterns
+        text = text.replace(/^\s*[.…`]{3}\s*$/gm, '');
+        text = text.replace(/^"*markdown"*\s*/gm, '');
+        text = text.replace(/^```\s*$/gm, '');
+        text = text.replace(/```/g, '');
+        text = text.replace(/\[Unity's [Ss]elfie\]/g, '');
 		text = text.replace(/^\[CODE\]\s*/, ''); // Strip leading [CODE]
+		
+        // Process image URLs and descriptions
+        const urlPattern = /(?:!\[(?:[^\]]*)\]\(([^)]+)\))|(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp))|(?:https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+)/gi;
+  
+        text = text.replace(urlPattern, (match, capturedUrl) => {
+            let imageUrl = capturedUrl || match;
+            imageUrl = imageUrl.trim().replace(/\s+/g, '');
+            
+            if (imageUrl.includes('pollinations.ai')) {
+                const promptMatch = imageUrl.match(/\/prompt\/([^?&]+)/);
+                const prompt = promptMatch ? promptMatch[1] : 'default_image';
+                const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
+                imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
+                
+                return `<div class="image-container">
+                    <img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">
+                    <button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
+                </div>`;
+            }
+            
+            return `<img src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">`;
+        });
 
-		// Process image URLs and descriptions
-		const urlPattern = /(?:!\[(?:[^\]]*)\]\(([^)]+)\))|(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp))|(?:https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+)/gi;
+        // Handle Unity's image descriptions
+        const descriptions = text.match(/(?<=\[Unity shows |I show |Showing ).*?(?=\]|\n|$)/g) || [];
+        descriptions.forEach(desc => {
+            const prompt = encodeURIComponent(desc.trim());
+            const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
+            const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
+            text = text.replace(desc, `<div class="image-container">
+                <img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">
+                <button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
+            </div>`);
+        });
 
-		text = text.replace(urlPattern, (match, capturedUrl) => {
-			let imageUrl = capturedUrl || match;
-			imageUrl = imageUrl.trim().replace(/\s+/g, '');
-
-			if (imageUrl.includes('pollinations.ai')) {
-				const promptMatch = imageUrl.match(/\/prompt\/([^?&]+)/);
-				const prompt = promptMatch ? promptMatch[1] : 'default_image';
-				const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
-				imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
-
-				return `<div class="image-container">
-					<img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">
-					<button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
-				</div>`;
-			}
-
-			return `<img src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">`;
-		});
-
-		// Handle Unity's image descriptions
-		const descriptions = text.match(/(?<=\[Unity shows |I show |Showing ).*?(?=\]|\n|$)/g) || [];
-		descriptions.forEach(desc => {
-			const prompt = encodeURIComponent(desc.trim());
-			const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
-			const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
-			text = text.replace(desc, `<div class="image-container">
-				<img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">
-				<button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
-			</div>`);
-		});
-
-		return text;
-	}
+        return text;
+    }
 
     // Image handling functions
     async function getImageDescription(imageUrl) {
