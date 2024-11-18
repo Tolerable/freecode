@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="js/nav-loader.js"></script>
+    <title>Text Stream Display</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #ffffff;
+        }
+
+        #streamContainer {
+            width: 600px;
+            margin: 0 auto;
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 16px;
+            color: #fff;
+        }
+
+        .stream-item {
+            margin: 8px 0;
+            padding: 12px;
+            background: #2a2a2a;
+            border-radius: 4px;
+            overflow-wrap: break-word;
+        }
+
+        .prompt {
+            color: #4aff4a;
+            font-weight: bold;
+        }
+
+        .response {
+            color: #ffffff;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="streamContainer"></div>
+
+    <script>
+        const streamContainer = document.getElementById('streamContainer');
+
+        const evtSource = new EventSource('your_stream_endpoint_here');
+        
+        evtSource.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (!data.response) return;
+
+                const item = document.createElement('div');
+                item.className = 'stream-item';
+                
+                // Get original prompt if it exists
+                const prompt = data.parameters?.messages?.find(m => 
+                    m.role === 'user'
+                )?.content || '';
+
+                item.innerHTML = `
+                    ${prompt ? `<div class="prompt">Prompt: ${prompt}</div>` : ''}
+                    <div class="response">${data.response}</div>
+                `;
+
+                streamContainer.insertBefore(item, streamContainer.firstChild);
+
+                // Keep only last 10 items
+                if (streamContainer.children.length > 10) {
+                    streamContainer.lastChild.remove();
+                }
+            } catch (e) {
+                console.error('Error:', e);
+            }
+        };
+    </script>
+</body>
+</html>
