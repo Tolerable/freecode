@@ -1,75 +1,82 @@
-const init = () => {
-    const GRID_SIZE = 4;
-    const TOTAL_TILES = GRID_SIZE * GRID_SIZE;
-    let currentPosition = 0;
-    
-    // Create grid container
-    const gridContainer = document.createElement('div');
-    gridContainer.style.cssText = `
-        width: 100%;
-        max-width: 600px;
-        margin: 20px auto;
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        grid-template-rows: repeat(4, 1fr);
-        gap: 4px;
-        background: #1a1a1a;
-        padding: 8px;
-        border-radius: 8px;
-        aspect-ratio: 1;
-    `;
-    document.body.appendChild(gridContainer);
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Stream Grid</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #ffffff;
+        }
 
-    // Create grid tiles
-    const tiles = [];
-    for (let i = 0; i < TOTAL_TILES; i++) {
-        const tile = document.createElement('div');
-        tile.style.cssText = `
+        #gridContainer {
+            width: 600px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 4px;
+            background: #1a1a1a;
+            padding: 8px;
+            border-radius: 8px;
+            aspect-ratio: 1;
+        }
+
+        .grid-tile {
             width: 100%;
             padding-bottom: 100%;
             background: #2a2a2a;
             border-radius: 4px;
-            overflow: hidden;
             position: relative;
-        `;
-        const img = document.createElement('img');
-        img.style.cssText = `
+            overflow: hidden;
+        }
+
+        .grid-tile img {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-        `;
-        tile.appendChild(img);
-        gridContainer.appendChild(tile);
-        tiles.push(tile);
-    }
-
-    // Connect to feed
-    const evtSource = new EventSource('https://image.pollinations.ai/feed?past_results=0');
-
-    evtSource.onmessage = function(event) {
-        try {
-            const data = JSON.parse(event.data);
-            if (!data.imageURL) return;
-            
-            // Display image in next position
-            const tile = tiles[currentPosition];
-            const img = tile.querySelector('img');
-            img.src = data.imageURL;
-            
-            // Move to next position, wrap around if needed
-            currentPosition = (currentPosition + 1) % TOTAL_TILES;
-            
-        } catch (e) {
-            console.error('Error:', e);
         }
-    };
-};
+    </style>
+</head>
+<body>
+    <div id="gridContainer"></div>
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+    <script>
+        const GRID_SIZE = 4;
+        const TOTAL_TILES = GRID_SIZE * GRID_SIZE;
+        let currentPosition = 0;
+        let tiles = [];
+
+        // Create grid tiles
+        for (let i = 0; i < TOTAL_TILES; i++) {
+            const tile = document.createElement('div');
+            tile.className = 'grid-tile';
+            const img = document.createElement('img');
+            tile.appendChild(img);
+            gridContainer.appendChild(tile);
+            tiles.push(tile);
+        }
+
+        // Connect to feed
+        const evtSource = new EventSource('https://image.pollinations.ai/feed?past_results=0');
+        
+        evtSource.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (!data.imageURL) return;
+                
+                const tile = tiles[currentPosition];
+                tile.querySelector('img').src = data.imageURL;
+                currentPosition = (currentPosition + 1) % TOTAL_TILES;
+            } catch (e) {
+                console.error('Error:', e);
+            }
+        };
+    </script>
+</body>
+</html>
