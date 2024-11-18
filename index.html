@@ -658,7 +658,8 @@
 	};
 
     // State variables
-    let currentPersona = PERSONA;
+	let currentModel = 'openai'; // Default model
+	let currentPersona = 'default'; // Default persona
     let voiceEnabled = true;
     let currentView = 'split';
     const synth = window.speechSynthesis;
@@ -672,6 +673,9 @@
     const input = document.getElementById('chat-input');
     const voiceToggle = document.getElementById('voice-toggle');
     const clearChat = document.getElementById('clear-chat');
+	const modelSelect = document.querySelector('.model-select');
+	const personaSelect = document.querySelector('.persona-select');
+
 
     // Code handling functions
     function detectLanguage(code) {
@@ -948,6 +952,7 @@
 			const modelSelect = document.querySelector('.model-select');
 			const personaSelect = document.querySelector('.persona-select');
 
+			// Clear current options
 			modelSelect.innerHTML = '';
 
 			// Create option groups
@@ -964,7 +969,7 @@
 				// Explicitly add the `custom` model only if it's not fetched dynamically
 				const customOption = document.createElement('option');
 				customOption.value = 'custom';
-				customOption.textContent = 'Custom'; // Corrected to "Custom" as per your request
+				customOption.textContent = 'Storyteller'; // Renamed to match intended use
 				customModelsGroup.appendChild(customOption);
 			}
 
@@ -990,7 +995,7 @@
 						displayName = 'Mistral Large v2';
 						break;
 					case 'custom':
-						displayName = 'Custom'; // Ensures consistency for the custom model
+						displayName = 'Storyteller'; // Match intended use
 						break;
 				}
 
@@ -1014,37 +1019,80 @@
 			modelSelect.appendChild(customModelsGroup);
 			modelSelect.appendChild(baseModelsGroup);
 
-			// Update persona selector visibility based on selected model
-			modelSelect.addEventListener('change', (e) => {
-				const selectedModel = e.target.value;
-				const isCustomModel = selectedModel === 'custom';
-
-				// Show/hide persona selector for "Custom"
-				personaSelect.style.display = isCustomModel ? 'block' : 'none';
-
-				// Reset to default if not "Custom" model
-				if (!isCustomModel) {
-					personaSelect.value = 'default';
-					loadPersona({ dataset: { persona: 'default' } });
-				}
-
-				// Add model switch message
-				const modelName = e.target.selectedOptions[0].textContent;
-				appendAIMessage(`Switched to ${modelName}`);
-			});
+			// Add event listener to handle model changes
+			modelSelect.addEventListener('change', handleModelChange);
 
 			// Initialize persona selector visibility
-			personaSelect.style.display = modelSelect.value === 'custom' ? 'block' : 'none';
-
+			updatePersonaVisibility();
 		} catch (error) {
 			console.error('Error fetching models:', error);
+
 			// Fallback to Unity model if fetch fails
 			const modelSelect = document.querySelector('.model-select');
 			modelSelect.innerHTML = '<option value="unity">Unity AI</option>';
 		}
 	}
 
+	// Handle Model Change
+	function handleModelChange(e) {
+		const selectedModel = e.target.value;
 
+		// Update state
+		currentModel = selectedModel;
+		updatePersonaVisibility();
+
+		// Clear chat and reset history
+		clearChat();
+
+		// Load specific model behavior
+		if (currentModel === 'unity') {
+			loadPersona({ dataset: { persona: 'default' } }); // Load Unity default persona
+		} else if (currentModel === 'custom') {
+			// Custom model logic (Storyteller)
+			loadCustomStorytellerPrompt();
+		} else {
+			loadDefaultModelMessage(); // Generic message for non-Unity models
+		}
+	}
+
+	function updatePersonaVisibility() {
+		const personaSelect = document.querySelector('.persona-select');
+		if (currentModel === 'unity') {
+			personaSelect.style.display = 'block'; // Show Unity personas
+			personaSelect.value = 'default'; // Default persona for Unity
+		} else {
+			personaSelect.style.display = 'none'; // Hide Unity personas
+			personaSelect.value = ''; // Reset persona
+		}
+	}
+
+	function loadCustomStorytellerPrompt() {
+		const storytellerPrompt = `
+			You are a master storyteller, adept at weaving narratives with vivid descriptions and compelling characters.
+			Your task is to craft immersive stories using the selected model, Mistral Large.
+		`;
+		currentPersona = storytellerPrompt;
+		conversationHistory = [
+			{ role: 'system', content: storytellerPrompt }
+		];
+
+		// Reset chat and display storyteller message
+		clearChat();
+		appendAIMessage("Storyteller mode activated. Begin your tale...");
+	}
+
+	// Load Default Model Message
+	function loadDefaultModelMessage() {
+		const systemMessage = MODEL_CONFIG.systemMessages[currentModel] || "You are a helpful assistant.";
+		currentPersona = systemMessage;
+		conversationHistory = [
+			{ role: 'system', content: systemMessage }
+		];
+
+		// Reset chat and display default model message
+		clearChat();
+		appendAIMessage(`Switched to ${currentModel}.`);
+	}
 
 	// Add this new function to handle persona selector state
 	function updatePersonaSelector(modelName) {
@@ -1063,54 +1111,55 @@
 		}
 	}
 
-    function processMessage(text) {
-        // Handle code blocks first
-        text = processCodeBlocks(text);
+	// Process Messages
+	function processMessage(text) {
+		// Handle code blocks first
+		text = processCodeBlocks(text);
 
-        // Basic cleanup without touching image patterns
-        text = text.replace(/^\s*[.…`]{3}\s*$/gm, '');
-        text = text.replace(/^"*markdown"*\s*/gm, '');
-        text = text.replace(/^```\s*$/gm, '');
-        text = text.replace(/```/g, '');
-        text = text.replace(/\[Unity's [Ss]elfie\]/g, '');
+		// Basic cleanup without touching image patterns
+		text = text.replace(/^\s*[.…`]{3}\s*$/gm, '');
+		text = text.replace(/^"*markdown"*\s*/gm, '');
+		text = text.replace(/^```\s*$/gm, '');
+		text = text.replace(/```/g, '');
+		text = text.replace(/\[Unity's [Ss]elfie\]/g, '');
 		text = text.replace(/^\[CODE\]\s*/, ''); // Strip leading [CODE]
-		
-        // Process image URLs and descriptions
-        const urlPattern = /(?:!\[(?:[^\]]*)\]\(([^)]+)\))|(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp))|(?:https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+)/gi;
-  
-        text = text.replace(urlPattern, (match, capturedUrl) => {
-            let imageUrl = capturedUrl || match;
-            imageUrl = imageUrl.trim().replace(/\s+/g, '');
-            
-            if (imageUrl.includes('pollinations.ai')) {
-                const promptMatch = imageUrl.match(/\/prompt\/([^?&]+)/);
-                const prompt = promptMatch ? promptMatch[1] : 'default_image';
-                const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
-                imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
-                
-                return `<div class="image-container">
-                    <img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">
-                    <button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
-                </div>`;
-            }
-            
-            return `<img src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">`;
-        });
 
-        // Handle Unity's image descriptions
-        const descriptions = text.match(/(?<=\[Unity shows |I show |Showing ).*?(?=\]|\n|$)/g) || [];
-        descriptions.forEach(desc => {
-            const prompt = encodeURIComponent(desc.trim());
-            const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
-            const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
-            text = text.replace(desc, `<div class="image-container">
-                <img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">
-                <button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
-            </div>`);
-        });
+		// Process image URLs and descriptions
+		const urlPattern = /(?:!\[(?:[^\]]*)\]\(([^)]+)\))|(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp))|(?:https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+)/gi;
 
-        return text;
-    }
+		text = text.replace(urlPattern, (match, capturedUrl) => {
+			let imageUrl = capturedUrl || match;
+			imageUrl = imageUrl.trim().replace(/\s+/g, '');
+
+			if (imageUrl.includes('pollinations.ai')) {
+				const promptMatch = imageUrl.match(/\/prompt\/([^?&]+)/);
+				const prompt = promptMatch ? promptMatch[1] : 'default_image';
+				const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
+				imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
+
+				return `<div class="image-container">
+					<img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">
+					<button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
+				</div>`;
+			}
+
+			return `<img src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">`;
+		});
+
+		// Handle Unity's image descriptions
+		const descriptions = text.match(/(?<=\[Unity shows |I show |Showing ).*?(?=\]|\n|$)/g) || [];
+		descriptions.forEach(desc => {
+			const prompt = encodeURIComponent(desc.trim());
+			const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
+			const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
+			text = text.replace(desc, `<div class="image-container">
+				<img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">
+				<button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
+			</div>`);
+		});
+
+		return text;
+	}
 
     // Image handling functions
     async function getImageDescription(imageUrl) {
