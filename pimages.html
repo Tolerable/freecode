@@ -25,10 +25,22 @@
 
 		.generator-container {
 			width: 100%;
-			max-width: 645px;
+			max-width: 1200px;
 			margin: 0 auto;
 			padding: 20px;
-			box-sizing: border-box;
+		}
+
+		.main-content {
+			display: flex;
+			gap: 20px;
+			width: 100%;
+		}
+
+		.controls-column,
+		.output-column {
+			flex: 1;
+			min-width: 45%;
+			max-width: 50%;
 		}
 
 		/* Main input area */
@@ -204,7 +216,7 @@
 		#imageOutput {
 			width: 100%;
 			min-height: 300px;
-			max-height: 600px; /* Add max height */
+			max-height: 600px;
 			background: #1a1a1a;
 			border-radius: 4px;
 			display: flex;
@@ -213,13 +225,13 @@
 			margin-top: 20px;
 			border: 1px solid #333;
 			color: #fff;
-			overflow: hidden; /* Add this to contain the image */
+			overflow: hidden;
 		}
 
 		#imageOutput img {
 			width: 100%;
 			height: 100%;
-			object-fit: contain; /* This makes the image maintain aspect ratio */
+			object-fit: contain;
 			max-height: 600px;
 		}
 
@@ -329,20 +341,32 @@
 		::-webkit-scrollbar-thumb:hover {
 			background: #555;
 		}
+
+		/* Mobile responsiveness */
+		@media (max-width: 1024px) {
+			.main-content {
+				flex-direction: column;
+			}
+			
+			.controls-column,
+			.output-column {
+				min-width: 100%;
+				max-width: 100%;
+			}
+		}
     </style>
 </head>
 <body>
 <script src="js/nav-loader.js"></script>
 <div class="ai-generator-wrapper">
-    <!-- Header Image - Keep this at top -->
     <div class="separator" style="clear: both;">
-        <a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjms0YjB0oB0z_kKfxjKxVhuP49qMGjmjmEpyTrC8Rl-RYCLnHOfg_ATpusfz_mAGD5M7xr_EmEOlRVb55HGnkNe5U59tHUxo9tlTTjNdS_ZsHtBf4Q2YppHaP49JseFgXQtch7mg7gHkFlWenBJfpO0lt8pd5T9WkW2gQyg6Y9h5Thp2YW8f-a2kBSoE0/s1280/AI-ART-GEN.jpg" style="display: block; padding: 1em 0; text-align: center; ">
+        <a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjms0YjB0oB0z_kKfxjKxVhuP49qMGjmjmEpyTrC8Rl-RYCLnHOfg_ATpusfz_mAGD5M7xr_EmEOlRVb55HGnkNe5U59tHUxo9tlTTjNdS_ZsHtBf4Q2YppHaP49JseFgXQtch7mg7gHkFlWenBJfpO0lt8pd5T9WkW2gQyg6Y9h5Thp2YW8f-a2kBSoE0/s1280/AI-ART-GEN.jpg" style="display: block; padding: 1em 0; text-align: center;">
             <img alt="" border="0" width="600" data-original-height="720" data-original-width="1280" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjms0YjB0oB0z_kKfxjKxVhuP49qMGjmjmEpyTrC8Rl-RYCLnHOfg_ATpusfz_mAGD5M7xr_EmEOlRVb55HGnkNe5U59tHUxo9tlTTjNdS_ZsHtBf4Q2YppHaP49JseFgXQtch7mg7gHkFlWenBJfpO0lt8pd5T9WkW2gQyg6Y9h5Thp2YW8f-a2kBSoE0/s600/AI-ART-GEN.jpg"/>
         </a>
     </div>
-
+    
     <div class="main-content">
-        <!-- Left Column - Controls -->
+        <!-- Left Column -->
         <div class="controls-column">
             <textarea id="userPrompt" class="main-input" placeholder="Enter your image prompt here...&#10;&#10;	or &#10;&#10;PASTE (Ctrl-V) image to retrieve description."></textarea>
 
@@ -352,7 +376,7 @@
                 </select>
                 <button id="aiEnhanceBtn" class="secondary-button">AI-EDIT Prompt</button>
             </div>
-
+            
             <div id="enhancedPromptSection" style="display: none;">
                 <textarea id="enhancedPrompt" class="main-input"></textarea>
                 <div class="button-group">
@@ -361,17 +385,75 @@
             </div>
 
             <div class="control-panel">
-                <!-- Keep your existing control sections exactly as they are -->
                 <div class="control-section">
-                    <!-- All your existing control-section content -->
+                    <div class="control-group">
+                        <label>Image Model:</label>
+                        <select id="imageModel">
+                            <option value="">Loading models...</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Style:</label>
+                        <select id="style">
+                            <option value="none">No specific style</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Wrap Treatment:</label>
+                        <div class="wrap-inputs">
+                            <input type="text" id="prependText" placeholder="Text to add BEFORE prompt">
+                            <input type="text" id="appendText" placeholder="Text to add AFTER prompt">
+                        </div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="enhance">
+                            <label for="enhance">Remote Enhance</label>
+                        </div>
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="private">
+                            <label for="private">Private</label>
+                        </div>
+                    </div>
                 </div>
+
                 <div class="control-section">
-                    <!-- All your existing control-section content -->
+                    <div class="control-group">
+                        <label>Aspect Ratio:</label>
+                        <div class="ratio-group">
+                            <button class="ratio-button active" data-ratio="1:1">1:1</button>
+                            <button class="ratio-button" data-ratio="3:4">3:4</button>
+                            <button class="ratio-button" data-ratio="4:3">4:3</button>
+                            <button class="ratio-button" data-ratio="16:9">16:9</button>
+                            <button class="ratio-button" data-ratio="custom">Custom</button>
+                        </div>
+                        <div id="customDimensions" style="display: none; margin-top: 10px;">
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" id="customWidth" placeholder="Width" min="64" max="2048" step="64" 
+                                       style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <span style="display: flex; align-items: center;">×</span>
+                                <input type="number" id="customHeight" placeholder="Height" min="64" max="2048" step="64"
+                                       style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="randomSeed" checked>
+                            <label for="randomSeed">Random Seed</label>
+                        </div>
+                    </div>
+
+                    <input type="text" id="seed" placeholder="Enter seed" disabled>
                 </div>
             </div>
         </div>
 
-        <!-- Right Column - Output -->
+        <!-- Right Column -->
         <div class="output-column">
             <div class="prompt-preview">
                 <div><strong>Final Prompt:</strong> <span id="finalPrompt"></span></div>
