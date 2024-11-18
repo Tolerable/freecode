@@ -2,7 +2,158 @@
 <html>
 <head>
     <title>AI-MINISTRIES - [TSTREAM]</title>
-<link rel="stylesheet" href="js/style.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000000;
+			color: #FFFFFF;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-wrapper {
+            flex: 1;
+            padding: 20px;
+            margin-top: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #controls {
+            width: 100%;
+            max-width: 1800px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        #filterControls {
+            width: 100%;
+            max-width: 1800px;
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            padding: 5px 10px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .button:hover {
+            background: #3a3a3a;
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .button.active {
+            background: #4aff4a;
+            color: #000;
+        }
+
+        #displayContainer {
+            width: 100%;
+            max-width: 1800px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            height: calc(100vh - 250px);
+        }
+
+		.page {
+			flex: 1;
+			max-width: 1000px;
+			background: #1a1a1a;
+			border-radius: 8px;
+			padding: 16px;
+			color: #fff;
+			height: calc(100vh - 280px); /* Adjusted to account for all controls */
+			overflow: hidden; /* Changed from overflow-y: auto */
+		}
+
+        .page.hidden {
+            opacity: 0;
+            width: 0;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+		.stream-item {
+			margin: 4px 0; /* Reduced margin */
+			padding: 8px; /* Reduced padding */
+			background: #2a2a2a;
+			border-radius: 4px;
+			white-space: pre-wrap;
+			font-size: 14px; /* Added to control text size */
+		}
+
+        #paginationControls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #pageButtons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #fff;
+            background: #2a2a2a;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .filter-input {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 5px;
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        .filter-checkbox {
+            margin: 0;
+        }
+
+        #status, #pageInfo {
+            color: #4aff4a;
+            margin-left: 20px;
+            line-height: 30px;
+        }
+
+        #customFilters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+    </style>
 </head>
 <body>
     <script src="js/nav-loader.js"></script>
@@ -97,60 +248,23 @@
             return !Array.from(activeFilters).some(filter => text.includes(filter));
         }
 
-		function addContentToPages(data) {
-			const container = document.createElement('div');
-			container.innerHTML = `<div class="stream-item">${data.response}</div>`;
-			const newItem = container.firstChild;
+        function getPageContent(pageNum) {
+            if (pageNum > allPages.length) return '';
+            return allPages[pageNum - 1]
+                .filter(shouldDisplayText)
+                .map(text => `<div class="stream-item">${text}</div>`)
+                .join('');
+        }
 
-			page1.appendChild(newItem); // Temporarily add to measure height
-			const itemHeight = newItem.offsetHeight;
-			page1.removeChild(newItem); // Remove after measurement
-
-			const currentPageArray = allPages[allPages.length - 1];
-			const maxPageHeight = page1.offsetHeight; // Use page container height for max
-			let currentPageHeight = currentPageArray.reduce((total, item) => {
-				const tempDiv = document.createElement('div');
-				tempDiv.innerHTML = `<div class="stream-item">${item}</div>`;
-				page1.appendChild(tempDiv.firstChild);
-				const tempHeight = tempDiv.firstChild.offsetHeight;
-				page1.removeChild(tempDiv.firstChild);
-				return total + tempHeight;
-			}, 0);
-
-			if (currentPageHeight + itemHeight > maxPageHeight) {
-				// Allow item to overflow into a new page
-				const remainingSpace = maxPageHeight - currentPageHeight;
-				const textToSplit = data.response;
-
-				// Determine split logic (for simplicity, splitting by characters for now)
-				const splitIndex = Math.ceil((remainingSpace / itemHeight) * textToSplit.length);
-				const part1 = textToSplit.substring(0, splitIndex);
-				const part2 = textToSplit.substring(splitIndex);
-
-				currentPageArray.push(part1); // Add part 1 to the current page
-				allPages.push([part2]); // Start new page with part 2
-			} else {
-				currentPageArray.push(data.response); // Add entire item to current page
-			}
-
-			updateDisplay();
-		}
-
-		function updateDisplay() {
-			page1.innerHTML = getPageContent(currentPage);
-			if (isDualPage) {
-				page2.innerHTML = getPageContent(currentPage + 1) || '';
-			}
-			updatePaginationControls();
-		}
-
-		function getPageContent(pageNum) {
-			if (pageNum > allPages.length) return '';
-			return allPages[pageNum - 1]
-				.map(text => `<div class="stream-item">${text}</div>`)
-				.join('');
-		}
-
+        function updateDisplay() {
+            page1.innerHTML = getPageContent(currentPage);
+            
+            if (isDualPage) {
+                page2.innerHTML = getPageContent(currentPage + 1);
+            }
+            
+            updatePaginationControls();
+        }
 
         function updatePaginationControls() {
             pageButtons.innerHTML = '';
