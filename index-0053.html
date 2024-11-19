@@ -925,19 +925,30 @@
 
 		// Code handling functions
 		function detectLanguage(code) {
-			// Only look for actual code inside [CODE] tags, nothing else
-			const imagePattern = /(https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp)|https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+)/i;
+			// FIRST: Check if this is an image URL - if so, return 'image-url' immediately
+			const urlPattern = /^(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp)|https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+)$/i;
 			
-			// If it contains an image URL, it's NOT code
-			if (imagePattern.test(code)) {
-				return null;
+			if (urlPattern.test(code.trim())) {
+				return 'image-url';
 			}
 
-			// Simple code language detection only if we're sure it's actually code
-			if (code.includes('def ') || code.includes('import ')) return 'python';
-			if (code.includes('function ') || code.includes('const ')) return 'javascript';
-			if (code.includes('class ') || code.includes('public ')) return 'java';
-			if (code.includes('SELECT ') || code.includes('INSERT ')) return 'sql';
+			// Only proceed with language detection if it's not an image URL
+			const patterns = {
+				python: /\b(def|import|from|class|if __name__ == "__main__"|print)\b/,
+				javascript: /\b(function|const|let|var|=>)\b/,
+				jsx: /<\w+(\s+\w+={[\s\S]*?})*\s*\/?>|import\s+.*?\s+from\s+['"]react['"]|React\./,
+				html: /^<[^>]+>/,  // Modified to be more strict
+				css: /^[.#]?\w+\s*{/,  // Modified to be more strict
+				sql: /\b(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE)\b/i,
+				java: /\b(public|private|class|void|static)\b/,
+				csharp: /\b(using|namespace|class|public|private|void)\b/
+			};
+
+			for (const [lang, pattern] of Object.entries(patterns)) {
+				if (pattern.test(code)) {
+					return lang;
+				}
+			}
 			
 			return 'plaintext';
 		}
@@ -1335,23 +1346,54 @@
 			
 			for (let segment of segments) {
 				if (segment.trim().startsWith('[CODE]')) {
-					// Handle ONLY explicit code blocks
+					// Handle code block
 					const codeContent = segment.replace(/\[CODE\]/gi, '').replace(/\[\/CODE\]/gi, '').trim();
 					if (codeContent) {
 						const language = detectLanguage(codeContent);
-						if (language !== null) {
+						if (language !== null) {  // Only process as code if not a URL
 							const uniqueId = addCodeBlock(codeContent, language);
 							processedText += `<div class="code-reference" onclick="scrollToCode('${uniqueId}')">
 								<span class="code-language">${language}</span>
 								View Code Block
 							</div>`;
 						} else {
-							// If it contains an image URL, treat it as regular text
-							processedText += `<p>${codeContent}</p>`;
+							// Process as regular text/URL since it's not actually code
+							let processedSegment = codeContent;
+							// Process image URLs
+							processedSegment = processedSegment.replace(/(?:!\[(?:[^\]]*)\]\(([^)]+)\))|(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp))|(?:https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+)/gi, 
+								(match, capturedUrl) => {
+									let imageUrl = capturedUrl || match;
+									imageUrl = imageUrl.trim().replace(/\s+/g, '');
+									
+									if (imageUrl.includes('pollinations.ai')) {
+										const promptMatch = imageUrl.match(/\/prompt\/([^?&]+)/);
+										const prompt = promptMatch ? promptMatch[1] : 'default_image';
+										const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
+										imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
+										
+										return `<div class="image-container">
+											<img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;" alt="Generated Image">
+											<button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
+										</div>`;
+									}
+									
+									return `<img src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;" alt="Image">`;
+								}
+							);
+							
+							// Clean up any remaining markdown or invalid tags
+							processedSegment = processedSegment.replace(/\[\s*\]/g, '')
+								.replace(/\[.*?\]\((.*?)\)/g, '')
+								.replace(/\s+/g, ' ')
+								.trim();
+							
+							if (processedSegment) {
+								processedText += `<p>${processedSegment}</p>`;
+							}
 						}
 					}
 				} else {
-					// Handle everything else as regular text/images
+					// Handle regular text and images
 					if (segment.trim()) {
 						// Process image URLs
 						segment = segment.replace(/(?:!\[(?:[^\]]*)\]\(([^)]+)\))|(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp))|(?:https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+)/gi, 
