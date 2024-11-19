@@ -1354,40 +1354,39 @@
 			// Handle code blocks first
 			text = processCodeBlocks(text);
 
-			// Clean up stray formatting and remove unnecessary elements
-			text = text.replace(/^\s*[.…`]{3}\s*$/gm, ''); // Remove standalone dots or backticks
-			text = text.replace(/^"*markdown"*\s*/gm, ''); // Remove markdown indicators
-			text = text.replace(/^```\s*$/gm, ''); // Remove standalone triple backticks
-			text = text.replace(/```/g, ''); // Remove inline triple backticks
-			text = text.replace(/\[Unity's [Ss]elfie\]/g, ''); // Remove placeholder for Unity's selfie
+			// Basic cleanup without touching image patterns
+			text = text.replace(/^\s*[.…`]{3}\s*$/gm, '');
+			text = text.replace(/^"*markdown"*\s*/gm, '');
+			text = text.replace(/^```\s*$/gm, '');
+			text = text.replace(/```/g, '');
+			text = text.replace(/\[Unity's [Ss]elfie\]/g, '');
 
 			// Process image URLs and descriptions
-			const urlPattern = /https?:\/\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp)|https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+/gi;
+			const urlPattern = /(?:!\[(?:[^\]]*)\]\(([^)]+)\))|(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp))|(?:https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+)/gi;
 
-			text = text.replace(urlPattern, (match) => {
-				const imageUrl = match.trim();
-				
+			text = text.replace(urlPattern, (match, capturedUrl) => {
+				let imageUrl = capturedUrl || match;
+				imageUrl = imageUrl.trim().replace(/\s+/g, '');
+
 				// Special handling for Pollinations.ai URLs
 				if (imageUrl.includes('pollinations.ai')) {
 					const promptMatch = imageUrl.match(/\/prompt\/([^?&]+)/);
 					const prompt = promptMatch ? promptMatch[1] : 'default_image';
 					const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
-					const pollinationUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
+					imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
 					
 					return `<div class="image-container">
-						<img id="${uniqueId}" src="${pollinationUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">
+						<img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">
 						<button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
 					</div>`;
 				}
 
-				// Standard image URLs
+				// Handle standard image URLs
 				return `<img src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;">`;
 			});
 
-			// Ensure no code block wrapping happens
-			return text.replace(/<code.*?>[\s\S]*?<\/code>/gi, ''); // Remove code tags entirely
+			return text;
 		}
-
 
 
 
