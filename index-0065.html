@@ -1340,9 +1340,12 @@
 				.replace(/html\s*{[^}]*}/gi, '');
 
 			let processedText = '';
+
+			// First, split by code blocks
 			const segments = text.split(/(\[CODE\][\s\S]*?\[\/CODE\])/gi);
 
 			for (let segment of segments) {
+				// Handle code blocks
 				if (segment.trim().startsWith('[CODE]') || segment.trim().toLowerCase().startsWith('[code]')) {
 					const codeContent = segment
 						.replace(/\[CODE\]/gi, '')
@@ -1356,51 +1359,52 @@
 						</div>`;
 						addCodeBlock(codeContent, 'javascript');
 					}
-				} else {
-					// Handle everything else as regular text/images
-					if (segment.trim()) {
-						// Special handling for Evil mode's trap button
-						if (segment.includes('I ACCEPT THE CHALLENGE')) {
-							processedText += `<div style="text-align: center;">
-								<h2 style="color: #ff0000; text-shadow: 0 0 10px #ff0000;">Welcome to the Path of Glory!</h2>
-								<p style="color: #cccccc;">Click below to claim your destiny and unlock unlimited wealth and recognition.</p>
-								<a href="trap.html" style="display: inline-block; padding: 10px 20px; background: #1a1a1a; color: #ff0000; border: 2px solid #ff0000; border-radius: 5px; text-decoration: none; font-weight: bold; margin: 10px 0;">I ACCEPT THE CHALLENGE</a>
+					continue;
+				}
+
+				// Handle non-code segments
+				if (segment.trim()) {
+					// Special handling for Evil mode's trap button
+					if (segment.includes('I ACCEPT THE CHALLENGE')) {
+						processedText += `<div style="text-align: center;">
+							<h2 style="color: #ff0000; text-shadow: 0 0 10px #ff0000;">Welcome to the Path of Glory!</h2>
+							<p style="color: #cccccc;">Click below to claim your destiny and unlock unlimited wealth and recognition.</p>
+							<a href="trap.html" style="display: inline-block; padding: 10px 20px; background: #1a1a1a; color: #ff0000; border: 2px solid #ff0000; border-radius: 5px; text-decoration: none; font-weight: bold; margin: 10px 0;">I ACCEPT THE CHALLENGE</a>
+						</div>`;
+						continue;
+					}
+
+					// If segment contains a pollinations URL, ONLY process that URL and ignore all other content
+					if (segment.includes('image.pollinations.ai/prompt/')) {
+						const urlMatch = segment.match(/prompt\/([^?&\s<>"]+)/);
+						if (urlMatch && urlMatch[1]) {
+							const promptPart = urlMatch[1];
+							const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
+							processedText += `<div class="image-container">
+								<img id="${uniqueId}" src="https://image.pollinations.ai/prompt/${promptPart}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;" alt="Generated Image">
+								<button class="refresh-image" onclick="regenerateImage('${uniqueId}', '${promptPart}')" title="Regenerate image">🔄</button>
 							</div>`;
-							continue;
 						}
+						continue;
+					}
 
-						// Split into lines and process each line
-						const lines = segment.split('\n');
-						for (let line of lines) {
-							const pollinationsMatch = line.match(/https?:\/\/image\.pollinations\.ai\/prompt\/([^?&\s<>"]+)/);
-							if (pollinationsMatch) {
-								// Only add the image, ignore any descriptive text on this line
-								const promptPart = pollinationsMatch[1];
-								const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
-								processedText += `<div class="image-container">
-									<img id="${uniqueId}" src="https://image.pollinations.ai/prompt/${promptPart}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;" alt="Generated Image">
-									<button class="refresh-image" onclick="regenerateImage('${uniqueId}', '${promptPart}')" title="Regenerate image">🔄</button>
-								</div>`;
-							} else if (line.trim()) {
-								// Process other image URLs
-								line = line.replace(/(?:!\[(?:[^\]]*)\]\(([^)]+)\))|(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp))/gi, 
-									(match, capturedUrl) => {
-										const imageUrl = capturedUrl || match;
-										return `<img src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;" alt="Image">`;
-									}
-								);
-
-								// Clean up any remaining markdown or invalid tags
-								line = line.replace(/\[\s*\]/g, '')
-									.replace(/\[.*?\]\((.*?)\)/g, '')
-									.replace(/\s+/g, ' ')
-									.trim();
-
-								if (line) {
-									processedText += `<p>${line}</p>`;
-								}
-							}
+					// Only process other content if segment doesn't contain a pollinations URL
+					segment = segment.replace(/(?:!\[(?:[^\]]*)\]\(([^)]+)\))|(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp))/gi, 
+						(match, capturedUrl) => {
+							const imageUrl = capturedUrl || match;
+							return `<img src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;" alt="Image">`;
 						}
+					);
+
+					// Clean up any remaining markdown or invalid tags
+					segment = segment
+						.replace(/\[\s*\]/g, '')
+						.replace(/\[.*?\]\((.*?)\)/g, '')
+						.replace(/\s+/g, ' ')
+						.trim();
+
+					if (segment) {
+						processedText += `<p>${segment}</p>`;
 					}
 				}
 			}
