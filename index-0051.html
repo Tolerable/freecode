@@ -964,15 +964,18 @@
 							<button class="control-btn" onclick="toggleLineNumbers('${uniqueId}')">Toggle Lines</button>
 						</div>
 					</div>
-					<pre class="line-numbers"><code id="${uniqueId}" class="language-${language}">${escapeHtml(code)}</code></pre>
+					<pre class="line-numbers"><code id="${uniqueId}" class="language-${language}">${escapeHtml(code.trim())}</code></pre>
 				</div>
 			`;
 
+			// Insert at the top of the code panel
 			const tempDiv = document.createElement('div');
 			tempDiv.innerHTML = codeBlockHtml;
 			codePanel.insertBefore(tempDiv.firstElementChild, codePanel.firstChild);
 
+			// Initialize Prism highlighting
 			Prism.highlightElement(document.getElementById(uniqueId));
+
 			return uniqueId;
 		}
 
@@ -1335,60 +1338,33 @@
 		}
 
 		function processMessage(text) {
-			let processedText = '';
-			const segments = text.split(/(\[CODE\][\s\S]*?\[\/CODE\])/gi);
-			
-			for (let segment of segments) {
-				if (segment.trim().startsWith('[CODE]')) {
-					// Handle code block
-					const codeContent = segment.replace(/\[CODE\]/gi, '').replace(/\[\/CODE\]/gi, '').trim();
-					if (codeContent) {
-						const language = detectLanguage(codeContent);
-						const uniqueId = addCodeBlock(codeContent, language);
-						processedText += `<div class="code-reference" onclick="scrollToCode('${uniqueId}')">
-							<span class="code-language">${language}</span>
-							View Code Block
-						</div>`;
-					}
-				} else {
-					// Handle regular text and images
-					if (segment.trim()) {
-						// Process image URLs
-						segment = segment.replace(/(?:!\[(?:[^\]]*)\]\(([^)]+)\))|(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp))|(?:https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+)/gi, 
-							(match, capturedUrl) => {
-								let imageUrl = capturedUrl || match;
-								imageUrl = imageUrl.trim().replace(/\s+/g, '');
-								
-								if (imageUrl.includes('pollinations.ai')) {
-									const promptMatch = imageUrl.match(/\/prompt\/([^?&]+)/);
-									const prompt = promptMatch ? promptMatch[1] : 'default_image';
-									const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
-									imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
-									
-									return `<div class="image-container">
-										<img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;" alt="Generated Image">
-										<button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
-									</div>`;
-								}
-								
-								return `<img src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;" alt="Image">`;
-							}
-						);
-						
-						// Clean up any remaining markdown or invalid tags
-						segment = segment.replace(/\[\s*\]/g, '')
-							.replace(/\[.*?\]\((.*?)\)/g, '')
-							.replace(/\s+/g, ' ')
-							.trim();
-						
-						if (segment) {
-							processedText += `<p>${segment}</p>`;
-						}
-					}
+			// Handle image URLs with improved pattern matching
+			const urlPattern = /(?:!\[(?:[^\]]*)\]\(([^)]+)\))|(?:https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(?:jpg|jpeg|gif|png|webp))|(?:https?:\/\/image\.pollinations\.ai\/prompt\/[^\s<>"]+)/gi;
+
+			text = text.replace(urlPattern, (match, capturedUrl) => {
+				let imageUrl = capturedUrl || match;
+				imageUrl = imageUrl.trim().replace(/\s+/g, '');
+
+				if (imageUrl.includes('pollinations.ai')) {
+					const promptMatch = imageUrl.match(/\/prompt\/([^?&]+)/);
+					const prompt = promptMatch ? promptMatch[1] : 'default_image';
+					const uniqueId = 'img-' + Math.random().toString(36).substr(2, 9);
+					imageUrl = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&width=1920&height=1080&enhance=false&seed=${Math.floor(Math.random() * 1000000)}`;
+					
+					return `<div class="image-container">
+						<img id="${uniqueId}" src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;" alt="Generated Image">
+						<button class="refresh-image" onclick="regenerateImage('${uniqueId}')" title="Regenerate image">🔄</button>
+					</div>`;
 				}
-			}
-			
-			return processedText;
+				
+				return `<img src="${imageUrl}" style="max-width:100%; height:auto; margin:10px 0; border-radius:8px;" alt="Image">`;
+			});
+
+			// Clean up any remaining markdown or invalid tags
+			text = text.replace(/\[\s*\]/g, '')
+				.replace(/\[.*?\]\((.*?)\)/g, '');
+
+			return text;
 		}
 
 
