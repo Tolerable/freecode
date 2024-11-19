@@ -742,8 +742,6 @@
 
     <!-- Main Application Script -->
     <script>
-	
-	
 		async function buildMessages(modelName, userMessage, selectedPersona = 'default') {
 			const messages = [];
 			const model = MODEL_CONFIG.models[modelName];
@@ -753,22 +751,20 @@
 				return defaultMessageFallback(userMessage);
 			}
 
-			// Base models get system messages
 			if (model.baseModel) {
 				messages.push({
 					role: 'system',
 					content: model.systemMessage
 				});
-				
+
+				// Base models get instruction as system message
 				messages.push({
 					role: 'system',
 					content: DEFAULT_INSTRUCTION
 				});
-			} 
-			// Persona models get a floating first message with persona+instruction
-			else if (model.usePersona) {
+			} else if (model.usePersona) {
 				let personaContent = '';
-				
+
 				if (modelName === 'unity' && selectedPersona !== 'default') {
 					if (model.customPersonas[selectedPersona]) {
 						personaContent = await fetchPersonaContent(model.customPersonas[selectedPersona]);
@@ -777,19 +773,19 @@
 					personaContent = model.defaultPersona;
 				}
 
-				// Create the floating first message with both persona and instruction
+				// ALL persona models get instruction merged with their content
+				personaContent = `${DEFAULT_INSTRUCTION}\n\n${personaContent}`;
+
 				messages.push({
 					role: 'assistant',
-					content: `${personaContent}\n\n${DEFAULT_INSTRUCTION}`
+					content: personaContent
 				});
 			}
 
-			// Add trimmed history AFTER the system/persona setup
 			if (conversationHistory.length > 0) {
 				messages.push(...conversationHistory.slice(-10));
 			}
 
-			// Add the current user query
 			messages.push({
 				role: 'user',
 				content: userMessage
@@ -800,6 +796,7 @@
 				response_format: { type: "json_object" }
 			} : messages;
 		}
+
 
 		
 		// Constants

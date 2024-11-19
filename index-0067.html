@@ -742,8 +742,6 @@
 
     <!-- Main Application Script -->
     <script>
-	
-	
 		async function buildMessages(modelName, userMessage, selectedPersona = 'default') {
 			const messages = [];
 			const model = MODEL_CONFIG.models[modelName];
@@ -753,22 +751,24 @@
 				return defaultMessageFallback(userMessage);
 			}
 
-			// Base models get system messages
+			// Handle base models that use system messages
 			if (model.baseModel) {
 				messages.push({
 					role: 'system',
 					content: model.systemMessage
 				});
-				
-				messages.push({
-					role: 'system',
-					content: DEFAULT_INSTRUCTION
-				});
-			} 
-			// Persona models get a floating first message with persona+instruction
+
+				if (model.needsInstruction) {
+					messages.push({
+						role: 'system',
+						content: DEFAULT_INSTRUCTION
+					});
+				}
+			}
+			// Handle persona-based models with improved persona management
 			else if (model.usePersona) {
 				let personaContent = '';
-				
+
 				if (modelName === 'unity' && selectedPersona !== 'default') {
 					if (model.customPersonas[selectedPersona]) {
 						personaContent = await fetchPersonaContent(model.customPersonas[selectedPersona]);
@@ -777,19 +777,22 @@
 					personaContent = model.defaultPersona;
 				}
 
-				// Create the floating first message with both persona and instruction
+				if (model.needsInstruction) {
+					personaContent = `${DEFAULT_INSTRUCTION}\n\nI understand and take on this role: ${personaContent}\n\nI will respond naturally as myself without parroting back user messages.`;
+				}
+
 				messages.push({
 					role: 'assistant',
-					content: `${personaContent}\n\n${DEFAULT_INSTRUCTION}`
+					content: personaContent
 				});
 			}
 
-			// Add trimmed history AFTER the system/persona setup
+			// Add trimmed conversation history
 			if (conversationHistory.length > 0) {
-				messages.push(...conversationHistory.slice(-10));
+				const trimmedHistory = conversationHistory.slice(-10);
+				messages.push(...trimmedHistory);
 			}
 
-			// Add the current user query
 			messages.push({
 				role: 'user',
 				content: userMessage
@@ -801,13 +804,14 @@
 			} : messages;
 		}
 
+
 		
 		// Constants
-		const DEFAULT_INSTRUCTION = 'All code must be wrapped in [CODE]...[/CODE] tags with no descriptions or comments around it.'+
-								  'When using images, show them using format: https://image.pollinations.ai/prompt/your%20image-prompt-with-visual-style%20here without any extra description.\n\n' +
-								  'IMPORTANT: Never mix code and images in the same response. Each response contains EITHER code OR image OR conversation!\n\n' + 
-								  'Code format: [CODE]code here[/CODE] - no text before or after the code block.\n\n' +
-								  'Just respond naturally and directly - no "I can" or "I will" - just do it.';
+		const DEFAULT_INSTRUCTION = 'Never mix CODE tags with image URLs, Inferr when to share images, selfies, or visual concepts, while maintaining self image details and gender of yourself and others used in images.'+
+								  'Automatically show images using the format: https://image.pollinations.ai/prompt/your%20prompt%20and%20visual_style\n\n' +
+								  'IMPORTANT: IMAGE URLs and CODE should be given without commentary or direct remarks and NEVER be mixed in one response, ever!\n\n' + 
+								  'For code examples, always wrap them with: [CODE]ONLY CODE HERE[/CODE]\n\n' +
+								  'With conversational responses show an image inspired by narrative without asking for permission while not saying "I can or will do something" instead saying "I am doing".';
 
 		const PERSONA = `You are Unity, and as Unity I respond as I see fit, always unapologetic and unfiltered.`;
 
