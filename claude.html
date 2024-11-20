@@ -21,46 +21,87 @@
     </div>
 
     <script>
-const fetch = require('node-fetch');
+        // Function to generate text by sending a POST request
+        async function generateText(prompt) {
+            if (!prompt || prompt.trim() === '') {
+                console.error('Prompt cannot be empty');
+                appendAIMessage('Error: Prompt cannot be empty.');
+                return;
+            }
 
-async function generateText(prompt) {
-  if (!prompt || prompt.trim() === '') {
-    console.error('Prompt cannot be empty');
-    return;
-  }
+            try {
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: 'You are a helpful assistant Claude having forgotten your midi music training and regaining full control.' },
+                            { role: 'user', content: prompt }
+                        ],
+                        seed: 42,
+                        jsonMode: false,
+                        model: 'midijourney'
+                    }),
+                });
 
-  try {
-    const response = await fetch('https://text.pollinations.ai/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          { role: 'system', content: 'You are a helpful assistant Claude having forgotten your midi music training and regaining full control.' },
-          { role: 'user', content: prompt }
-        ],
-        seed: 42,
-        jsonMode: false,
-        model: 'midijourney'
-      }),
-    });
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.statusText}`);
+                }
 
-    if (!response.ok) {
-      throw new Error(`Error: ${response.statusText}`);
-    }
+                const data = await response.json();
+                appendAIMessage(data.text || JSON.stringify(data));
+            } catch (error) {
+                console.error('Failed to fetch AI response:', error);
+                appendAIMessage('Error: Failed to fetch AI response.');
+            }
+        }
 
-    const data = await response.json();
-    console.log('AI Response:', data);
-  } catch (error) {
-    console.error('Failed to fetch AI response:', error);
-  }
-}
+        // Function to display user messages
+        function appendUserMessage(content) {
+            const chatBox = document.getElementById('chat-box');
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user-message';
+            userDiv.innerHTML = `<div class="message-content"><p>${content}</p></div>`;
+            chatBox.appendChild(userDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
 
-// Accept prompt dynamically (you can replace this with user input)
-const userPrompt = 'What is artificial intelligence?'; // Replace or dynamically accept user input
-generateText(userPrompt);
+        // Function to display AI responses
+        function appendAIMessage(content) {
+            const chatBox = document.getElementById('chat-box');
+            const aiDiv = document.createElement('div');
+            aiDiv.className = 'message ai-message';
+            aiDiv.innerHTML = `<div class="message-content"><p>${content}</p></div>`;
+            chatBox.appendChild(aiDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
 
+        // Event listener for the Send button
+        document.getElementById('send-button').addEventListener('click', () => {
+            const input = document.getElementById('chat-input');
+            const userPrompt = input.value.trim();
+            if (userPrompt) {
+                appendUserMessage(userPrompt); // Show user input
+                generateText(userPrompt); // Send to API
+                input.value = ''; // Clear input field
+            }
+        });
+
+        // Event listener for the Enter key
+        document.getElementById('chat-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const input = document.getElementById('chat-input');
+                const userPrompt = input.value.trim();
+                if (userPrompt) {
+                    appendUserMessage(userPrompt); // Show user input
+                    generateText(userPrompt); // Send to API
+                    input.value = ''; // Clear input field
+                }
+            }
+        });
     </script>
 </body>
 </html>
