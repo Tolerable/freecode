@@ -3,171 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <title>Claude Chat Interface</title>
-    <style>
-        /* Base styles */
-        body {
-            margin: 0;
-            padding: 0;
-            background: #18181b;
-            color: #f4f4f5;
-            font-family: system-ui, -apple-system, sans-serif;
-        }
+	<style>
+		/* Base styles */
+		body {
+			margin: 0;
+			padding: 0;
+			background: #18181b;
+			color: #f4f4f5;
+			font-family: system-ui, -apple-system, sans-serif;
+		}
 
-        .chat-container {
-            max-width: 4xl;
-            margin: 0 auto;
-            padding: 1rem;
-            background: #27272a;
-        }
+		.chat-container {
+			max-width: 1024px;
+			margin: 0 auto;
+			padding: 1rem;
+			background: #27272a;
+			width: 100%;
+			box-sizing: border-box;
+		}
 
-        .chat-layout {
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 160px);
-        }
+		.chat-layout {
+			display: flex;
+			flex-direction: column;
+			height: calc(100vh - 160px);
+		}
 
-        .chat-main {
-            flex-grow: 1;
-            overflow: hidden;
-        }
+		.chat-main {
+			flex-grow: 1;
+			overflow: hidden;
+			position: relative;
+		}
 
-        .chat-box {
-            height: 100%;
-            overflow-y: auto;
-            padding: 1rem;
-        }
+		.chat-box {
+			height: 100%;
+			overflow-y: auto;
+			padding: 1rem;
+			box-sizing: border-box;
+		}
 
-        /* Message styles */
-        .message {
-            display: flex;
-            margin-bottom: 1rem;
-            gap: 1rem;
-        }
+		/* Message styles */
+		.message {
+			display: flex;
+			margin-bottom: 1rem;
+			gap: 1rem;
+			align-items: flex-start;
+		}
 
-        .message-avatar img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-        }
+		.message-avatar img {
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+		}
 
-        .message-content {
-            flex-grow: 1;
-            line-height: 1.5;
-        }
+		.message-content {
+			flex-grow: 1;
+			line-height: 1.5;
+			overflow-wrap: break-word;
+			word-break: break-word;
+		}
 
-        /* Code block styles */
-        .code-display {
-            position: relative;
-            margin: 1rem 0;
-            background: #1f1f23;
-            border-radius: 0.5rem;
-            overflow: hidden;
-        }
+		/* Code block styles */
+		.code-display {
+			position: relative;
+			margin: 1rem 0;
+			background: #1f1f23;
+			border-radius: 0.5rem;
+			overflow: hidden;
+		}
 
-        .code-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            background: #2d2d33;
-            color: #a1a1aa;
-        }
+		.code-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 0.5rem 1rem;
+			background: #2d2d33;
+			color: #a1a1aa;
+		}
 
-        .code-block {
-            margin: 0;
-            padding: 1rem;
-            overflow-x: auto;
-        }
+		.code-block {
+			margin: 0;
+			padding: 1rem;
+			overflow-x: auto;
+			background: inherit;
+		}
 
-        .copy-button {
-            background: #3f3f46;
-            color: #f4f4f5;
-            border: none;
-            border-radius: 0.25rem;
-            padding: 0.25rem 0.75rem;
-            cursor: pointer;
-            font-size: 0.875rem;
-        }
+		.code-block code {
+			font-family: monospace;
+			white-space: pre;
+		}
 
-        .copy-button:hover {
-            background: #52525b;
-        }
+		.copy-button {
+			background: #3f3f46;
+			color: #f4f4f5;
+			border: none;
+			border-radius: 0.25rem;
+			padding: 0.25rem 0.75rem;
+			cursor: pointer;
+			font-size: 0.875rem;
+		}
 
-        /* Image container styles */
-        .image-container {
-            position: relative;
-            margin: 1rem 0;
-            max-width: 512px;
-        }
+		.copy-button:hover {
+			background: #52525b;
+		}
 
-        .image-container img {
-            width: 100%;
-            border-radius: 0.5rem;
-        }
+		/* Image container styles */
+		.image-container {
+			position: relative;
+			margin: 1rem 0;
+			max-width: 512px;
+			width: 100%;
+		}
 
-        .image-description {
-            margin-top: 0.5rem;
-            color: #a1a1aa;
-            font-size: 0.875rem;
-        }
+		.image-container img {
+			width: 100%;
+			height: auto;
+			border-radius: 0.5rem;
+			display: block;
+		}
 
-        .image-controls {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
+		.image-description {
+			margin-top: 0.5rem;
+			color: #a1a1aa;
+			font-size: 0.875rem;
+		}
 
-        .image-button {
-            background: #3f3f46;
-            color: #f4f4f5;
-            border: none;
-            border-radius: 0.25rem;
-            padding: 0.25rem 0.75rem;
-            cursor: pointer;
-            font-size: 0.875rem;
-        }
+		.image-controls {
+			display: flex;
+			gap: 0.5rem;
+			margin-top: 0.5rem;
+		}
 
-        .image-button:hover {
-            background: #52525b;
-        }
+		.image-button {
+			background: #3f3f46;
+			color: #f4f4f5;
+			border: none;
+			border-radius: 0.25rem;
+			padding: 0.25rem 0.75rem;
+			cursor: pointer;
+			font-size: 0.875rem;
+		}
 
-        /* Input area styles */
-        .input-area {
-            margin-top: 1rem;
-        }
+		.image-button:hover {
+			background: #52525b;
+		}
 
-        textarea {
-            width: 100%;
-            min-height: 60px;
-            padding: 0.75rem;
-            background: #3f3f46;
-            color: #f4f4f5;
-            border: none;
-            border-radius: 0.5rem;
-            resize: vertical;
-        }
+		/* Input area styles */
+		.input-area {
+			margin-top: 1rem;
+			position: relative;
+		}
 
-        /* Controls area */
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 1rem;
-        }
+		textarea {
+			width: 100%;
+			min-height: 60px;
+			padding: 0.75rem;
+			background: #3f3f46;
+			color: #f4f4f5;
+			border: none;
+			border-radius: 0.5rem;
+			resize: vertical;
+			box-sizing: border-box;
+			font-family: inherit;
+			font-size: 1rem;
+			line-height: 1.5;
+		}
 
-        .control-btn {
-            background: #3f3f46;
-            color: #f4f4f5;
-            border: none;
-            border-radius: 0.25rem;
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            margin-right: 0.5rem;
-        }
+		/* Controls area */
+		.controls {
+			display: flex;
+			justify-content: space-between;
+			margin-top: 1rem;
+			gap: 0.5rem;
+		}
 
-        .control-btn:hover {
-            background: #52525b;
-        }
-    </style>
+		.control-btn {
+			background: #3f3f46;
+			color: #f4f4f5;
+			border: none;
+			border-radius: 0.25rem;
+			padding: 0.5rem 1rem;
+			cursor: pointer;
+			font-size: 1rem;
+		}
+
+		.control-btn:hover {
+			background: #52525b;
+		}
+
+		/* Error message styles */
+		.error-message {
+			color: #ef4444;
+			padding: 0.5rem;
+			margin: 0.5rem 0;
+			border-radius: 0.25rem;
+			background: rgba(239, 68, 68, 0.1);
+		}
+
+		/* Scrollbar styles */
+		::-webkit-scrollbar {
+			width: 8px;
+			height: 8px;
+		}
+
+		::-webkit-scrollbar-track {
+			background: #27272a;
+		}
+
+		::-webkit-scrollbar-thumb {
+			background: #3f3f46;
+			border-radius: 4px;
+		}
+
+		::-webkit-scrollbar-thumb:hover {
+			background: #52525b;
+		}
+	</style>
 </head>
 <body>
     <div class="chat-container">
