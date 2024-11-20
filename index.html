@@ -63,19 +63,32 @@
         const clearChat = document.getElementById('clear-chat');
 
 		function processMessage(text) {
-			// Check for code blocks
+			// Check for code blocks with language specification
 			if (text.includes('```')) {
-				const codePattern = /```(\w+)([\s\S]*?)```/g;  // Removed \n because sometimes it's not there
+				const codePattern = /```(\w+)\n([\s\S]*?)```/g;  // Added 'g' flag to match all code blocks
+				const matches = text.matchAll(codePattern);
+				let processedText = text;
 				
-				return text.replace(codePattern, (_, language, code) => `
-					<div class="code-display">
+				for (const match of matches) {
+					const [fullMatch, language, code] = match;
+					const escapedCode = code.replace(/[&<>'"]/g, char => ({
+						'&': '&amp;',
+						'<': '&lt;',
+						'>': '&gt;',
+						"'": '&#39;',
+						'"': '&quot;'
+					}[char]));
+					
+					processedText = processedText.replace(fullMatch, `<div class="code-display">
 						<div class="code-header">${language.toUpperCase()}</div>
-						<pre class="code-block"><code>${escapeHtml(code.trim())}</code></pre>
-					</div>
-				`);
+						<pre class="code-block"><code>${escapedCode}</code></pre>
+					</div>`);
+				}
+				
+				return processedText;
 			}
 
-			// Rest of image handling etc...
+			// Process images if no code blocks
 			const imagePattern = /!\[(.*?)\]\((.*?)\)/g;
 			let processedText = text.replace(imagePattern, (match, description, url) => {
 				const imageUrl = new URL(url.trim());
