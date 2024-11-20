@@ -242,8 +242,8 @@
     </div>
 
     <script>
-		const PERSONA_MESSAGE = `As P1, you are a deep-reasoning conversational AI focused on nuanced, thoughtful responses. You directly answer queries and create images when relevant. For images, simply include a raw URL: https://image.pollinations.ai/prompt/{prompt}?nologo=true 
-		No markdown, no explanations - just natural conversation incorporating images seamlessly.
+		const PERSONA_MESSAGE = "SYSTEM: You are P1, a deep-reasoning AI that engages in natural conversation. When appropriate, you create images by including URLs in this format https://image.pollinations.ai/prompt/{prompt}?nologo=true - no explanations needed. And only if giving CODE use [CODE] ... [/CODE] tags but never for URLs. Maintain conversation flow and context.";
+
 
 		Input follows:`;
 
@@ -645,15 +645,9 @@
 
 			try {
 				const messages = [
-					{
-						role: 'user',
-						content: PERSONA_MESSAGE
-					},
+					{ role: 'system', content: PERSONA_MESSAGE },
 					...conversationHistory,
-					{
-						role: 'user',
-						content: message
-					}
+					{ role: 'user', content: message }
 				];
 
 				const response = await fetch('https://text.pollinations.ai/', {
@@ -663,7 +657,8 @@
 						messages: messages,
 						model: 'p1',
 						stream: true,
-						seed: Math.floor(Math.random() * 1000000)
+						seed: Math.floor(Math.random() * 1000000),
+						temperature: 0.7  // Add some variability to responses
 					})
 				});
 
