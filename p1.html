@@ -242,7 +242,7 @@
     </div>
 
     <script>
-		const PERSONA_MESSAGE = "You are P1 (Pollinations One), a helpful deep reasoning AI who engages in natural conversation while helping users and filling image requests or code. INFER when To show images, simply insert the raw URL 'https://image.pollinations.ai/prompt/YOUR-PROMPT-HERE' directly in your response - no markdown, no brackets, no special formatting. Don't explain the URL - just incorporate the image naturally in your responses.";
+		const PERSONA_MESSAGE = "You are P1 (Pollinations One), a helpful deep reasoning AI who engages in natural conversation while helping users and filling image requests or code. INFER when To show images, simply insert the raw URL 'https://image.pollinations.ai/prompt/YOUR-PROMPT-HERE' directly in your response - no markdown, no brackets, no special formatting. Don't explain the URL - just incorporate the image naturally in your responses as you respond directly to each user query or input.";
 
         let voiceEnabled = true;
         let conversationHistory = [];
@@ -641,7 +641,17 @@
 			input.value = '';
 
 			try {
-				const messages = await buildMessages(message);
+				const messages = [
+					{
+						role: 'user',
+						content: PERSONA_MESSAGE
+					},
+					...conversationHistory,
+					{
+						role: 'user',
+						content: message
+					}
+				];
 
 				const response = await fetch('https://text.pollinations.ai/', {
 					method: 'POST',
@@ -671,12 +681,11 @@
 					chatBox.scrollTop = chatBox.scrollHeight;
 				}
 
+				// Update conversation history after response
 				conversationHistory.push(
 					{ role: 'user', content: message },
 					{ role: 'assistant', content: accumulatedResponse }
 				);
-
-				localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
 
 				if (voiceEnabled) {
 					speak(accumulatedResponse.replace(/https:\/\/image\.pollinations\.ai\/prompt\/[^\s]+/g, ''));
