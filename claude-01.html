@@ -423,7 +423,15 @@
 		function processMessage(text) {
 			let processedText = text;
 			
-			// Handle images first
+			// Keep track of code blocks first to protect them
+			const codeBlocks = [];
+			processedText = processedText.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
+				const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
+				codeBlocks.push({ language: language || 'text', code: code });
+				return placeholder;
+			});
+			
+			// Handle images
 			processedText = processedText.replace(/https:\/\/image\.pollinations\.ai\/prompt\/([^?\s]+)(?:\?[^\s]*)?/g, (match, prompt) => {
 				const decodedPrompt = decodeURIComponent(prompt);
 				const imageId = `generated-image-${Date.now()}`;
@@ -437,9 +445,9 @@
 				</div>`;
 			});
 
-			// Handle code blocks - use textContent to properly escape
-			processedText = processedText.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
-				// Create elements to handle the escaping properly
+			// Restore code blocks
+			processedText = processedText.replace(/__CODE_BLOCK_(\d+)__/g, (match, index) => {
+				const { language, code } = codeBlocks[index];
 				const wrapper = document.createElement('div');
 				wrapper.className = 'code-display';
 				
@@ -447,7 +455,7 @@
 				header.className = 'code-header';
 				
 				const lang = document.createElement('span');
-				lang.textContent = (language || 'text').toUpperCase();
+				lang.textContent = language.toUpperCase();
 				
 				const copyBtn = document.createElement('button');
 				copyBtn.className = 'copy-button';
@@ -461,7 +469,7 @@
 				pre.className = 'code-block';
 				
 				const codeElement = document.createElement('code');
-				codeElement.textContent = code.trim(); // This properly escapes the content
+				codeElement.textContent = code.trim();
 				
 				pre.appendChild(codeElement);
 				wrapper.appendChild(header);
