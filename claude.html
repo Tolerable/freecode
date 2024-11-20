@@ -84,10 +84,26 @@
             background: inherit;
         }
 
-        .code-block code {
-            font-family: monospace;
-            white-space: pre;
-        }
+		.code-block code {
+			font-family: monospace;
+			white-space: pre;
+			text-align: left;
+			display: block;
+		}
+
+		pre {
+			text-align: left;
+			display: block;
+			white-space: pre-wrap;
+			word-wrap: break-word;
+			margin: 0;
+			padding: 1rem;
+			font-family: monospace;
+		}
+
+		code pre {
+			padding: 0;
+		}
 
         .copy-button {
             background: #3f3f46;
@@ -266,10 +282,172 @@
 			}
 		}
 
+		function setupCodePanel() {
+			// Create a container for split view
+			const splitContainer = document.createElement('div');
+			splitContainer.id = 'code-split-container';
+			splitContainer.style.cssText = `
+				position: fixed;
+				top: 0;
+				right: 0;
+				width: 0;
+				height: 100vh;
+				background: #27272a;
+				transition: width 0.3s ease;
+				display: flex;
+				z-index: 1000;
+				box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+			`;
+
+			// Create code view panel
+			const codePanel = document.createElement('div');
+			codePanel.id = 'code-panel';
+			codePanel.style.cssText = `
+				flex-grow: 1;
+				overflow: auto;
+				padding: 1rem;
+				background: #1f1f23;
+				color: #f4f4f5;
+				font-family: monospace;
+			`;
+
+			// Create control buttons
+			const controlPanel = document.createElement('div');
+			controlPanel.style.cssText = `
+				width: 50px;
+				background: #2d2d33;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 10px 0;
+			`;
+
+			// Toggle view modes buttons
+			const splitViewBtn = document.createElement('button');
+			splitViewBtn.textContent = '↔️';
+			splitViewBtn.title = 'Toggle Split View';
+			
+			const fullCodeBtn = document.createElement('button');
+			fullCodeBtn.textContent = '⬜';
+			fullCodeBtn.title = 'Full Code View';
+			
+			const closeBtn = document.createElement('button');
+			closeBtn.textContent = '❌';
+			closeBtn.title = 'Close Code Panel';
+
+			controlPanel.appendChild(splitViewBtn);
+			controlPanel.appendChild(fullCodeBtn);
+			controlPanel.appendChild(closeBtn);
+
+			splitContainer.appendChild(controlPanel);
+			splitContainer.appendChild(codePanel);
+			document.body.appendChild(splitContainer);
+
+			// Button styles
+			[splitViewBtn, fullCodeBtn, closeBtn].forEach(btn => {
+				btn.style.cssText = `
+					background: none;
+					border: none;
+					color: #f4f4f5;
+					font-size: 20px;
+					cursor: pointer;
+					margin: 10px 0;
+					padding: 5px;
+					border-radius: 4px;
+				`;
+			});
+
+			// State variables
+			let isOpen = false;
+			let isSplitView = false;
+
+			// Toggle panel visibility
+			function togglePanel() {
+				isOpen = !isOpen;
+				splitContainer.style.width = isOpen ? '50%' : '0';
+			}
+
+			// Add event listeners
+			splitViewBtn.addEventListener('click', () => {
+				isSplitView = !isSplitView;
+				splitContainer.style.width = isSplitView ? '50%' : '400px';
+			});
+
+			fullCodeBtn.addEventListener('click', () => {
+				splitContainer.style.width = '100%';
+				isSplitView = false;
+			});
+
+			closeBtn.addEventListener('click', () => {
+				splitContainer.style.width = '0';
+				isOpen = false;
+				isSplitView = false;
+			});
+
+			// Global method to add code to panel
+			window.addCodeToPanel = function(codeText, language = 'text') {
+				codePanel.innerHTML = `
+					<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+						<span style="color: #a1a1aa;">${language.toUpperCase()} Code</span>
+						<button onclick="copyPanelCode()" style="background: #3f3f46; color: #f4f4f5; border: none; padding: 5px 10px; border-radius: 4px;">Copy</button>
+					</div>
+					<pre style="white-space: pre-wrap; word-wrap: break-word; background: #2d2d33; padding: 1rem; border-radius: 4px;">${escapeHtml(codeText)}</pre>
+				`;
+				splitContainer.style.width = '50%';
+				isOpen = true;
+			}
+
+			// Copy code from panel
+			window.copyPanelCode = function() {
+				const codeText = codePanel.querySelector('pre').textContent;
+				navigator.clipboard.writeText(codeText);
+				alert('Code copied to clipboard!');
+			}
+		}
+
+		function moveCodeToPanel(codeBlock) {
+			const codeText = codeBlock.textContent;
+			window.moveToPanelHandler(codeText);
+		}
+
+		function createCodePanelToggle() {
+			// Select all <pre> or <code> elements
+			const codeBlocks = document.querySelectorAll('pre, code');
+			
+			codeBlocks.forEach(block => {
+				const moveButton = document.createElement('button');
+				moveButton.textContent = '📋 Side Panel';
+				moveButton.style.position = 'absolute';
+				moveButton.style.right = '0';
+				moveButton.style.top = '0';
+				
+				moveButton.addEventListener('click', () => {
+					const sidePanel = document.getElementById('code-side-panel');
+					sidePanel.innerHTML = `<pre>${block.textContent}</pre>`;
+					sidePanel.style.display = 'block';
+				});
+
+				// Wrap the code block with a relatively positioned container
+				const wrapper = document.createElement('div');
+				wrapper.style.position = 'relative';
+				block.parentNode.insertBefore(wrapper, block);
+				wrapper.appendChild(block);
+				wrapper.appendChild(moveButton);
+			});
+		}
+
 		function processMessage(text) {
 			let processedText = text;
 			
-			// Handle images first
+			// Keep track of code blocks first to protect them
+			const codeBlocks = [];
+			processedText = processedText.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
+				const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
+				codeBlocks.push({ language: language || 'text', code: code });
+				return placeholder;
+			});
+			
+			// Handle images
 			processedText = processedText.replace(/https:\/\/image\.pollinations\.ai\/prompt\/([^?\s]+)(?:\?[^\s]*)?/g, (match, prompt) => {
 				const decodedPrompt = decodeURIComponent(prompt);
 				const imageId = `generated-image-${Date.now()}`;
@@ -283,16 +461,37 @@
 				</div>`;
 			});
 
-			// Handle code blocks without any HTML entity conversion
-			processedText = processedText.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
-				const lang = language || 'text';
-				return `<div class="code-display">
-					<div class="code-header">
-						<span>${lang.toUpperCase()}</span>
-						<button class="copy-button" onclick="copyCode(this)">Copy</button>
-					</div>
-					<pre class="code-block"><code>${code.trim()}</code></pre>
-				</div>`;
+			// Restore code blocks
+			processedText = processedText.replace(/__CODE_BLOCK_(\d+)__/g, (match, index) => {
+				const { language, code } = codeBlocks[index];
+				const wrapper = document.createElement('div');
+				wrapper.className = 'code-display';
+				
+				const header = document.createElement('div');
+				header.className = 'code-header';
+				
+				const lang = document.createElement('span');
+				lang.textContent = language.toUpperCase();
+				
+				const copyBtn = document.createElement('button');
+				copyBtn.className = 'copy-button';
+				copyBtn.textContent = 'Copy';
+				copyBtn.setAttribute('onclick', 'copyCode(this)');
+				
+				header.appendChild(lang);
+				header.appendChild(copyBtn);
+				
+				const pre = document.createElement('pre');
+				pre.className = 'code-block';
+				
+				const codeElement = document.createElement('code');
+				codeElement.textContent = code.trim();
+				
+				pre.appendChild(codeElement);
+				wrapper.appendChild(header);
+				wrapper.appendChild(pre);
+				
+				return wrapper.outerHTML;
 			});
 
 			// Remove any remaining markdown image syntax
@@ -307,9 +506,15 @@
 				.replace(/&lt;/g, '<')
 				.replace(/&gt;/g, '>')
 				.replace(/&amp;/g, '&');
+			
+			const language = button.closest('.code-display').querySelector('.code-header span').textContent;
+			
 			navigator.clipboard.writeText(textToCopy);
+			window.addCodeToPanel(textToCopy, language);
+			
 			const originalText = button.textContent;
-			button.textContent = 'Copied!';
+			button.textContent = 'Copied & Moved!';
+			
 			setTimeout(() => {
 				button.textContent = originalText;
 			}, 2000);
@@ -389,19 +594,41 @@
             return aiDiv;
         }
 
-        function appendUserMessage(content) {
-            const userDiv = document.createElement('div');
-            userDiv.className = 'message user-message';
-            userDiv.innerHTML = `
-                <div class="message-avatar">
-                    <img src="https://www.gravatar.com/avatar/?d=mp" alt="User">
-                </div>
-                <div class="message-content">${processMessage(content)}</div>
-            `;
-            chatBox.appendChild(userDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+		function appendUserMessage(content) {
+			// Store code blocks before any processing
+			const codeBlocks = [];
+			let processedContent = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
+				const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
+				codeBlocks.push({ language: language || 'text', code: code });
+				return placeholder;
+			});
 
+			// Process any other content (like images)
+			processedContent = processMessage(processedContent);
+
+			// Restore code blocks with proper formatting
+			processedContent = processedContent.replace(/__CODE_BLOCK_(\d+)__/g, (match, index) => {
+				const { language, code } = codeBlocks[index];
+				return `<div class="code-display">
+					<div class="code-header">
+						<span>${language.toUpperCase()}</span>
+						<button class="copy-button" onclick="copyCode(this)">Copy</button>
+					</div>
+					<pre class="code-block"><code>${code}</code></pre>
+				</div>`;
+			});
+
+			const userDiv = document.createElement('div');
+			userDiv.className = 'message user-message';
+			userDiv.innerHTML = `
+				<div class="message-avatar">
+					<img src="https://www.gravatar.com/avatar/?d=mp" alt="User">
+				</div>
+				<div class="message-content">${processedContent}</div>
+			`;
+			chatBox.appendChild(userDiv);
+			chatBox.scrollTop = chatBox.scrollHeight;
+		}
         function showError(message) {
             const errorDiv = document.createElement('div');
             errorDiv.className = 'message error-message';
@@ -517,6 +744,9 @@
                 voiceToggle.textContent = voiceEnabled ? '🔊' : '🔇';
             }
         });
+		
+		// Call this when the page loads
+		document.addEventListener('DOMContentLoaded', setupCodePanel);
     </script>
 </body>
 </html>
