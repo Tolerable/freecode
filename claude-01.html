@@ -266,6 +266,54 @@
 			}
 		}
 
+		function setupCodePanel() {
+			// Create side panel
+			const sidePanel = document.createElement('div');
+			sidePanel.id = 'code-side-panel';
+			sidePanel.style.cssText = `
+				position: fixed;
+				top: 0;
+				right: -400px;  // Hidden by default
+				width: 400px;
+				height: 100%;
+				background: #f4f4f4;
+				transition: right 0.3s;
+				z-index: 1000;
+				overflow: auto;
+				padding: 20px;
+				box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+			`;
+			document.body.appendChild(sidePanel);
+
+			// Create permanent toggle button
+			const toggleButton = document.createElement('button');
+			toggleButton.id = 'code-panel-toggle';
+			toggleButton.textContent = '📋 Code Panel';
+			toggleButton.style.cssText = `
+				position: fixed;
+				top: 10px;
+				right: 10px;
+				z-index: 1001;
+				display: block;  // Always visible
+			`;
+			
+			toggleButton.addEventListener('click', () => {
+				const panel = document.getElementById('code-side-panel');
+				panel.style.right = panel.style.right === '0px' ? '-400px' : '0px';
+			});
+
+			document.body.appendChild(toggleButton);
+
+			// Function to move code to side panel
+			window.moveToPanelHandler = function(codeText) {
+				const sidePanel = document.getElementById('code-side-panel');
+				sidePanel.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${codeText}</pre>`;
+				sidePanel.style.right = '0px';
+			}
+		}
+
+
+
 		function createCodePanelToggle() {
 			// Select all <pre> or <code> elements
 			const codeBlocks = document.querySelectorAll('pre, code');
@@ -564,6 +612,9 @@
                 voiceToggle.textContent = voiceEnabled ? '🔊' : '🔇';
             }
         });
+		
+		// Call this when the page loads
+		document.addEventListener('DOMContentLoaded', setupCodePanel);
     </script>
 </body>
 </html>
