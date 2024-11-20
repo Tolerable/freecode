@@ -306,9 +306,18 @@
 			// Intercept code and move to side panel
 			window.moveToPanelHandler = function(codeText) {
 				const sidePanel = document.getElementById('code-side-panel');
-				sidePanel.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${codeText}</pre>`;
+				sidePanel.innerHTML = `
+					<pre style="white-space: pre-wrap; word-wrap: break-word; background: #1f1f23; color: #f4f4f5; padding: 1rem;">
+						${codeText}
+					</pre>
+				`;
 				sidePanel.style.right = '0px';
 			}
+		}
+
+		function moveCodeToPanel(codeBlock) {
+			const codeText = codeBlock.textContent;
+			window.moveToPanelHandler(codeText);
 		}
 
 		function createCodePanelToggle() {
@@ -399,11 +408,21 @@
 				.replace(/&lt;/g, '<')
 				.replace(/&gt;/g, '>')
 				.replace(/&amp;/g, '&');
+			
 			navigator.clipboard.writeText(textToCopy);
+			
+			// Add a button to move to panel
+			const moveToPanel = document.createElement('button');
+			moveToPanel.textContent = 'Move to Panel';
+			moveToPanel.onclick = () => moveCodeToPanel(codeBlock);
+			
 			const originalText = button.textContent;
 			button.textContent = 'Copied!';
+			button.parentNode.appendChild(moveToPanel);
+			
 			setTimeout(() => {
 				button.textContent = originalText;
+				moveToPanel.remove();
 			}, 2000);
 		}
 
