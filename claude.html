@@ -283,37 +283,16 @@
 				</div>`;
 			});
 
-			// Handle code blocks - use textContent to properly escape
+			// Handle code blocks without any HTML entity conversion
 			processedText = processedText.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
-				// Create elements to handle the escaping properly
-				const wrapper = document.createElement('div');
-				wrapper.className = 'code-display';
-				
-				const header = document.createElement('div');
-				header.className = 'code-header';
-				
-				const lang = document.createElement('span');
-				lang.textContent = (language || 'text').toUpperCase();
-				
-				const copyBtn = document.createElement('button');
-				copyBtn.className = 'copy-button';
-				copyBtn.textContent = 'Copy';
-				copyBtn.setAttribute('onclick', 'copyCode(this)');
-				
-				header.appendChild(lang);
-				header.appendChild(copyBtn);
-				
-				const pre = document.createElement('pre');
-				pre.className = 'code-block';
-				
-				const codeElement = document.createElement('code');
-				codeElement.textContent = code.trim(); // This properly escapes the content
-				
-				pre.appendChild(codeElement);
-				wrapper.appendChild(header);
-				wrapper.appendChild(pre);
-				
-				return wrapper.outerHTML;
+				const lang = language || 'text';
+				return `<div class="code-display">
+					<div class="code-header">
+						<span>${lang.toUpperCase()}</span>
+						<button class="copy-button" onclick="copyCode(this)">Copy</button>
+					</div>
+					<pre class="code-block"><code>${code.trim()}</code></pre>
+				</div>`;
 			});
 
 			// Remove any remaining markdown image syntax

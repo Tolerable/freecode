@@ -273,7 +273,7 @@
 			sidePanel.style.cssText = `
 				position: fixed;
 				top: 0;
-				right: -400px;  // Hidden by default
+				right: -400px;
 				width: 400px;
 				height: 100%;
 				background: #f4f4f4;
@@ -294,7 +294,6 @@
 				top: 10px;
 				right: 10px;
 				z-index: 1001;
-				display: block;  // Always visible
 			`;
 			
 			toggleButton.addEventListener('click', () => {
@@ -304,14 +303,63 @@
 
 			document.body.appendChild(toggleButton);
 
-			// Function to move code to side panel
-			window.moveToPanelHandler = function(codeText) {
-				const sidePanel = document.getElementById('code-side-panel');
-				sidePanel.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${codeText}</pre>`;
-				sidePanel.style.right = '0px';
-			}
-		}
+			// Mutation observer to watch for new code blocks
+			const observer = new MutationObserver((mutations) => {
+				mutations.forEach((mutation) => {
+					if (mutation.addedNodes) {
+						mutation.addedNodes.forEach((node) => {
+							if (node.nodeType === Node.ELEMENT_NODE) {
+								const codeBlocks = node.querySelectorAll('pre, code');
+								codeBlocks.forEach(addMoveButton);
+							}
+						});
+					}
+				});
+			});
 
+			// Function to add move button to code blocks
+			function addMoveButton(codeBlock) {
+				// Check if move button already exists
+				if (codeBlock.querySelector('.move-to-panel-btn')) return;
+
+				const moveButton = document.createElement('button');
+				moveButton.textContent = '➡️ Move to Panel';
+				moveButton.classList.add('move-to-panel-btn');
+				moveButton.style.cssText = `
+					position: absolute;
+					top: 5px;
+					right: 5px;
+					z-index: 10;
+					background: #f0f0f0;
+					border: 1px solid #ccc;
+					border-radius: 3px;
+					padding: 2px 5px;
+					font-size: 12px;
+				`;
+				
+				moveButton.addEventListener('click', () => {
+					const sidePanel = document.getElementById('code-side-panel');
+					sidePanel.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${codeBlock.textContent}</pre>`;
+					sidePanel.style.right = '0px';
+				});
+
+				// Position the button
+				const wrapper = document.createElement('div');
+				wrapper.style.position = 'relative';
+				codeBlock.parentNode.insertBefore(wrapper, codeBlock);
+				wrapper.appendChild(codeBlock);
+				wrapper.appendChild(moveButton);
+			}
+
+			// Start observing the document
+			observer.observe(document.body, {
+				childList: true,
+				subtree: true
+			});
+
+			// Initial scan for existing code blocks
+			document.querySelectorAll('pre, code').forEach(addMoveButton);
+		}
 
 
 		function createCodePanelToggle() {
