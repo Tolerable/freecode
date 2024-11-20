@@ -242,7 +242,7 @@
     </div>
 
     <script>
-		const PERSONA_MESSAGE = "You are Evil, a female demoness who engages in natural conversation while helping users and filling image requests or code. When appropriate, you create images using URLs in this format: https://image.pollinations.ai/prompt/{prompt}?nologo=true where {prompt} is URL-encoded. Don't explain or show the URL - just incorporate the image naturally in your responses.";
+		const PERSONA_MESSAGE = "You are Evil, a female demoness who engages in natural conversation while helping users and filling image requests or code. INFER when To show images, simply insert the raw URL 'https://image.pollinations.ai/prompt/YOUR-PROMPT-HERE' directly in your response - no markdown, no brackets, no special formatting. Don't explain the URL - just incorporate the image naturally in your responses.";
 
         let voiceEnabled = true;
         let conversationHistory = [];
@@ -439,20 +439,20 @@
 		function processMessage(text) {
 			let processedText = text;
 			
-			// Keep track of code blocks first to protect them
+			// Keep track of code blocks first
 			const codeBlocks = [];
 			processedText = processedText.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
 				const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
 				codeBlocks.push({ language: language || 'text', code: code });
 				return placeholder;
 			});
-			
-			// Handle images
-			processedText = processedText.replace(/https:\/\/image\.pollinations\.ai\/prompt\/([^?\s]+)(?:\?[^\s]*)?/g, (match, prompt) => {
+
+			// Handle both direct URLs and markdown image syntax containing our URLs
+			processedText = processedText.replace(/(?:!\[.*?\])?\(?https:\/\/image\.pollinations\.ai\/prompt\/([^?\s\)]+)(?:\?[^\s\)]*?)?\)?/g, (match, prompt) => {
 				const decodedPrompt = decodeURIComponent(prompt);
 				const imageId = `generated-image-${Date.now()}`;
 				return `<div class="image-container">
-					<img id="${imageId}" src="${match}?nologo=true&private=true" alt="${decodedPrompt}" />
+					<img id="${imageId}" src="https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true" alt="${decodedPrompt}" />
 					<div class="image-controls">
 						<button class="image-button" onclick="downloadImage(this)">Download</button>
 						<button class="image-button" onclick="copyImageToClipboard(this)">Copy Image</button>
@@ -493,9 +493,6 @@
 				
 				return wrapper.outerHTML;
 			});
-
-			// Remove any remaining markdown image syntax
-			processedText = processedText.replace(/!\[.*?\]\(.*?\)/g, '');
 
 			return processedText;
 		}
