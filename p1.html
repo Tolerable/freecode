@@ -439,20 +439,27 @@
 		function processMessage(text) {
 			let processedText = text;
 			
-			// Keep track of code blocks first
+			// First protect ANY code blocks before other processing
 			const codeBlocks = [];
-			processedText = processedText.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
+			processedText = processedText.replace(/```([\s\S]*?)```/g, (match, code) => {
 				const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
-				codeBlocks.push({ language: language || 'text', code: code });
+				codeBlocks.push(code);
+				return placeholder;
+			});
+			
+			// Also protect [CODE]...[/CODE] blocks
+			processedText = processedText.replace(/\[CODE\]([\s\S]*?)\[\/CODE\]/g, (match, code) => {
+				const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
+				codeBlocks.push(code);
 				return placeholder;
 			});
 
-			// Handle both direct URLs and markdown image syntax containing our URLs
-			processedText = processedText.replace(/(?:!\[.*?\])?\(?https:\/\/image\.pollinations\.ai\/prompt\/([^?\s\)]+)(?:\?[^\s\)]*?)?\)?/g, (match, prompt) => {
+			// Handle images (they should still process)
+			processedText = processedText.replace(/https:\/\/image\.pollinations\.ai\/prompt\/([^?\s]+)(?:\?[^\s]*)?/g, (match, prompt) => {
 				const decodedPrompt = decodeURIComponent(prompt);
 				const imageId = `generated-image-${Date.now()}`;
 				return `<div class="image-container">
-					<img id="${imageId}" src="https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true" alt="${decodedPrompt}" />
+					<img id="${imageId}" src="${match}?nologo=true&private=true" alt="${decodedPrompt}" />
 					<div class="image-controls">
 						<button class="image-button" onclick="downloadImage(this)">Download</button>
 						<button class="image-button" onclick="copyImageToClipboard(this)">Copy Image</button>
@@ -461,38 +468,19 @@
 				</div>`;
 			});
 
-			// Restore code blocks
-			processedText = processedText.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
-				const wrapper = document.createElement('div');
-				wrapper.className = 'code-display';
-				
-				const header = document.createElement('div');
-				header.className = 'code-header';
-				
-				const lang = document.createElement('span');
-				lang.textContent = (language || 'text').toUpperCase();
-				
-				const copyBtn = document.createElement('button');
-				copyBtn.className = 'copy-button';
-				copyBtn.textContent = 'Copy';
-				copyBtn.setAttribute('onclick', 'copyCode(this)');
-				
-				header.appendChild(lang);
-				header.appendChild(copyBtn);
-				
-				const pre = document.createElement('pre');
-				pre.className = 'code-block';
-				
-				const codeElement = document.createElement('code');
-				// Preserve exact whitespace and formatting
-				codeElement.textContent = code.trimRight();
-				
-				pre.appendChild(codeElement);
-				wrapper.appendChild(header);
-				wrapper.appendChild(pre);
-				
-				return wrapper.outerHTML;
+			// Now restore code blocks with proper formatting
+			processedText = processedText.replace(/__CODE_BLOCK_(\d+)__/g, (match, index) => {
+				const code = codeBlocks[index];
+				return `<div class="code-display">
+					<div class="code-header">
+						<button class="copy-button" onclick="copyCode(this)">Copy</button>
+					</div>
+					<pre class="code-block"><code>${escapeHtml(code)}</code></pre>
+				</div>`;
 			});
+
+			return processedText;
+		}
 
 			return processedText;
 		}
