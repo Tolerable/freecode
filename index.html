@@ -65,12 +65,12 @@
 		function processMessage(text) {
 			// Check for code blocks with language specification
 			if (text.includes('```')) {
-				const codePattern = /```(\w+)\n([\s\S]*?)```/;
-				const match = text.match(codePattern);
+				const codePattern = /```(\w+)\n([\s\S]*?)```/g;  // Added 'g' flag to match all code blocks
+				const matches = text.matchAll(codePattern);
+				let processedText = text;
 				
-				if (match) {
-					const [_, language, code] = match;
-					// Escape HTML special characters in code
+				for (const match of matches) {
+					const [fullMatch, language, code] = match;
 					const escapedCode = code.replace(/[&<>'"]/g, char => ({
 						'&': '&amp;',
 						'<': '&lt;',
@@ -79,11 +79,13 @@
 						'"': '&quot;'
 					}[char]));
 					
-					return `<div class="message-content"><div class="code-display">
-								<div class="code-header">${language.toUpperCase()}</div>
-								<pre class="code-block">${escapedCode}</pre>
-							</div></div>`;
+					processedText = processedText.replace(fullMatch, `<div class="code-display">
+						<div class="code-header">${language.toUpperCase()}</div>
+						<pre class="code-block"><code>${escapedCode}</code></pre>
+					</div>`);
 				}
+				
+				return processedText;
 			}
 
 			// Process images if no code blocks
