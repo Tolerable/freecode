@@ -94,49 +94,40 @@
 				return defaultMessageFallback(userMessage);
 			}
 
-			// Handle base models that need SYSTEM message first
+			// Handle base models with system messages
 			if (model.baseModel) {
 				messages.push({
 					role: 'system',
-					content: model.systemMessage // System message without instruction yet
+					content: `${model.systemMessage}\n\n${model.instruction}`
 				});
 			}
 
-			// Handle persona-based models or those needing faux system messages
+			// Handle persona-based models
 			if (model.usePersona) {
 				let personaContent = model.defaultPersona;
 				
-				// Get Unity's custom persona if selected
+				// Get custom persona for Unity
 				if (modelName === 'unity' && selectedPersona !== 'default' && model.customPersonas[selectedPersona]) {
 					personaContent = await fetchPersonaContent(model.customPersonas[selectedPersona]);
 				}
-				
-				// For models that need instruction in persona messages
+
+				// Add instruction to persona message if required
 				if (model.requiresInstructionEveryQuery) {
-					messages.push({
-						role: 'assistant',
-						content: `<SYSTEM>: ${personaContent}\n\n${model.instruction}</SYSTEM>`
-					});
-				} else {
-					messages.push({
-						role: 'assistant',
-						content: personaContent
-					});
+					personaContent = `${personaContent}\n\n${model.instruction}`;
 				}
+
+				messages.push({
+					role: 'assistant',
+					content: personaContent
+				});
 			}
 
-			// Add instruction to system message if needed
-			if (model.baseModel && model.instruction) {
-				messages[0].content += `\n\n${model.instruction}`;
-			}
-
-			// Add trimmed conversation history (last 10 messages)
+			// Add trimmed conversation history
 			if (conversationHistory.length > 0) {
 				const trimmedHistory = conversationHistory.slice(-10);
 				for (const { role, content } of trimmedHistory) {
-					// Only include user and assistant messages
 					if (role === 'user' || role === 'assistant') {
-						// For models requiring instruction with every message
+						// For models requiring instruction with every query, append to assistant messages
 						if (role === 'assistant' && model.requiresInstructionEveryQuery && model.usePersona) {
 							messages.push({
 								role: 'assistant',
@@ -149,7 +140,7 @@
 				}
 			}
 
-			// Add the current user message last
+			// Add current user message
 			messages.push({
 				role: 'user',
 				content: userMessage
