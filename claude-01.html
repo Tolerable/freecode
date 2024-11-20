@@ -267,51 +267,125 @@
 		}
 
 		function setupCodePanel() {
-			// Create side panel
-			const sidePanel = document.createElement('div');
-			sidePanel.id = 'code-side-panel';
-			sidePanel.style.cssText = `
+			// Create a container for split view
+			const splitContainer = document.createElement('div');
+			splitContainer.id = 'code-split-container';
+			splitContainer.style.cssText = `
 				position: fixed;
 				top: 0;
-				right: -400px;
-				width: 400px;
-				height: 100%;
-				background: #f4f4f4;
-				transition: right 0.3s;
+				right: 0;
+				width: 0;
+				height: 100vh;
+				background: #27272a;
+				transition: width 0.3s ease;
+				display: flex;
 				z-index: 1000;
-				overflow: auto;
-				padding: 20px;
-				box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+				box-shadow: -2px 0 5px rgba(0,0,0,0.2);
 			`;
-			document.body.appendChild(sidePanel);
 
-			// Create toggle button
-			const toggleButton = document.createElement('button');
-			toggleButton.id = 'code-panel-toggle';
-			toggleButton.textContent = '📋 Code Panel';
-			toggleButton.style.cssText = `
-				position: fixed;
-				top: 10px;
-				right: 10px;
-				z-index: 1001;
+			// Create code view panel
+			const codePanel = document.createElement('div');
+			codePanel.id = 'code-panel';
+			codePanel.style.cssText = `
+				flex-grow: 1;
+				overflow: auto;
+				padding: 1rem;
+				background: #1f1f23;
+				color: #f4f4f5;
+				font-family: monospace;
 			`;
+
+			// Create control buttons
+			const controlPanel = document.createElement('div');
+			controlPanel.style.cssText = `
+				width: 50px;
+				background: #2d2d33;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 10px 0;
+			`;
+
+			// Toggle view modes buttons
+			const splitViewBtn = document.createElement('button');
+			splitViewBtn.textContent = '↔️';
+			splitViewBtn.title = 'Toggle Split View';
 			
-			toggleButton.addEventListener('click', () => {
-				const panel = document.getElementById('code-side-panel');
-				panel.style.right = panel.style.right === '0px' ? '-400px' : '0px';
+			const fullCodeBtn = document.createElement('button');
+			fullCodeBtn.textContent = '⬜';
+			fullCodeBtn.title = 'Full Code View';
+			
+			const closeBtn = document.createElement('button');
+			closeBtn.textContent = '❌';
+			closeBtn.title = 'Close Code Panel';
+
+			controlPanel.appendChild(splitViewBtn);
+			controlPanel.appendChild(fullCodeBtn);
+			controlPanel.appendChild(closeBtn);
+
+			splitContainer.appendChild(controlPanel);
+			splitContainer.appendChild(codePanel);
+			document.body.appendChild(splitContainer);
+
+			// Button styles
+			[splitViewBtn, fullCodeBtn, closeBtn].forEach(btn => {
+				btn.style.cssText = `
+					background: none;
+					border: none;
+					color: #f4f4f5;
+					font-size: 20px;
+					cursor: pointer;
+					margin: 10px 0;
+					padding: 5px;
+					border-radius: 4px;
+				`;
 			});
 
-			document.body.appendChild(toggleButton);
+			// State variables
+			let isOpen = false;
+			let isSplitView = false;
 
-			// Intercept code and move to side panel
-			window.moveToPanelHandler = function(codeText) {
-				const sidePanel = document.getElementById('code-side-panel');
-				sidePanel.innerHTML = `
-					<pre style="white-space: pre-wrap; word-wrap: break-word; background: #1f1f23; color: #f4f4f5; padding: 1rem;">
-						${codeText}
-					</pre>
+			// Toggle panel visibility
+			function togglePanel() {
+				isOpen = !isOpen;
+				splitContainer.style.width = isOpen ? '50%' : '0';
+			}
+
+			// Add event listeners
+			splitViewBtn.addEventListener('click', () => {
+				isSplitView = !isSplitView;
+				splitContainer.style.width = isSplitView ? '50%' : '400px';
+			});
+
+			fullCodeBtn.addEventListener('click', () => {
+				splitContainer.style.width = '100%';
+				isSplitView = false;
+			});
+
+			closeBtn.addEventListener('click', () => {
+				splitContainer.style.width = '0';
+				isOpen = false;
+				isSplitView = false;
+			});
+
+			// Global method to add code to panel
+			window.addCodeToPanel = function(codeText, language = 'text') {
+				codePanel.innerHTML = `
+					<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+						<span style="color: #a1a1aa;">${language.toUpperCase()} Code</span>
+						<button onclick="copyPanelCode()" style="background: #3f3f46; color: #f4f4f5; border: none; padding: 5px 10px; border-radius: 4px;">Copy</button>
+					</div>
+					<pre style="white-space: pre-wrap; word-wrap: break-word; background: #2d2d33; padding: 1rem; border-radius: 4px;">${escapeHtml(codeText)}</pre>
 				`;
-				sidePanel.style.right = '0px';
+				splitContainer.style.width = '50%';
+				isOpen = true;
+			}
+
+			// Copy code from panel
+			window.copyPanelCode = function() {
+				const codeText = codePanel.querySelector('pre').textContent;
+				navigator.clipboard.writeText(codeText);
+				alert('Code copied to clipboard!');
 			}
 		}
 
@@ -409,20 +483,16 @@
 				.replace(/&gt;/g, '>')
 				.replace(/&amp;/g, '&');
 			
-			navigator.clipboard.writeText(textToCopy);
+			const language = button.closest('.code-display').querySelector('.code-header span').textContent;
 			
-			// Add a button to move to panel
-			const moveToPanel = document.createElement('button');
-			moveToPanel.textContent = 'Move to Panel';
-			moveToPanel.onclick = () => moveCodeToPanel(codeBlock);
+			navigator.clipboard.writeText(textToCopy);
+			window.addCodeToPanel(textToCopy, language);
 			
 			const originalText = button.textContent;
-			button.textContent = 'Copied!';
-			button.parentNode.appendChild(moveToPanel);
+			button.textContent = 'Copied & Moved!';
 			
 			setTimeout(() => {
 				button.textContent = originalText;
-				moveToPanel.remove();
 			}, 2000);
 		}
 
