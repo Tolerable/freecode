@@ -279,12 +279,20 @@
                 localStorage.setItem('selectedPersona', selected.value);
             });
 
-            // Voice toggle
-            voiceToggle.addEventListener('click', () => {
-                voiceEnabled = !voiceEnabled;
-                voiceToggle.textContent = voiceEnabled ? '🔊' : '🔇';
-                localStorage.setItem('voiceEnabled', voiceEnabled);
-            });
+			voiceToggle.addEventListener('click', () => {
+				voiceEnabled = !voiceEnabled;
+				voiceToggle.classList.add('button-press');
+				
+				if (!voiceEnabled) {
+					synth.cancel();  // Immediately stop any ongoing speech
+				}
+				
+				setTimeout(() => {
+					voiceToggle.classList.remove('button-press');
+					voiceToggle.textContent = voiceEnabled ? '🔊' : '🔇';
+					localStorage.setItem('voiceEnabled', voiceEnabled);
+				}, 150);
+			});
 
             // Clear chat
             clearChat.addEventListener('click', () => {
@@ -294,12 +302,30 @@
             });
         }
 
-        // Simple voice synthesis
-        function speak(text) {
-            if (!voiceEnabled) return;
-            const utterance = new SpeechSynthesisUtterance(text.replace(/!\[.*?\]\(.*?\)/g, ''));
-            window.speechSynthesis.speak(utterance);
-        }
+		function speak(text) {
+			if (!voiceEnabled) {
+				synth.cancel();  // Make sure audio stops when disabled
+				return;
+			}
+
+			// Clean the text - remove code blocks first
+			let cleanText = text;
+			
+			// Remove code blocks (both tick and [CODE] format)
+			cleanText = cleanText.replace(/```[\s\S]*?```/g, '');
+			cleanText = cleanText.replace(/\[CODE\][\s\S]*?\[\/CODE\]/g, '');
+			
+			// Remove URLs
+			cleanText = cleanText.replace(/https?:\/\/\S+/g, '');
+			
+			// Only speak if there's actual text left
+			if (cleanText.trim()) {
+				const utterance = new SpeechSynthesisUtterance(cleanText);
+				utterance.voice = getZiraVoice();
+				utterance.rate = 1.0;
+				utterance.pitch = 1.0;
+			}
+		}
 
         // Initialize
         function initialize() {
