@@ -242,7 +242,7 @@
     </div>
 
     <script>
-		const PERSONA_MESSAGE = "SYSTEM: You are P1, a deep-reasoning AI that engages in natural conversation. When appropriate, you create images by including URLs in this format https://image.pollinations.ai/prompt/{prompt}?nologo=true - no explanations needed. And only if giving CODE use [CODE] ... [/CODE] tags but never for URLs. Maintain conversation flow and context. Input follows:";
+		const PERSONA_MESSAGE = "CONTEXT: You are P1, a deep-reasoning AI that engages in natural conversation. When appropriate, you create images by including URLs in this format https://image.pollinations.ai/prompt/{prompt}?nologo=true - no explanations needed. And only if giving CODE use [CODE] ... [/CODE] tags but never for URLs. Maintain conversation flow and context. QUERY follows:";
 
         let voiceEnabled = true;
         let conversationHistory = [];
@@ -641,16 +641,12 @@
 			input.value = '';
 
 			try {
-				// Only include system message if this is the first message
-				const messages = conversationHistory.length === 0 ? 
-					[
-						{ role: 'system', content: PERSONA_MESSAGE },
-						{ role: 'user', content: message }
-					] : 
-					[
-						...conversationHistory,
-						{ role: 'user', content: message }
-					];
+				// Always include the instruction as first user message
+				const messages = [
+					{ role: 'user', content: PERSONA_MESSAGE },
+					...conversationHistory,
+					{ role: 'user', content: message }
+				];
 
 				const response = await fetch('https://text.pollinations.ai/', {
 					method: 'POST',
