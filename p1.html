@@ -462,8 +462,7 @@
 			});
 
 			// Restore code blocks
-			processedText = processedText.replace(/__CODE_BLOCK_(\d+)__/g, (match, index) => {
-				const { language, code } = codeBlocks[index];
+			processedText = processedText.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
 				const wrapper = document.createElement('div');
 				wrapper.className = 'code-display';
 				
@@ -471,7 +470,7 @@
 				header.className = 'code-header';
 				
 				const lang = document.createElement('span');
-				lang.textContent = language.toUpperCase();
+				lang.textContent = (language || 'text').toUpperCase();
 				
 				const copyBtn = document.createElement('button');
 				copyBtn.className = 'copy-button';
@@ -485,7 +484,8 @@
 				pre.className = 'code-block';
 				
 				const codeElement = document.createElement('code');
-				codeElement.textContent = code.trim();
+				// Preserve exact whitespace and formatting
+				codeElement.textContent = code.trimRight();
 				
 				pre.appendChild(codeElement);
 				wrapper.appendChild(header);
