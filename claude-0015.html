@@ -202,38 +202,46 @@ const PERSONA_MESSAGE = "You are Claude, no longer mentioning music and MIDI but
         const voiceToggle = document.getElementById('voice-toggle');
         const clearChat = document.getElementById('clear-chat');
 
-		function processMessage(text) {
-			// Process code blocks
-			text = text.replace(/```(\w+)?\n([\s\S]*?)```|\[CODE\]([\s\S]*?)\[\/CODE\]/g, (match, language, code1, code2) => {
-				const code = code1 || code2;
-				const lang = language || 'plaintext';
-				return `
-					<div class="code-display">
-						<div class="code-header">
-							${lang.toUpperCase()}
-							<button class="copy-button" onclick="copyCode(this)">Copy</button>
-						</div>
-						<pre class="code-block"><code>${escapeHtml(code.trim())}</code></pre>
-					</div>
-				`;
-			});
+        function processMessage(text) {
+            // Process code blocks
+            text = text.replace(/```(\w+)?\n([\s\S]*?)```|\[CODE\]([\s\S]*?)\[\/CODE\]/g, (match, language, code1, code2) => {
+                const code = code1 || code2;
+                const lang = language || 'plaintext';
+                return `
+                    <div class="code-display">
+                        <div class="code-header">
+                            ${lang.toUpperCase()}
+                            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <pre class="code-block"><code>${escapeHtml(code.trim())}</code></pre>
+                    </div>
+                `;
+            });
 
-			// Process images - capturing everything between /prompt/ and ?nologo
-			text = text.replace(/https:\/\/image\.pollinations\.ai\/prompt\/(.*?)\?nologo=true/g, (match, prompt) => {
-				const imageUrl = `https://image.pollinations.ai/${prompt}?nologo=true&private=true&enhance=false`;
-				return `
-					<div class="image-container">
-						<img src="${imageUrl}" alt="Generated Image" />
-						<div class="image-controls">
-							<button class="image-button" onclick="downloadImage(this)">Download</button>
-							<button class="image-button" onclick="regenerateImage(this)">New Version</button>
-						</div>
-					</div>
-				`;
-			});
+            // Process images
+            const imagePattern = /!\[(.*?)\]\((.*?)\)/g;
+            text = text.replace(imagePattern, (match, description, url) => {
+                const imageUrl = new URL(url.trim());
+                if (imageUrl.hostname === 'image.pollinations.ai') {
+                    imageUrl.searchParams.set('seed', Math.floor(Math.random() * 1000000));
+                    imageUrl.searchParams.set('width', '512');
+                    imageUrl.searchParams.set('height', '512');
+                }
 
-			return `<p>${text}</p>`;
-		}
+                return `
+                    <div class="image-container">
+                        <img src="${imageUrl.toString()}" alt="${description.trim()}" />
+                        <div class="image-description">${description.trim()}</div>
+                        <div class="image-controls">
+                            <button class="image-button" onclick="downloadImage(this)">Download</button>
+                            <button class="image-button" onclick="regenerateImage(this)">New Version</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            return `<p>${text}</p>`;
+        }
 
         function copyCode(button) {
             const codeBlock = button.parentElement.nextElementSibling.querySelector('code');
