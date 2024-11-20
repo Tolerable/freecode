@@ -641,11 +641,16 @@
 			input.value = '';
 
 			try {
-				const messages = [
-					{ role: 'system', content: PERSONA_MESSAGE },
-					...conversationHistory,
-					{ role: 'user', content: message }
-				];
+				// Only include system message if this is the first message
+				const messages = conversationHistory.length === 0 ? 
+					[
+						{ role: 'system', content: PERSONA_MESSAGE },
+						{ role: 'user', content: message }
+					] : 
+					[
+						...conversationHistory,
+						{ role: 'user', content: message }
+					];
 
 				const response = await fetch('https://text.pollinations.ai/', {
 					method: 'POST',
