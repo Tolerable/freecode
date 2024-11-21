@@ -351,8 +351,8 @@
     }
 
     function isNewsQuery(text) {
-      const newsKeywords = ['news', 'latest', 'today', 'current', 'update', 'happening', 'recent', 'what', 'who', 'where', 'when', 'why', 'how'];
-      return newsKeywords.some(keyword => text.toLowerCase().includes(keyword));
+      // Consider all inputs as potentially requiring current info
+      return true;
     }
 
 	function formatContent(text) {
@@ -451,35 +451,28 @@
 	  let retries = 2;
 	  let lastError = null;
 
-	  while (retries > 0) {
-		try {
-		  if (currentMode === 'chat') {
-			chatHistory.push({ role: 'user', content: userQuery });
-			content.innerHTML += `<div class="chat-message user-message">${userQuery}</div>`;
+      while (retries > 0) {
+        try {
+          if (currentMode === 'chat') {
+            chatHistory.push({ role: 'user', content: userQuery });
+            content.innerHTML += `<div class="chat-message user-message">${userQuery}</div>`;
 
-			// Keep only last 5 messages for context to prevent oversized requests
-			const recentHistory = chatHistory.slice(-5);
-			const conversationContext = recentHistory.map(msg => 
-			  `${msg.role}: ${msg.content}`
-			).join('\n');
+            // Keep only last 5 messages for context
+            const recentHistory = chatHistory.slice(-5);
+            const conversationContext = recentHistory.map(msg => 
+              `${msg.role}: ${msg.content}`
+            ).join('\n');
 
-			const useNewsSearch = isNewsQuery(userQuery);
-			const model = useNewsSearch ? 'search-gpt' : 'openai';
-			
-			debug('Using model', model);
-			debug('Is news query', useNewsSearch);
-			
-			const searchInstruction = useNewsSearch ? 
-			  "Search for current information and explain it casually like you're talking to a friend at a bar. " : "";
-			
-			const encodedPrompt = encodeURIComponent(
-			  `${searchInstruction}Previous conversation:\n${conversationContext}\n\nCurrent query: ${userQuery}`
-			);
-			const encodedPersona = encodeURIComponent(CHAT_PERSONA);
-			const searchParam = useNewsSearch ? '&search=true' : '';
-			const url = `https://text.pollinations.ai/${encodedPersona}${encodedPrompt}?model=${model}${searchParam}`;
-			
-			debug('Request URL', url);
+            // Always use search-gpt with search=true for real-time info
+            const searchInstruction = "Search for current information and explain it casually like you're talking to a friend at a bar. ";
+            
+            const encodedPrompt = encodeURIComponent(
+              `${searchInstruction}Previous conversation:\n${conversationContext}\n\nCurrent query: ${userQuery}`
+            );
+            const encodedPersona = encodeURIComponent(CHAT_PERSONA);
+            const url = `https://text.pollinations.ai/${encodedPersona}${encodedPrompt}?model=search-gpt&search=true`;
+            
+            debug('Request URL', url);
 
 			const response = await fetch(url, {
 			  method: 'GET',
