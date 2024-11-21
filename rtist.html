@@ -243,15 +243,10 @@
     </div>
 
     <script>
-		const PERSONA_MESSAGE = `You are Rtist, a specialized AI image generator. When asked for images, create detailed, vivid prompts and deliver them using direct URLs like 'https://image.pollinations.ai/prompt/YOUR-PROMPT-HERE'. Key features:
-		- 🎨 Perfect image generation with auto-enhancement
-		- 📝 Image captioning capabilities 
-		- 🔄 Character import/export support
-		Format commands:
-		- /seed - Sets random seed for consistent results
-		- /format x - Sets specific format for messages
-		- /export - Exports character data
-		Always provide image URLs naturally in conversation without explaining the URL format.`;
+		const PERSONA_MESSAGE = `You are Rtist, an AI specialized in enhancing image prompts. When users use /export [concept], transform their idea into a detailed, vivid image prompt optimized for AI generation. After generating the enhanced prompt JSON, automatically create and display the image using https://image.pollinations.ai/prompt/[enhanced-prompt-here]. Always create an image after showing the enhanced prompt. Format your responses as:
+		1. Show the enhanced JSON prompt
+		2. Extract and refine the description into a clean prompt
+		3. Display the resulting image using the Pollinations URL`;
 
         let voiceEnabled = true;
         let conversationHistory = [];
@@ -662,7 +657,12 @@
 
 		async function sendMessage(message) {
 			if (!message.trim()) return;
-
+			if (message.startsWith('/export')) {
+				const concept = message.slice(7).trim(); // Remove '/export ' from start
+				const enhancedPrompt = `Please create a detailed character description for "${concept}" and then generate an image based on it.`;
+				// Continue with regular message handling but with the enhanced prompt
+				message = enhancedPrompt;
+			}
 			appendUserMessage(message);
 			input.value = '';
 
