@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Art Spin: Slot Machine Scramble</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        
+        .game-container {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            padding: 0;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            display: block;
+        }
+        
+        .banner-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .grid-wrapper {
+            width: 370px;
+            margin: 20px auto;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            width: 310px;
+            height: 310px;
+            background-color: #333;
+            padding: 5px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-size: 300px 300px;
+            border: 2px solid gold;
+            border-radius: 5px;
+            transition: transform 0.3s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cell-content {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-size: 300px 300px;
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .winning-row {
+            animation: winningPulse 0.5s ease-in-out 3;
+        }
+        
+        @keyframes winningPulse {
+            0% { transform: scale(1); border-color: gold; }
+            50% { transform: scale(1.05); border-color: #ff00ff; }
+            100% { transform: scale(1); border-color: gold; }
+        }
+        
+        .handle-container {
+            position: absolute;
+            right: -60px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
+        
+        .handle {
+            width: 30px;
+            height: 150px;
+            background-color: #ff4500;
+            border-radius: 15px;
+            cursor: pointer;
+            position: relative;
+            transition: height 0.2s;
+        }
+        
+        .handle::after {
+            content: "";
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: #ff6347;
+            border-radius: 50%;
+            top: -25px;
+            left: -10px;
+            transition: top 0.2s;
+        }
+        
+        .handle.pulled {
+            height: 100px;
+        }
+        
+        .handle.pulled::after {
+            top: 75px;
+        }
+        
+        #score, #winAmount {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        #promptInput {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        #winAmount {
+            color: #4CAF50;
+            font-weight: bold;
+            height: 30px;
+        }
+    </style>
+</head>
+<body>
+<div class="separator" style="clear: both;"><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjrkrJiB3WbAZwMO5iWwwF2o4w4e3Q5CwYj5B-5Atjk8zEYWm1xEOWtauE3FTG9xPpAjnSKkdJvucxBFNuZmfXvrmkqF0pS13AUcxWh9rQjAsT9ag_7XfPOyM8iAlpyY3vFBjGOCUFXjFeKD30cIcRksQKiOrpe4aCM0IQC97VbCF-XHmWBazAqCP8aJ0U/s1280/AI-PSLOTS.jpg" style="display: block; padding: 1em 0; text-align: center; "><img alt="" border="0" width="600" data-original-height="720" data-original-width="1280" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjrkrJiB3WbAZwMO5iWwwF2o4w4e3Q5CwYj5B-5Atjk8zEYWm1xEOWtauE3FTG9xPpAjnSKkdJvucxBFNuZmfXvrmkqF0pS13AUcxWh9rQjAsT9ag_7XfPOyM8iAlpyY3vFBjGOCUFXjFeKD30cIcRksQKiOrpe4aCM0IQC97VbCF-XHmWBazAqCP8aJ0U/s600/AI-PSLOTS.jpg"/></a></div>
+    <div class="game-container">
+        <div id="score">Coins: 9600</div>
+        <div id="winAmount"></div>
+        <input type="text" id="promptInput" placeholder="Enter image prompt (or leave blank for random)">
+        <div class="grid-wrapper">
+            <div class="grid" id="gameGrid"></div>
+            <div class="handle-container">
+                <div class="handle" id="spinHandle"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const gameGrid = document.getElementById('gameGrid');
+        const spinHandle = document.getElementById('spinHandle');
+        const scoreDisplay = document.getElementById('score');
+        const winAmountDisplay = document.getElementById('winAmount');
+        const promptInput = document.getElementById('promptInput');
+        let coins = 9600;
+        let grid = [];
+        let baseImageUrl = null;
+        let isSpinning = false;
+
+        function generateRandomSeed() {
+            return Math.floor(Math.random() * 1000000);
+        }
+
+        function generateImage() {
+            const userPrompt = promptInput.value.trim();
+            const prompt = userPrompt || "colorful carnival scene with ferris wheel";
+            const seed = generateRandomSeed();
+            return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&nologo=true&nofeed=true&model=flux`;
+        }
+
+        function preloadImage(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(url);
+                img.onerror = reject;
+                img.src = url;
+            });
+        }
+
+        function initializeGame() {
+            grid = Array(9).fill().map((_, i) => {
+                const x = -100 * (i % 3);
+                const y = -100 * Math.floor(i / 3);
+                return { x, y };
+            });
+            baseImageUrl = generateImage();
+            preloadImage(baseImageUrl).then(() => {
+                updateGrid();
+            });
+        }
+
+        function updateGrid() {
+            gameGrid.innerHTML = '';
+            grid.forEach((cell, index) => {
+                const cellElement = document.createElement('div');
+                cellElement.className = 'cell';
+                
+                const cellContent = document.createElement('div');
+                cellContent.className = 'cell-content';
+                cellContent.style.backgroundImage = `url(${baseImageUrl})`;
+                cellContent.style.backgroundPosition = `${cell.x}px ${cell.y}px`;
+                
+                cellElement.appendChild(cellContent);
+                gameGrid.appendChild(cellElement);
+            });
+        }
+
+        function shuffleColumn(col) {
+            const column = [grid[col], grid[col+3], grid[col+6]];
+            for (let i = column.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [column[i], column[j]] = [column[j], column[i]];
+            }
+            grid[col] = column[0];
+            grid[col+3] = column[1];
+            grid[col+6] = column[2];
+        }
+
+        async function animateColumn(col) {
+            const cells = gameGrid.querySelectorAll('.cell-content');
+            
+            shuffleColumn(col);
+            
+            // Animate movement
+            for (let row = 0; row < 3; row++) {
+                const index = col + row * 3;
+                const cell = cells[index];
+                
+                // Move up and fade out
+                cell.style.transform = 'translateY(-100%)';
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Update position instantly while hidden
+                cell.style.backgroundPosition = `${grid[index].x}px ${grid[index].y}px`;
+                
+                // Move down and fade in
+                cell.style.transform = 'translateY(0)';
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+
+        async function spinSequence(columns, times) {
+            for (let i = 0; i < times; i++) {
+                for (const col of columns) {
+                    await animateColumn(col);
+                }
+            }
+        }
+
+        async function animateSpin() {
+            // Spin all columns
+            await spinSequence([0, 1, 2], 3);
+            
+            // Spin middle and right columns
+            await spinSequence([1, 2], 3);
+            
+            // Spin right column
+            await spinSequence([2], 3);
+        }
+
+        function calculateScore() {
+            let winningRows = 0;
+            let isOriginalImage = true;
+            for (let i = 0; i < 3; i++) {
+                if (isCompleteRow(i)) {
+                    winningRows++;
+                }
+                if (grid[i].y !== -100 * i) {
+                    isOriginalImage = false;
+                }
+            }
+            let winAmount = 0;
+            if (winningRows === 1) winAmount = 300;
+            else if (winningRows === 2) winAmount = 1000;
+            else if (winningRows === 3) winAmount = 5000;
+            
+            if (isOriginalImage) {
+                winAmount = 10000;
+            }
+            
+            coins += winAmount;
+            return winAmount;
+        }
+
+        function isCompleteRow(rowIndex) {
+            const row = [grid[rowIndex * 3], grid[rowIndex * 3 + 1], grid[rowIndex * 3 + 2]];
+            return row.every(cell => cell.y === row[0].y);
+        }
+
+        function highlightWinningRows() {
+            const cells = gameGrid.querySelectorAll('.cell');
+            for (let i = 0; i < 3; i++) {
+                if (isCompleteRow(i)) {
+                    cells[i*3].classList.add('winning-row');
+                    cells[i*3+1].classList.add('winning-row');
+                    cells[i*3+2].classList.add('winning-row');
+                }
+            }
+            setTimeout(() => {
+                cells.forEach(cell => cell.classList.remove('winning-row'));
+            }, 1500);
+        }
+
+        function updateScore() {
+            scoreDisplay.textContent = `Coins: ${coins}`;
+        }
+
+        function showWinAmount(amount) {
+            if (amount > 0) {
+                let message = '';
+                if (amount === 300) message = 'You won 300 coins! Nice!';
+                else if (amount === 1000) message = 'Big win! 1000 coins!';
+                else if (amount === 5000) message = 'JACKPOT! 5000 coins!';
+                else if (amount === 10000) message = 'SUPER JACKPOT! 10000 coins! Original image restored!';
+                winAmountDisplay.textContent = message;
+            } else {
+                winAmountDisplay.textContent = 'Try again!';
+            }
+            setTimeout(() => {
+                winAmountDisplay.textContent = '';
+            }, 1500);
+        }
+
+        async function spin() {
+            if (isSpinning || coins < 100) return;
+            
+            isSpinning = true;
+            coins -= 100;
+            updateScore();
+            
+            spinHandle.classList.add('pulled');
+            setTimeout(() => spinHandle.classList.remove('pulled'), 200);
+
+            const newImageUrl = generateImage();
+            try {
+                // Preload the new image before starting the spin
+                await preloadImage(newImageUrl);
+                baseImageUrl = newImageUrl;
+                updateGrid();
+                await animateSpin();
+                
+                const winAmount = calculateScore();
+                updateScore();
+                showWinAmount(winAmount);
+                highlightWinningRows();
+            } catch (error) {
+                console.error('Failed to load image:', error);
+                winAmountDisplay.textContent = 'Error loading image. Please try again.';
+            }
+            
+            isSpinning = false;
+        }
+
+        spinHandle.addEventListener('click', spin);
+        initializeGame();
+    </script>
+    <!-- Footer with Pollinations.ai attribution -->
+    <div style="text-align: right; margin-top: 20px; font-size: 8px; color: #aaa;">
+        <a href="https://pollinations.ai" target="_blank" style="color: #aaa; text-decoration: none;">
+            Generations by Pollinations.ai
+        </a>
+    </div>
+</body>
+</html>

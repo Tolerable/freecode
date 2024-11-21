@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        #gameCanvas {
+            background: black;
+            border: 2px solid #333;
+        }
+        .score-display {
+            font-size: 18px;
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        #gameCanvas.fullscreen {
+            border: none;
+            width: 100vw !important;
+            height: 100vh !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="600" height="800"></canvas>
+        <div id="scoreDisplay" class="score-display"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+
+        // Constants
+        const WIDTH = 600;
+        const HEIGHT = 800;
+        const PADDLE_WIDTH = 100;
+        const PADDLE_HEIGHT = 20;
+        const BALL_RADIUS = 10;
+        const BLOCK_WIDTH = 60;
+        const BLOCK_HEIGHT = 30;
+        const BLOCK_ROWS = 4;
+        const BLOCK_COLS = 10;
+        const BALL_SPEED = 2.5;
+        const PADDLE_SPEED = 7;
+        const LEVEL_SPEED_INCREASE = 0.02;
+
+        // Colors
+        const BLOCK_COLORS = [
+            '#9696FF', // Light blue
+            '#96FF96', // Light green
+            '#FF9696', // Light red
+            '#FFFF96'  // Light yellow
+        ];
+
+        // Game state
+        let paddle = {
+            x: WIDTH / 2 - PADDLE_WIDTH / 2,
+            y: HEIGHT - 30,
+            dx: 0
+        };
+
+        let ball = null;
+        let blocks = [];
+        let score = 0;
+        let lives = 5;
+        let gameState = 'title';
+        let speedMultiplier = 1;
+        let keys = {};
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                canvas.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function createBall() {
+            return {
+                x: WIDTH / 2,
+                y: HEIGHT / 4,
+                dx: BALL_SPEED * speedMultiplier * (Math.random() < 0.5 ? -1 : 1),
+                dy: BALL_SPEED * speedMultiplier
+            };
+        }
+
+        function createBlocks() {
+            const blocks = [];
+            for (let row = 0; row < BLOCK_ROWS; row++) {
+                for (let col = 0; col < BLOCK_COLS; col++) {
+                    blocks.push({
+                        x: col * BLOCK_WIDTH + (WIDTH - BLOCK_COLS * BLOCK_WIDTH) / 2,
+                        y: row * BLOCK_HEIGHT + 50,
+                        color: BLOCK_COLORS[row % BLOCK_COLORS.length]
+                    });
+                }
+            }
+            return blocks;
+        }
+
+        function drawText(text, size, x, y, color = 'white') {
+            ctx.fillStyle = color;
+            ctx.font = `${size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText(text, x, y);
+        }
+
+        function drawPaddle() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(paddle.x, paddle.y, PADDLE_WIDTH, PADDLE_HEIGHT);
+        }
+
+        function drawBall() {
+            ctx.fillStyle = '#FFC0CB';
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawBlocks() {
+            blocks.forEach(block => {
+                ctx.fillStyle = block.color;
+                ctx.fillRect(block.x, block.y, BLOCK_WIDTH, BLOCK_HEIGHT);
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(block.x, block.y, BLOCK_WIDTH, BLOCK_HEIGHT);
+            });
+        }
+
+        function checkCollisions() {
+            if (ball.x - BALL_RADIUS < 0 || ball.x + BALL_RADIUS > WIDTH) {
+                ball.dx = -ball.dx;
+            }
+            if (ball.y - BALL_RADIUS < 0) {
+                ball.dy = -ball.dy;
+            }
+
+            if (ball.y + BALL_RADIUS > paddle.y && 
+                ball.y - BALL_RADIUS < paddle.y + PADDLE_HEIGHT &&
+                ball.x > paddle.x && 
+                ball.x < paddle.x + PADDLE_WIDTH) {
+                ball.dy = -Math.abs(ball.dy);
+                const offset = (ball.x - paddle.x) / PADDLE_WIDTH - 0.5;
+                ball.dx = offset * BALL_SPEED * speedMultiplier * 2;
+            }
+
+            blocks = blocks.filter(block => {
+                if (ball.y - BALL_RADIUS < block.y + BLOCK_HEIGHT &&
+                    ball.y + BALL_RADIUS > block.y &&
+                    ball.x > block.x &&
+                    ball.x < block.x + BLOCK_WIDTH) {
+                    ball.dy = -ball.dy;
+                    score += 10;
+                    if (score % 5000 === 0) lives++;
+                    updateScore();
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        function updateScore() {
+            scoreDisplay.textContent = `Score: ${score} | Lives: ${lives}`;
+        }
+
+        function update() {
+            if (gameState === 'playing') {
+                // Paddle movement with arrow keys
+                if (keys.ArrowLeft) {
+                    paddle.x = Math.max(0, paddle.x - PADDLE_SPEED);
+                }
+                if (keys.ArrowRight) {
+                    paddle.x = Math.min(WIDTH - PADDLE_WIDTH, paddle.x + PADDLE_SPEED);
+                }
+
+                if (ball) {
+                    ball.x += ball.dx;
+                    ball.y += ball.dy;
+
+                    checkCollisions();
+
+                    if (ball.y > HEIGHT) {
+                        lives--;
+                        updateScore();
+                        if (lives <= 0) {
+                            gameState = 'gameOver';
+                        } else {
+                            ball = null;
+                        }
+                    }
+
+                    if (blocks.length === 0) {
+                        blocks = createBlocks();
+                        ball = null;
+                        speedMultiplier += LEVEL_SPEED_INCREASE;
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            if (gameState === 'title') {
+                drawText('BREAK BOUNCE', 72, WIDTH / 2, HEIGHT / 3);
+                drawText('PRESS SPACE TO PLAY', 36, WIDTH / 2, HEIGHT / 2);
+                drawText('F to Toggle Fullscreen (Esc to Exit)', 24, WIDTH / 2, HEIGHT / 2 + 50);
+                drawText('Use Arrow Keys to Move', 24, WIDTH / 2, HEIGHT / 2 + 90);
+            } else if (gameState === 'playing') {
+                drawPaddle();
+                if (ball) {
+                    drawBall();
+                } else {
+                    drawText('PRESS SPACE TO LAUNCH', 36, WIDTH / 2, HEIGHT / 2);
+                }
+                drawBlocks();
+            } else if (gameState === 'gameOver') {
+                drawText('GAME OVER', 72, WIDTH / 2, HEIGHT / 3);
+                drawText(`Score: ${score}`, 36, WIDTH / 2, HEIGHT / 2);
+                drawText('PRESS SPACE TO RESTART', 24, WIDTH / 2, HEIGHT / 2 + 50);
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Event Listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            
+            // Prevent default scrolling for arrow keys and space
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                e.preventDefault();
+            }
+
+            if (e.key === ' ') {  // Space bar
+                if (gameState === 'title') {
+                    gameState = 'playing';
+                    blocks = createBlocks();
+                    score = 0;
+                    lives = 5;
+                    updateScore();
+                } else if (gameState === 'playing' && !ball) {
+                    ball = createBall();
+                } else if (gameState === 'gameOver') {
+                    gameState = 'title';
+                    speedMultiplier = 1;
+                }
+            }
+
+            if (e.key.toLowerCase() === 'f') {
+                toggleFullscreen();
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                canvas.classList.add('fullscreen');
+            } else {
+                canvas.classList.remove('fullscreen');
+            }
+        });
+
+        // Start the game
+        gameLoop();
+    </script>
+</body>
+</html>
