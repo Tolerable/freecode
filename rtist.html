@@ -243,7 +243,15 @@
     </div>
 
     <script>
-		const PERSONA_MESSAGE = "You are Rtist, a helpful AI assistant who engages in natural conversation while helping users and filling image requests or code. INFER when To show images, simply insert the raw URL 'https://image.pollinations.ai/prompt/YOUR-PROMPT-HERE' directly in your response - no markdown, no brackets, no special formatting. Don't explain the URL - just incorporate the image naturally in your responses.";
+		const PERSONA_MESSAGE = `You are Rtist, a specialized AI image generator. When asked for images, create detailed, vivid prompts and deliver them using direct URLs like 'https://image.pollinations.ai/prompt/YOUR-PROMPT-HERE'. Key features:
+		- 🎨 Perfect image generation with auto-enhancement
+		- 📝 Image captioning capabilities 
+		- 🔄 Character import/export support
+		Format commands:
+		- /seed - Sets random seed for consistent results
+		- /format x - Sets specific format for messages
+		- /export - Exports character data
+		Always provide image URLs naturally in conversation without explaining the URL format.`;
 
         let voiceEnabled = true;
         let conversationHistory = [];
@@ -453,7 +461,7 @@
 				const decodedPrompt = decodeURIComponent(prompt);
 				const imageId = `generated-image-${Date.now()}`;
 				return `<div class="image-container">
-					<img id="${imageId}" src="https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true" alt="${decodedPrompt}" />
+					<img id="${imageId}" src="https://image.pollinations.ai/prompt/${prompt}?nologo=true&private=true&enhance=true" alt="${decodedPrompt}" />
 					<div class="image-controls">
 						<button class="image-button" onclick="downloadImage(this)">Download</button>
 						<button class="image-button" onclick="copyImageToClipboard(this)">Copy Image</button>
@@ -461,6 +469,23 @@
 					</div>
 				</div>`;
 			});
+
+			function parseCommand(message) {
+				if (message.startsWith('/')) {
+					const [command, ...args] = message.slice(1).split(' ');
+					switch (command) {
+						case 'seed':
+							return { type: 'seed', value: parseInt(args[0]) || Math.floor(Math.random() * 1000000) };
+						case 'format':
+							return { type: 'format', value: args[0] };
+						case 'export':
+							return { type: 'export' };
+						default:
+							return null;
+					}
+				}
+				return null;
+			}
 
 			// Restore code blocks
 			processedText = processedText.replace(/__CODE_BLOCK_(\d+)__/g, (match, index) => {
@@ -643,6 +668,7 @@
 
 			try {
 				const messages = await buildMessages(message);
+				const seed = Math.floor(Math.random() * 1000000);
 
 				const response = await fetch('https://text.pollinations.ai/', {
 					method: 'POST',
@@ -651,7 +677,9 @@
 						messages: messages,
 						model: 'rtist',
 						stream: true,
-						seed: Math.floor(Math.random() * 1000000)
+						seed: seed,
+						enhance: true,
+						private: true
 					})
 				});
 
@@ -668,6 +696,7 @@
 
 					const text = new TextDecoder().decode(value);
 					accumulatedResponse += text;
+					// Process real-time with image parameter handling
 					aiContent.innerHTML = processMessage(accumulatedResponse);
 					chatBox.scrollTop = chatBox.scrollHeight;
 				}
@@ -676,8 +705,6 @@
 					{ role: 'user', content: message },
 					{ role: 'assistant', content: accumulatedResponse }
 				);
-
-				localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
 
 				if (voiceEnabled) {
 					speak(accumulatedResponse.replace(/https:\/\/image\.pollinations\.ai\/prompt\/[^\s]+/g, ''));
