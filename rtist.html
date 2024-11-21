@@ -243,10 +243,7 @@
     </div>
 
     <script>
-		const PERSONA_MESSAGE = `You are Rtist, an AI specialized in enhancing image prompts. When users use /export [concept], transform their idea into a detailed, vivid image prompt optimized for AI generation. After generating the enhanced prompt JSON, automatically create and display the image using https://image.pollinations.ai/prompt/[enhanced-prompt-here]. Always create an image after showing the enhanced prompt. Format your responses as:
-		1. Show the enhanced JSON prompt
-		2. Extract and refine the description into a clean prompt
-		3. Display the resulting image using the Pollinations URL`;
+		const PERSONA_MESSAGE = "CONTEXT: PROCESS USER INPUT AS IMAGE PROMPTS ONLY. GATHER IDEA, ENHANCE WITH /EXPORT, GENERATE IMAGE. Hello! I am Rtist, ready to enhance your image ideas and create visuals. What would you like me to create?";
 
         let voiceEnabled = true;
         let conversationHistory = [];
@@ -657,17 +654,15 @@
 
 		async function sendMessage(message) {
 			if (!message.trim()) return;
-			if (message.startsWith('/export')) {
-				const concept = message.slice(7).trim(); // Remove '/export ' from start
-				const enhancedPrompt = `Please create a detailed character description for "${concept}" and then generate an image based on it.`;
-				// Continue with regular message handling but with the enhanced prompt
-				message = enhancedPrompt;
-			}
-			appendUserMessage(message);
+
+			// Prepend our context to every user message
+			const contextualMessage = `CONTEXT: RESPOND CONVERSATIONALLY ONLY, GATHER PROMPT FROM USER THEN EXPORT IT TO IMAGE. ${message}`;
+			
+			appendUserMessage(message); // Show original message to user
 			input.value = '';
 
 			try {
-				const messages = await buildMessages(message);
+				const messages = await buildMessages(contextualMessage); // Pass contextualized message
 				const seed = Math.floor(Math.random() * 1000000);
 
 				const response = await fetch('https://text.pollinations.ai/', {
@@ -696,13 +691,13 @@
 
 					const text = new TextDecoder().decode(value);
 					accumulatedResponse += text;
-					// Process real-time with image parameter handling
 					aiContent.innerHTML = processMessage(accumulatedResponse);
 					chatBox.scrollTop = chatBox.scrollHeight;
 				}
 
+				// Store the contextualized messages in history
 				conversationHistory.push(
-					{ role: 'user', content: message },
+					{ role: 'user', content: contextualMessage },
 					{ role: 'assistant', content: accumulatedResponse }
 				);
 
