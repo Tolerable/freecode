@@ -636,6 +636,9 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
+		async function sendMessage(message) {
+			if (!message.trim()) return;
+
 			appendUserMessage(message);
 			input.value = '';
 
@@ -645,19 +648,15 @@
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
 						messages: [
-							// System message first
 							{
 								role: 'system',
 								content: PERSONA_MESSAGE
 							},
-							// Initial assistant message to establish identity
 							{
 								role: 'assistant',
 								content: "I am Qwen-Coder, ready to help with your technical needs."
 							},
-							// Then conversation history
 							...conversationHistory,
-							// Finally the current user message
 							{
 								role: 'user',
 								content: message
