@@ -465,39 +465,52 @@
 		}
 
 		function processMessage(text) {
-			console.log("Processing:", text);  // Debug what we get
+			console.log("INPUT:", text); // Debug input
 			
-			// Split and process each line
+			// Process each line
 			let lines = text.split('\n').map(line => {
-				// If this line has a pollinations URL
+				line = line.trim();
+				
+				// If line contains a pollinations URL, clean and process it
 				if (line.includes('https://image.pollinations.ai/prompt/')) {
-					// Get the actual URL - it's already clean now
-					let url = line.trim();
+					// Remove any wrapping quotes or backticks
+					if (line.startsWith('```') && line.endsWith('```')) {
+						line = line.slice(3, -3);
+					}
+					if (line.startsWith("'") && line.endsWith("'")) {
+						line = line.slice(1, -1);
+					}
 					
-					try {
-						// Parse it properly
-						const newUrl = new URL(url);
-						// Add random seed
-						newUrl.searchParams.set('seed', Math.floor(Math.random() * 1000000));
-						
-						// Convert URL to actual image container
-						return `<div class="image-container">
-							<img src="${newUrl.toString()}" style="max-width: 100%;" />
-							<div class="image-controls">
-								<button class="image-button" onclick="downloadImage(this)">Download</button>
-								<button class="image-button" onclick="copyImageToClipboard(this)">Copy Image</button>
-								<button class="image-button" onclick="regenerateImage(this)">Regenerate</button>
-							</div>
-						</div>`;
-					} catch (error) {
-						console.error("Failed to process URL:", error);
-						return line;  // Return original line if we can't process it
+					// Extract and process URL
+					const urlMatch = line.match(/(https:\/\/image\.pollinations\.ai\/prompt\/[^\s'"]+)/);
+					if (urlMatch) {
+						const url = urlMatch[1];
+						try {
+							const newUrl = new URL(url);
+							const randomSeed = Math.floor(Math.random() * 1000000);
+							newUrl.searchParams.set('seed', randomSeed);
+							newUrl.searchParams.set('enhance', 'false');
+							
+							return `<div class="image-container">
+								<img src="${newUrl.toString()}" style="max-width: 100%;" />
+								<div class="image-controls">
+									<button class="image-button" onclick="downloadImage(this)">Download</button>
+									<button class="image-button" onclick="copyImageToClipboard(this)">Copy Image</button>
+									<button class="image-button" onclick="regenerateImage(this)">Regenerate</button>
+								</div>
+							</div>`;
+						} catch (error) {
+							console.error("URL processing error:", error);
+							return line; // Return original line if URL processing fails
+						}
 					}
 				}
-				return line;  // Return any non-URL lines unchanged
+				return line; // Return unchanged if no URL
 			});
 			
-			return lines.join('\n');
+			let result = lines.join('\n');
+			console.log("OUTPUT:", result); // Debug output
+			return result;
 		}
 
 		function copyCode(button) {
