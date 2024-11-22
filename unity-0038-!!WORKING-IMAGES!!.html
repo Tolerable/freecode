@@ -465,24 +465,15 @@
 		}
 
 		function processMessage(text) {
-			console.log("INPUT:", text);
+			console.log("INPUT:", text); // Debug input
 			
-			// First handle code blocks to prevent URL processing inside code
-			let processedText = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
-				return `<div class="code-display">
-					<div class="code-header">
-						<span>${(language || 'text').toUpperCase()}</span>
-						<button class="copy-button" onclick="copyCode(this)">Copy</button>
-					</div>
-					<pre class="code-block"><code>${escapeHtml(code.trim())}</code></pre>
-				</div>`;
-			});
-			
-			// Then handle our existing image URL processing exactly as before
-			let lines = processedText.split('\n').map(line => {
+			// Process each line
+			let lines = text.split('\n').map(line => {
 				line = line.trim();
 				
+				// If line contains a pollinations URL, clean and process it
 				if (line.includes('https://image.pollinations.ai/prompt/')) {
+					// Remove any wrapping quotes or backticks
 					if (line.startsWith('```') && line.endsWith('```')) {
 						line = line.slice(3, -3);
 					}
@@ -490,6 +481,7 @@
 						line = line.slice(1, -1);
 					}
 					
+					// Extract and process URL
 					const urlMatch = line.match(/(https:\/\/image\.pollinations\.ai\/prompt\/[^\s'"]+)/);
 					if (urlMatch) {
 						const url = urlMatch[1];
@@ -509,15 +501,15 @@
 							</div>`;
 						} catch (error) {
 							console.error("URL processing error:", error);
-							return line;
+							return line; // Return original line if URL processing fails
 						}
 					}
 				}
-				return line;
+				return line; // Return unchanged if no URL
 			});
 			
 			let result = lines.join('\n');
-			console.log("OUTPUT:", result);
+			console.log("OUTPUT:", result); // Debug output
 			return result;
 		}
 
