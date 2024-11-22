@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Everything Battle - AI Ministries</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        h1 {
+            color: #4a9eff;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(74, 158, 255, 0.3);
+        }
+        .battle-arena {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .player-side, .ai-side {
+            background: #2c2c2c;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .profile-image {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            margin: 1rem auto;
+            object-fit: cover;
+            border: 3px solid #4a9eff;
+        }
+        .input-area {
+            margin-top: 1rem;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 4px;
+            background: #333;
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+        button {
+            background: #4a9eff;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #3182ce;
+        }
+        .result-area {
+            background: #2c2c2c;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        .result-image {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            margin: 1rem auto;
+            border-radius: 8px;
+            display: block;
+        }
+        .battle-text {
+            font-size: 1.1rem;
+            text-align: center;
+            margin: 1rem 0;
+            color: #bbb;
+        }
+        .vs-text {
+            font-size: 2rem;
+            color: #4a9eff;
+            text-align: center;
+            margin: 1rem 0;
+            text-shadow: 0 0 10px rgba(74, 158, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+<script src="/js/nav-loader.js"></script>
+    <div class="container">
+        <h1>EVERYTHING BATTLE</h1>
+        
+        <div class="battle-arena">
+            <div class="player-side">
+                <h2>Your Champion</h2>
+                <img src="/api/placeholder/200/200" alt="Player's Choice" class="profile-image" id="playerImage">
+                <div class="input-area">
+                    <input type="text" id="playerChoice" placeholder="Enter your champion (e.g., 'Superhero with laser eyes')">
+                    <button onclick="submitPlayerChoice()">Choose Champion</button>
+                </div>
+            </div>
+            
+            <div class="ai-side">
+                <h2>AI Champion</h2>
+                <img src="/api/placeholder/200/200" alt="AI's Choice" class="profile-image" id="aiImage">
+                <div class="battle-text" id="aiChoice">
+                    Waiting for your champion...
+                </div>
+            </div>
+        </div>
+
+        <button onclick="startBattle()" style="display: block; margin: 2rem auto; font-size: 1.2rem; padding: 1rem 2rem;">
+            BATTLE!
+        </button>
+
+        <div class="result-area">
+            <img src="/api/placeholder/600/400" alt="Battle Result" class="result-image" id="resultImage">
+            <div class="battle-text" id="battleResult">
+                Choose your champion and start the battle!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function generateImage(prompt) {
+            try {
+                const response = await fetch('https://text.pollinations.ai/generate/', {
+                    method: 'POST',
+                    body: prompt,
+                });
+                if (response.ok) {
+                    return await response.text();
+                }
+                throw new Error('Network response was not ok');
+            } catch (error) {
+                console.error('Error:', error);
+                return null;
+            }
+        }
+
+        let playerChoice = '';
+        let aiChoice = '';
+
+        async function submitPlayerChoice() {
+            const input = document.getElementById('playerChoice');
+            playerChoice = input.value;
+            if (playerChoice) {
+                // Generate player champion image
+                const playerImageUrl = await generateImage(`A dynamic profile picture of ${playerChoice}, illustrated anime style`);
+                document.getElementById('playerImage').src = playerImageUrl;
+
+                // Generate AI's response
+                const aiPrompt = `You are battling against "${playerChoice}". Create a creative and unexpected opponent that could win or lose in an interesting way.`;
+                const aiResponse = await fetch('https://text.pollinations.ai/generate/', {
+                    method: 'POST',
+                    body: aiPrompt
+                });
+                
+                aiChoice = await aiResponse.text();
+                document.getElementById('aiChoice').textContent = aiChoice;
+
+                // Generate AI champion image
+                const aiImageUrl = await generateImage(`A dynamic profile picture of ${aiChoice}, illustrated anime style`);
+                document.getElementById('aiImage').src = aiImageUrl;
+            }
+        }
+
+        async function startBattle() {
+            if (playerChoice && aiChoice) {
+                const battlePrompt = `Compare these two opponents in battle: "${playerChoice}" vs "${aiChoice}". Determine a winner with a creative and unexpected reasoning, describing the scene of victory.`;
+                
+                // Get battle result
+                const battleResponse = await fetch('https://text.pollinations.ai/generate/', {
+                    method: 'POST',
+                    body: battlePrompt
+                });
+                
+                const battleResult = await battleResponse.text();
+                document.getElementById('battleResult').textContent = battleResult;
+
+                // Generate final battle scene image
+                const resultImageUrl = await generateImage(`${battleResult}, illustrated anime style, epic scene`);
+                document.getElementById('resultImage').src = resultImageUrl;
+            } else {
+                document.getElementById('battleResult').textContent = "Please choose your champion first!";
+            }
+        }
+    </script>
+</body>
+</html>
