@@ -5,88 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>[PSLIDE]</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 0px;
-            background: #111; /* Slightly lighter black for the page background */
-            color: #eaeaea; /* Light gray for text for better contrast */
-        }
+		body {
+			font-family: Arial, sans-serif;
+			text-align: center;
+			padding: 0px;
+			background: black;
+		}
 
-        #game-container {
-            display: inline-block;
-            position: relative;
-            margin: 0 auto;
-            width: 100%; /* Take full width of the parent */
-            max-width: 600px; /* Cap the size at 600px for larger screens */
-            background: #222; /* Dark gray for the canvas container */
-            padding: 10px; /* Padding around the canvas */
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-        }
+		#game-container {
+			display: inline-block;
+			position: relative;
+			margin: 0 auto;
+			width: 100%; /* Take full width of the parent */
+			max-width: 600px; /* Cap the size at 600px for larger screens */
+		}
 
-        canvas {
-            border: 3px solid #444;
-            display: block;
-            margin: 0 auto;
-            width: 100%; /* Canvas width dynamically adjusts */
-            height: auto; /* Maintain aspect ratio */
-            background: #000; /* Dark gray for the canvas */
-        }
+		canvas {
+			border: 3px solid #333;
+			display: block;
+			margin: 0 auto;
+			width: 100%; /* Canvas width dynamically adjusts */
+			height: auto; /* Maintain aspect ratio */
+		}
 
-        #controls {
-            margin-top: 20px;
-        }
+		#controls {
+			margin-top: 20px;
+		}
 
-        #start-button, #new-button {
-            margin: 10px 5px; /* Add spacing between buttons */
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            display: inline-block; /* Ensure they are in one line */
-            text-align: center;
-            background: #333; /* Button background */
-            color: #fff; /* Button text color */
-            border: none;
-            border-radius: 4px;
-            transition: background 0.3s ease;
-        }
+		#start-button, #new-button {
+			margin: 10px 5px; /* Add spacing between buttons */
+			padding: 10px 20px;
+			font-size: 16px;
+			cursor: pointer;
+			display: inline-block; /* Ensure they are in one line */
+			text-align: center;
+		}
 
-        #start-button:hover, #new-button:hover {
-            background: #555; /* Slightly lighter gray on hover */
-        }
+		#controls input,
+		#controls select {
+			padding: 5px;
+			font-size: 16px;
+		}
 
-        #controls input,
-        #controls select {
-            padding: 5px;
-            font-size: 16px;
-            color: #111; /* Dark text for inputs */
-        }
-
-        #game-status {
-            margin-top: 20px;
-            color: #eaeaea; /* Light gray for better visibility */
-        }
-
-        #pollinations-link {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 10px;
-            color: #aaa;
-        }
-
-        #pollinations-link a {
-            color: #aaa;
-            text-decoration: none;
-        }
-
-        #pollinations-link a:hover {
-            color: #fff;
-        }
+		#game-status {
+			margin-top: 20px;
+		}
     </style>
 </head>
 <body>
-    <script src="/js/nav-loader.js"></script>
+<script src="/js/nav-loader.js"></script>
 
     <!-- Puzzle Settings -->
     <div id="controls">
@@ -114,11 +81,6 @@
         <canvas id="puzzle-canvas"></canvas>
     </div>
 
-    <!-- Pollinations Attribution -->
-    <div id="pollinations-link">
-        <a href="https://pollinations.ai" target="_blank">Generations by Pollinations.ai</a>
-    </div>
-
     <script>
         const canvas = document.getElementById('puzzle-canvas');
         const ctx = canvas.getContext('2d');
@@ -134,7 +96,7 @@
         let puzzleStarted = false;
         let puzzleImage = null;
         let moves = 0;
-        let imageLoaded = false;
+        let imageLoaded = false;  // To track if the image is loaded and avoid clearing on resize
 
         const maxCanvasSize = 600; // Maximum size of the canvas
 
@@ -160,9 +122,45 @@
 
         newButton.addEventListener('click', startPuzzle);
 
-        async function fetchImage(url) {
+        function startPuzzle() {
+            gridSize = parseInt(gridSizeSelector.value);
+            let imagePrompt = imagePromptInput.value.trim();
+            let randomSeed = Math.floor(Math.random() * 1000000); // Generate a random seed
+
+            let apiUrl = imagePrompt
+                ? `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?seed=${randomSeed}&nologo=true&width=1024&height=1024&model=flux`
+                : `https://image.pollinations.ai/prompt/random%20fun%20image?seed=${randomSeed}&nologo=true&width=1024&height=1024&model=flux`;
+
+            startButton.disabled = true;
+            startButton.textContent = "Loading...";
+
+            fetchImage(apiUrl).then(image => {
+                puzzleImage = image;
+                imageLoaded = true;  // Mark the image as loaded
+                resizeCanvas();  // Ensure the canvas is sized correctly before drawing
+                ctx.drawImage(image, 0, 0, 1024, 1024, 0, 0, canvas.width, canvas.height);
+                setTimeout(() => {
+                    createPuzzle();
+                    shufflePuzzle();
+                    drawPuzzle();
+                    startButton.textContent = "Reset Puzzle";
+                    startButton.disabled = false;
+                    newButton.style.display = "block";
+                    newButton.textContent = "New Puzzle";
+                    puzzleStarted = true;
+                    gameStatus.textContent = "Puzzle started! Click to move pieces.";
+                }, 1000);
+            }).catch(error => {
+                console.error("Error fetching the image:", error);
+                alert("Could not load the image. Please try again with a different prompt.");
+                startButton.textContent = "Get Image";
+                startButton.disabled = false;
+            });
+        }
+
+        function fetchImage(url) {
             return new Promise((resolve, reject) => {
-                const img = new Image();
+                let img = new Image();
                 img.crossOrigin = 'Anonymous';
                 img.src = url;
                 img.onload = () => resolve(img);
@@ -170,47 +168,11 @@
             });
         }
 
-        async function startPuzzle() {
-            gridSize = parseInt(gridSizeSelector.value);
-            const imagePrompt = imagePromptInput.value.trim();
-            const randomSeed = Math.floor(Math.random() * 1000000);
-
-            const apiUrl = imagePrompt
-                ? `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?seed=${randomSeed}&nologo=true&width=1024&height=1024&model=flux`
-                : `https://image.pollinations.ai/prompt/random%20fun%20image?seed=${randomSeed}&nologo=true&width=1024&height=1024&model=flux`;
-
-            startButton.disabled = true;
-            startButton.textContent = "Loading...";
-
-            try {
-                puzzleImage = await fetchImage(apiUrl);
-                imageLoaded = true;
-                resizeCanvas();
-                ctx.drawImage(puzzleImage, 0, 0, 1024, 1024, 0, 0, canvas.width, canvas.height);
-                setTimeout(() => {
-                    createPuzzle();
-                    shufflePuzzle();
-                    drawPuzzle();
-                    startButton.textContent = "Reset Puzzle";
-                    startButton.disabled = false;
-                    newButton.style.display = "inline-block";
-                    newButton.textContent = "New Puzzle";
-                    puzzleStarted = true;
-                    gameStatus.textContent = "Puzzle started! Click to move pieces.";
-                }, 1000);
-            } catch (error) {
-                console.error("Error fetching the image:", error);
-                alert("Could not load the image. Please try again with a different prompt.");
-                startButton.textContent = "Get Image";
-                startButton.disabled = false;
-            }
-        }
-
         function createPuzzle() {
             pieces = [];
             moves = 0;
 
-            const pieceSize = canvas.width / gridSize;
+            let pieceSize = canvas.width / gridSize;  // Dynamic piece size
 
             for (let row = 0; row < gridSize; row++) {
                 for (let col = 0; col < gridSize; col++) {
@@ -257,7 +219,7 @@
 
         function drawPuzzle() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const pieceSize = canvas.width / gridSize;
+            let pieceSize = canvas.width / gridSize;  // Dynamic piece size
 
             pieces.forEach(piece => {
                 ctx.drawImage(
@@ -279,7 +241,7 @@
             ctx.strokeRect(x * pieceSize, y * pieceSize, pieceSize, pieceSize);
         }
 
-        canvas.addEventListener('click', (event) => {
+        function movePiece(event) {
             if (!puzzleStarted) return;
 
             const rect = canvas.getBoundingClientRect();
@@ -298,10 +260,10 @@
                 if (checkWin()) {
                     puzzleStarted = false;
                     gameStatus.textContent = `Congratulations! You solved the puzzle in ${moves} moves!`;
-                    startButton.textContent = "New Puzzle";
+                    startButton.textContent = "New Puzzle";  // Correct button text after solving
                 }
             }
-        });
+        }
 
         function isAdjacent(col, row) {
             const dx = Math.abs(blank.x - col);
@@ -314,7 +276,7 @@
             startButton.textContent = "Get Image";
             gameStatus.textContent = "";
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            imageLoaded = false;
+            imageLoaded = false;  // Mark image as not loaded to avoid drawing on resize
             canvas.removeEventListener('click', movePiece);
             puzzleImage = null;
             pieces = [];
@@ -330,7 +292,16 @@
             return true;
         }
 
+        canvas.addEventListener('click', movePiece);
+
+        // Initialize canvas size
         resizeCanvas();
     </script>
+	    <!-- Footer with Pollinations.ai attribution -->
+    <div style="text-align: right; margin-top: 20px; font-size: 8px; color: #aaa;">
+        <a href="https://pollinations.ai" target="_blank" style="color: #aaa; text-decoration: none;">
+            Generations by Pollinations.ai
+        </a>
+    </div>
 </body>
 </html>
