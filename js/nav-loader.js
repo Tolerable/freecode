@@ -2,6 +2,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create a container div with a specific class for scoping
     const navContainer = document.createElement('div');
     navContainer.className = 'ai-ministries-nav-only'; // Scoping class
+
+	document.addEventListener('DOMContentLoaded', () => {
+		// Navbar injection logic
+	});
     
     fetch('components/nav.html')
         .then(response => response.text())
