@@ -152,20 +152,66 @@
 			return messages;
 		}
 
-		function speakText(text) {
-			if (!voiceEnabled) return;
-			
-			// Clean the text - remove code blocks and URLs
-			let cleanText = text.replace(/```[\s\S]*?```/g, '')
-							   .replace(/https?:\/\/\S+/g, '')
-							   .trim();
-			
-			if (cleanText) {
-				const utterance = new SpeechSynthesisUtterance(cleanText);
-				window.speechSynthesis.speak(utterance);
+		function initializeVoice() {
+			// Wait for voices to be loaded
+			if (speechSynthesis.onvoiceschanged !== undefined) {
+				speechSynthesis.onvoiceschanged = () => {
+					voices = synth.getVoices();
+					// Try to find and set Zira voice
+					const voice = voices.find(v => v.name.includes('Zira')) ||
+								 voices.find(v => v.name.includes('Microsoft Zira'));
+					if (voice) {
+						voices = [voice]; // Set Zira as the primary voice
+					}
+				};
+			}
+
+			// Restore voice preference
+			const savedVoiceEnabled = localStorage.getItem("voiceEnabled");
+			if (savedVoiceEnabled !== null) {
+				voiceEnabled = savedVoiceEnabled === "true";
+				voiceToggle.textContent = voiceEnabled ? "🔊" : "🔇";
 			}
 		}
 
+		function speak(text) {
+			if (!voiceEnabled) {
+				synth.cancel();
+				return;
+			}
+
+			// Clean the text of code blocks and URLs
+			let cleanText = text.replace(/\[code\][\s\S]*?\[\/code\]/g, '')
+							   .replace(/```[\s\S]*?```/g, '')
+							   .replace(/`[^`]*`/g, '')
+							   .replace(/!\[.*?\]\(.*?\)/g, '')
+							   .replace(/http[s]?:\/\/\S+/g, '')
+							   .replace(/<\/?[^>]+(>|$)/g, '')
+							   .replace(/\s+/g, ' ')
+							   .trim();
+
+			if (cleanText) {
+				const utterance = new SpeechSynthesisUtterance(cleanText);
+				// Get all voices and find Zira
+				const allVoices = synth.getVoices();
+				utterance.voice = allVoices.find(v => v.name.includes('Zira')) || 
+								 allVoices.find(v => v.name.includes('Microsoft Zira')) ||
+								 allVoices[0];
+				utterance.rate = 1.0;
+				utterance.pitch = 1.0;
+
+				// Add visual feedback when speaking
+				const messageContent = document.querySelector('.ai-message:last-child .message-content');
+				if (messageContent) {
+					messageContent.style.border = '1px solid var(--chat-primary)';
+					utterance.onend = () => {
+						messageContent.style.border = 'none';
+					};
+				}
+
+				synth.speak(utterance);
+			}
+		}
 		async function sendMessage(message) {
 			if (!message.trim()) return;
 
