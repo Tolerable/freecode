@@ -113,30 +113,35 @@
 
       draw() {
         const theme = LEVEL_THEMES[this.level % LEVEL_THEMES.length];
-        for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let y = 0; y <= GRID_HEIGHT; y++) { // Use <= to draw any extra row
           for (let x = 0; x < GRID_WIDTH; x++) {
             let color;
-            switch (this.grid[y][x]) {
-              case NUTRIENT:
-                color = RESOURCE_COLORS.NUTRIENT;
-                break;
-              case WATER:
-                color = RESOURCE_COLORS.WATER;
-                break;
-              case MINERAL:
-                color = RESOURCE_COLORS.MINERAL;
-                break;
-              case BLACK_HOLE:
-                color = RESOURCE_COLORS.BLACK_HOLE;
-                break;
-              default:
-                color = theme.GRASS;
+            if (y >= GRID_HEIGHT || x >= GRID_WIDTH) {
+              color = theme.GRASS; // Fill any gaps with grass
+            } else {
+              switch (this.grid[y]?.[x]) { // Use optional chaining for safety
+                case NUTRIENT:
+                  color = RESOURCE_COLORS.NUTRIENT;
+                  break;
+                case WATER:
+                  color = RESOURCE_COLORS.WATER;
+                  break;
+                case MINERAL:
+                  color = RESOURCE_COLORS.MINERAL;
+                  break;
+                case BLACK_HOLE:
+                  color = RESOURCE_COLORS.BLACK_HOLE;
+                  break;
+                default:
+                  color = theme.GRASS;
+              }
             }
             ctx.fillStyle = color;
             ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
           }
         }
       }
+
 
       consumeResource(x, y) {
         const gridX = Math.floor(x / TILE_SIZE);
@@ -299,7 +304,7 @@
 	  canvas.width = WIDTH;
 	  canvas.height = HEIGHT;
 	  GRID_WIDTH = Math.floor(WIDTH / TILE_SIZE);
-	  GRID_HEIGHT = Math.cell(HEIGHT / TILE_SIZE);
+	  GRID_HEIGHT = Math.floor(HEIGHT / TILE_SIZE);
 
 	  landscape = new Landscape(level); // Regenerate landscape on resize
 	  drawGame();
