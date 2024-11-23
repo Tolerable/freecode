@@ -11,11 +11,9 @@
       background-color: black;
       font-family: Arial, sans-serif;
     }
-
     canvas {
       display: block;
     }
-
     #startBtn {
       position: absolute;
       top: 50%;
@@ -29,7 +27,6 @@
       border: none;
       cursor: pointer;
     }
-
     #startBtn:hover {
       background-color: #666;
     }
@@ -39,7 +36,6 @@
   <canvas id="gameCanvas"></canvas>
   <button id="startBtn" onclick="startGame()">Start Game</button>
   <script>
-    // Game Canvas and Variables
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
@@ -77,10 +73,6 @@
     let score = 0;
     let level = 0;
 
-    let landscape = new Landscape(level);
-    let creature = new Creature();
-
-    // Landscape Class
     class Landscape {
       constructor(level) {
         this.grid = Array.from({ length: GRID_HEIGHT }, () =>
@@ -121,13 +113,13 @@
 
       draw() {
         const theme = LEVEL_THEMES[this.level % LEVEL_THEMES.length];
-        for (let y = 0; y <= GRID_HEIGHT; y++) { // Use <= to include extra rows
+        for (let y = 0; y <= GRID_HEIGHT; y++) { // Use <= to draw any extra row
           for (let x = 0; x < GRID_WIDTH; x++) {
             let color;
             if (y >= GRID_HEIGHT || x >= GRID_WIDTH) {
               color = theme.GRASS; // Fill any gaps with grass
             } else {
-              switch (this.grid[y]?.[x]) { // Use optional chaining
+              switch (this.grid[y]?.[x]) { // Use optional chaining for safety
                 case NUTRIENT:
                   color = RESOURCE_COLORS.NUTRIENT;
                   break;
@@ -150,6 +142,7 @@
         }
       }
 
+
       consumeResource(x, y) {
         const gridX = Math.floor(x / TILE_SIZE);
         const gridY = Math.floor(y / TILE_SIZE);
@@ -162,7 +155,6 @@
       }
     }
 
-    // Creature Class
     class Creature {
       constructor() {
         this.x = WIDTH / 2;
@@ -261,7 +253,9 @@
       }
     }
 
-    // Game Functions
+    let landscape = new Landscape(level);
+    let creature = new Creature();
+
     function drawGame() {
       ctx.clearRect(0, 0, WIDTH, HEIGHT);
       landscape.draw();
@@ -297,27 +291,31 @@
       requestAnimationFrame(gameLoop);
     }
 
-    function startGame() {
-      document.getElementById("startBtn").style.display = "none";
-      gameState = "running";
-      gameLoop();
-    }
+	function startGame() {
+	  document.getElementById("startBtn").style.display = "none";
+	  gameState = "running";
+	  gameLoop(); // Just start the game loop
+	}
 
-    function resizeCanvas() {
-      WIDTH = window.innerWidth;
-      HEIGHT = window.innerHeight;
-      canvas.width = WIDTH;
-      canvas.height = HEIGHT;
-      GRID_WIDTH = Math.floor(WIDTH / TILE_SIZE);
-      GRID_HEIGHT = Math.floor(HEIGHT / TILE_SIZE);
 
-      drawGame(); // Ensure everything is redrawn properly
-    }
+	function resizeCanvas() {
+	  WIDTH = window.innerWidth;
+	  HEIGHT = window.innerHeight;
+	  canvas.width = WIDTH;
+	  canvas.height = HEIGHT;
+	  GRID_WIDTH = Math.floor(WIDTH / TILE_SIZE);
+	  GRID_HEIGHT = Math.floor(HEIGHT / TILE_SIZE);
 
-    // Event Listeners and Initialization
-    window.addEventListener("resize", resizeCanvas);
+	  // Redraw the existing field without regenerating it
+	  drawGame();
+	}
+
+
+	window.addEventListener("resize", resizeCanvas);
+
+	// Draw the initial game state
     resizeCanvas();
-    drawGame();
+	drawGame();
   </script>
 </body>
 </html>
