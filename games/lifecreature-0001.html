@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EatCreature - Enhanced</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background: black;
+    }
+    #ecosystem {
+      width: min(80vh, 100%);
+      height: min(80vh, 100%);
+      position: relative;
+      margin: 20px auto;
+      overflow: hidden;
+      background: rgb(0, 10, 30);
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+    #stats-panel {
+      width: min(80vh, 100%);
+      margin: 10px auto;
+      padding: 10px;
+      background: rgba(0, 10, 30, 0.8);
+      border-radius: 8px;
+      color: white;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    h3 {
+      font-size: 14px;
+      margin: 0;
+      font-weight: 300;
+    }
+    p {
+      margin: 8px 0;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+<div id="ecosystem"></div>
+<div id="stats-panel">
+  <div class="stat-item">
+    <h3>Score</h3>
+    <p id="score-count">0</p>
+  </div>
+  <div class="stat-item">
+    <h3>Level</h3>
+    <p id="level-count">1</p>
+  </div>
+  <div class="stat-item">
+    <h3>Health</h3>
+    <p id="health-count">100%</p>
+  </div>
+  <div class="stat-item">
+    <h3>Energy</h3>
+    <p id="energy-count">100%</p>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+<script>
+let ecosystem, camera, creature;
+let isPaused = false;
+let level = 1, score = 0;
+
+function setup() {
+  const containerSize = min(windowWidth * 0.8, windowHeight * 0.8);
+  const canvas = createCanvas(containerSize, containerSize);
+  canvas.parent('ecosystem');
+
+  ecosystem = new Ecosystem();
+  creature = new Creature(width / 2, height / 2);
+  ecosystem.initialize();
+  camera = new Camera(width / 2, height / 2, 1);
+}
+
+function draw() {
+  background(0, 10, 30);
+
+  if (!isPaused) {
+    ecosystem.update();
+    creature.update(ecosystem);
+    if (creature.isDead()) {
+      isPaused = true;
+      alert('Game Over! Refresh to play again.');
+    }
+  }
+
+  ecosystem.display();
+  creature.display();
+
+  // Update stats
+  document.getElementById('score-count').textContent = score;
+  document.getElementById('level-count').textContent = level;
+  document.getElementById('health-count').textContent = `${creature.health}%`;
+  document.getElementById('energy-count').textContent = `${creature.energy}%`;
+}
+
+function keyPressed() {
+  if (key === ' ') isPaused = !isPaused;
+}
+
+class Creature {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = 30;
+    this.health = 100;
+    this.energy = 100;
+    this.color = color(255, 255, 255);
+    this.target = null;
+  }
+
+  update(ecosystem) {
+    if (this.health <= 0 || this.energy <= 0) return;
+    if (!this.target) this.target = ecosystem.findClosestResource(this.x, this.y);
+
+    if (this.target) {
+      const dx = this.target.x - this.x;
+      const dy = this.target.y - this.y;
+      const distance = dist(this.x, this.y, this.target.x, this.target.y);
+
+      if (distance > 2) {
+        this.x += dx / distance * 2;
+        this.y += dy / distance * 2;
+        this.energy -= 0.1;
+      } else {
+        ecosystem.consumeResource(this.target);
+        this.target = null;
+        score += 10;
+        this.energy = min(100, this.energy + 10);
+        this.health = min(100, this.health + 5);
+      }
+    }
+
+    this.energy = max(0, this.energy - 0.05);
+    this.health = max(0, this.health - 0.02);
+  }
+
+  display() {
+    fill(this.color);
+    ellipse(this.x, this.y, this.size);
+  }
+
+  isDead() {
+    return this.health <= 0 || this.energy <= 0;
+  }
+}
+
+class Ecosystem {
+  constructor() {
+    this.resources = [];
+    this.maxResources = 20;
+  }
+
+  initialize() {
+    for (let i = 0; i < this.maxResources; i++) {
+      this.resources.push(this.generateResource());
+    }
+  }
+
+  update() {
+    if (this.resources.length < this.maxResources) {
+      this.resources.push(this.generateResource());
+    }
+  }
+
+  display() {
+    for (let resource of this.resources) {
+      fill(0, 255, 0);
+      ellipse(resource.x, resource.y, 10);
+    }
+  }
+
+  findClosestResource(x, y) {
+    let closest = null;
+    let minDist = Infinity;
+    for (let resource of this.resources) {
+      const d = dist(x, y, resource.x, resource.y);
+      if (d < minDist) {
+        minDist = d;
+        closest = resource;
+      }
+    }
+    return closest;
+  }
+
+  consumeResource(resource) {
+    const index = this.resources.indexOf(resource);
+    if (index > -1) this.resources.splice(index, 1);
+  }
+
+  generateResource() {
+    return {
+      x: random(20, width - 20),
+      y: random(20, height - 20),
+    };
+  }
+}
+
+class Camera {
+  constructor(x, y, zoom) {
+    this.x = x;
+    this.y = y;
+    this.zoom = zoom;
+  }
+}
+</script>
+</body>
+</html>
