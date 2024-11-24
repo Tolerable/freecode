@@ -121,59 +121,13 @@ let score = 0;
 let level = 1;
 let kills = 0; 
 
-const colorCycle = ['rgba(255, 0, 0, 0.3)',  // Bright red
-                    'rgba(255, 105, 180, 0.3)', // Bright pink
-                    'rgba(0, 255, 255, 0.3)',  // Cyan
-                    'rgba(255, 255, 0, 0.3)',  // Yellow
-                    'rgba(0, 255, 0, 0.3)',    // Bright green
-                    'rgba(255, 165, 0, 0.3)',  // Bright orange
-                    'rgba(0, 0, 255, 0.3)'];   // Bright blue
-					
+const colorCycle = ['green', 'blue', 'purple', 'pink', 'red', 'orange', 'yellow'];
 let currentColor = colorCycle[0];
 let nextColor = colorCycle[1];
 let cycleIndex = 0;
 
 const TOTAL_NUTRIENTS = 50;
 const nutrients = [];
-
-const particles = [];
-const PARTICLE_COUNT = 100;
-
-function createParticle() {
-    return {
-        x: Math.random() * WIDTH,
-        y: Math.random() * HEIGHT,
-        size: Math.random() * 2 + 1,
-        speed: Math.random() * 0.5 + 0.2,
-        direction: Math.random() * Math.PI * 2,
-        opacity: Math.random() * 0.15 + 0.05
-    };
-}
-
-function initParticles() {
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-        particles.push(createParticle());
-    }
-}
-
-function drawParticles() {
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    particles.forEach(particle => {
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Move particle
-        particle.x += Math.cos(particle.direction) * particle.speed;
-        particle.y += Math.sin(particle.direction) * particle.speed;
-        
-        // Wrap around screen
-        if (particle.x < 0) particle.x = WIDTH;
-        if (particle.x > WIDTH) particle.x = 0;
-        if (particle.y < 0) particle.y = HEIGHT;
-        if (particle.y > HEIGHT) particle.y = 0;
-    });
-}
 
 function createNutrient(color, opacity = 1) {
     const phi = (Math.sqrt(5) + 1) / 2;
@@ -290,31 +244,31 @@ function getNextAvailableColor() {
 }
 
 function drawCreatureGlow(creature) {
-    // Subtle outer glow rings
-    const outerGlow = ctx.createRadialGradient(
-        creature.x, creature.y, creature.mainRadius,
-        creature.x, creature.y, creature.glowRadius * 1.5
-    );
-    outerGlow.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
-    outerGlow.addColorStop(0.5, 'rgba(255, 255, 255, 0.02)');
-    outerGlow.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    
-    ctx.fillStyle = outerGlow;
-    ctx.beginPath();
-    ctx.arc(creature.x, creature.y, creature.glowRadius * 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Extremely transparent colored tint (like window tint)
-    const tint = ctx.createRadialGradient(
+    // Inner glow for visibility
+    const innerGradient = ctx.createRadialGradient(
         creature.x, creature.y, creature.mainRadius * 0.5,
         creature.x, creature.y, creature.mainRadius
     );
-    tint.addColorStop(0, creature.color.replace('1)', '0.005)')); // Barely there
-    tint.addColorStop(1, creature.color.replace('1)', '0.002)'));
+    innerGradient.addColorStop(0, 'rgba(0, 128, 255, 0.2)');
+    innerGradient.addColorStop(1, 'rgba(0, 128, 255, 0.05)');
     
-    ctx.fillStyle = tint;
+    ctx.fillStyle = innerGradient;
     ctx.beginPath();
     ctx.arc(creature.x, creature.y, creature.mainRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Colored edge glow
+    const edgeGradient = ctx.createRadialGradient(
+        creature.x, creature.y, creature.mainRadius * 0.9,
+        creature.x, creature.y, creature.glowRadius
+    );
+    edgeGradient.addColorStop(0, creature.color.replace('1)', '0.15)')); // Start color at edge
+    edgeGradient.addColorStop(0.3, creature.color.replace('1)', '0.1)'));
+    edgeGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    
+    ctx.fillStyle = edgeGradient;
+    ctx.beginPath();
+    ctx.arc(creature.x, creature.y, creature.glowRadius, 0, Math.PI * 2);
     ctx.fill();
 }
 
@@ -345,114 +299,70 @@ function drawNutrients() {
 }
 
 function drawCluster(cluster, offsetX, offsetY) {
-    ctx.save();
-    ctx.translate(offsetX, offsetY);
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
 
-    // Membrane with same transparency level as main creature
-    ctx.fillStyle = 'rgba(0, 128, 255, 0.1)';
-    ctx.strokeStyle = 'rgba(0, 128, 255, 0.15)';
+  ctx.fillStyle = 'rgba(0, 128, 255, 0.1)';
+  ctx.strokeStyle = 'rgba(0, 128, 255, 0.3)';
+  ctx.beginPath();
+  ctx.arc(0, 0, cluster.radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  cluster.parts.forEach(part => {
+    part.x += part.velocity.x;
+    part.y += part.velocity.y;
+
+    if (Math.hypot(part.x, part.y) > cluster.radius - part.size) {
+      part.velocity.x *= -1;
+      part.velocity.y *= -1;
+    }
+
+    ctx.fillStyle = part.color;
     ctx.beginPath();
-    ctx.arc(0, 0, cluster.radius, 0, Math.PI * 2);
+    ctx.arc(part.x, part.y, part.size, 0, Math.PI * 2);
     ctx.fill();
-    ctx.stroke();
+  });
 
-    // Parts
-    cluster.parts.forEach(part => {
-        part.x += part.velocity.x;
-        part.y += part.velocity.y;
-
-        if (Math.hypot(part.x, part.y) > cluster.radius - part.size) {
-            part.velocity.x *= -1;
-            part.velocity.y *= -1;
-        }
-
-        const [r, g, b] = getRGBFromColor(part.color);
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.3)`;
-        ctx.beginPath();
-        ctx.arc(part.x, part.y, part.size, 0, Math.PI * 2);
-        ctx.fill();
-    });
-
-    ctx.restore();
+  ctx.restore();
 }
 
 function drawCreature(creature) {
+    drawCreatureGlow(creature);
+    
     ctx.save();
     ctx.translate(creature.x, creature.y);
 
-    // Main membrane - ultra transparent but brighter
-    const [r, g, b] = getRGBFromColor(creature.color);
-    // Increase brightness by adding more vibrant color (e.g., max red, green, blue)
-    ctx.fillStyle = `rgba(${Math.min(r + 80, 255)}, ${Math.min(g + 80, 255)}, ${Math.min(b + 80, 255)}, 0.4)`;  // Brighter but still transparent
-    ctx.strokeStyle = `rgba(${Math.min(r + 80, 255)}, ${Math.min(g + 80, 255)}, ${Math.min(b + 80, 255)}, 0.45)`;  // Slightly more visible stroke
+    ctx.fillStyle = 'rgba(0, 128, 255, 0.1)';
+    ctx.strokeStyle = 'rgba(0, 128, 255, 0.3)';
     ctx.beginPath();
     ctx.arc(0, 0, creature.mainRadius, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    // Glow effect for a soft light around the creature's body
-    const glowRadius = creature.mainRadius * 1.3;  // Glow radius (slightly bigger than main radius)
-    const glow = ctx.createRadialGradient(
-        0, 0, creature.mainRadius,  // Center of the creature
-        0, 0, glowRadius           // End at the edge of the glow radius
-    );
-    glow.addColorStop(0, `rgba(${Math.min(r + 80, 255)}, ${Math.min(g + 80, 255)}, ${Math.min(b + 80, 255)}, 0.2)`);  // Slight glow with transparency
-    glow.addColorStop(1, 'rgba(0, 0, 0, 0)');  // Fade out to transparency
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Inner cells - Adjusted opacity for brightness
     creature.innerCells.forEach(cell => {
-        // Ensure cell stays inside the body
-        cell.x = Math.max(-creature.mainRadius + cell.size, Math.min(cell.x, creature.mainRadius - cell.size));
-        cell.y = Math.max(-creature.mainRadius + cell.size, Math.min(cell.y, creature.mainRadius - cell.size));
+        cell.x += cell.velocity.x;
+        cell.y += cell.velocity.y;
 
-        const [cr, cg, cb] = getRGBFromColor(cell.color);
-        // Increase brightness of inner cells and adjust transparency
-        ctx.fillStyle = `rgba(${Math.min(cr + 80, 255)}, ${Math.min(cg + 80, 255)}, ${Math.min(cb + 80, 255)}, 0.45)`;  // Bright and transparent
+        if (Math.hypot(cell.x, cell.y) > creature.mainRadius - cell.size) {
+            cell.velocity.x *= -1;
+            cell.velocity.y *= -1;
+        }
+
+        ctx.fillStyle = cell.color;
         ctx.beginPath();
         ctx.arc(cell.x, cell.y, cell.size, 0, Math.PI * 2);
         ctx.fill();
     });
 
-    // Clusters - Ensure parts stay inside their cluster radius
     creature.clusters.forEach((cluster, i) => {
         const angle = (i / creature.clusters.length) * Math.PI * 2;
-        const offsetX = Math.cos(angle) * (creature.mainRadius * 0.7); // Make sure the cluster is inside
-        const offsetY = Math.sin(angle) * (creature.mainRadius * 0.7);
+        const offsetX = Math.cos(angle) * (creature.mainRadius * 0.3); // Scale with creature size
+        const offsetY = Math.sin(angle) * (creature.mainRadius * 0.3); // Scale with creature size
         drawCluster(cluster, offsetX, offsetY);
     });
 
-    // Free parts - Ensure free parts stay within their bounds and are brightened
-    creature.freeParts.forEach(part => {
-        // Ensure part stays inside the creature's radius
-        part.x = Math.max(-creature.mainRadius + part.size, Math.min(part.x, creature.mainRadius - part.size));
-        part.y = Math.max(-creature.mainRadius + part.size, Math.min(part.y, creature.mainRadius - part.size));
-
-        const [pr, pg, pb] = getRGBFromColor(part.color);
-        // Increase brightness of free parts while maintaining transparency
-        ctx.fillStyle = `rgba(${Math.min(pr + 80, 255)}, ${Math.min(pg + 80, 255)}, ${Math.min(pb + 80, 255)}, 0.45)`;  // Bright and transparent
-        ctx.beginPath();
-        ctx.arc(part.x, part.y, part.size, 0, Math.PI * 2);
-        ctx.fill();
-    });
-
     ctx.restore();
-}
-
-
-
-function getRGBFromColor(color) {
-    const temp = document.createElement('div');
-    temp.style.color = color;
-    document.body.appendChild(temp);
-    const style = window.getComputedStyle(temp);
-    const rgb = style.color;
-    document.body.removeChild(temp);
-    const match = rgb.match(/\d+/g);
-    return match ? [match[0], match[1], match[2]] : [0, 128, 255];
 }
 
 function moveCreature(creature) {
@@ -539,7 +449,6 @@ function updateStats() {
 function gameLoop() {
     try {
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
-		drawParticles();
         applyScale(ctx);
         
         updateNutrientTransitions();
