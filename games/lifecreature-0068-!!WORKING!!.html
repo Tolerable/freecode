@@ -220,7 +220,7 @@ const INITIAL_CREATURES = 4;  // Number of creatures to start with
 function createCreature(xPos, yPos) {
     const baseSize = 0.6;
     const mainRadius = 35 * baseSize;
-    const creatureColor = getNextColor(); // Random starting color
+    const creatureColor = colorCycle[Math.floor(Math.random() * colorCycle.length)]; // Random starting color
     
     return {
         x: xPos || WIDTH / 2,
@@ -262,7 +262,7 @@ function spawnInitialCreatures() {
         const x = Math.random() * WIDTH;
         const y = Math.random() * HEIGHT;
         const newCreature = createCreature(x, y);
-        newCreature.color = getNextColor(); // Get the next color in the cycle for the new creature
+        newCreature.color = colorCycle[i % colorCycle.length]; // Each initial creature gets unique color
         creatures.push(newCreature);
     }
 }
@@ -391,14 +391,10 @@ function drawCreature(creature) {
 
     // Glow effect for a soft light around the creature's body (increased opacity)
     const glowRadius = creature.mainRadius * 1.5;  // Increased the glow radius
-	const glow = ctx.createRadialGradient(
-		0, 0, creature.mainRadius,
-		0, 0, glowRadius
-	);
-	const [r, g, b] = getRGBFromColor(creature.color);
-	glow.addColorStop(0, `rgba(${Math.min(r + 80, 255)}, ${Math.min(g + 80, 255)}, ${Math.min(b + 80, 255)}, 0.5)`);  // Brighter glow with higher opacity
-	glow.addColorStop(1, 'rgba(0, 0, 0, 0)');  // Fade out to transparency
-
+    const glow = ctx.createRadialGradient(
+        0, 0, creature.mainRadius,  // Center of the creature
+        0, 0, glowRadius           // End at the edge of the glow radius
+    );
     glow.addColorStop(0, `rgba(${Math.min(r + 80, 255)}, ${Math.min(g + 80, 255)}, ${Math.min(b + 80, 255)}, 0.5)`);  // Brighter glow with higher opacity
     glow.addColorStop(1, 'rgba(0, 0, 0, 0)');  // Fade out to transparency
     ctx.fillStyle = glow;
@@ -466,10 +462,12 @@ function moveCreature(creature) {
     
     // If no nutrients of current color, advance to next color
 	if (currentColorCount === 0) {
+		cycleIndex = (cycleIndex + 1) % colorCycle.length;
 		currentColor = nextColor;
-		nextColor = getNextColor(); // Get the next color from the cycle
-	}
-
+		nextColor = colorCycle[(cycleIndex + 1) % colorCycle.length];
+		level++;
+		score += 100;
+    }
     
     nutrients.forEach(nutrient => {
         if (nutrient.color === currentColor) {
@@ -505,7 +503,7 @@ function moveCreature(creature) {
 			creature.mainRadius = 35 * creature.size;
 			creature.glowRadius = 45 * creature.size;
 			
-			nutrients.push(createNutrient(currentColor, 0.1));
+			nutrients.push(createNutrient(nextColor, 0.1));
 		}
     }
 }
