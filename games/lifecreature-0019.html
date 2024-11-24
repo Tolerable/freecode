@@ -7,7 +7,6 @@
   <style>
     body {
       margin: 0;
-      padding: 0;
       overflow: hidden;
       background-color: black;
       font-family: Arial, sans-serif;
@@ -15,8 +14,6 @@
 
     canvas {
       display: block;
-      width: 100vw;
-      height: 100vh;
     }
 
     #stats {
@@ -44,13 +41,10 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-let WIDTH = window.innerWidth;
-let HEIGHT = window.innerHeight;
+let WIDTH = window.innerWidth * 0.8;
+let HEIGHT = window.innerHeight * 0.8;
 canvas.width = WIDTH;
 canvas.height = HEIGHT;
-
-// Scale factor for zoomed out view
-const SCALE = 0.7;
 
 let health = 100;
 let energy = 100;
@@ -58,79 +52,72 @@ let score = 0;
 let level = 1;
 
 const colorCycle = ['green', 'blue', 'purple', 'pink', 'red', 'orange', 'yellow'];
-let currentColor = colorCycle[0];
-let nextColor = colorCycle[1];
+let currentColors = [colorCycle[0]]; // Start with just the first color
 let cycleIndex = 0;
+let nextColor = null;
+let transitioningNutrients = [];
 
-const TOTAL_NUTRIENTS = 50;
 const nutrients = [];
+const maxNutrients = 30;
 
-function createNutrient(color, opacity = 1) {
-  const phi = (Math.sqrt(5) + 1) / 2;
-  const theta = 2 * Math.PI * (Math.random() * phi);
-  // Increased spread by using more of the canvas space
-  const maxDimension = Math.max(WIDTH, HEIGHT);
-  // Use elliptical distribution to match screen aspect ratio
-  const rx = WIDTH * 0.45;  // horizontal radius
-  const ry = HEIGHT * 0.45; // vertical radius
-  const r = Math.sqrt(Math.random());
-  
-  return {
-    x: WIDTH/2 + r * rx * Math.cos(theta),
-    y: HEIGHT/2 + r * ry * Math.sin(theta),
-    size: 4,
-    color: color,
-    opacity: opacity,
-    transitioning: opacity < 1
-  };
+function createGradient(x, y, radius, color) {
+  const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+  gradient.addColorStop(0, color);
+  gradient.addColorStop(0.2, color.replace('1)', '0.8)'));
+  gradient.addColorStop(0.4, color.replace('1)', '0.6)'));
+  gradient.addColorStop(0.6, color.replace('1)', '0.4)'));
+  gradient.addColorStop(0.8, color.replace('1)', '0.2)'));
+  gradient.addColorStop(1, color.replace('1)', '0)'));
+  return gradient;
 }
 
-function spawnInitialNutrients() {
+function spawnNutrients() {
   nutrients.length = 0;
-  for (let i = 0; i < TOTAL_NUTRIENTS; i++) {
-    nutrients.push(createNutrient(currentColor));
+  for (let i = 0; i < maxNutrients; i++) {
+    nutrients.push({
+      x: Math.random() * WIDTH,
+      y: Math.random() * HEIGHT,
+      size: 8,
+      color: currentColors[0], // Always spawn with first color only
+      opacity: 1,
+      transitioning: false
+    });
   }
 }
 
 const creature = {
   x: WIDTH / 2,
   y: HEIGHT / 2,
-  speed: 1,
-  mainRadius: 60,
-  glowRadius: 90,
+  speed: 2,
+  mainRadius: 120,
+  glowRadius: 180, // Radius for the glow effect
   innerCells: Array.from({ length: 2 }, () => ({
-    x: Math.random() * 25 - 12.5,
-    y: Math.random() * 25 - 12.5,
-    size: 10,
+    x: Math.random() * 50 - 25,
+    y: Math.random() * 50 - 25,
+    size: 20,
     color: colorCycle[Math.floor(Math.random() * colorCycle.length)],
     velocity: { x: Math.random() * 1 - 0.5, y: Math.random() * 1 - 0.5 },
   })),
   clusters: [
     {
       parts: Array.from({ length: 3 }, () => ({
-        x: Math.random() * 15 - 7.5,
-        y: Math.random() * 15 - 7.5,
-        size: 5,
+        x: Math.random() * 30 - 15,
+        y: Math.random() * 30 - 15,
+        size: 10,
         color: colorCycle[Math.floor(Math.random() * colorCycle.length)],
         velocity: { x: Math.random() * 2 - 1, y: Math.random() * 2 - 1 },
       })),
-      radius: 25,
+      radius: 50,
     },
   ],
   freeParts: Array.from({ length: 4 }, () => ({
-    x: Math.random() * 30 - 15,
-    y: Math.random() * 30 - 15,
-    size: 4,
+    x: Math.random() * 60 - 30,
+    y: Math.random() * 60 - 30,
+    size: 8,
     color: colorCycle[Math.floor(Math.random() * colorCycle.length)],
     velocity: { x: Math.random() * 1.5 - 0.75, y: Math.random() * 1.5 - 0.75 },
   })),
 };
-
-function applyScale(ctx) {
-  ctx.save();
-  ctx.scale(SCALE, SCALE);
-  ctx.translate(WIDTH * (1/SCALE - 1)/2, HEIGHT * (1/SCALE - 1)/2);
-}
 
 function drawCreatureGlow() {
   const gradient = ctx.createRadialGradient(
@@ -149,25 +136,23 @@ function drawCreatureGlow() {
 
 function drawNutrients() {
   nutrients.forEach(nutrient => {
-    ctx.globalAlpha = nutrient.opacity;
+    ctx.globalAlpha = nutrient.opacity || 1;
+    ctx.fillStyle = nutrient.color;
+    ctx.beginPath();
+    ctx.arc(nutrient.x, nutrient.y, nutrient.size, 0, Math.PI * 2);
+    ctx.fill();
     
-    // Draw glow
+    // Draw glow around nutrient
     const glowGradient = ctx.createRadialGradient(
       nutrient.x, nutrient.y, nutrient.size,
-      nutrient.x, nutrient.y, nutrient.size * 3
+      nutrient.x, nutrient.y, nutrient.size * 2
     );
-    glowGradient.addColorStop(0, nutrient.color.replace('1)', `${0.3 * nutrient.opacity})`));
+    glowGradient.addColorStop(0, nutrient.color.replace('1)', '0.3)'));
     glowGradient.addColorStop(1, nutrient.color.replace('1)', '0)'));
     
     ctx.fillStyle = glowGradient;
     ctx.beginPath();
-    ctx.arc(nutrient.x, nutrient.y, nutrient.size * 3, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Draw nutrient
-    ctx.fillStyle = nutrient.color;
-    ctx.beginPath();
-    ctx.arc(nutrient.x, nutrient.y, nutrient.size, 0, Math.PI * 2);
+    ctx.arc(nutrient.x, nutrient.y, nutrient.size * 2, 0, Math.PI * 2);
     ctx.fill();
   });
   ctx.globalAlpha = 1;
@@ -232,8 +217,8 @@ function drawCreature() {
 
   creature.clusters.forEach((cluster, i) => {
     const angle = (i / creature.clusters.length) * Math.PI * 2;
-    const offsetX = Math.cos(angle) * 30; // Reduced from 60
-    const offsetY = Math.sin(angle) * 30; // Reduced from 60
+    const offsetX = Math.cos(angle) * 60;
+    const offsetY = Math.sin(angle) * 60;
     drawCluster(cluster, offsetX, offsetY);
   });
 
@@ -259,18 +244,9 @@ function moveCreature() {
   let target = null;
   let minDist = Infinity;
 
-  // Count current color nutrients
-  const currentColorCount = nutrients.filter(n => n.color === currentColor).length;
-  
-  // If no more current color nutrients, switch to next color
-  if (currentColorCount === 0) {
-    advanceLevel();
-    return;
-  }
-
-  // Only target current color nutrients
+  // Only target nutrients of the current active color
   nutrients.forEach(nutrient => {
-    if (nutrient.color === currentColor) {
+    if (nutrient.color === currentColors[0]) {
       const dist = Math.hypot(creature.x - nutrient.x, creature.y - nutrient.y);
       if (dist < minDist) {
         minDist = dist;
@@ -286,14 +262,15 @@ function moveCreature() {
 
     const distance = Math.hypot(creature.x - target.x, creature.y - target.y);
     if (distance < creature.mainRadius / 2) {
-      // Remove eaten nutrient
       nutrients.splice(nutrients.indexOf(target), 1);
       score += 10;
       energy = Math.min(100, energy + 10);
       health = Math.min(100, health + 2);
 
-      // Add new nutrient of next color
-      nutrients.push(createNutrient(nextColor, 0.1));
+      // Check if all nutrients of current color are eaten
+      if (!nutrients.some(n => n.color === currentColors[0])) {
+        advanceLevel();
+      }
     }
   }
 }
@@ -302,14 +279,28 @@ function advanceLevel() {
   level++;
   score += 100;
   cycleIndex = (cycleIndex + 1) % colorCycle.length;
-  currentColor = nextColor;
-  nextColor = colorCycle[(cycleIndex + 2) % colorCycle.length];
+  
+  // Set up next color and spawn new nutrients with transition
+  const nextColor = colorCycle[cycleIndex];
+  for (let i = 0; i < maxNutrients; i++) {
+    nutrients.push({
+      x: Math.random() * WIDTH,
+      y: Math.random() * HEIGHT,
+      size: 8,
+      color: nextColor,
+      opacity: 0, // Start invisible
+      transitioning: true
+    });
+  }
+  
+  // Update current colors array
+  currentColors = [nextColor];
 }
 
 function updateNutrientTransitions() {
   nutrients.forEach(nutrient => {
     if (nutrient.transitioning && nutrient.opacity < 1) {
-      nutrient.opacity = Math.min(1, nutrient.opacity + 0.01);
+      nutrient.opacity = Math.min(1, nutrient.opacity + 0.02);
       if (nutrient.opacity >= 1) {
         nutrient.transitioning = false;
       }
@@ -327,15 +318,10 @@ function updateStats() {
 function gameLoop() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
-  applyScale(ctx);
-  
   updateNutrientTransitions();
   drawNutrients();
   drawCreature();
   moveCreature();
-  
-  ctx.restore();
-  
   updateStats();
 
   energy -= 0.05;
@@ -350,13 +336,13 @@ function gameLoop() {
 }
 
 window.addEventListener('resize', () => {
-  WIDTH = window.innerWidth;
-  HEIGHT = window.innerHeight;
+  WIDTH = window.innerWidth * 0.8;
+  HEIGHT = window.innerHeight * 0.8;
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
 });
 
-spawnInitialNutrients();
+spawnNutrients();
 gameLoop();
 </script>
 </body>
