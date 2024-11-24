@@ -168,55 +168,39 @@ function spawnInitialNutrients() {
   }
 }
 
-const creatures = [];  // Array to hold all creatures
-const INITIAL_CREATURES = 4;  // Number of creatures to start with
-
-function createCreature(xPos, yPos) {
-    return {
-        x: xPos || WIDTH / 2,
-        y: yPos || HEIGHT / 2,
-        speed: 1,
-        mainRadius: 60,
-        glowRadius: 90,
-        energy: 100,
-        health: 100,
-        size: 0.5 + Math.random() * 0.5,  // Random starting size
-        innerCells: Array.from({ length: 2 }, () => ({
-            x: Math.random() * 25 - 12.5,
-            y: Math.random() * 25 - 12.5,
-            size: 10,
-            color: colorCycle[Math.floor(Math.random() * colorCycle.length)],
-            velocity: { x: Math.random() * 1 - 0.5, y: Math.random() * 1 - 0.5 },
-        })),
-        clusters: [
-            {
-                parts: Array.from({ length: 3 }, () => ({
-                    x: Math.random() * 15 - 7.5,
-                    y: Math.random() * 15 - 7.5,
-                    size: 5,
-                    color: colorCycle[Math.floor(Math.random() * colorCycle.length)],
-                    velocity: { x: Math.random() * 2 - 1, y: Math.random() * 2 - 1 },
-                })),
-                radius: 25,
-            },
-        ],
-        freeParts: Array.from({ length: 4 }, () => ({
-            x: Math.random() * 30 - 15,
-            y: Math.random() * 30 - 15,
-            size: 4,
-            color: colorCycle[Math.floor(Math.random() * colorCycle.length)],
-            velocity: { x: Math.random() * 1.5 - 0.75, y: Math.random() * 1.5 - 0.75 },
-        })),
-    };
-}
-
-function spawnInitialCreatures() {
-    for (let i = 0; i < INITIAL_CREATURES; i++) {
-        const x = Math.random() * WIDTH;
-        const y = Math.random() * HEIGHT;
-        creatures.push(createCreature(x, y));
-    }
-}
+const creature = {
+  x: WIDTH / 2,
+  y: HEIGHT / 2,
+  speed: 1,
+  mainRadius: 60,
+  glowRadius: 90,
+  innerCells: Array.from({ length: 2 }, () => ({
+    x: Math.random() * 25 - 12.5,
+    y: Math.random() * 25 - 12.5,
+    size: 10,
+    color: colorCycle[Math.floor(Math.random() * colorCycle.length)],
+    velocity: { x: Math.random() * 1 - 0.5, y: Math.random() * 1 - 0.5 },
+  })),
+  clusters: [
+    {
+      parts: Array.from({ length: 3 }, () => ({
+        x: Math.random() * 15 - 7.5,
+        y: Math.random() * 15 - 7.5,
+        size: 5,
+        color: colorCycle[Math.floor(Math.random() * colorCycle.length)],
+        velocity: { x: Math.random() * 2 - 1, y: Math.random() * 2 - 1 },
+      })),
+      radius: 25,
+    },
+  ],
+  freeParts: Array.from({ length: 4 }, () => ({
+    x: Math.random() * 30 - 15,
+    y: Math.random() * 30 - 15,
+    size: 4,
+    color: colorCycle[Math.floor(Math.random() * colorCycle.length)],
+    velocity: { x: Math.random() * 1.5 - 0.75, y: Math.random() * 1.5 - 0.75 },
+  })),
+};
 
 function applyScale(ctx) {
   ctx.save();
@@ -224,7 +208,7 @@ function applyScale(ctx) {
   ctx.translate(WIDTH * (1/SCALE - 1)/2, HEIGHT * (1/SCALE - 1)/2);
 }
 
-function drawCreatureGlow(creature) {
+function drawCreatureGlow() {
   const gradient = ctx.createRadialGradient(
     creature.x, creature.y, creature.mainRadius * 0.5,
     creature.x, creature.y, creature.glowRadius
@@ -294,8 +278,8 @@ function drawCluster(cluster, offsetX, offsetY) {
   ctx.restore();
 }
 
-function drawCreature(creature) {
-  drawCreatureGlow(creature);
+function drawCreature() {
+  drawCreatureGlow();
   
   ctx.save();
   ctx.translate(creature.x, creature.y);
@@ -347,7 +331,7 @@ function drawCreature(creature) {
   ctx.restore();
 }
 
-function moveCreature(creature) {
+function moveCreature() {
     let target = null;
     let minDist = Infinity;
     
@@ -417,69 +401,32 @@ function updateStats() {
 }
 
 function gameLoop() {
-    ctx.clearRect(0, 0, WIDTH, HEIGHT);
-    applyScale(ctx);
-    
-    updateNutrientTransitions();
-    drawNutrients();
-    
-    // Handle creature interactions
-    for (let i = creatures.length - 1; i >= 0; i--) {
-        const predator = creatures[i];
-        
-        // Check creature collisions
-        for (let j = creatures.length - 1; j >= 0; j--) {
-            if (i === j) continue;
-            const prey = creatures[j];
-            
-            const distance = Math.hypot(predator.x - prey.x, predator.y - prey.y);
-            
-            if (distance < predator.mainRadius && predator.size > prey.size * 1.2) {
-                creatures.splice(j, 1);
-                if (i > j) i--;
-                
-                // Predator grows
-                predator.size += 0.1;
-                predator.mainRadius = 60 * predator.size;
-                predator.glowRadius = 90 * predator.size;
-                predator.energy = Math.min(100, predator.energy + 30);
-                
-                // Spawn new small creature
-                if (creatures.length < INITIAL_CREATURES) {
-                    const newCreature = createCreature(
-                        Math.random() * WIDTH,
-                        Math.random() * HEIGHT
-                    );
-                    creatures.push(newCreature);
-                }
-            }
-        }
-        
-        // Update and draw each creature
-        drawCreature(predator);
-        moveCreature(predator);
-        
-        // Energy and size balance
-        predator.energy -= 0.05 * predator.size;
-        if (predator.energy < 10) {
-            predator.speed = 0.5;
-            predator.glowRadius = 45 * predator.size;
-            predator.health = Math.max(1, predator.health - 0.05);
-        } else {
-            predator.speed = 1;
-            predator.glowRadius = 90 * predator.size;
-        }
-        
-        // Shrink very large creatures
-        if (predator.size > 2) {
-            predator.size -= 0.001;
-            predator.mainRadius = 60 * predator.size;
-            predator.glowRadius = 90 * predator.size;
-        }
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+  applyScale(ctx);
+  
+  updateNutrientTransitions();
+  drawNutrients();
+  drawCreature();
+  moveCreature();
+  
+  ctx.restore();
+  
+  updateStats();
+
+  energy -= 0.05;
+  
+    // Creature gets sluggish/hungry when energy is low
+    if (energy < 10) {
+      creature.speed = 0.5;  // Move slower when hungry
+      creature.glowRadius = 45;  // Reduced glow when hungry
+      health = Math.max(1, health - 0.05);  // Slowly lose health but never die
+    } else {
+      creature.speed = 1;  // Normal speed when fed
+      creature.glowRadius = 90;  // Normal glow when fed
     }
-    
-    ctx.restore();
-    requestAnimationFrame(gameLoop);
+
+  requestAnimationFrame(gameLoop);
 }
 
 window.addEventListener('resize', () => {
@@ -493,7 +440,6 @@ window.addEventListener('resize', () => {
 });
 
 
-spawnInitialCreatures();
 spawnInitialNutrients();
 gameLoop();
 </script>
