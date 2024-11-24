@@ -1,63 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Games - AI Ministries</title>
-    <style>
-        /* Match your site's general styling */
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: #e0e0e0;
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-            min-height: 100vh;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced Life Creature</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        /* Game-specific styles */
-        #gameContainer {
-            position: relative;
-            width: 100%;
-            height: calc(100vh - 50px); /* Adjust based on your nav height */
-            margin-top: 50px; /* Match your nav height */
-            overflow: hidden;
-        }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: black;
+      font-family: Arial, sans-serif;
+      width: 100vw;
+      height: 100vh;
+      /* Removed flex centering */
+    }
 
-        canvas {
-            display: block;
-            background: black;
-            width: 100%;
-            height: 100%;
-        }
+	canvas {
+	  display: block;
+	  background: black;
+	  position: absolute;
+	  top: 50px;        /* Changed from 0 to add space for nav */
+	  left: 0;
+	  width: 100%;
+	  height: calc(100% - 50px);  /* Subtract nav height */
+	}
 
-        #stats {
-            position: fixed;
-            top: 60px; /* Positioned below nav */
-            left: 10px;
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 8px;
-            color: white;
-            font-size: 16px;
-            z-index: 1000;
-        }
-    </style>
+	#stats {
+	  position: absolute;
+	  top: 60px;        /* Changed from 10px to move below nav */
+	  left: 10px;
+	  background-color: rgba(0, 0, 0, 0.7);
+	  padding: 10px;
+	  border-radius: 8px;
+	  color: white;
+	  font-size: 16px;
+	  z-index: 1000;
+	}
+	
+  </style>
 </head>
 <body>
-    <script src="/js/nav-loader.js"></script>
-    <div id="gameContainer">
-        <div id="stats">
-            <p>Health: <span id="health">100</span></p>
-            <p>Energy: <span id="energy">100</span></p>
-            <p>Score: <span id="score">0</span></p>
-            <p>Level: <span id="level">1</span></p>
-        </div>
-        <canvas id="gameCanvas"></canvas>
-    </div>
+<script src="/js/nav-loader.js"></script>
+<div id="stats">
+  <p>Health: <span id="health">100</span></p>
+  <p>Energy: <span id="energy">100</span></p>
+  <p>Score: <span id="score">0</span></p>
+  <p>Level: <span id="level">1</span></p>
+</div>
+<canvas id="gameCanvas"></canvas>
 
-<!-- Previous game script remains the same, just update the resize handler: -->
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -90,20 +88,19 @@ function calculateCanvasSize() {
 }
 
 function resizeCanvas() {
-    const gameContainer = document.getElementById('gameContainer');
-    WIDTH = gameContainer.clientWidth;
-    HEIGHT = gameContainer.clientHeight;
+    const { width, height } = calculateCanvasSize();
+    WIDTH = width;
+    HEIGHT = height;
     
+    // Set canvas size accounting for device pixel ratio
     const dpr = window.devicePixelRatio || 1;
     canvas.width = WIDTH * dpr;
     canvas.height = HEIGHT * dpr;
     ctx.scale(dpr, dpr);
     
-    // Update creature position if needed to keep in bounds
-    if (creature) {
-        creature.x = Math.min(Math.max(creature.x, creature.mainRadius), WIDTH - creature.mainRadius);
-        creature.y = Math.min(Math.max(creature.y, creature.mainRadius), HEIGHT - creature.mainRadius);
-    }
+    // Set display size
+    canvas.style.width = `${WIDTH}px`;
+    canvas.style.height = `${HEIGHT}px`;
 }
 
 let WIDTH, HEIGHT;
