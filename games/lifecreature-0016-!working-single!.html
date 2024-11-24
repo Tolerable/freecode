@@ -65,7 +65,7 @@ function spawnNutrients() {
       x: Math.random() * WIDTH,
       y: Math.random() * HEIGHT,
       size: 8,
-      color: currentColors[Math.floor(Math.random() * 2)],
+      color: currentColors[Math.floor(Math.random() * currentColors.length)],
     });
   }
 }
@@ -193,32 +193,16 @@ function drawCreature() {
 }
 
 function moveCreature() {
-  let target = null;
+  let target = nutrients[0];
   let minDist = Infinity;
 
-  // Prioritize the first color in the currentColors array
   nutrients.forEach(nutrient => {
-    if (nutrient.color === currentColors[0]) {
-      const dist = Math.hypot(creature.x - nutrient.x, creature.y - nutrient.y);
-      if (dist < minDist) {
-        minDist = dist;
-        target = nutrient;
-      }
+    const dist = Math.hypot(creature.x - nutrient.x, creature.y - nutrient.y);
+    if (dist < minDist) {
+      minDist = dist;
+      target = nutrient;
     }
   });
-
-  // If no first-color nutrients are left, target the second color
-  if (!target) {
-    nutrients.forEach(nutrient => {
-      if (nutrient.color === currentColors[1]) {
-        const dist = Math.hypot(creature.x - nutrient.x, creature.y - nutrient.y);
-        if (dist < minDist) {
-          minDist = dist;
-          target = nutrient;
-        }
-      }
-    });
-  }
 
   if (target) {
     const angle = Math.atan2(target.y - creature.y, target.x - creature.x);
@@ -232,7 +216,7 @@ function moveCreature() {
       energy = Math.min(100, energy + 10);
       health = Math.min(100, health + 2);
 
-      if (nutrients.every(nutrient => nutrient.color !== currentColors[0])) {
+      if (nutrients.length === 0) {
         advanceLevel();
       }
     }
@@ -243,7 +227,7 @@ function advanceLevel() {
   level++;
   score += 100;
   cycleIndex = (cycleIndex + 1) % colorCycle.length;
-  currentColors = [currentColors[1], colorCycle[(cycleIndex + 1) % colorCycle.length]];
+  currentColors = [colorCycle[cycleIndex], colorCycle[(cycleIndex + 1) % colorCycle.length]];
   spawnNutrients();
 }
 
