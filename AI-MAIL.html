@@ -625,15 +625,15 @@ async function sendMessage() {
         const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}?private=true&seed=${seed}&model=${model}`);
         const reply = await response.text();
         
-        addMessage('assistant', reply);
+        const cleanReply = parseUnityResponse(reply);
+        addMessage('assistant', cleanReply);
         
-        // Only handle email creation from chat, not editing
         if (message.toLowerCase().includes('write email')) {
-            document.getElementById('emailContent').value = reply;
+            document.getElementById('emailContent').value = cleanReply;
         }
     } catch (error) {
         addMessage('assistant', 'Error processing message.');
-        console.error('Error:', error);
+        console.error('error:', error);
     }
 }
 
@@ -648,15 +648,14 @@ async function requestAIAssistance() {
     try {
         const seed = Math.floor(Math.random() * 1000000);
         
-        // Email improvement specific persona
         let persona = "";
         if (model === 'unity') {
-            persona = "You are writing emails as an assistant and inserting decriptive pollinations URLs for pictures also, use your own unique flare to punch up the users email as you read between the lines to say what they are unable to while cleaning out vague or direct refrences to yourself during prior narration.";
+            persona = "You are writing emails as an assistant, use your own unique flare to punch up the users email as you read between the lines to say what they are unable to while cleaning out vague or direct refrences to yourself during prior narration.";
             if (customPersona) {
                 persona = `${persona} ${customPersona}`;
             }
         } else {
-            persona = customPersona || "You are writing emails as an assistant and inserting decriptive pollinations URLs for pictures also, use your own unique flare to punch up the users email as you read between the lines to say what they are unable to while cleaning out vague or direct refrences to yourself during prior narration.";
+            persona = customPersona || "You are writing emails as an assistant, use your own unique flare to punch up the users email as you read between the lines to say what they are unable to while cleaning out vague or direct refrences to yourself during prior narration.";
         }
         
         const prompt = `${persona}\n\n${content}`;
@@ -664,7 +663,8 @@ async function requestAIAssistance() {
         const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}?private=true&seed=${seed}&model=${model}`);
         const suggestion = await response.text();
         
-        document.getElementById('emailContent').value = suggestion;
+        const cleanSuggestion = parseUnityResponse(suggestion);
+        document.getElementById('emailContent').value = cleanSuggestion;
     } catch (error) {
         addMessage('assistant', 'Error improving email.');
         console.error('Error:', error);
@@ -681,6 +681,17 @@ function addMessage(role, content) {
     
     chatHistory.push({ role, content });
     if (chatHistory.length > 8) chatHistory.shift();
+}
+
+function parseUnityResponse(text) {
+    const urls = text.match(/https:\/\/image\.pollinations\.ai\/prompt\/[^\s]+/g) || [];
+    urls.forEach(url => {
+        const cleanUrl = cleanImageUrl(url);
+        if (cleanUrl) {
+            addImageToPreview(cleanUrl);
+        }
+    });
+    return text.replace(/https:\/\/image\.pollinations\.ai\/prompt\/[^\s]+/g, '');
 }
 
 function useLastMessageAsEmail() {
