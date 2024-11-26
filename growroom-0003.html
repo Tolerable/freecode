@@ -100,29 +100,6 @@
 			overflow: hidden;
 		}
 
-		.refresh-image-btn {
-			position: absolute;
-			top: 10px;
-			right: 10px;
-			width: 32px;
-			height: 32px;
-			border-radius: 50%;
-			background: rgba(255, 255, 255, 0.9);
-			border: none;
-			cursor: pointer;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-			z-index: 1;
-		}
-
-		.refresh-image-btn:hover {
-			background: white;
-			transform: rotate(180deg);
-			transition: transform 0.3s ease;
-		}
-
 		.tent-image {
 			width: 100%;
 			height: 100%;
@@ -269,17 +246,12 @@
 <body>
 <script src="/js/nav-loader.js"></script>
     <div class="container">
-		<div class="visualization-panel">
-			<div class="tent-image-container">
-				<button class="refresh-image-btn" onclick="tentBuilder.refreshTentImage()">
-					<svg width="16" height="16" viewBox="0 0 16 16">
-						<path d="M8 3a5 5 0 0 1 5 5h2l-3 3-3-3h2a3 3 0 1 0-3 3v2a5 5 0 0 1 0-10z" fill="currentColor"/>
-					</svg>
-				</button>
-				<img src="/api/placeholder/800/450" alt="Tent Visualization" class="tent-image">
-				<!-- Component markers will be added here dynamically -->
-			</div>
-		</div>
+        <div class="visualization-panel">
+            <div class="tent-image-container">
+                <img src="/api/placeholder/800/450" alt="Tent Visualization" class="tent-image">
+                <!-- Component markers will be added here dynamically -->
+            </div>
+        </div>
         
         <div class="config-panel">
             <div class="tent-tabs">
@@ -362,27 +334,18 @@
             }
 
 
-			loadTentImage(newSeed = false) {
+			async loadTentImage() {
 				const imageContainer = document.querySelector('.tent-image-container');
 				const img = imageContainer.querySelector('img');
 				
-				// Get or create a seed and store it
-				let seed = localStorage.getItem('tentImageSeed');
-				if (newSeed || !seed) {
-					seed = Math.floor(Math.random() * 1000000);
-					localStorage.setItem('tentImageSeed', seed);
-				}
-				
+				// Generate a grow tent image using Pollinations API
 				const prompt = encodeURIComponent("Professional grow tent setup with LED lights, ventilation, and carbon filter, photorealistic");
-				img.src = `https://image.pollinations.ai/prompt/${prompt}?width=600&height=800&seed=${seed}&nologo=true&private=true&enhance=false`;
+				img.src = `https://image.pollinations.ai/prompt/${prompt}?width=600&height=800&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&private=true&enhance=false`;
 				
 				img.onerror = () => {
+					// Fallback if image generation fails
 					img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800"><rect width="100%" height="100%" fill="%23eee"/><text x="50%" y="50%" font-family="Arial" font-size="20" text-anchor="middle">Tent Image Placeholder</text></svg>';
 				};
-			}
-
-			refreshTentImage() {
-				this.loadTentImage(true);
 			}
 
 			setupAIChat() {
@@ -542,34 +505,6 @@
 				document.querySelector('.tent-image-container').appendChild(marker);
 			}
 
-			handleDragStart(e) {
-				e.dataTransfer.setData('text/plain', e.target.dataset.componentId);
-				e.dataTransfer.effectAllowed = 'move';
-			}
-
-			handleDrag(e) {
-				e.preventDefault();
-			}
-
-			handleDragEnd(e) {
-				if (!e.target.parentElement) return;
-				
-				const rect = e.target.parentElement.getBoundingClientRect();
-				const x = ((e.clientX - rect.left) / rect.width) * 100;
-				const y = ((e.clientY - rect.top) / rect.height) * 100;
-				
-				e.target.style.left = `${x}%`;
-				e.target.style.top = `${y}%`;
-				
-				// Save position in tent configuration
-				const componentId = e.target.dataset.componentId;
-				const tent = this.tents.get(this.currentTentId);
-				if (tent) {
-					tent.componentPositions[componentId] = {x, y};
-					this.saveData();
-				}
-			}
-
             handleImageClick(e) {
                 if (!this.currentTentId) return;
 
@@ -597,10 +532,6 @@
                 // Implementation for updating price totals
             }
         }
-
-		function closeModal() {
-			document.getElementById('addComponentModal').style.display = 'none';
-		}
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', () => {
