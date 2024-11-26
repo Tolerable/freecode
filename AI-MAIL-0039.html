@@ -508,32 +508,29 @@ async function sendMessage() {
 }
 
 async function requestAIAssistance() {
-    const content = document.getElementById('emailContent').value;
+    // Change this line - use emailContent instead of looking for rich-editor
+    const content = document.getElementById('emailContent').value;  // CHANGED THIS LINE
     const subject = document.getElementById('subject').value;
     const model = document.getElementById('modelSelector').value;
     const customPersona = document.getElementById('personaInput').value.trim();
-
-    saveVersion(); // Save the current state before modifying anything
-
+    
+    saveVersion();
+    
     try {
         const seed = Math.floor(Math.random() * 1000000);
-        const persona =
-            customPersona ||
-            "Rewrite this email completely with better organization and include dynamic images where relevant.";
+        
+        let persona = model === 'unity' 
+            ? "You are rewriting this email from scratch with your own style and organization. Keep the core message but improve the writing. Do not reference the original text structure."
+            : customPersona || "Rewrite this email completely with better organization and style.";
+        
         const prompt = `${persona}\n\nSubject: ${subject}\n\n${content}`;
-
-        // Fetch AI suggestions
-        const response = await fetch(
-            `https://text.pollinations.ai/${encodeURIComponent(
-                prompt
-            )}?private=true&seed=${seed}&model=${model}`
-        );
+        
+        const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}?private=true&seed=${seed}&model=${model}`);
         const suggestion = await response.text();
-
-        // Parse AI response and embed images
-        const cleanText = parseAndEmbedImages(suggestion);
-        document.getElementById('emailContent').value = cleanText;
-
+        
+        // Update this to use emailContent instead of editor
+        document.getElementById('emailContent').value = parseUnityResponse(suggestion);
+        
     } catch (error) {
         console.error('Error:', error);
         alert('Error improving email. Please try again.');
@@ -551,21 +548,6 @@ function addMessage(role, content) {
     chatHistory.push({ role, content });
     if (chatHistory.length > 8) chatHistory.shift();
 }
-
-function parseAndEmbedImages(aiResponse) {
-    let emailContent = aiResponse;
-    const imagePattern = /(https:\/\/image\.pollinations\.ai\/[^\s)]+)/g;
-    const matches = [...emailContent.matchAll(imagePattern)];
-
-    matches.forEach((match) => {
-        const imageUrl = match[0];
-        const imgTag = `<img src="${imageUrl}" alt="AI-generated image" style="display:block; max-width:100%; margin:10px 0;">`;
-        emailContent = emailContent.replace(imageUrl, imgTag);
-    });
-
-    return emailContent;
-}
-
 
 function parseUnityResponse(text) {
     let cleanText = text;
@@ -623,16 +605,10 @@ function parseUnityResponse(text) {
 function handleImageAdd(url, description = '') {
     const filename = `image_${Date.now()}.jpg`;
     const emailContent = document.getElementById('emailContent');
-    const cursorPos = emailContent.selectionStart || emailContent.value.length;
-
-    const imgHtml = `<img src="${url}" alt="${description}" style="display: block; max-width: 400px; margin: 1rem 0; border-radius: 4px;">`;
-
-    emailContent.value =
-        emailContent.value.slice(0, cursorPos) +
-        imgHtml +
-        emailContent.value.slice(cursorPos);
+    
+    // Default to attachment mode
+    addAsAttachment(url, filename, description);
 }
-
 
 function addAsAttachment(url, filename, description) {
     let attachmentBar = document.querySelector('.attachment-bar');
