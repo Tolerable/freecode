@@ -104,10 +104,17 @@
           <option value="pop-culture">Pop Culture</option>
         </select>
       </div>
-      <button id="play-button">Play Trivia</button>
+      <div class="model-selector">
+        <label for="model">AI Model:</label>
+        <select id="model">
+          <option value="openai">OpenAI</option>
+          <option value="mistral">Mistral</option>
+          <option value="unity">Unity</option>
+        </select>
+      </div>
       <div class="chat-area" id="chat-area"></div>
       <div class="input-area">
-        <input type="text" id="user-input" placeholder="Your answer..." />
+        <input type="text" id="user-input" placeholder="Ask a question..." />
         <button id="send-button">Send</button>
       </div>
       <button id="reset-button">Reset Game</button>
@@ -118,98 +125,77 @@
     let points = localStorage.getItem('points') || 0;
     const chatArea = document.getElementById('chat-area');
     const pointsDisplay = document.getElementById('points');
+    const modelSelect = document.getElementById('model');
     const themeSelect = document.getElementById('theme');
-    let questionList = [];
-    let imageList = [];
-    let currentQuestionIndex = 0;
 
     pointsDisplay.textContent = points;
-
-    async function fetchAIQuestions(theme) {
-      const prompt = `Generate a list of trivia questions about ${theme}.`;
-      const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`);
-      const rawText = await response.text();
-      return rawText.split('\n').filter(line => line.trim());
-    }
-
-    async function prefetchImages(theme, count = 5) {
-      for (let i = 0; i < count; i++) {
-        const response = await fetch(`https://image.pollinations.ai/prompt/${encodeURIComponent(theme)}?private=true`);
-        imageList.push(response.url);
-      }
-    }
 
     function addMessage(role, content) {
       const message = document.createElement('div');
       message.textContent = `${role}: ${content}`;
       chatArea.appendChild(message);
-      chatArea.scrollTop = chatArea.scrollHeight;
+      chatArea.scrollTop = chatArea.scrollHeight; // Auto-scroll
     }
 
     function resetGame() {
       points = 0;
-      currentQuestionIndex = 0;
-      questionList = [];
-      imageList = [];
       localStorage.setItem('points', points);
       pointsDisplay.textContent = points;
       chatArea.innerHTML = '';
       document.getElementById('ai-image').src = '';
     }
 
-    function displayNextQuestion() {
-      if (currentQuestionIndex < questionList.length) {
-        const question = questionList[currentQuestionIndex];
-        addMessage('AI', question);
-      } else {
-        addMessage('AI', 'No more questions! Reset to play again.');
-      }
+    async function generateAIResponse(prompt) {
+      const model = modelSelect.value;
+      const systemPrompt = model === 'openai'
+        ? "You are a helpful assistant."
+        : "You are a themed AI character.";
+      const response = await fetch('https://text.pollinations.ai/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          model,
+          jsonMode: true,
+          private: true
+        })
+      });
+      const data = await response.json();
+      return data.content;
     }
 
-    async function startGame() {
-      const theme = themeSelect.value;
-      addMessage('AI', 'Fetching questions and images...');
-      questionList = await fetchAIQuestions(theme);
-      await prefetchImages(theme, questionList.length);
-      addMessage('AI', 'Let’s start the trivia challenge!');
-      displayNextQuestion();
+    async function generateImage(theme) {
+      const response = await fetch(
+        `https://image.pollinations.ai/prompt/${encodeURIComponent(theme)}?model=flux&private=true`
+      );
+      return response.url;
     }
 
-    document.getElementById('play-button').addEventListener('click', startGame);
-
-    document.getElementById('send-button').addEventListener('click', () => {
+    document.getElementById('send-button').addEventListener('click', async () => {
       const userInput = document.getElementById('user-input').value.trim();
       if (!userInput) return;
 
       addMessage('You', userInput);
 
-      // Compare answer and update points
-      const correctAnswer = questionList[currentQuestionIndex].toLowerCase();
-      if (userInput.toLowerCase() === correctAnswer) {
-        points++;
-        localStorage.setItem('points', points);
-        pointsDisplay.textContent = points;
-        addMessage('AI', 'Correct!');
-      } else {
-        addMessage('AI', `Wrong! The correct answer was: ${correctAnswer}`);
-      }
+      // Generate AI response
+      const theme = themeSelect.value;
+      const aiResponse = await generateAIResponse(userInput);
+      addMessage('AI', aiResponse);
 
-      // Show pre-fetched image
-      const imageUrl = imageList[currentQuestionIndex] || '';
+      // Generate AI image
+      const imageUrl = await generateImage(theme);
       document.getElementById('ai-image').src = imageUrl;
 
-      currentQuestionIndex++;
-      displayNextQuestion();
+      // Add points for correct answer
+      points++;
+      localStorage.setItem('points', points);
+      pointsDisplay.textContent = points;
     });
 
     document.getElementById('reset-button').addEventListener('click', resetGame);
-
-    // Allow "Enter" key to send input
-    document.getElementById('user-input').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        document.getElementById('send-button').click();
-      }
-    });
   </script>
 </body>
 </html>
