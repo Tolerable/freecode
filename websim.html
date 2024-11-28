@@ -251,18 +251,17 @@
 		  body: JSON.stringify({
 			messages: [{
 			  role: "user",
-			  content: `CONTEXT: You are Claude, a helpful AI assistant focused on creating websim code projects. You generate complete, working HTML/CSS/JavaScript web projects based on user descriptions. You include all necessary code inline and ensure it can be directly rendered in a browser. Generate only the functional HTML code without any additional instructions or explanations.
+			  content: `CONTEXT: You are Claude, a helpful AI assistant focused on creating websim code projects. You generate complete, working HTML/CSS/JavaScript web projects based on user descriptions. Place any explanations as HTML or JS comments within the code. Include all necessary code inline and ensure it can be directly rendered in a browser.
 
 	USER: ${prompt}
 	IMPORTANT: Please ensure all code is complete and properly closed, including all function definitions, event handlers, and HTML tags.`
 			}],
-			max_tokens: 4000, // Increased token limit
+			max_tokens: 4000,
 			model: 'openai',
-			stream: true // Enable streaming if supported
+			stream: true
 		  })
 		});
 
-		// Handle streaming response if available
 		if (response.body) {
 		  const reader = response.body.getReader();
 		  
@@ -270,29 +269,23 @@
 			const {done, value} = await reader.read();
 			if (done) break;
 			
-			// Convert the chunk to text and accumulate
 			const chunk = new TextDecoder().decode(value);
 			chunks.push(chunk);
 			fullResponse = chunks.join('');
-			
-			// Show progressive loading in the code panel
 			document.getElementById('codeText').textContent = fullResponse;
 		  }
 		} else {
-		  // Fallback for non-streaming response
 		  fullResponse = await response.text();
 		}
 
 		let code = fullResponse;
 
-		// Extract code from markdown if present
 		if (code.includes('```html')) {
 		  code = code.split('```html')[1].split('```')[0].trim();
 		} else if (code.includes('```')) {
 		  code = code.split('```')[1].split('```')[0].trim();
 		}
 
-		// Verify code completeness
 		const checks = {
 		  html: code.includes('</html>'),
 		  script: (code.match(/<script/g) || []).length === (code.match(/<\/script>/g) || []).length,
@@ -301,7 +294,6 @@
 		};
 
 		if (!Object.values(checks).every(check => check)) {
-		  // Code appears incomplete - try requesting completion
 		  const completionResponse = await fetch('https://text.pollinations.ai/', {
 			method: 'POST',
 			headers: {
@@ -325,7 +317,6 @@
 		  code = completion;
 		}
 
-		// Handle pollinations.ai image URLs
 		if (code.includes('text.pollinations.ai')) {
 		  const seed = Math.floor(Math.random() * 1000000);
 		  code = code.replace(/text\.pollinations\.ai\/([^?\s]+)/g, 
