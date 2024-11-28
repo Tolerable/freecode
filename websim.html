@@ -240,32 +240,33 @@
     Output only the requested content with NO explanations.`;
 
 async function verifyAndCompleteCode(code) {
-    const requiredTags = ['</html>', '</body>', '</head>', '<!DOCTYPE'];
-    const tagPairs = new Map([
-        ['script', { open: '<script', close: '</script>' }],
-        ['style', { open: '<style', close: '</style>' }],
-        ['div', { open: '<div', close: '</div>' }]
-    ]);
+      const requiredTags = ['</html>', '</body>', '</head>', '<!DOCTYPE'];
+      const scriptPattern = /<script|<\/script>/g;
+      const stylePattern = /<style|<\/style>/g;
+      const divPattern = /<div|<\/div>/g;
 
-    let needsCompletion = false;
-    
-    for (const tag of requiredTags) {
+      let needsCompletion = false;
+      
+      // Check for required tags
+      for (const tag of requiredTags) {
         if (!code.includes(tag)) {
-            needsCompletion = true;
-            break;
+          needsCompletion = true;
+          break;
         }
-    }
+      }
 
-    if (!needsCompletion) {
-        for (const [tag, patterns] of tagPairs.entries()) {
-            const openCount = (code.match(new RegExp(patterns.open, 'g')) || []).length;
-            const closeCount = (code.match(new RegExp(patterns.close, 'g')) || []).length;
-            if (openCount !== closeCount) {
-                needsCompletion = true;
-                break;
-            }
+      // Check for matching tags if required tags are present
+      if (!needsCompletion) {
+        const scriptMatches = code.match(scriptPattern) || [];
+        const styleMatches = code.match(stylePattern) || [];
+        const divMatches = code.match(divPattern) || [];
+
+        if (scriptMatches.length % 2 !== 0 || 
+            styleMatches.length % 2 !== 0 || 
+            divMatches.length % 2 !== 0) {
+          needsCompletion = true;
         }
-    }
+      }
 
       // Check for incomplete functions
       if (!needsCompletion && code.includes('function')) {
