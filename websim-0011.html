@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebSim Project Creator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      line-height: 1.5;
+      padding: 2rem;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .input-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      background: #1e293b;
+      padding: 2rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 1rem;
+      border-radius: 0.375rem;
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      resize: vertical;
+    }
+
+    button {
+      padding: 0.75rem 1.5rem;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    .project-view {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0f172a;
+      z-index: 1000;
+    }
+
+    .project-controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(8px);
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .project-controls input {
+      flex: 1;
+      padding: 0.75rem;
+      border-radius: 0.375rem;
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+    }
+
+    .project-frame {
+      width: 100%;
+      height: calc(100% - 80px);
+      border: none;
+      background: white;
+    }
+
+    .code-panel {
+      position: fixed;
+      top: 0;
+      right: -50%;
+      width: 50%;
+      height: 100%;
+      background: #1e293b;
+      transition: right 0.3s ease;
+      box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+      z-index: 1002;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .code-header {
+      padding: 1rem;
+      background: #0f172a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .code-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+
+    .code-text {
+      width: 100%;
+      height: 100%;
+      background: #334155;
+      color: #e2e8f0;
+      padding: 1rem;
+      border: none;
+      font-family: monospace;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+	
+	.code-text {
+	  visibility: hidden;
+	}
+
+    .close-project {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: rgba(15, 23, 42, 0.9);
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      z-index: 1001;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .loading svg {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .error {
+      color: #ef4444;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #451a1a;
+      border-radius: 0.375rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>WebSim Project Creator</h1>
+      <p>Enter your project description and let AI generate your web project</p>
+    </div>
+
+    <div class="input-section">
+      <textarea id="prompt" placeholder="Describe your web project in detail..."></textarea>
+      <button onclick="generateProject()">Generate Project</button>
+    </div>
+
+    <div class="loading" id="loading">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M12 2v4m0 16v-4m-8-8h4m16 0h-4"></path>
+      </svg>
+      <p>Generating your project...</p>
+    </div>
+
+    <div id="error" class="error"></div>
+  </div>
+
+  <div id="projectView" class="project-view">
+    <button class="close-project" onclick="closeProject()">Back to Editor</button>
+    <iframe id="preview" class="project-frame"></iframe>
+    <div class="project-controls">
+      <input type="text" id="modifyPrompt" placeholder="Describe changes or improvements needed..." onkeypress="handleModifyInput(event)">
+      <button onclick="modifyProject()">Update</button>
+      <button onclick="toggleCodePanel()">View Code</button>
+    </div>
+    <div id="codePanel" class="code-panel">
+      <div class="code-header">
+        <h3>Source Code</h3>
+        <div>
+          <button onclick="copyCode()">Copy</button>
+          <button onclick="downloadCode()">Download</button>
+          <button onclick="toggleCodePanel()">Close</button>
+        </div>
+      </div>
+      <div class="code-content">
+        <pre id="codeText" class="code-text"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentCode = '';
+    
+    async function generateProject() {
+      const prompt = document.getElementById('prompt').value;
+      if (!prompt) {
+        alert('Please enter a project description');
+        return;
+      }
+
+      const errorDiv = document.getElementById('error');
+      errorDiv.style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('projectView').style.display = 'block';
+
+      try {
+        let fullResponse = '';
+        let chunks = [];
+
+        const response = await fetch('https://text.pollinations.ai/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: [{
+              role: "user",
+              content: `CONTEXT: Create a complete web project. Output clean HTML with inline CSS/JS. Place any documentation as code comments only. No external text or remarks.
+
+USER: ${prompt}`
+            }],
+            max_tokens: 4000,
+            model: 'openai',
+            stream: true
+          })
+        });
+
+        if (response.body) {
+          const reader = response.body.getReader();
+          
+          while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            
+            const chunk = new TextDecoder().decode(value);
+            chunks.push(chunk);
+            fullResponse = chunks.join('');
+            
+            document.getElementById('codeText').textContent = fullResponse;
+          }
+        } else {
+          fullResponse = await response.text();
+        }
+
+        let code = fullResponse;
+
+        if (code.includes('```html')) {
+          code = code.split('```html')[1].split('```')[0].trim();
+        } else if (code.includes('```')) {
+          code = code.split('```')[1].split('```')[0].trim();
+        }
+
+        const checks = {
+          html: code.includes('</html>'),
+          script: (code.match(/<script/g) || []).length === (code.match(/<\/script>/g) || []).length,
+          style: (code.match(/<style/g) || []).length === (code.match(/<\/style>/g) || []).length,
+          functions: !code.includes('function') || code.split('function').length === code.split('}').length
+        };
+
+        if (!Object.values(checks).every(check => check)) {
+          const completionResponse = await fetch('https://text.pollinations.ai/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              messages: [{
+                role: "user",
+                content: `CONTEXT: Complete this HTML:
+
+${code}
+
+USER: Fix incomplete functions and HTML tags. Output code only.`
+              }],
+              max_tokens: 2000,
+              model: 'openai'
+            })
+          });
+
+          const completion = await completionResponse.text();
+          code = completion;
+          
+          if (code.includes('```html')) {
+            code = code.split('```html')[1].split('```')[0].trim();
+          } else if (code.includes('```')) {
+            code = code.split('```')[1].split('```')[0].trim();
+          }
+        }
+
+        if (code.includes('text.pollinations.ai')) {
+          const seed = Math.floor(Math.random() * 1000000);
+          code = code.replace(/text\.pollinations\.ai\/([^?\s]+)/g, 
+            (match, query) => `text.pollinations.ai/${query}?model=midjourney&private=true&seed=${seed}`);
+        }
+
+		currentCode = code;
+		document.getElementById('preview').srcdoc = code;
+		document.getElementById('codeText').textContent = code;
+		document.getElementById('codeText').style.visibility = 'visible';
+		document.getElementById('loading').style.display = 'none';
+
+      } catch (error) {
+        console.error('Error:', error);
+        errorDiv.textContent = 'An error occurred while generating the project. Please try again.';
+        errorDiv.style.display = 'block';
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    async function modifyProject() {
+      const modifyPrompt = document.getElementById('modifyPrompt').value;
+      if (!modifyPrompt) return;
+
+      document.getElementById('loading').style.display = 'block';
+
+      try {
+        let fullResponse = '';
+        let chunks = [];
+
+        const response = await fetch('https://text.pollinations.ai/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: [{
+              role: "user",
+              content: `CONTEXT: Modify this web project. Output the complete modified code only, no commentary:
+
+${currentCode}
+
+USER: ${modifyPrompt}`
+            }],
+            max_tokens: 4000,
+            model: 'openai',
+            stream: true
+          })
+        });
+
+        if (response.body) {
+          const reader = response.body.getReader();
+          
+          while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            
+            const chunk = new TextDecoder().decode(value);
+            chunks.push(chunk);
+            fullResponse = chunks.join('');
+            document.getElementById('codeText').textContent = fullResponse;
+          }
+        } else {
+          fullResponse = await response.text();
+        }
+
+        let code = fullResponse;
+
+        if (code.includes('```html')) {
+          code = code.split('```html')[1].split('```')[0].trim();
+        } else if (code.includes('```')) {
+          code = code.split('```')[1].split('```')[0].trim();
+        }
+
+        if (code.includes('text.pollinations.ai')) {
+          const seed = Math.floor(Math.random() * 1000000);
+          code = code.replace(/text\.pollinations\.ai\/([^?\s]+)/g, 
+            (match, query) => `text.pollinations.ai/${query}?model=midjourney&private=true&seed=${seed}`);
+        }
+
+		currentCode = code;
+		document.getElementById('preview').srcdoc = code;
+		document.getElementById('codeText').textContent = code;
+		document.getElementById('codeText').style.visibility = 'visible';
+		document.getElementById('modifyPrompt').value = '';
+		document.getElementById('loading').style.display = 'none';
+
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    function handleModifyInput(event) {
+      if (event.key === 'Enter') {
+        modifyProject();
+      }
+    }
+
+    function toggleCodePanel() {
+      const codePanel = document.getElementById('codePanel');
+      codePanel.style.right = codePanel.style.right === '0px' ? '-50%' : '0px';
+    }
+
+    function downloadCode() {
+      const blob = new Blob([currentCode], { type: 'text/html' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'websim-project.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }
+
+    function copyCode() {
+      navigator.clipboard.writeText(currentCode);
+      const copyBtn = document.querySelector('.code-header button');
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => copyBtn.textContent = 'Copy', 2000);
+    }
+
+    function closeProject() {
+      document.getElementById('projectView').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
