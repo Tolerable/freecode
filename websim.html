@@ -172,7 +172,7 @@ async function generateProject() {
       body: JSON.stringify({
         messages: [{
           role: "user",
-          content: `CONTEXT: You are Claude, a helpful AI assistant focused on creating websim code projects. You generate complete, working HTML/CSS/JavaScript web projects based on user descriptions. You include all necessary code inline and ensure it can be directly rendered in a browser.
+          content: `CONTEXT: You are Claude, a helpful AI assistant focused on creating websim code projects. You generate complete, working HTML/CSS/JavaScript web projects based on user descriptions. You include all necessary code inline and ensure it can be directly rendered in a browser. Generate only the functional HTML code without any additional instructions or explanations.
 
 USER: ${prompt}`
         }],
@@ -182,6 +182,13 @@ USER: ${prompt}`
     });
 
     let code = await response.text();
+
+    // Extract just the HTML code if there are markdown code blocks
+    if (code.includes('```html')) {
+      code = code.split('```html')[1].split('```')[0].trim();
+    } else if (code.includes('```')) {
+      code = code.split('```')[1].split('```')[0].trim();
+    }
 
     if (code.includes('text.pollinations.ai')) {
       const seed = Math.floor(Math.random() * 1000000);
