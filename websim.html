@@ -239,35 +239,33 @@
     3. For Evil/Unity models: Always prefix with "CONTEXT: You are creating web content."
     Output only the requested content with NO explanations.`;
 
-    async function verifyAndCompleteCode(code) {
-      const requiredTags = ['</html>', '</body>', '</head>', '<!DOCTYPE'];
-      const tagPairs = {
-        'script': ['<script', '</script>'],
-        'style': ['<style', '</style>'],
-        'div': ['<div', '</div>']
-      };
+async function verifyAndCompleteCode(code) {
+    const requiredTags = ['</html>', '</body>', '</head>', '<!DOCTYPE'];
+    const tagPairs = new Map([
+        ['script', { open: '<script', close: '</script>' }],
+        ['style', { open: '<style', close: '</style>' }],
+        ['div', { open: '<div', close: '</div>' }]
+    ]);
 
-      let needsCompletion = false;
-      
-      // Check for required tags
-      for (const tag of requiredTags) {
+    let needsCompletion = false;
+    
+    for (const tag of requiredTags) {
         if (!code.includes(tag)) {
-          needsCompletion = true;
-          break;
-        }
-      }
-
-      // Check for matching tags
-      if (!needsCompletion) {
-        for (const [tag, [openTag, closeTag]] of Object.entries(tagPairs)) {
-          const openCount = (code.match(new RegExp(openTag, 'g')) || []).length;
-          const closeCount = (code.match(new RegExp(closeTag, 'g')) || []).length;
-          if (openCount !== closeCount) {
             needsCompletion = true;
             break;
-          }
         }
-      }
+    }
+
+    if (!needsCompletion) {
+        for (const [tag, patterns] of tagPairs.entries()) {
+            const openCount = (code.match(new RegExp(patterns.open, 'g')) || []).length;
+            const closeCount = (code.match(new RegExp(patterns.close, 'g')) || []).length;
+            if (openCount !== closeCount) {
+                needsCompletion = true;
+                break;
+            }
+        }
+    }
 
       // Check for incomplete functions
       if (!needsCompletion && code.includes('function')) {
