@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat with TTS and STT</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f4f4f9;
+            color: #333;
+        }
+        .chat-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: #fafafa;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background: #d4edda;
+            text-align: right;
+        }
+        .ai-message {
+            background: #f8d7da;
+            text-align: left;
+        }
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .chat-input button {
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .chat-input button:hover {
+            background: #0056b3;
+        }
+        .chat-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .chat-actions button {
+            flex: 1;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .chat-actions button.active {
+            background: #28a745;
+        }
+        .chat-actions button:hover {
+            background: #0056b3;
+        }
+        .voice-selector {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        select {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="voice-selector">
+            <label for="voiceSelect">Select Voice:</label>
+            <select id="voiceSelect"></select>
+        </div>
+        <div class="chat-actions">
+            <button id="toggleSpeak" onclick="toggleSpeak()">TTS: OFF</button>
+            <button id="toggleListen" onclick="toggleListen()">STT: OFF</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = 'https://text.pollinations.ai/';
+        const MAX_HISTORY = 10;
+        const SYSTEM_MESSAGE = "You are a friendly AI assistant who speaks casually and uses TTS for responses. Keep the chat short and friendly.";
+        const MESSAGE_HISTORY = [{ role: "system", content: SYSTEM_MESSAGE }];
+        let ttsEnabled = false;
+        let sttEnabled = false;
+        let isSpeaking = false; // Prevents STT from listening during TTS
+        let recognition;
+
+        // Initialize TTS
+        const synthesis = window.speechSynthesis;
+        let selectedVoice = null;
+
+		// Disable STT for Firefox
+		const isFirefox = typeof InstallTrigger !== 'undefined';
+
+		function disableSTTForFirefox() {
+			if (isFirefox) {
+				const sttButton = document.getElementById('toggleListen');
+				sttButton.disabled = true;
+				sttButton.textContent = "STT: Not Supported in Firefox";
+				sttButton.title = "Use Chrome for Speech-to-Text functionality.";
+			}
+		}
+
+		// Function to generate a random seed
+		function getRandomSeed() {
+			return Math.floor(Math.random() * 999999) + 1; // Random number between 1 and 999,999
+		}
+
+
+		function populateVoiceDropdown() {
+			const voiceSelect = document.getElementById('voiceSelect');
+			const voices = window.speechSynthesis.getVoices();
+			const isAndroidChrome = /Android/i.test(navigator.userAgent) && /Chrome/i.test(navigator.userAgent);
+
+			// Specific handling for Android Chrome
+			if (isAndroidChrome) {
+				console.warn("Android Chrome detected. Setting default voice to 'DEFAULT ANDROID'.");
+				voiceSelect.innerHTML = ''; // Clear existing options
+				const option = document.createElement('option');
+				option.textContent = "DEFAULT ANDROID";
+				option.value = "default";
+				voiceSelect.appendChild(option);
+				selectedVoice = null; // Default voice for Android
+				return;
+			}
+
+			// For other browsers/devices
+			if (!voices || voices.length === 0) {
+				console.warn("Voices not loaded yet. Retrying...");
+				setTimeout(populateVoiceDropdown, 200);
+				return;
+			}
+
+			voiceSelect.innerHTML = ''; // Clear previous options
+
+			voices.forEach((voice, index) => {
+				const option = document.createElement('option');
+				option.value = index;
+				option.textContent = `${voice.name} (${voice.lang})`;
+				voiceSelect.appendChild(option);
+			});
+
+			selectedVoice = voices.find(v => /en[-_]US/i.test(v.lang)) || voices[0];
+			voiceSelect.value = voices.indexOf(selectedVoice);
+
+			voiceSelect.addEventListener("change", () => {
+				const selectedIndex = parseInt(voiceSelect.value, 10);
+				if (!isNaN(selectedIndex) && voices[selectedIndex]) {
+					selectedVoice = voices[selectedIndex];
+				}
+			});
+		}
+
+
+		// Ensure voices are loaded before populating
+		synthesis.onvoiceschanged = () => {
+			console.log("Voices changed event triggered. Populating dropdown.");
+			populateVoiceDropdown();
+		};
+
+		// Trigger manually to ensure the dropdown populates even if onvoiceschanged doesn't fire
+		populateVoiceDropdown();
+
+
+
+        // Toggle TTS
+        function toggleSpeak() {
+            ttsEnabled = !ttsEnabled;
+            const button = document.getElementById('toggleSpeak');
+            button.textContent = `TTS: ${ttsEnabled ? "ON" : "OFF"}`;
+            button.classList.toggle('active', ttsEnabled);
+        }
+
+        // Initialize STT
+		if ('webkitSpeechRecognition' in window) {
+			recognition = new webkitSpeechRecognition();
+			recognition.continuous = true; // Keep listening continuously
+			recognition.interimResults = false;
+			recognition.lang = 'en-US';
+
+			recognition.onresult = async (event) => {
+				if (isSpeaking) return; // Ignore input while TTS is active
+
+				const transcript = event.results[event.results.length - 1][0].transcript.trim();
+				if (!transcript || transcript.length < 2) {
+					if (sttEnabled && !isSpeaking) recognition.start(); // Resume listening if no valid input
+					return;
+				}
+
+				addMessageToChat(transcript, 'user');
+				MESSAGE_HISTORY.push({ role: "user", content: transcript });
+				trimHistory();
+				recognition.stop(); // Pause STT during AI response
+
+				const response = await fetchAIResponse();
+				addMessageToChat(response, 'ai');
+				speakText(response);
+
+				if (sttEnabled && !isSpeaking) recognition.start(); // Resume listening after response
+			};
+
+			recognition.onend = () => {
+				if (sttEnabled && !isSpeaking) {
+					console.log("Restarting STT...");
+					recognition.start(); // Restart STT if still enabled
+				}
+			};
+
+			recognition.onerror = (event) => {
+				console.error("Speech Recognition Error:", event.error);
+				if (sttEnabled && !isSpeaking) {
+					console.log("Retrying STT after error...");
+					recognition.start(); // Retry listening on error
+				}
+			};
+		}
+
+
+		function toggleListen() {
+			// Disable listening in Firefox
+			if (isFirefox) {
+				alert("Speech-to-Text (STT) is not supported in Firefox. Please use Chrome.");
+				return;
+			}
+
+			// Toggle STT state
+			sttEnabled = !sttEnabled;
+
+			// Update button text and styling
+			const button = document.getElementById('toggleListen');
+			button.textContent = `STT: ${sttEnabled ? "ON" : "OFF"}`;
+			button.classList.toggle('active', sttEnabled);
+
+			// Start or stop recognition based on the new state
+			if (recognition && sttEnabled && !isSpeaking) {
+				recognition.start();
+			} else if (recognition) {
+				recognition.stop();
+			}
+		}
+
+		function speakText(text) {
+			if (!ttsEnabled) return;
+
+			isSpeaking = true; // Block STT from listening
+			if (recognition) recognition.stop(); // Stop STT while TTS is active
+
+			const utterance = new SpeechSynthesisUtterance(text);
+
+			// Ensure a valid voice is selected before speaking
+			if (!selectedVoice) {
+			
+				const voices = window.speechSynthesis.getVoices();
+				const isAndroid = /Android/i.test(navigator.userAgent);
+
+				selectedVoice = voices.find(v => /en[-_]US/i.test(v.lang) && v.localService) || voices[0];
+			}
+
+			utterance.voice = selectedVoice;
+
+
+			utterance.onend = () => {
+				isSpeaking = false; // Allow STT to resume
+				if (sttEnabled) recognition.start(); // Resume STT after speaking
+			};
+
+			console.log("AI says:", text);
+			synthesis.speak(utterance);
+		}
+
+		// Initialize STT
+		if ('webkitSpeechRecognition' in window) {
+			recognition = new webkitSpeechRecognition();
+			recognition.continuous = true; // Keep listening continuously
+			recognition.interimResults = false;
+			recognition.lang = 'en-US';
+
+			recognition.onresult = async (event) => {
+				if (isSpeaking) return; // Ignore input while TTS is active
+
+				const transcript = event.results[event.results.length - 1][0].transcript.trim();
+				if (!transcript || transcript.length < 2) {
+					if (sttEnabled && !isSpeaking) recognition.start(); // Resume listening if no valid input
+					return;
+				}
+
+				addMessageToChat(transcript, 'user');
+				MESSAGE_HISTORY.push({ role: "user", content: transcript });
+				trimHistory();
+				recognition.stop(); // Pause STT during AI response
+
+				const response = await fetchAIResponse();
+				addMessageToChat(response, 'ai');
+				speakText(response);
+
+				if (sttEnabled && !isSpeaking) recognition.start(); // Resume listening after response
+			};
+
+			recognition.onend = () => {
+				if (sttEnabled && !isSpeaking) {
+					console.log("Restarting STT...");
+					recognition.start(); // Restart STT if still enabled
+				}
+			};
+
+			recognition.onerror = (event) => {
+				console.error("Speech Recognition Error:", event.error);
+				if (sttEnabled && !isSpeaking) {
+					console.log("Retrying STT after error...");
+					recognition.start(); // Retry listening on error
+				}
+			};
+		}
+
+		document.getElementById('messageInput').addEventListener('keypress', (event) => {
+			if (event.key === 'Enter') {
+				sendMessage();
+				event.preventDefault(); // Prevent default behavior like newline
+			}
+		});
+
+
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const userMessage = input.value.trim();
+            if (!userMessage) return;
+
+            addMessageToChat(userMessage, 'user');
+            MESSAGE_HISTORY.push({ role: "user", content: userMessage });
+            trimHistory();
+
+            input.value = '';
+            const response = await fetchAIResponse();
+            addMessageToChat(response, 'ai');
+            speakText(response);
+        }
+
+		async function fetchAIResponse() {
+			const requestBody = {
+				messages: MESSAGE_HISTORY,
+				model: "openai",
+				seed: getRandomSeed(), // Use random seed
+				jsonMode: false
+			};
+
+			try {
+				const response = await fetch(API_ENDPOINT, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(requestBody),
+				});
+
+				if (!response.ok) throw new Error(`Invalid response: ${response.statusText}`);
+
+				const aiMessage = await response.text();
+				MESSAGE_HISTORY.push({ role: "assistant", content: aiMessage.trim() });
+				trimHistory();
+				return aiMessage.trim();
+			} catch (error) {
+				console.error("Error fetching AI response:", error);
+				return "Error: Unable to fetch response from AI.";
+			}
+		}
+
+        // Trim message history
+        function trimHistory() {
+            if (MESSAGE_HISTORY.length > MAX_HISTORY * 2) {
+                MESSAGE_HISTORY.splice(1, MESSAGE_HISTORY.length - (MAX_HISTORY * 2)); // Keep 10 user + 10 assistant
+            }
+        }
+
+        // Add a message to the chat
+        function addMessageToChat(content, type) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+
+    // Disable STT for Firefox on page load
+	window.onload = () => {
+		disableSTTForFirefox(); // Handle Firefox STT limitations
+		populateVoiceDropdown(); // Populate the voice dropdown on load
+	};
+
+    </script>
+</body>
+</html>

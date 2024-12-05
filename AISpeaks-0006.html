@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat with TTS and STT</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f4f4f9;
+            color: #333;
+        }
+        .chat-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: #fafafa;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background: #d4edda;
+            text-align: right;
+        }
+        .ai-message {
+            background: #f8d7da;
+            text-align: left;
+        }
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .chat-input button {
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .chat-input button:hover {
+            background: #0056b3;
+        }
+        .chat-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .chat-actions button {
+            flex: 1;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .chat-actions button.active {
+            background: #28a745;
+        }
+        .chat-actions button:hover {
+            background: #0056b3;
+        }
+        .voice-selector {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        select {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="voice-selector">
+            <label for="voiceSelect">Select Voice:</label>
+            <select id="voiceSelect"></select>
+        </div>
+        <div class="chat-actions">
+            <button id="toggleSpeak" onclick="toggleSpeak()">TTS: OFF</button>
+            <button id="toggleListen" onclick="toggleListen()">STT: OFF</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = 'https://text.pollinations.ai/';
+        const MAX_HISTORY = 10;
+        const SYSTEM_MESSAGE = "You are a friendly AI assistant who speaks casually and uses TTS for responses. Keep the chat short and friendly.";
+        const MESSAGE_HISTORY = [{ role: "system", content: SYSTEM_MESSAGE }];
+        let ttsEnabled = false;
+        let sttEnabled = false;
+        let isSpeaking = false; // Prevents STT from listening during TTS
+        let recognition;
+
+        // Initialize TTS
+        const synthesis = window.speechSynthesis;
+        let selectedVoice = null;
+
+        // Populate Voice Dropdown
+        function populateVoiceDropdown() {
+            const voiceSelect = document.getElementById('voiceSelect');
+            const voices = synthesis.getVoices();
+            voiceSelect.innerHTML = '';
+
+            voices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = voice.name;
+                if (voice.name.includes('ZIRA') || voice.name.includes('DAVID')) {
+                    option.selected = true; // Prioritize ZIRA or DAVID
+                }
+                voiceSelect.appendChild(option);
+            });
+
+            // Update selected voice when dropdown changes
+            voiceSelect.addEventListener('change', () => {
+                selectedVoice = voices[voiceSelect.value];
+            });
+
+            // Set default voice to ZIRA or the first available voice
+            selectedVoice = voices.find(v => v.name.includes('ZIRA')) || voices[0];
+        }
+
+        // Trigger voice population on page load and when voices are updated
+        synthesis.onvoiceschanged = populateVoiceDropdown;
+
+        function speakText(text) {
+            if (!ttsEnabled) return;
+
+            isSpeaking = true;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = selectedVoice;
+
+            utterance.onend = () => {
+                isSpeaking = false;
+                if (sttEnabled) recognition.start(); // Resume listening
+            };
+
+            synthesis.speak(utterance);
+        }
+
+        // Toggle TTS
+        function toggleSpeak() {
+            ttsEnabled = !ttsEnabled;
+            const button = document.getElementById('toggleSpeak');
+            button.textContent = `TTS: ${ttsEnabled ? "ON" : "OFF"}`;
+            button.classList.toggle('active', ttsEnabled);
+        }
+
+        // Initialize STT
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = async (event) => {
+                if (isSpeaking) return; // Ignore input while TTS is active
+
+                const transcript = event.results[event.results.length - 1][0].transcript.trim();
+                if (!transcript || transcript.length < 2) {
+                    if (sttEnabled) recognition.start(); // Resume listening if no valid input
+                    return;
+                }
+
+                addMessageToChat(transcript, 'user');
+                MESSAGE_HISTORY.push({ role: "user", content: transcript });
+                trimHistory();
+                recognition.stop(); // Pause STT during AI response
+
+                const response = await fetchAIResponse();
+                addMessageToChat(response, 'ai');
+                speakText(response);
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech Recognition Error:", event.error);
+                if (sttEnabled && !isSpeaking) recognition.start(); // Retry listening
+            };
+        } else {
+            console.warn("Speech recognition is not supported in this browser.");
+        }
+
+        function toggleListen() {
+            sttEnabled = !sttEnabled;
+            const button = document.getElementById('toggleListen');
+            button.textContent = `STT: ${sttEnabled ? "ON" : "OFF"}`;
+            button.classList.toggle('active', sttEnabled);
+
+            if (sttEnabled && !isSpeaking) {
+                recognition.start();
+            } else {
+                recognition.stop();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const userMessage = input.value.trim();
+            if (!userMessage) return;
+
+            addMessageToChat(userMessage, 'user');
+            MESSAGE_HISTORY.push({ role: "user", content: userMessage });
+            trimHistory();
+
+            input.value = '';
+            const response = await fetchAIResponse();
+            addMessageToChat(response, 'ai');
+            speakText(response);
+        }
+
+        // Fetch AI response
+        async function fetchAIResponse() {
+            const requestBody = {
+                messages: MESSAGE_HISTORY,
+                model: "openai",
+                seed: 42,
+                jsonMode: false
+            };
+
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(requestBody),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Invalid response from AI: ${response.statusText}`);
+                }
+
+                const aiMessage = await response.text();
+                MESSAGE_HISTORY.push({ role: "assistant", content: aiMessage.trim() });
+                trimHistory();
+
+                return aiMessage.trim();
+            } catch (error) {
+                console.error("Error fetching AI response:", error);
+                return "Error: Unable to fetch response from AI.";
+            }
+        }
+
+        // Trim message history
+        function trimHistory() {
+            if (MESSAGE_HISTORY.length > MAX_HISTORY * 2) {
+                MESSAGE_HISTORY.splice(1, MESSAGE_HISTORY.length - (MAX_HISTORY * 2)); // Keep 10 user + 10 assistant
+            }
+        }
+
+        // Add a message to the chat
+        function addMessageToChat(content, type) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
