@@ -448,4 +448,51 @@
                     offscreenCanvas.height
                 );
 
-                const croppedImage =
+                const croppedImage = new Image();
+                croppedImage.onload = () => {
+                    this.image = croppedImage;
+                    this.cropStart = null;
+                    this.cropEnd = null;
+                    this.displayImage();
+                };
+                croppedImage.src = offscreenCanvas.toDataURL();
+            }
+
+            updateAspectRatio(ratio) {
+                if (ratio === 'free') {
+                    this.aspectRatio = null;
+                } else {
+                    this.aspectRatio = ratio;
+                }
+            }
+
+            copyToClipboard() {
+                if (!this.image) return;
+                
+                this.canvas.toBlob(blob => {
+                    const item = new ClipboardItem({ 'image/png': blob });
+                    navigator.clipboard.write([item]).then(() => {
+                        const floatingBtn = document.getElementById('floatingConvert');
+                        floatingBtn.classList.add('success');
+                        setTimeout(() => floatingBtn.classList.remove('success'), 1000);
+                    }).catch(() => {
+                        floatingBtn.classList.add('error');
+                        setTimeout(() => floatingBtn.classList.remove('error'), 1000);
+                    });
+                });
+            }
+
+            quickConvert() {
+                if (!this.isDragging) {
+                    this.copyToClipboard();
+                }
+            }
+        }
+
+        // Initialize the app
+        window.addEventListener('DOMContentLoaded', () => {
+            new ImageConverterApp();
+        });
+    </script>
+</body>
+</html>
