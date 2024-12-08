@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Podcast-Style Interview Generator</title>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: auto; }
+        .host { color: blue; font-weight: bold; }
+        .guest { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Interview Generator</h1>
+    <input id="topic" placeholder="Enter interview topic">
+    <button onclick="startInterview()">Generate Interview</button>
+    <div id="output"></div>
+
+    <script>
+    async function generateResponse(prompt) {
+        const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`);
+        const text = await response.text();
+        
+        // Remove any nested interview formatting
+        return text
+            .replace(/^(Guest:|Interviewer:|\*\*.*?\*\*)\s*/, '')
+            .replace(/\*\*.*?\*\*\s*/, '')
+            .replace(/^(.*?:)\s*/, '')
+            .trim();
+    }
+
+	async function startInterview() {
+		const subject = document.getElementById('topic').value;
+		const output = document.getElementById('output');
+		output.innerHTML = `<h2>Interview with ${subject}</h2>`;
+
+		// Dynamic, flexible prompt generation
+		const questionsPrompt = `Generate 4-5 witty, conversational interview questions for a comedy podcast host to ask ${subject}, capturing their unique perspective and personality.`;
+		
+		const questionsRaw = await generateResponse(questionsPrompt);
+		const questions = questionsRaw.split('\n')
+			.filter(q => q.trim().length > 10)
+			.slice(0, 5);
+
+		// Process each question with the subject as the guest
+		for (const question of questions) {
+			const cleanQuestion = question.replace(/^[*\d.\s]+/, '').trim();
+			
+			// Host asks question
+			output.innerHTML += `<p class="host">Host: ${cleanQuestion}</p>`;
+
+			// Get subject's response
+			const guestResponsePrompt = `You are ${subject} being interviewed on a comedy podcast. Respond to this question with your unique voice, personality, and perspective: ${cleanQuestion}`;
+			const guestResponse = await generateResponse(guestResponsePrompt);
+
+			// Add subject's response
+			output.innerHTML += `<p class="guest">${subject}: ${guestResponse}</p>`;
+		}
+	}
+    </script>
+</body>
+</html>
