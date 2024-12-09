@@ -397,49 +397,26 @@
       let script = '';
 
       components.forEach(component => {
-        const code = component.code;
-        
-        // Extract styles
-        const styleMatch = code.match(/<style>([\s\S]*?)<\/style>/);
-        if (styleMatch) {
-          style += styleMatch[1] + '\n';
-        }
-
-        // Extract scripts
-        const scriptMatch = code.match(/<script>([\s\S]*?)<\/script>/);
-        if (scriptMatch) {
-          script += scriptMatch[1] + '\n';
-        }
-
-        // Extract HTML
-        let htmlContent = code.replace(/<style>[\s\S]*?<\/style>/, '')
-                             .replace(/<script>[\s\S]*?<\/script>/, '')
-                             .trim();
-        
-        // Remove html/head/body tags if present
-        htmlContent = htmlContent.replace(/<!DOCTYPE[^>]*>|<\/?html[^>]*>|<\/?head[^>]*>|<\/?body[^>]*>/g, '');
-        
-        html += htmlContent + '\n';
+        if (component.html) html += component.html + '\n';
+        if (component.style) style += component.style + '\n';
+        if (component.script) script += component.script + '\n';
       });
 
-      // Construct final document
-      return `<!DOCTYPE html>
+      const template = `
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Simulation</title>
-    <style>
-        ${style}
-    </style>
+    <style>${style}</style>
 </head>
 <body>
     ${html}
-    <script>
-        ${script}
-    </script>
+    <script>${script}<\/script>
 </body>
-</html>`;
+<\/html>
+`;
+      return template;
     }
 
     async function generateProject() {
