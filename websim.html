@@ -250,8 +250,8 @@
       retryDelay: 1000,
       minPromptLength: 10,
       maxPromptLength: 1000,
-      maxTokens: 2048,    // Adjusted for GPT-4-mini limitations
-      chunkSize: 1024,    // Smaller chunks for better reliability
+      maxTokens: 2048,
+      chunkSize: 1024,
       API_CONTEXT: `When creating web content:
         1. For images: use https://image.pollinations.ai/prompt/{text}?seed={seed}&width=800&height=600
         2. For text generation with OpenAI: use https://text.pollinations.ai/{text}?model=openai&seed={seed}
@@ -294,24 +294,6 @@
         return prompt.trim();
       },
 
-      async processStream(response) {
-        if (!response.body) {
-          throw new Error('Response body is empty');
-        }
-
-        const reader = response.body.getReader();
-        let chunks = [];
-        
-        while (true) {
-          const {done, value} = await reader.read();
-          if (done) break;
-          const chunk = new TextDecoder().decode(value);
-          chunks.push(chunk);
-        }
-
-        return chunks.join('');
-      },
-
       handlePollinationsCode(code) {
         if (code.includes('pollinations.ai')) {
           const seed = Math.floor(Math.random() * 1000000);
@@ -321,125 +303,6 @@
         return code;
       }
     };
-
-    async function verifyAndCompleteCode(code) {
-      const requiredTags = ['</html>', '</body>', '</head>', '<!DOCTYPE'];
-      const scriptPattern = /<script|<\/script>/g;
-      const stylePattern = /<style|<\/style>/g;
-      const divPattern = /<div|<\/div>/g;
-
-      let needsCompletion = false;
-      
-      // Check for required tags
-      for (const tag of requiredTags) {
-        if (!code.includes(tag)) {
-          needsCompletion = true;
-          break;
-        }
-      }
-
-      // Check for matching tags if required tags are present
-      if (!needsCompletion) {
-        const scriptMatches = code.match(scriptPattern) || [];
-        const styleMatches = code.match(stylePattern) || [];
-        const divMatches = code.match(divPattern) || [];
-
-        if (scriptMatches.length % 2 !== 0 || 
-            styleMatches.length % 2 !== 0 || 
-            divMatches.length % 2 !== 0) {
-          needsCompletion = true;
-        }
-      }
-
-      // Check for truncation
-      const lastClosingTag = code.lastIndexOf('</');
-      const lastOpeningTag = code.lastIndexOf('<');
-      if (lastOpeningTag > lastClosingTag) {
-        needsCompletion = true;
-      }
-
-      if (needsCompletion) {
-        try {
-          const completion = await fetch('https://text.pollinations.ai/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: [{
-                role: "user",
-                content: `CONTEXT: Complete this HTML code. Fix any missing tags or incomplete functions.
-                Current code: ${code}
-                OUTPUT: Complete valid HTML only, no comments.`
-              }],
-              max_tokens: 4000,
-              model: 'openai'
-            })
-          });
-
-          const completedCode = await completion.text();
-          return extractCode(completedCode);
-        } catch (error) {
-          console.error('Code completion failed:', error);
-          // If completion fails, attempt to fix the code manually
-          return ensureValidHTML(code);
-        }
-      }
-
-      return code;
-    }
-
-    function ensureValidHTML(code) {
-      // Basic HTML structure fix
-      if (!code.includes('<!DOCTYPE html>')) {
-        code = '<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n<title>Generated Project</title>\n</head>\n<body>\n' + code;
-      }
-      
-      // Close any unclosed tags
-      const openTags = [];
-      const tagPattern = /<\/?([a-zA-Z0-9]+)[^>]*>/g;
-      let match;
-      
-      while ((match = tagPattern.exec(code)) !== null) {
-        const isClosing = match[0].startsWith('</');
-        const tagName = match[1].toLowerCase();
-        
-        if (!isClosing && !match[0].endsWith('/>')) {
-          openTags.push(tagName);
-        } else if (isClosing) {
-          if (openTags[openTags.length - 1] === tagName) {
-            openTags.pop();
-          }
-        }
-      }
-
-      // Close remaining open tags in reverse order
-      while (openTags.length > 0) {
-        const tag = openTags.pop();
-        code += `\n</${tag}>`;
-      }
-
-      // Ensure HTML and BODY tags are closed
-      if (!code.includes('</body>')) {
-        code += '\n</body>';
-      }
-      if (!code.includes('</html>')) {
-        code += '\n</html>';
-      }
-
-      return code;
-    }
-
-    function extractCode(response) {
-      let code = response;
-      // Remove part markers if present
-      code = code.replace(/\[PART \d+\/\d+\]/g, '').replace(/\[END PART \d+\]/g, '');
-      
-      if (code.includes('```html')) {
-        code = code.split('```html')[1].split('```')[0].trim();
-      } else if (code.includes('```')) {
-        code = code.split('```')[1].split('```')[0].trim();
-      }
-      return code;
-    }
 
     async function processLongResponse(prompt, isModification = false) {
       let components = [];
@@ -472,7 +335,7 @@
           })
         });
 
-        const responseText = await utils.processStream(response);
+        const responseText = await response.text();
         let processedText = responseText;
 
         // Extract component type if specified
@@ -571,12 +434,8 @@
         utils.setLoading(true);
         
         const prompt = utils.validatePrompt(document.getElementById('prompt').value);
-        
         const responseText = await processLongResponse(prompt);
         let code = extractCode(responseText);
-        code = await verifyAndCompleteCode(code);
-        code = utils.handlePollinationsCode(code);
-        
         state.currentCode = code;
         document.getElementById('codeText').textContent = code;
         document.getElementById('projectFrame').srcdoc = code;
@@ -598,12 +457,8 @@
         utils.setLoading(true);
 
         const modifyPrompt = utils.validatePrompt(document.getElementById('modifyInput').value);
-        
         const responseText = await processLongResponse(modifyPrompt, true);
         let code = extractCode(responseText);
-        code = await verifyAndCompleteCode(code);
-        code = utils.handlePollinationsCode(code);
-
         state.currentCode = code;
         document.getElementById('codeText').textContent = code;
         document.getElementById('projectFrame').srcdoc = code;
