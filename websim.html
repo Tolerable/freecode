@@ -234,7 +234,12 @@
       maxRetries: 3,
       retryDelay: 1000,
       minPromptLength: 10,
-      maxPromptLength: 1000
+      maxPromptLength: 1000,
+      API_CONTEXT: `When creating web content:
+        1. For images: use https://image.pollinations.ai/prompt/{text}?seed={seed}&width=800&height=600
+        2. For text generation with OpenAI: use https://text.pollinations.ai/{text}?model=openai&seed={seed}
+        3. For Evil/Unity models: Always prefix with "CONTEXT: You are creating web content."
+        Output only the requested content with NO explanations.`
     };
 
     // State management
@@ -270,56 +275,94 @@
         return prompt.trim();
       },
 
-      async retry(fn, retries = CONFIG.maxRetries) {
-        try {
-          return await fn();
-        } catch (error) {
-          if (retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, CONFIG.retryDelay));
-            return await this.retry(fn, retries - 1);
-          }
-          throw error;
+      async processStream(response) {
+        if (!response.body) {
+          throw new Error('Response body is empty');
         }
+
+        const reader = response.body.getReader();
+        let chunks = [];
+        
+        while (true) {
+          const {done, value} = await reader.read();
+          if (done) break;
+          const chunk = new TextDecoder().decode(value);
+          chunks.push(chunk);
+        }
+
+        return chunks.join('');
+      },
+
+      handlePollinationsCode(code) {
+        if (code.includes('pollinations.ai')) {
+          const seed = Math.floor(Math.random() * 1000000);
+          return code.replace(/(?:text|image)\.pollinations\.ai\/([^?\s"']+)/g, 
+            (match, query) => `${match}?seed=${seed}`);
+        }
+        return code;
       }
     };
 
-    // Core functionality
     async function verifyAndCompleteCode(code) {
-      try {
-        // Basic syntax validation
-        new Function(code);
+      const requiredTags = ['</html>', '</body>', '</head>', '<!DOCTYPE'];
+      const scriptPattern = /<script|<\/script>/g;
+      const stylePattern = /<style|<\/style>/g;
+      const divPattern = /<div|<\/div>/g;
 
-        // Check for required elements
-        if (!code.includes('<!DOCTYPE html>')) {
-          code = '<!DOCTYPE html>\n' + code;
+      let needsCompletion = false;
+      
+      // Check for required tags
+      for (const tag of requiredTags) {
+        if (!code.includes(tag)) {
+          needsCompletion = true;
+          break;
         }
-
-        // Ensure basic security headers
-        if (!code.includes('<meta charset')) {
-          code = code.replace('<head>', '<head>\n  <meta charset="UTF-8">');
-        }
-
-        // Add CSP header for security
-        if (!code.includes('content-security-policy')) {
-          code = code.replace('<head>', `<head>\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' data: https:;">`);
-        }
-
-        return code;
-      } catch (error) {
-        throw new Error(`Invalid code generated: ${error.message}`);
       }
+
+      // Check for matching tags if required tags are present
+      if (!needsCompletion) {
+        const scriptMatches = code.match(scriptPattern) || [];
+        const styleMatches = code.match(stylePattern) || [];
+        const divMatches = code.match(divPattern) || [];
+
+        if (scriptMatches.length % 2 !== 0 || 
+            styleMatches.length % 2 !== 0 || 
+            divMatches.length % 2 !== 0) {
+          needsCompletion = true;
+        }
+      }
+
+      if (needsCompletion) {
+        const completion = await fetch('https://text.pollinations.ai/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{
+              role: "user",
+              content: `CONTEXT: Complete this HTML code. Fix any missing tags or incomplete functions.
+              Current code: ${code}
+              OUTPUT: Complete valid HTML only, no comments.`
+            }],
+            max_tokens: 4000,
+            model: 'openai'
+          })
+        });
+
+        const completedCode = await completion.text();
+        return extractCode(completedCode);
+      }
+
+      return code;
     }
 
     function extractCode(response) {
-      try {
-        const codeMatch = response.match(/```(?:html)?([\s\S]*?)```/);
-        if (!codeMatch) {
-          throw new Error('No code block found in response');
-        }
-        return codeMatch[1].trim();
-      } catch (error) {
-        throw new Error(`Failed to extract code: ${error.message}`);
+      let code = response;
+      if (code.includes('```html')) {
+        code = code.split('```html')[1].split('```')[0].trim();
+      } else if (code.includes('```')) {
+        code = code.split('```')[1].split('```')[0].trim();
       }
+      return code;
     }
 
     async function generateProject() {
@@ -331,23 +374,26 @@
         
         const prompt = utils.validatePrompt(document.getElementById('prompt').value);
         
-        const response = await utils.retry(async () => {
-          const result = await fetch('/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
-          });
-
-          if (!result.ok) {
-            throw new Error(`API request failed: ${result.statusText}`);
-          }
-
-          return await result.json();
+        const response = await fetch('https://text.pollinations.ai/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{
+              role: "user",
+              content: `CONTEXT: Create a complete web project. ${CONFIG.API_CONTEXT}\n\nUSER: ${prompt}`
+            }],
+            max_tokens: 4000,
+            model: 'openai',
+            stream: true
+          })
         });
 
-        const code = await verifyAndCompleteCode(extractCode(response.content));
+        const responseText = await utils.processStream(response);
+        let code = extractCode(responseText);
+        code = await verifyAndCompleteCode(code);
+        code = utils.handlePollinationsCode(code);
+        
         state.currentCode = code;
-
         document.getElementById('codeText').textContent = code;
         document.getElementById('projectFrame').srcdoc = code;
         document.getElementById('projectView').style.display = 'block';
@@ -369,26 +415,26 @@
 
         const modifyPrompt = utils.validatePrompt(document.getElementById('modifyInput').value);
         
-        const response = await utils.retry(async () => {
-          const result = await fetch('/modify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              currentCode: state.currentCode,
-              modifications: modifyPrompt
-            })
-          });
-
-          if (!result.ok) {
-            throw new Error(`API request failed: ${result.statusText}`);
-          }
-
-          return await result.json();
+        const response = await fetch('https://text.pollinations.ai/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{
+              role: "user",
+              content: `CONTEXT: Modify this web project. ${CONFIG.API_CONTEXT}\n\nCurrent code: ${state.currentCode}\n\nUSER: ${modifyPrompt}`
+            }],
+            max_tokens: 4000,
+            model: 'openai',
+            stream: true
+          })
         });
 
-        const code = await verifyAndCompleteCode(extractCode(response.content));
-        state.currentCode = code;
+        const responseText = await utils.processStream(response);
+        let code = extractCode(responseText);
+        code = await verifyAndCompleteCode(code);
+        code = utils.handlePollinationsCode(code);
 
+        state.currentCode = code;
         document.getElementById('codeText').textContent = code;
         document.getElementById('projectFrame').srcdoc = code;
         document.getElementById('modifyInput').value = '';
@@ -447,6 +493,15 @@
       document.getElementById('codeText').style.visibility = 'hidden';
       state.currentCode = '';
     }
+
+    // Expose functions to window for HTML onclick handlers
+    window.generateProject = generateProject;
+    window.modifyProject = modifyProject;
+    window.handleModifyInput = handleModifyInput;
+    window.toggleCodePanel = toggleCodePanel;
+    window.downloadCode = downloadCode;
+    window.copyCode = copyCode;
+    window.closeProject = closeProject;
   </script>
 </body>
 </html>
