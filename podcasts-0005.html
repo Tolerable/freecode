@@ -134,29 +134,29 @@
 		Keep all responses under 4 sentences and be authentic to this version of your character.`;
 		}
 
-		async function extractGuestAndTopic(input) {
-			try {
-				const response = await fetch('https://text.pollinations.ai/', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						messages: [{
-							role: 'system',
-							content: `Analyze the input and extract the guest and topic. IMPORTANT: Take all claims at face value - if someone is claimed to be the antichrist, an alien, a time traveler, etc., that IS who they are. Don't rationalize or reinterpret. Return as JSON: {"guest": "name as claimed", "topic": "situation as claimed"}. Keep it simple and direct.`
-						}, {
-							role: 'user',
-							content: input
-						}],
-						model: 'openai',
-						jsonMode: true
-					})
-				});
-				return await response.json();
-			} catch (error) {
-				console.error('Error extracting guest and topic:', error);
-				throw error;
-			}
-		}
+        async function extractGuestAndTopic(input) {
+            try {
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [{
+                            role: 'system',
+                            content: `Analyze the input and extract the guest and topic. If a guest is explicitly mentioned (e.g., "X is here to...", "X wants to announce..."), use that. Otherwise, determine the most logical guest for the topic. Return as JSON: {"guest": "name", "topic": "core topic"}. Keep it simple and direct.`
+                        }, {
+                            role: 'user',
+                            content: input
+                        }],
+                        model: 'openai',
+                        jsonMode: true
+                    })
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error extracting guest and topic:', error);
+                throw error;
+            }
+        }
 
         async function generateQuestion(guest, topic, previousResponses = []) {
             try {
