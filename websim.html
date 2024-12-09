@@ -205,11 +205,11 @@
     </div>
 
     <div class="input-section">
-      <textarea id="prompt" placeholder="Describe your web project in detail..."></textarea>
+      <textarea id="prompt" placeholder="Describe your web project..."></textarea>
       <button onclick="generateProject()">Generate Project</button>
     </div>
 
-    <div class="loading" id="loading">
+    <div id="loading" style="display: none;">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="10"></circle>
         <path d="M12 2v4m0 16v-4m-8-8h4m16 0h-4"></path>
@@ -217,29 +217,36 @@
       <p>Generating your project...</p>
     </div>
 
-    <div id="error" class="error"></div>
-  </div>
+    <div id="error" class="error" style="display: none;"></div>
 
-  <div class="project-view" id="projectView">
-    <div class="close-project" onclick="closeProject()">Close</div>
-    <iframe id="projectFrame" class="project-frame"></iframe>
-    <div class="project-controls">
-      <input type="text" id="modifyInput" placeholder="Describe modifications..." onkeyup="handleModifyInput(event)">
-      <button onclick="modifyProject()" id="modifyButton" disabled>Modify</button>
-      <button onclick="toggleCodePanel()">View Code</button>
-    </div>
-    <div class="code-panel" id="codePanel">
-      <div class="code-header">
-        <h3>Generated Code</h3>
-        <div>
-          <button onclick="copyCode()">Copy</button>
-          <button onclick="downloadCode()">Download</button>
-          <button class="close-button" onclick="toggleCodePanel()">Close</button>
+    <div id="projectView" style="display: none;">
+      <div class="project-controls">
+        <button onclick="toggleCodePanel()">View Code</button>
+        <button onclick="downloadCode()">Download</button>
+        <button onclick="copyCode()">Copy Code</button>
+        <button onclick="closeProject()">Close</button>
+      </div>
+
+      <div class="modify-section">
+        <textarea id="modifyInput" placeholder="Describe modifications..." onkeyup="handleModifyInput(event)"></textarea>
+        <button id="modifyButton" onclick="modifyProject()" disabled>Modify Project</button>
+      </div>
+
+      <div id="codePanel" class="code-panel">
+        <div class="code-header">
+          <h3>Generated Code</h3>
+          <div>
+            <button onclick="copyCode()">Copy</button>
+            <button onclick="downloadCode()">Download</button>
+            <button class="close-button" onclick="toggleCodePanel()">Close</button>
+          </div>
+        </div>
+        <div class="code-content">
+          <pre id="codeText" class="code-text"></pre>
         </div>
       </div>
-      <div class="code-content">
-        <pre id="codeText" class="code-text"></pre>
-      </div>
+
+      <iframe id="projectFrame" sandbox="allow-scripts" class="project-frame"></iframe>
     </div>
   </div>
 
@@ -299,6 +306,15 @@
           const seed = Math.floor(Math.random() * 1000000);
           return code.replace(/(?:text|image)\.pollinations\.ai\/([^?\s"']+)/g, 
             (match, query) => `${match}?seed=${seed}`);
+        }
+        return code;
+      },
+
+      extractCode(response) {
+        let code = response;
+        // Clean up markdown code blocks if present
+        if (code.includes('```')) {
+          code = code.replace(/```(?:html)?\n([\s\S]*?)```/g, '$1').trim();
         }
         return code;
       }
@@ -435,7 +451,8 @@
         
         const prompt = utils.validatePrompt(document.getElementById('prompt').value);
         const responseText = await processLongResponse(prompt);
-        let code = extractCode(responseText);
+        let code = utils.extractCode(responseText);
+        code = utils.handlePollinationsCode(code);
         state.currentCode = code;
         document.getElementById('codeText').textContent = code;
         document.getElementById('projectFrame').srcdoc = code;
@@ -458,7 +475,8 @@
 
         const modifyPrompt = utils.validatePrompt(document.getElementById('modifyInput').value);
         const responseText = await processLongResponse(modifyPrompt, true);
-        let code = extractCode(responseText);
+        let code = utils.extractCode(responseText);
+        code = utils.handlePollinationsCode(code);
         state.currentCode = code;
         document.getElementById('codeText').textContent = code;
         document.getElementById('projectFrame').srcdoc = code;
