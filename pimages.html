@@ -857,7 +857,7 @@
 
 				const enhancedPrompt = await response.text();
 				document.getElementById('enhancedPrompt').value = enhancedPrompt;
-				document.querySelector('[data-tab="enhanced"]').click();
+				// Remove this line: document.querySelector('[data-tab="enhanced"]').click();
 				updatePromptPreview(enhancedPrompt);
 			} catch (error) {
 				console.error('Error enhancing prompt:', error);
@@ -1193,9 +1193,26 @@
 			const img = new Image();
 			img.onload = () => {
 				currentImage = img;
-				canvas.width = img.width;
-				canvas.height = img.height;
-				redrawImage();
+				const activeRatio = document.querySelector('.ratio-button.active');
+				const dimensions = getAspectRatioDimensions(activeRatio.dataset.ratio);
+				
+				// Use the requested dimensions for the canvas
+				canvas.width = dimensions.width;
+				canvas.height = dimensions.height;
+				
+				// Calculate scaling to maintain aspect ratio
+				const scale = Math.min(
+					canvas.width / img.width,
+					canvas.height / img.height
+				);
+				
+				// Calculate centered position
+				const x = (canvas.width - img.width * scale) / 2;
+				const y = (canvas.height - img.height * scale) / 2;
+				
+				// Clear and draw scaled image
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
 			};
 			img.src = imageUrl;
 		}
@@ -1210,20 +1227,22 @@
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.save();
 			
+			// Calculate scaling to maintain aspect ratio
+			const scale = Math.min(
+				canvas.width / currentImage.width,
+				canvas.height / currentImage.height
+			);
+			
 			// Center point for all transformations 
 			ctx.translate(canvas.width/2, canvas.height/2);
 			
-			// Apply zoom BEFORE other transformations
-			ctx.scale(zoom, zoom);
-			
-			// Apply existing transformations
+			// Apply zoom and other transformations
+			ctx.scale(zoom * scale, zoom * scale);
 			ctx.rotate(rotation * Math.PI / 180);
 			ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
 			
-			// Move back
-			ctx.translate(-canvas.width/2, -canvas.height/2);
-			
-			// Draw the image
+			// Draw centered image
+			ctx.translate(-currentImage.width/2, -currentImage.height/2);
 			ctx.drawImage(currentImage, 0, 0);
 			ctx.restore();
 		}
