@@ -644,11 +644,6 @@
 		let isDrawing = false;
 		let cropStart = null;
 		
-		let imageHistory = [];
-		let currentImageData = null;
-		let isEdited = false;
-		let originalPrompt = '';
-
         // Fetch available models on load
         async function initialize() {
             try {
@@ -750,74 +745,44 @@
 			if (!canvas) return;
 			
 			try {
+				// If we have a crop box, copy just that area
 				if (cropBox) {
 					const ctx = canvas.getContext('2d');
 					const cropRect = cropBox.getBoundingClientRect();
 					const canvasRect = canvas.getBoundingClientRect();
 					
-					// Get the original image dimensions
-					const originalWidth = currentImageData ? currentImageData.width : canvas.width;
-					const originalHeight = currentImageData ? currentImageData.height : canvas.height;
+					const scaleX = canvas.width / canvasRect.width;
+					const scaleY = canvas.height / canvasRect.height;
 					
-					// Calculate scaling factors based on original dimensions
-					const scaleX = originalWidth / canvasRect.width;
-					const scaleY = originalHeight / canvasRect.height;
+					const cropX = (cropRect.left - canvasRect.left) * scaleX;
+					const cropY = (cropRect.top - canvasRect.top) * scaleY;
+					const cropWidth = cropRect.width * scaleX;
+					const cropHeight = cropRect.height * scaleY;
 					
-					// Calculate crop dimensions in original image coordinates
-					const cropX = Math.floor((cropRect.left - canvasRect.left) * scaleX);
-					const cropY = Math.floor((cropRect.top - canvasRect.top) * scaleY);
-					const cropWidth = Math.floor(cropRect.width * scaleX);
-					const cropHeight = Math.floor(cropRect.height * scaleY);
-					
-					// Create temp canvas at original crop dimensions
 					const tempCanvas = document.createElement('canvas');
 					tempCanvas.width = cropWidth;
 					tempCanvas.height = cropHeight;
 					const tempCtx = tempCanvas.getContext('2d');
 					
-					// If we have the original image data, use it
-					if (currentImageData) {
-						tempCtx.drawImage(currentImageData,
-							cropX, cropY, cropWidth, cropHeight,
-							0, 0, cropWidth, cropHeight
-						);
-					} else {
-						// Fallback to canvas if no original data
-						tempCtx.drawImage(canvas,
-							cropX, cropY, cropWidth, cropHeight,
-							0, 0, cropWidth, cropHeight
-						);
-					}
+					tempCtx.drawImage(canvas,
+						cropX, cropY, cropWidth, cropHeight,
+						0, 0, cropWidth, cropHeight
+					);
 					
-					const blob = await new Promise(resolve => tempCanvas.toBlob(resolve, 'image/png', 1.0));
+					const blob = await new Promise(resolve => tempCanvas.toBlob(resolve));
 					await navigator.clipboard.write([
 						new ClipboardItem({ 'image/png': blob })
 					]);
 				} else {
-					// If no crop box, copy full image
-					if (currentImageData) {
-						// Use original image data if available
-						const tempCanvas = document.createElement('canvas');
-						tempCanvas.width = currentImageData.width;
-						tempCanvas.height = currentImageData.height;
-						const tempCtx = tempCanvas.getContext('2d');
-						tempCtx.drawImage(currentImageData, 0, 0);
-						
-						const blob = await new Promise(resolve => tempCanvas.toBlob(resolve, 'image/png', 1.0));
-						await navigator.clipboard.write([
-							new ClipboardItem({ 'image/png': blob })
-						]);
-					} else {
-						// Fallback to current canvas
-						const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-						await navigator.clipboard.write([
-							new ClipboardItem({ 'image/png': blob })
-						]);
-					}
+					// Copy entire canvas
+					const blob = await new Promise(resolve => canvas.toBlob(resolve));
+					await navigator.clipboard.write([
+						new ClipboardItem({ 'image/png': blob })
+					]);
 				}
-				console.log('Image copied to clipboard with original dimensions preserved');
+				console.log('Image copied to clipboard');
 			} catch (error) {
-				console.error('Failed to copy:', error, error.stack);
+				console.error('Failed to copy:', error);
 			}
 		}
 
@@ -865,20 +830,20 @@
 
         // Function to enhance prompt using AI
 		async function enhancePromptWithAI() {
-			try {
-				originalPrompt = document.getElementById('userPrompt').value;
-				const prompt = originalPrompt;
-				const model = document.getElementById('textModel').value;
-				
-				const systemMessage = `You are an expert at writing image generation prompts. 
-				Enhance this prompt by:
-				1. Grouping related concepts with underscores
-				2. Separating distinct elements with commas
-				3. Adding details about lighting, composition, and style
-				4. Specifying important attributes clearly
-				5. Enhance the prompt dynamically for image generation by increasing descriptive details
-				6. Return ONLY the enhanced prompt WITHOUT any explanation.`;
+			originalPrompt = document.getElementById('userPrompt').value;
+			const prompt = document.getElementById('userPrompt').value;
+			const model = document.getElementById('textModel').value;
+			
+			const systemMessage = `You are an expert at writing image generation prompts. 
+			Enhance this prompt by:
+			1. Grouping related concepts with underscores
+			2. Separating distinct elements with commas
+			3. Adding details about lighting, composition, and style
+			4. Specifying important attributes clearly
+			5. Enhance the prompt dynamically for image generation by increasing descriptive details
+			6. Return ONLY the enhanced prompt WITHOUT any profanity, explanation, commentary or remarks.`;
 
+			try {
 				const response = await fetch('https://text.pollinations.ai/', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -893,12 +858,8 @@
 
 				const enhancedPrompt = await response.text();
 				document.getElementById('enhancedPrompt').value = enhancedPrompt;
-				updatePromptPreview();
-				isEdited = true;
-
-				// Update button state
-				const button = document.getElementById('aiEnhanceBtn');
-				button.textContent = 'RESTORE';
+				// Remove this line: document.querySelector('[data-tab="enhanced"]').click();
+				updatePromptPreview(enhancedPrompt);
 			} catch (error) {
 				console.error('Error enhancing prompt:', error);
 			}
@@ -912,13 +873,14 @@
 				reader.onload = function(e) {
 					const img = new Image();
 					img.onload = function() {
-						EXIF.getData(this, function() {
+						EXIF.getData(img, function() {
 							const allTags = EXIF.getAllTags(this);
+							console.log("All EXIF tags:", allTags);
 							
-							if (allTags.undefined) {
+							if (allTags.undefined) {  // This was the key difference
 								const decoder = new TextDecoder('utf-8');
-								const jsonStr = decoder.decode(new Uint8Array(allTags.undefined))
-									.replace('ASCII\x00\x00\x00', '');
+								const jsonStr = decoder.decode(new Uint8Array(allTags.undefined)).replace('ASCII\x00\x00\x00', '');
+								console.log("Decoded UserComment:", jsonStr);
 								
 								try {
 									const metadata = JSON.parse(jsonStr);
@@ -948,15 +910,21 @@
 
 				document.getElementById('imageOutput').innerHTML = 'Generating image...';
 
-				const finalPrompt = document.getElementById('finalPrompt').textContent;
-				const enhancedPrompt = document.getElementById('enhancedPrompt').value;
+				// Get the active ratio button
+				const activeRatio = document.querySelector('.ratio-button.active');
+				if (!activeRatio) {
+					console.error('No ratio selected');
+					return;
+				}
+
+				// Setup API request parameters
 				const imageModel = document.getElementById('imageModel').value;
+				const enhance = document.getElementById('enhance').checked;
+				const private = document.getElementById('private').checked;
 				const seed = document.getElementById('randomSeed').checked ? 
 					Math.floor(Math.random() * 100000) : 
 					document.getElementById('seed').value;
 
-				const activeRatio = document.querySelector('.ratio-button.active');
-				if (!activeRatio) return;
 				const dimensions = getAspectRatioDimensions(activeRatio.dataset.ratio);
 
 				const params = new URLSearchParams({
@@ -964,60 +932,72 @@
 					seed: seed,
 					width: dimensions.width,
 					height: dimensions.height,
-					enhance: document.getElementById('enhance').checked,
+					enhance: document.getElementById('enhance').checked,  
 					refine: false,
 					nologo: true,
-					private: document.getElementById('private').checked,
+					private: document.getElementById('private').checked,  
 					safe: document.getElementById('safe').checked
 				});
 
+				const finalPrompt = document.getElementById('finalPrompt').textContent;
 				const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?${params}`;
+				console.log('Generation URL:', url);
+
 				const response = await fetch(url);
-				if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+				if (!response.ok) {
+					if (response.status === 500) {
+						// Try to get the error message from the response
+						try {
+							const errorText = await response.text();
+							if (errorText.includes("NSFW content detected")) {
+								document.getElementById('imageOutput').innerHTML = 
+									`Generation blocked: NSFW content detected - try adjusting your prompt`;
+							} else {
+								document.getElementById('imageOutput').innerHTML = 
+									`Server error (500): Unable to generate image`;
+							}
+						} catch (parseError) {
+							document.getElementById('imageOutput').innerHTML = 
+								`Server error (500): Unable to generate image`;
+						}
+						return;
+					}
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
 
 				const blob = await response.blob();
 				const imageUrl = URL.createObjectURL(blob);
 
-				// Store complete data
-				const imageData = {
-					url: imageUrl,
-					prompts: {
-						user: prompt,
-						enhanced: enhancedPrompt,
-						final: finalPrompt
-					},
-					isAiEdited: isEdited,
-					timestamp: new Date().getTime()
-				};
-
-				imageHistory.push(imageData);
-				currentImageData = imageData;
-
-				// Update display
+				// Use img element for consistent sizing with thumbnails
 				document.getElementById('imageOutput').innerHTML = `
-					<img src="${imageUrl}" alt="Generated Image" class="blur-transition loaded">
+					<img 
+						src="${imageUrl}" 
+						alt="Generated Image" 
+						class="blur-transition loaded"
+					>
 				`;
-
 				addThumbnail(imageUrl);
 
-				// Update prompts in tabs
-				document.getElementById('userPrompt').value = prompt;
-				document.getElementById('enhancedPrompt').value = enhancedPrompt;
-				document.getElementById('finalPrompt').textContent = finalPrompt;
-
+				// Extract and display EXIF data
 				try {
 					const metadata = await extractExifData(blob);
-					if (metadata?.prompt) {
-						document.getElementById('exifPromptText').textContent = metadata.prompt;
+					if (metadata) {
+						document.getElementById('exifPromptText').textContent = metadata.prompt || 'No prompt found in EXIF data';
+						document.querySelector('[data-tab="exif"]').click();
 					}
 				} catch (error) {
-					console.error('Error extracting EXIF:', error);
+					console.error('Error extracting EXIF data:', error);
 				}
 
 			} catch (error) {
 				console.error('Error generating image:', error);
-				document.getElementById('imageOutput').innerHTML = 
-					`Error generating image: ${error.message}`;
+				if (error.name === 'NetworkError' || error.message.includes('NetworkError')) {
+					document.getElementById('imageOutput').innerHTML = 
+						`Connection failed - please check your internet connection and try again`;
+				} else {
+					document.getElementById('imageOutput').innerHTML = 
+						`Error generating image: ${error.message}`;
+				}
 			}
 		}
 
@@ -1069,11 +1049,13 @@
 		function updatePromptPreview() {
 			let currentPrompt = document.getElementById('userPrompt').value;
 			
+			// Check if we should use the enhanced prompt (if it exists and has content)
 			const enhancedPrompt = document.getElementById('enhancedPrompt');
 			if (enhancedPrompt && enhancedPrompt.value.trim()) {
 				currentPrompt = enhancedPrompt.value;
 			}
 
+			// Get all selected styles
 			const selectedStyles = Array.from(document.querySelectorAll('.style-tag'))
 				.map(tag => ({
 					name: tag.getAttribute('data-name'),
@@ -1082,18 +1064,24 @@
 
 			let finalPrompt = currentPrompt;
 
+			// Apply combined styles if any are selected
 			if (selectedStyles.length > 0) {
 				const combinedStyle = combineStylePrompts(selectedStyles);
+				// Remove the outer parentheses and append after the prompt
 				const styleTraits = combinedStyle.replace(/^\((.*)\)$/, '$1');
 				finalPrompt = `${currentPrompt}, ${styleTraits}`;
 			}
 
+			// Get prepend/append text
 			const prependText = document.getElementById('prependText').value.trim();
 			const appendText = document.getElementById('appendText').value.trim();
 
+			// Add prepend text if exists
 			if (prependText) {
 				finalPrompt = `${prependText} ${finalPrompt}`;
 			}
+
+			// Add append text if exists
 			if (appendText) {
 				finalPrompt = `${finalPrompt} ${appendText}`;
 			}
@@ -1723,20 +1711,22 @@
 			});
 
 			// Connect all the event listeners
+			let isEdited = false;
+			let originalPrompt = '';
 			document.getElementById('aiEnhanceBtn').addEventListener('click', async () => {
 				const button = document.getElementById('aiEnhanceBtn');
 				const userPrompt = document.getElementById('userPrompt');
 				const enhancedPrompt = document.getElementById('enhancedPrompt');
 				
 				if (!isEdited) {
-					originalPrompt = userPrompt.value;
+					originalPrompt = userPrompt.value;  // Save original before enhancement
 					await enhancePromptWithAI();
 					button.textContent = 'RESTORE';
 					isEdited = true;
 				} else {
-					userPrompt.value = originalPrompt;
-					enhancedPrompt.value = '';
-					updatePromptPreview();
+					userPrompt.value = originalPrompt;  // Put original prompt back
+					enhancedPrompt.value = '';         // Clear the enhanced prompt
+					updatePromptPreview();             // Update the preview
 					button.textContent = 'AI-EDIT Prompt';
 					isEdited = false;
 				}
@@ -1794,20 +1784,15 @@
 
 		async function analyzeImageAndSetPrompt(imageBlob) {
 			try {
-				const img = new Image();
+				// Create canvas and display pasted image
 				const imageUrl = URL.createObjectURL(imageBlob);
-				
-				img.onload = () => {
-					currentImageData = img;
-					document.getElementById('imageOutput').innerHTML = `<canvas id="editCanvas"></canvas>`;
-					initializeCanvas(imageUrl);
-					addThumbnail(imageUrl);
-				};
-				
-				img.src = imageUrl;
+				document.getElementById('imageOutput').innerHTML = `<canvas id="editCanvas"></canvas>`;
+				initializeCanvas(imageUrl);
 
+				// Convert image to base64 for analysis
 				const base64Image = await getBase64(imageBlob);
 				
+				// Set up Vision AI analysis request
 				const prompt = "Describe the image exactly as you see it including any detected gender as well as fine details and visual styles used.";
 				const requestBody = {
 					"messages": [
@@ -1823,6 +1808,7 @@
 					"jsonMode": false
 				};
 
+				// Get image description from Vision AI
 				const response = await fetch('https://text.pollinations.ai/', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -1831,27 +1817,12 @@
 
 				const result = await response.text();
 				
-				const imageData = {
-					originalImage: img,
-					width: img.width,
-					height: img.height,
-					url: imageUrl,
-					prompts: {
-						user: result.trim(),
-						enhanced: '',
-						final: result.trim()
-					},
-					isAiEdited: false,
-					timestamp: new Date().getTime()
-				};
-				
-				imageHistory.push(imageData);
-				currentImageData = imageData;
-
+				// Update prompt input with analysis result
 				const userPrompt = document.getElementById('userPrompt');
 				userPrompt.value = result.trim();
 				userPrompt.dispatchEvent(new Event('input'));
 				
+				console.log('Image analyzed successfully');
 			} catch (error) {
 				console.error('Error analyzing image:', error);
 			}
@@ -1863,39 +1834,21 @@
         }
 
 		function addThumbnail(imageUrl) {
-			const thumbnailData = imageHistory[imageHistory.length - 1];
-			
 			const thumbnail = document.createElement('img');
 			thumbnail.src = imageUrl;
 			thumbnail.className = 'thumbnail blur-transition';
-			thumbnail.dataset.index = imageHistory.length - 1;
-			
 			thumbnail.onload = () => setTimeout(() => thumbnail.classList.add('loaded'), 100);
-			
 			thumbnail.addEventListener('click', () => {
-				const data = imageHistory[thumbnail.dataset.index];
-				
-				// Restore image
 				document.getElementById('imageOutput').innerHTML = `
-					<img src="${data.url}" alt="Generated Image" class="blur-transition loaded">
+					<img 
+						src="${imageUrl}" 
+						alt="Generated Image" 
+						class="blur-transition loaded"
+					>
 				`;
-				
-				// Restore prompts
-				document.getElementById('userPrompt').value = data.prompts.user;
-				document.getElementById('enhancedPrompt').value = data.prompts.enhanced;
-				document.getElementById('finalPrompt').textContent = data.prompts.final;
-				
-				// Update AI-EDIT button state
-				const aiEditBtn = document.getElementById('aiEnhanceBtn');
-				aiEditBtn.textContent = data.isAiEdited ? 'RESTORE' : 'AI-EDIT Prompt';
-				isEdited = data.isAiEdited;
-				
-				currentImageData = data;
 			});
-			
 			document.getElementById('thumbnailContainer').prepend(thumbnail);
 		}
-
 		
 		function setupCropBox(ratio) {
 			const canvas = document.getElementById('editCanvas');
