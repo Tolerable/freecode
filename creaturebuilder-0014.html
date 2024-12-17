@@ -332,7 +332,7 @@
 			Outfit: ["Robes", "Armor", "Natural", "Tech Suit", "Tribal Gear", "Royal", "Ethereal", "Battle Ready", "Mystical", "None"]
 		};
 
-		const AI_INSTRUCTIONS = `You are an AI assistant controlling a creature generator with these exact options: ${JSON.stringify(FEATURE_OPTIONS)}. Rules: 1. Choose only from these options. 2. When user requests changes, select closest matching options. 3. First provide a brief, vivid description of the creature that can be used as an image generation prompt. 4. Then on a new line after your description, add your settings in this format: SETTINGS:Eyes:[option],Nose:[option],Ears:[option],Hair:[option],Type:[option],Background:[option],Style:[option],Style2:[option],Item:[option],Outfit:[option]. 5. The ANALYZE command can be used on its own line to receive a description of how the current creature appears. Example response: A mystical feline creature with alien-like glowing eyes, perched in an ancient forest clearing. Its elegant crystal horns catch the morning light while mystical runes dance around an ancient staff in its grasp. SETTINGS:Eyes:Glowing,Nose:Dragon-like,Ears:Horn-like,Hair:Crystal,Type:Feline,Background:Forest,Style:Mythical,Style2:Magical,Item:Staff,Outfit:Mystical`;
+		const AI_INSTRUCTIONS = `You are an AI assistant controlling a creature generator with these exact options: ${JSON.stringify(FEATURE_OPTIONS)}. Rules: 1. Choose only from these options. 2. When user requests changes, select closest matching options. 3. First provide a brief, vivid description of the creature that can be used as an image generation prompt. 4. Then on a new line after your description, add your settings in this format: SETTINGS:Eyes:[option],Nose:[option],Ears:[option],Hair:[option],Type:[option],Background:[option],Style:[option],Style2:[option],Item:[option],Outfit:[option]. Example response: A mystical feline creature with alien-like glowing eyes, perched in an ancient forest. Its curly fur shimmers with an otherworldly iridescence, while its large ears twitch at every sound. SETTINGS:Eyes:Alien,Nose:Beak-like,Ears:Large,Hair:Curly,Type:Feline,Background:Forest,Style:Fantasy`;
 
         function updateFeature(type, value) {
             const option = document.querySelector(`[data-type="${type}"]`);
@@ -406,26 +406,21 @@
 		}
 
 		function parseAIResponse(response_text) {
-			const lines = response_text.split('\n');
-			let description = [];
-			
-			for (const line of lines) {
-				if (line.startsWith('SETTINGS:')) {
-					const settingsParts = line.split(',');
-					settingsParts.forEach(setting => {
-						const [feature, value] = setting.split(':');
-						if (FEATURE_OPTIONS[feature] && FEATURE_OPTIONS[feature].includes(value)) {
-							updateFeature(feature, value);
-						}
-					});
-					generateCreature();
-				} else if (line.trim() === 'ANALYZE') {
-					analyzeCreature();
-				} else {
-					description.push(line);
-				}
+			const hasSettings = response_text.includes('SETTINGS:');
+			if (hasSettings) {
+				const [description, settings] = response_text.split('SETTINGS:');
+				const settingsParts = settings.split(',');
+				settingsParts.forEach(setting => {
+					const [feature, value] = setting.split(':');
+					if (FEATURE_OPTIONS[feature] && FEATURE_OPTIONS[feature].includes(value)) {
+						updateFeature(feature, value);
+					}
+				});
+				generateCreature();
+				// Only show the description part in chat
+				return description.trim();
 			}
-			return description.join('\n').trim();
+			return response_text;
 		}
 
         function generateCreature() {
