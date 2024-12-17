@@ -485,13 +485,7 @@
 
 			try {
 				const base64Image = await imageToBase64(creatureImage.src);
-				const currentSettings = getCurrentSettings();
-				const settingsStr = Object.entries(currentSettings)
-					.map(([key, value]) => `${key}:${value}`)
-					.join(',');
-
-				const prompt = `Current settings are: SETTINGS:${settingsStr}\nDescribe EXACTLY everything you see in this image including gender and rendering styles used.`;
-				
+				const prompt = "Describe EXACTLY everything you see in this image including gender and rendering styles used.";
 				const requestBody = {
 					"messages": [
 						{
@@ -518,13 +512,6 @@
 				console.error('Error analyzing creature:', error);
 				return null;
 			}
-		}
-
-		// Add this helper function to check if settings actually changed
-		function didSettingsChange(oldSettings, newSettings) {
-			return Object.entries(newSettings).some(([key, value]) => 
-				oldSettings[key] !== value
-			);
 		}
 
 		// Store creature history in localStorage
@@ -792,13 +779,20 @@
 				chatOutput.innerHTML += `<p><strong>You:</strong> ${userMessage}</p>`;
 				chatOutput.scrollTop = chatOutput.scrollHeight;
 
-				// Get current settings
-				const currentSettings = getCurrentSettings();
+				// Get CURRENT settings right before sending message
+				const currentSettings = {};
+				document.querySelectorAll('.option').forEach(option => {
+					const type = option.dataset.type;
+					const choice = option.querySelector('.choice').textContent;
+					currentSettings[type] = choice;
+				});
+
+				// Format settings string
 				const settingsStr = Object.entries(currentSettings)
 					.map(([key, value]) => `${key}:${value}`)
 					.join(',');
 
-				// Include settings context in every message
+				// Include CURRENT settings with every message
 				const response = await fetch('https://text.pollinations.ai/', {
 					method: 'POST',
 					headers: {
@@ -812,7 +806,7 @@
 							},
 							{
 								role: 'system',
-								content: `Current settings are: SETTINGS:${settingsStr}`
+								content: `Current settings are: SETTINGS:${settingsStr}`  // Add current settings as system context
 							},
 							{
 								role: 'user',
@@ -823,7 +817,6 @@
 						private: true
 					})
 				});
-
 				const response_text = await response.text();
 				const display_text = await parseAIResponse(response_text, userMessage);
 				chatOutput.innerHTML += `<p><strong>AI:</strong> ${display_text}</p>`;
@@ -832,7 +825,7 @@
 				console.error('Error:', error);
 				chatOutput.innerHTML += `<p><strong>Error:</strong> Failed to get AI response</p>`;
 			}
-		}	
+		}		
 		
 		function generateCreature() {
 			const selectedFeatures = {};
@@ -866,24 +859,12 @@
 
 		document.addEventListener('settingsUpdated', (event) => {
 			const settings = event.detail.settings;
-			console.log('Settings updated:', settings);
+			console.log('Settings updated:', settings); // For debugging
 			
-			// Format settings for AI context
-			const settingsStr = Object.entries(settings)
-				.map(([key, value]) => `${key}:${value}`)
-				.join(',');
-			
-			// Add to chat output to maintain context
-			const chatOutput = document.getElementById('chat-output');
-			chatOutput.innerHTML += `<p><strong>System:</strong> Settings updated to: ${settingsStr}</p>`;
-			chatOutput.scrollTop = chatOutput.scrollHeight;
-			
-			// Store current context for AI
-			localStorage.setItem('currentAIContext', JSON.stringify({
-				settings: settings,
-				lastUpdate: Date.now()
-			}));
+			// You can add any additional handling here that needs to occur
+			// when settings are updated, such as updating the AI context
 		});
+
         document.querySelectorAll('.option').forEach(option => {
             const type = option.dataset.type;
             const choices = FEATURE_OPTIONS[type];
