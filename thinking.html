@@ -124,37 +124,37 @@
             padding-left: 10px;
         }
 
-        .thinking-step {
-            margin: 8px 0;
-            padding: 8px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-        }
+		.thinking-step {
+			margin: 8px 0;
+			padding: 8px;
+			background: #f8f9fa;
+			border-radius: 6px;
+			transition: all 0.3s ease;
+		}
 
-        .thinking-chain {
-            display: none;
-            margin-top: 10px;
-        }
+		.thinking-chain {
+			display: none;
+			margin-top: 10px;
+		}
 
-        .thinking-chain.expanded {
-            display: block;
-        }
+		.thinking-chain.expanded {
+			display: block;
+		}
 
-        .expand-thinking {
-            cursor: pointer;
-            color: #0095ff;
-            font-size: 0.9em;
-            margin-top: 8px;
-        }
+		.expand-thinking {
+			cursor: pointer;
+			color: #0095ff;
+			font-size: 0.9em;
+			margin-top: 8px;
+		}
 
-        .chat-input-container {
-            padding: 20px;
-            background: #f8f9fa;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 10px;
-        }
+		.chat-input-container {
+			padding: 20px;
+			background: #f8f9fa;
+			border-top: 1px solid #eee;
+			display: flex;
+			gap: 10px;
+		}
 
         .chat-input-container {
             padding: 20px;
@@ -261,31 +261,43 @@
 
             createMessageElement(content, isUser, thinkingChain = null) {
                 const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
-                
-                if (thinkingChain) {
-                    const thinkingContent = document.createElement('div');
-                    thinkingContent.className = 'thinking-chain';
-                    thinkingContent.innerHTML = `
-                        <div class="thinking-section">
-                            <h3>Initial Response</h3>
-                            <div class="content">${thinkingChain.initialResponse}</div>
-                        </div>
-                        <div class="thinking-section">
-                            <h3>User Experience</h3>
-                            <div class="content">${thinkingChain.userExperience}</div>
-                        </div>
-                        <div class="thinking-section">
-                            <h3>Reasoning</h3>
-                            <div class="content">${thinkingChain.refinementRationale}</div>
-                        </div>
-                    `;
+                messageDiv.className = `message ${isUser ? 'user-message' : ''}`;
+
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'message-avatar';
+                const img = document.createElement('img');
+                img.src = 'https://www.gravatar.com/avatar/?d=mp';
+                img.alt = isUser ? 'User' : 'AI';
+                avatarDiv.appendChild(img);
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = content;
+
+                if (thinkingChain && thinkingChain.length > 0) {
+                    const expandButton = document.createElement('div');
+                    expandButton.className = 'expand-thinking';
+                    expandButton.textContent = '💭 Show thinking process';
                     
-                    messageDiv.textContent = content;
-                    messageDiv.appendChild(thinkingContent);
-                } else {
-                    messageDiv.textContent = content;
+                    const thinkingDiv = document.createElement('div');
+                    thinkingDiv.className = 'thinking-chain';
+                    thinkingDiv.innerHTML = thinkingChain.map(t => 
+                        `<div style="margin-bottom: 8px;"><strong>${t.perspective}:</strong><br>${t.thought}</div>`
+                    ).join('');
+                    
+                    expandButton.onclick = () => {
+                        thinkingDiv.classList.toggle('expanded');
+                        expandButton.textContent = thinkingDiv.classList.contains('expanded') 
+                            ? '💭 Hide thinking process' 
+                            : '💭 Show thinking process';
+                    };
+                    
+                    contentDiv.appendChild(expandButton);
+                    contentDiv.appendChild(thinkingDiv);
                 }
+
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(contentDiv);
                 
                 return messageDiv;
             },
