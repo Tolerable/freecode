@@ -620,7 +620,7 @@
 					censored: false,
 					baseModel: true,
 					traits: {
-						supportsStreaming: true,
+						supportsStreaming: false,
 						needsContext: false,
 						usesChatFormat: true,
 						usesCompletion: false,
@@ -810,35 +810,38 @@
 				const response = await this.client.sendMessage(model, content);
 				const reader = response.body.getReader();
 				const decoder = new TextDecoder();
-				
+
 				let assistantMessage = document.createElement('div');
 				assistantMessage.className = 'message assistant';
 				assistantMessage.innerHTML = '<div class="message-content"></div>';
 				this.chatContainer.appendChild(assistantMessage);
-				
+
 				let fullResponse = '';
-				
+
 				while (true) {
 					const { done, value } = await reader.read();
 					if (done) break;
-					
-					const chunk = decoder.decode(value);
+
+					const chunk = decoder.decode(value); // Directly decode the text response
 					fullResponse += chunk;
-					
+
 					const messageContent = assistantMessage.querySelector('.message-content');
 					messageContent.innerHTML = marked.parse(fullResponse);
 					this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-					
+
+					// Syntax highlighting
 					messageContent.querySelectorAll('pre code').forEach((block) => {
 						hljs.highlightBlock(block);
 					});
 				}
-				
-				this.client.sessionMessages.push({ 
-					role: 'assistant', 
-					content: fullResponse
+
+				// Save the full response
+				this.client.sessionMessages.push({
+					role: 'assistant',
+					content: fullResponse,
 				});
 			}
+
 
 			createSessionTitle(firstMessage) {
 				let title = firstMessage.split('\n')[0];
