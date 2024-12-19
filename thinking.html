@@ -225,21 +225,6 @@
             input: null,
             sendButton: null,
 
-			analysisSteps: [
-				{
-					name: "Context Understanding",
-					prompt: "Analyze if this response is appropriate for the context and user's intent. Is it too verbose or too brief? Does it match the tone the user is expecting?"
-				},
-				{
-					name: "User Experience",
-					prompt: "How might the user feel receiving this response? Is it engaging without being overwhelming? Is it helpful and clear?"
-				},
-				{
-					name: "Refinement",
-					prompt: "Based on the previous analysis, how could we improve this response to be more effective while maintaining natural conversation?"
-				}
-			],
-	
             thinkingIndicator: {
                 create() {
                     const div = document.createElement('div');
@@ -257,7 +242,7 @@
                         </div>
                     `;
                     return div;
-                },
+                }
             },
 
             init() {
@@ -265,218 +250,214 @@
                 this.input = document.getElementById('messageInput');
                 this.sendButton = document.getElementById('sendButton');
                 this.setupEventListeners();
-            }
+            },
 
             setupEventListeners() {
                 this.sendButton.addEventListener('click', () => this.sendMessage());
                 this.input.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') this.sendMessage();
                 });
+            },
+
+            createMessageElement(content, isUser, thinkingChain = null) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isUser ? 'user-message' : ''}`;
+
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'message-avatar';
+                const img = document.createElement('img');
+                img.src = 'https://www.gravatar.com/avatar/?d=mp';
+                img.alt = isUser ? 'User' : 'AI';
+                avatarDiv.appendChild(img);
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = content;
+
+                if (thinkingChain && thinkingChain.length > 0) {
+                    const expandButton = document.createElement('div');
+                    expandButton.className = 'expand-thinking';
+                    expandButton.textContent = '💭 Show thinking process';
+                    
+                    const thinkingDiv = document.createElement('div');
+                    thinkingDiv.className = 'thinking-chain';
+                    thinkingDiv.innerHTML = thinkingChain.map(t => 
+                        `<div style="margin-bottom: 8px;"><strong>${t.perspective}:</strong><br>${t.thought}</div>`
+                    ).join('');
+                    
+                    expandButton.onclick = () => {
+                        thinkingDiv.classList.toggle('expanded');
+                        expandButton.textContent = thinkingDiv.classList.contains('expanded') 
+                            ? '💭 Hide thinking process' 
+                            : '💭 Show thinking process';
+                    };
+                    
+                    contentDiv.appendChild(expandButton);
+                    contentDiv.appendChild(thinkingDiv);
+                }
+
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(contentDiv);
+                
+                return messageDiv;
+            },
+
+            analysisSteps: [
+                {
+                    name: "Context Understanding",
+                    prompt: "Analyze if this response is appropriate for the context and user's intent. Is it too verbose or too brief? Does it match the tone the user is expecting?"
+                },
+                {
+                    name: "User Experience",
+                    prompt: "How might the user feel receiving this response? Is it engaging without being overwhelming? Is it helpful and clear?"
+                },
+                {
+                    name: "Refinement",
+                    prompt: "Based on the previous analysis, how could we improve this response to be more effective while maintaining natural conversation?"
+                }
+            ],
+
+            async processThinking(initialResponse, message) {
+                let currentResponse = initialResponse;
+                const thinkingChain = [];
+
+                try {
+                    // Step 1: Analyze context
+                    const contextResponse = await fetch('https://text.pollinations.ai/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages: [
+                                { role: 'system', content: 'You are analyzing message context. Start analysis with the message content directly, not with "yes" or references to previous analysis.' },
+                                { role: 'user', content: `Message: "${message}"\nAnalyze this message and its intent.` }
+                            ]
+                        })
+                    });
+                    
+                    const contextAnalysis = await contextResponse.text();
+                    thinkingChain.push({
+                        perspective: "Context Understanding",
+                        thought: contextAnalysis
+                    });
+
+                    // Step 2: Consider user experience
+                    const uxResponse = await fetch('https://text.pollinations.ai/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages: [
+                                { role: 'system', content: 'You are analyzing user experience. Start with the direct impact on the user, not with references to analysis.' },
+                                { role: 'user', content: `Based on this message: "${message}"\nHow would the user likely feel about a response of: "${currentResponse}"?` }
+                            ]
+                        })
+                    });
+
+                    const uxAnalysis = await uxResponse.text();
+                    thinkingChain.push({
+                        perspective: "User Experience",
+                        thought: uxAnalysis
+                    });
+
+                    // Step 3: Generate refined response
+                    const refinementResponse = await fetch('https://text.pollinations.ai/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages: [
+                                { role: 'system', content: 'You are crafting a brief, natural response. Keep it conversational and concise.' },
+                                { role: 'user', content: `Message: "${message}"\nContext Analysis: "${contextAnalysis}"\nUX Analysis: "${uxAnalysis}"\n\nGenerate a brief, natural response that addresses these insights. Keep it under 2 sentences.` }
+                            ]
+                        })
+                    });
+
+                    const refinedResponse = await refinementResponse.text();
+                    thinkingChain.push({
+                        perspective: "Refinement",
+                        thought: `Initial response: "${currentResponse}"\nRefined to: "${refinedResponse}"`
+                    });
+                    
+                    currentResponse = refinedResponse;
+
+                    return {
+                        finalResponse: currentResponse,
+                        thinkingChain: thinkingChain
+                    };
+                } catch (error) {
+                    console.error('Error in thinking chain:', error);
+                    return {
+                        finalResponse: "I apologize, but I encountered an error processing your message.",
+                        thinkingChain: [{
+                            perspective: "Error",
+                            thought: "Error occurred during processing: " + error.message
+                        }]
+                    };
+                }
+
+                return {
+                    finalResponse: currentResponse,
+                    thinkingChain: thinkingChain
+                };
+            },
+
+            async sendMessage() {
+                const message = this.input.value.trim();
+                if (!message) return;
+
+                // Add user message immediately
+                this.messageContainer.appendChild(
+                    this.createMessageElement(message, true)
+                );
+
+                // Clear input and scroll
+                this.input.value = '';
+                this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
+
+                // Show thinking indicator
+                const thinkingIndicator = this.thinkingIndicator.create();
+                this.messageContainer.appendChild(thinkingIndicator);
+
+                try {
+                    const initialResponse = await fetch('https://text.pollinations.ai/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages: [
+                                { role: 'system', content: 'You are a helpful assistant. Keep responses natural and conversational.' },
+                                { role: 'assistant', content: 'I aim to be helpful and clear.' },
+                                { role: 'user', content: message }
+                            ],
+                            model: 'openai',
+                            jsonMode: false
+                        })
+                    });
+
+                    if (!initialResponse.ok) {
+                        throw new Error(`HTTP error! status: ${initialResponse.status}`);
+                    }
+                    
+                    const initialResponseText = await initialResponse.text();
+
+                    // Remove thinking indicator
+                    this.messageContainer.removeChild(thinkingIndicator);
+
+                    // Process thinking chain
+                    const { finalResponse, thinkingChain } = await this.processThinking(initialResponseText, message);
+
+                    // Add final AI response with thinking chain
+                    this.messageContainer.appendChild(
+                        this.createMessageElement(finalResponse, false, thinkingChain)
+                    );
+                    this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.messageContainer.removeChild(thinkingIndicator);
+                    this.messageContainer.appendChild(
+                        this.createMessageElement('Sorry, there was an error processing your message.', false)
+                    );
+                    this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
+                }
             }
-
-			createMessageElement(content, isUser, thinkingChain = null) {
-				const messageDiv = document.createElement('div');
-				messageDiv.className = `message ${isUser ? 'user-message' : ''}`;
-
-				const avatarDiv = document.createElement('div');
-				avatarDiv.className = 'message-avatar';
-				const img = document.createElement('img');
-				img.src = 'https://www.gravatar.com/avatar/?d=mp';
-				img.alt = isUser ? 'User' : 'AI';
-				avatarDiv.appendChild(img);
-
-				const contentDiv = document.createElement('div');
-				contentDiv.className = 'message-content';
-				contentDiv.textContent = content;
-
-				if (thinkingChain && thinkingChain.length > 0) {
-					const expandButton = document.createElement('div');
-					expandButton.className = 'expand-thinking';
-					expandButton.textContent = '💭 Show thinking process';
-
-					const thinkingDiv = document.createElement('div');
-					thinkingDiv.className = 'thinking-chain';
-					thinkingDiv.innerHTML = thinkingChain.map(t =>
-						`<div style="margin-bottom: 8px;"><strong>${t.perspective}:</strong><br>${t.thought}</div>`
-					).join('');
-
-					expandButton.onclick = () => {
-						thinkingDiv.classList.toggle('expanded');
-						expandButton.textContent = thinkingDiv.classList.contains('expanded')
-							? '💭 Hide thinking process'
-							: '💭 Show thinking process';
-					};
-
-					contentDiv.appendChild(expandButton);
-					contentDiv.appendChild(thinkingDiv);
-				}
-
-
-				messageDiv.appendChild(avatarDiv);
-				messageDiv.appendChild(contentDiv);
-				
-				return messageDiv;
-			},
-
-			async processThinking(initialResponse, message) {
-				const thinkingChain = [];
-
-				try {
-					// Step 1: Analyze context
-					const contextResponse = await fetch('https://text.pollinations.ai/', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							messages: [
-								{ role: 'system', content: 'You are analyzing message context. Begin analysis with direct insights, not meta-commentary.' },
-								{ role: 'user', content: `Message: "${message}"\nAnalyze the intent and context of this message.` }
-							]
-						})
-					});
-
-					const contextAnalysis = await contextResponse.text();
-					thinkingChain.push({
-						perspective: "Context Understanding",
-						thought: contextAnalysis
-					});
-
-					// Step 2: Include the initial response in the chain
-					thinkingChain.push({
-						perspective: "Initial Response Draft",
-						thought: initialResponse
-					});
-
-					// Step 3: Analyze user experience
-					const uxResponse = await fetch('https://text.pollinations.ai/', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							messages: [
-								{ role: 'system', content: 'You are analyzing the user experience of a response. Provide actionable insights, not abstract observations.' },
-								{ role: 'user', content: `Message: "${message}"\nResponse: "${initialResponse}"\nHow might the user perceive this response?` }
-							]
-						})
-					});
-
-					const uxAnalysis = await uxResponse.text();
-					thinkingChain.push({
-						perspective: "User Experience Analysis",
-						thought: uxAnalysis
-					});
-
-					// Step 4: Refine the response
-					const refinementResponse = await fetch('https://text.pollinations.ai/', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							messages: [
-								{ role: 'system', content: 'You are generating a refined response. Focus on clarity and user engagement.' },
-								{ role: 'user', content: `Message: "${message}"\nContext Analysis: "${contextAnalysis}"\nUX Analysis: "${uxAnalysis}"\nRefine the initial response based on these insights in under 2 sentences.` }
-							]
-						})
-					});
-
-					const refinedResponse = await refinementResponse.text();
-					thinkingChain.push({
-						perspective: "Final Refined Response",
-						thought: refinedResponse
-					});
-
-					return {
-						finalResponse: refinedResponse,
-						thinkingChain: thinkingChain
-					};
-
-				} catch (error) {
-					console.error('Error in thinking chain:', error);
-
-					// Append error information to the thinking chain for transparency
-					thinkingChain.push({
-						perspective: "Error",
-						thought: `An error occurred: ${error.message}`
-					});
-
-					return {
-						finalResponse: "I apologize, but I encountered an error while processing your message.",
-						thinkingChain: thinkingChain
-					};
-				}
-			},
-
-
-			async sendMessage() {
-				const message = this.input.value.trim();
-				if (!message) return;
-
-				// Add the user's message to the chat immediately
-				this.messageContainer.appendChild(
-					this.createMessageElement(message, true)
-				);
-
-				// Clear the input field and scroll to the bottom of the chat
-				this.input.value = '';
-				this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
-
-				// Show the "thinking" indicator while processing the message
-				const thinkingIndicator = this.thinkingIndicator.create();
-				this.messageContainer.appendChild(thinkingIndicator);
-
-				try {
-					// Fetch the initial response from the AI model
-					const initialResponse = await fetch('https://text.pollinations.ai/', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							messages: [
-								{ role: 'system', content: 'You are a helpful assistant. Keep responses natural and conversational.' },
-								{ role: 'assistant', content: 'I aim to be helpful and clear.' },
-								{ role: 'user', content: message }
-							],
-							model: 'openai',
-							jsonMode: false
-						})
-					});
-
-					// Check for HTTP response errors
-					if (!initialResponse.ok) {
-						throw new Error(`HTTP error! status: ${initialResponse.status}`);
-					}
-
-					const initialResponseText = await initialResponse.text();
-
-					// Process the thinking chain and refine the AI's response
-					const { finalResponse, thinkingChain } = await this.processThinking(initialResponseText, message);
-
-					// Remove the "thinking" indicator after processing
-					this.messageContainer.removeChild(thinkingIndicator);
-
-					// Add the AI's response along with the thinking chain
-					this.messageContainer.appendChild(
-						this.createMessageElement(finalResponse, false, thinkingChain)
-					);
-
-					// Scroll to the bottom of the chat to display the latest message
-					this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
-
-				} catch (error) {
-					// Handle any errors that occur during the process
-					console.error('Error processing message:', error);
-
-					// Remove the "thinking" indicator if it's still present
-					if (this.messageContainer.contains(thinkingIndicator)) {
-						this.messageContainer.removeChild(thinkingIndicator);
-					}
-
-					// Display an error message in the chat
-					this.messageContainer.appendChild(
-						this.createMessageElement('Sorry, there was an error processing your message. Please try again.', false)
-					);
-
-					// Scroll to the bottom of the chat to display the error message
-					this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
-				}
-			}
-
         };
 
         document.addEventListener('DOMContentLoaded', () => chatInterface.init());
