@@ -380,20 +380,18 @@
 								},
 								{ 
 									role: 'user', 
-									content: `Original: "${initialResponse}"\nContext: "${contextAnalysis}"\nUX: "${uxAnalysis}"\n\nAnalyze how this response should be improved, then provide the improved response.` 
-								}
+									content: `Previous conversation:\n${previousExchanges}\n\nCurrent exchange:\nUser: "${message}"\nProposed response: "${initialResponse}"\nContext Analysis: "${contextAnalysis}"\nUX Analysis: "${uxAnalysis}"\n\nAnalyze how this response should be improved considering the conversation context, then provide the improved response.` }
 							]
 						})
 					});
 
 					const fullText = await refinementResponse.text();
 					
-					// Simpler, more robust parsing
+					// Simple but robust parsing
 					const [reasoning, ...responseParts] = fullText.split('RESPONSE:');
+					let finalResponse = responseParts.join('RESPONSE:').trim();
 					
-					let finalResponse = responseParts.join('RESPONSE:').trim();  // Rejoin in case 'RESPONSE:' appears in the actual response
-					
-					// Clean up any markdown or trailing analysis
+					// Clean up formatting
 					finalResponse = finalResponse
 						.replace(/\*\*/g, '')
 						.replace(/(?:\r\n|\r|\n).*(?:This response|The response).*/g, '')
@@ -406,7 +404,11 @@
 					
 					return {
 						finalResponse: finalResponse,
-						thinkingChain: thinkingChain
+						thinkingChain: thinkingChain,
+						interaction: {
+							query: message,
+							response: finalResponse
+						}
 					};
 				} catch (error) {
 					console.error('Error in thinking chain:', error);
@@ -415,7 +417,11 @@
 						thinkingChain: [{
 							perspective: "Error",
 							thought: "Error occurred during processing: " + error.message
-						}]
+						}],
+						interaction: {
+							query: message,
+							response: "Error processing message"
+						}
 					};
 				}
 			},
