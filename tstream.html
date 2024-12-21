@@ -310,32 +310,38 @@
         </div>
 
 		<div id="filterControls" style="display: none;">
-			<div class="filter-item">
-				<input type="checkbox" id="strictMode">
-				<label for="strictMode">Show ONLY included items (hide everything else)</label>
-			</div>
-			<div class="filter-item">
-				<input type="checkbox" class="filter-checkbox" data-filter="prompt" id="promptFilter">
-				<label for="promptFilter">Filter "Prompt:"</label>
-				<select class="button" id="promptMode">
-					<option value="exclude">Exclude</option>
-					<option value="include">Include</option>
-				</select>
-			</div>
-			<div class="filter-item">
-				<input type="checkbox" class="filter-checkbox" data-filter="newprompt" id="newpromptFilter">
-				<label for="newpromptFilter">Filter "New Prompt:"</label>
-				<select class="button" id="newpromptMode">
-					<option value="exclude">Exclude</option>
-					<option value="include">Include</option>
-				</select>
-			</div>
-			<div class="filter-item">
-				<input type="text" class="filter-input" id="customFilter" placeholder="Add custom filter">
-				<button class="button" id="addFilter">Add</button>
-			</div>
-			<div id="customFilters"></div>
-		</div>
+            <div class="filter-item" style="width: 100%; margin-bottom: 10px;">
+                <label>
+                    <input type="checkbox" id="strictMode">
+                    Show ONLY included items (hide everything else)
+                </label>
+            </div>
+            <div class="filter-item">
+                <label>
+                    <input type="checkbox" class="filter-checkbox" data-filter="prompt">
+                    Filter "Prompt:"
+                </label>
+                <select class="button filter-mode">
+                    <option value="exclude">Exclude</option>
+                    <option value="include">Include</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label>
+                    <input type="checkbox" class="filter-checkbox" data-filter="newprompt">
+                    Filter "New Prompt:"
+                </label>
+                <select class="button filter-mode">
+                    <option value="exclude">Exclude</option>
+                    <option value="include">Include</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <input type="text" class="filter-input" id="customFilter" placeholder="Add custom filter">
+                <button class="button" id="addFilter">Add</button>
+            </div>
+            <div id="customFilters"></div>
+        </div>
 
         <div id="displayContainer">
             <div id="page1" class="page"></div>
@@ -947,44 +953,44 @@
 		}
 
         // Event Listeners
-        toggleFilters.onclick = () => {
-            filterControls.style.display = filterControls.style.display === 'none' ? 'flex' : 'none';
-            toggleFilters.textContent = filterControls.style.display === 'none' ? 'Show Filters' : 'Hide Filters';
-        };
+		toggleFilters.onclick = () => {
+			filterControls.style.display = filterControls.style.display === 'none' ? 'flex' : 'none';
+			toggleFilters.textContent = filterControls.style.display === 'none' ? 'Show Filters' : 'Hide Filters';
+		};
 
-        document.querySelectorAll('.filter-checkbox').forEach(checkbox => {
-            checkbox.onchange = () => {
-                const filterType = checkbox.dataset.filter;
-                const filterText = filterType === 'prompt' ? 'Prompt:' : 'New Prompt:';
-                const filterDiv = checkbox.closest('.filter-item');
-                const modeSelect = filterDiv.querySelector('.filter-mode');
-                
-                if (checkbox.checked) {
-                    activeFilters.add({ text: filterText, mode: modeSelect.value });
-                } else {
-                    activeFilters.delete(Array.from(activeFilters)
-                        .find(f => f.text === filterText));
-                }
-                updateDisplay();
-            };
-        });
+		document.querySelectorAll('.filter-checkbox').forEach(checkbox => {
+			checkbox.onchange = () => {
+				const filterType = checkbox.dataset.filter;
+				const filterText = filterType === 'prompt' ? 'Prompt:' : 'New Prompt:';
+				const filterDiv = checkbox.closest('.filter-item');
+				const modeSelect = filterDiv.querySelector('.filter-mode');
+				
+				if (checkbox.checked) {
+					activeFilters.add({ text: filterText, mode: modeSelect.value });
+				} else {
+					activeFilters.delete(Array.from(activeFilters)
+						.find(f => f.text === filterText));
+				}
+				updateDisplay();
+			};
+		});
+		
+		document.getElementById('strictMode').onchange = (e) => {
+			isStrictMode = e.target.checked;
+			updateDisplay();
+		};
 
-        document.getElementById('strictMode').onchange = (e) => {
-            isStrictMode = e.target.checked;
-            updateDisplay();
-        };
-
-        addFilterBtn.onclick = () => {
-            const filterText = customFilterInput.value.trim();
-            if (filterText && !Array.from(customFiltersList).some(f => f.text === filterText)) {
-                const newFilter = { text: filterText, mode: 'exclude' };
-                customFiltersList.add(newFilter);
-                activeFilters.add(newFilter);
-                addFilterToUI(newFilter);
-                customFilterInput.value = '';
-                updateDisplay();
-            }
-        };
+		addFilterBtn.onclick = () => {
+			const filterText = customFilterInput.value.trim();
+			if (filterText && !Array.from(customFiltersList).some(f => f.text === filterText)) {
+				const newFilter = { text: filterText, mode: 'exclude' };
+				customFiltersList.add(newFilter);
+				activeFilters.add(newFilter);
+				addFilterToUI(newFilter);
+				customFilterInput.value = '';
+				updateDisplay();
+			}
+		};
 
         layoutToggle.onclick = toggleLayout;
 
@@ -1018,59 +1024,67 @@
 
         const evtSource = new EventSource('https://text.pollinations.ai/feed');
         
-        evtSource.onmessage = function(event) {
-            if (isPaused) return;
+		evtSource.onmessage = function(event) {
+			if (isPaused) return;
 
-            try {
-                const data = JSON.parse(event.data);
-                if (!data.response) return;
+			try {
+				const data = JSON.parse(event.data);
+				if (!data.response) return;
 
-                let currentPageArray = allPages[allPages.length - 1];
-                
-                // First add the new item
-                currentPageArray.push(data.response);
-                
-                // Get count of visible items on current page after filtering
-                const visibleItems = currentPageArray.filter(shouldDisplayText).length;
-                
-                // Only create new page if we have ITEMS_PER_PAGE visible items
-                if (visibleItems >= ITEMS_PER_PAGE) {
-                    if (allPages.length < MAX_PAGES) {
-                        currentPageArray = [];
-                        allPages.push(currentPageArray);
-                    } else {
-                        allPages.splice(0, PAGES_PER_BLOCK);
-                        currentPageArray = [];
-                        allPages.push(currentPageArray);
-                        if (currentPage > PAGES_PER_BLOCK) {
-                            currentPage -= PAGES_PER_BLOCK;
-                        } else {
-                            currentPage = 1;
-                        }
-                        status.textContent = 'Removed oldest block of pages';
-                        status.style.color = '#ffaa00';
-                        setTimeout(() => {
-                            status.textContent = 'Stream Active';
-                            status.style.color = '#4aff4a';
-                        }, 2000);
-                    }
-                }
-                
-                const currentBlock = Math.ceil(currentPage / PAGES_PER_BLOCK);
-                const totalBlocks = Math.ceil(allPages.length / PAGES_PER_BLOCK);
-                
-                if (currentBlock === totalBlocks) {
-                    updateDisplay();
-                }
-            } catch (e) {
-                console.error('Error:', e);
-            }
-        };
+				let currentPageArray = allPages[allPages.length - 1];
+				
+				// First add the new item
+				currentPageArray.push(data.response);
+				
+				// Get count of visible items on current page after filtering
+				const visibleItems = currentPageArray.filter(shouldDisplayText).length;
+				
+				// Only create new page if we have ITEMS_PER_PAGE visible items
+				if (visibleItems >= ITEMS_PER_PAGE) {
+					// Only create new page if we haven't reached max pages
+					if (allPages.length < MAX_PAGES) {
+						currentPageArray = [];
+						allPages.push(currentPageArray);
+					} else {
+						// We've reached max pages (150), time to shift blocks
+						// Remove first block (pages 1-50)
+						allPages.splice(0, PAGES_PER_BLOCK);
+						
+						// Create new page at the end
+						currentPageArray = [];
+						allPages.push(currentPageArray);
+						
+						// Adjust current page if needed
+						if (currentPage > PAGES_PER_BLOCK) {
+							currentPage -= PAGES_PER_BLOCK;
+						} else {
+							// Only force to page 1 if we're in the block being removed
+							currentPage = 1;
+						}
+						
+						status.textContent = 'Removed oldest block of pages';
+						status.style.color = '#ffaa00';
+						setTimeout(() => {
+							status.textContent = 'Stream Active';
+							status.style.color = '#4aff4a';
+						}, 2000);
+					}
+				}
+				
+				// Only update display if we're viewing the latest block
+				const currentBlock = Math.ceil(currentPage / PAGES_PER_BLOCK);
+				const totalBlocks = Math.ceil(allPages.length / PAGES_PER_BLOCK);
+				
+				if (currentBlock === totalBlocks) {
+					updateDisplay();
+				}
+			} catch (e) {
+				console.error('Error:', e);
+			}
+		};
 
         // Initial display
         updateDisplay();
-        });
-
     </script>
 </body>
 </html>
