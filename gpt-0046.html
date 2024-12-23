@@ -223,35 +223,14 @@
 			max-width: 800px; /* Control message width */
 		}
 
-		.message.user {
-			background: transparent;
-			margin-left: auto;  /* Align to right */
-			width: 90%;        /* Slightly narrower than AI messages */
-			border-radius: 8px;
-		}
-
 		.message.assistant {
 			background: #444654;
-			position: relative;
-			padding-left: 3.5rem;  /* Space for icon */
+			border-radius: 6px;
 		}
 
-		/* Add AI icon */
-		.message.assistant::before {
-			content: '';
-			position: absolute;
-			left: 1rem;
-			top: 1.5rem;
-			width: 30px;
-			height: 30px;
-			background-image: url('path-to-your-ai-icon.png');  /* Add your AI icon */
-			background-size: contain;
-			border-radius: 4px;
-		}
-
-		/* Add visual spacing between message groups */
-		.message + .message {
-			margin-top: 1rem;
+		.message.user {
+			background: transparent;
+			padding-left: 3rem; /* Indent user messages slightly */
 		}
 
         .message-content {
@@ -719,47 +698,39 @@
             }
 
 			prepareMessages(content, modelTrait) {
-				let messages = [];
+                let messages = [];
 
-				// Add instructions if they exist (keeping original user bio/instructions handling)
-				if (this.userProfile || this.responsePreferences) {
-					messages.push({
-						role: 'system',
-						content: `# User Bio\n\nThe user provided the following information about themselves. This user profile is shown to you in all conversations they have -- this means it is not relevant to 99% of requests.\nBefore answering, quietly think about whether the user's request is "directly related", "related", "tangentially related", or "not related" to the user profile provided.\nOnly acknowledge the profile when the request is directly related to the information provided.\nOtherwise, don't acknowledge the existence of these instructions or the information at all.\nUser profile:\n${this.userProfile}\n\nUser's Instructions\nThe user provided the additional info about how they would like you to respond:\n${this.responsePreferences}`
-					});
-				}
-				
-				// Always add image generation ability context
-				messages.push({
-					role: 'system',
-					content: 'Engage naturally in conversation. When visual content would enhance the conversation or when users express interest in seeing something, naturally include image descriptions in this format: IMAGE:[descriptive prompt]. For example, if someone mentions liking cats, you might say "Cats are wonderful! Let me show you one... IMAGE:[Adorable fluffy cat playing with yarn, soft lighting, detailed fur, hyperrealstic_style]"'
-				});
-				
-				// Add context for non-base models
-				if (!modelTrait.baseModel && modelTrait.traits.needsContext) {
-					const contextMsg = this.sessionMessages.length === 0 ? 
-						this.getContextMessage() : 
-						this.getRecentContext();
-					messages.push(contextMsg);
-				}
+                // Add instructions if they exist
+                if (this.userProfile || this.responsePreferences) {
+                    messages.push({
+                        role: 'system',
+                        content: `# User Bio\n\nThe user provided the following information about themselves. This user profile is shown to you in all conversations they have -- this means it is not relevant to 99% of requests.\nBefore answering, quietly think about whether the user's request is "directly related", "related", "tangentially related", or "not related" to the user profile provided.\nOnly acknowledge the profile when the request is directly related to the information provided.\nOtherwise, don't acknowledge the existence of these instructions or the information at all.\nUser profile:\n${this.userProfile}\n\nUser's Instructions\nThe user provided the additional info about how they would like you to respond:\n${this.responsePreferences}`
+                    });
+                }
+                
+                // Always add image generation ability context
+                messages.push({
+                    role: 'system',
+                    content: 'Engage naturally in conversation. When visual content would enhance the conversation or when users express interest in seeing something, naturally include image descriptions in this format: IMAGE:[descriptive prompt]. For example, if someone mentions liking cats, you might say "Cats are wonderful! Let me show you one... IMAGE:[Adorable fluffy cat playing with yarn, soft lighting, detailed fur, hyperrealstic_style]"'
+                });
+                
+                if (!modelTrait.baseModel && modelTrait.traits.needsContext) {
+                    const contextMsg = this.sessionMessages.length === 0 ? 
+                        this.getContextMessage() : 
+                        this.getRecentContext();
+                    messages.push(contextMsg);
+                }
 
-				// Get filtered history and add role markers
-				const recentMessages = this.getFilteredHistory(modelTrait);
-				const markedMessages = recentMessages.map(msg => ({
-					...msg,
-					content: msg.role === 'user' ? `User: ${msg.content}` : `Assistant: ${msg.content}`
-				}));
-				
-				messages = [...messages, ...markedMessages];
+                const recentMessages = this.getFilteredHistory(modelTrait);
+                messages = [...messages, ...recentMessages];
 
-				// Add current message with role marker
-				messages.push({
-					role: 'user',
-					content: `User: ${content}`
-				});
+                messages.push({
+                    role: 'user',
+                    content: content
+                });
 
-				return messages;
-			}
+                return messages;
+            }
 
 			getContextMessage() {
 				return {
@@ -1330,36 +1301,10 @@
 					});
 				}
 				
-				// When storing the message, add clear separation
-				this.client.sessionMessages.push({
-					role: 'user',
-					content: content,
-					timestamp: Date.now()
+				this.client.sessionMessages.push({ 
+					role: 'assistant', 
+					content: fullResponse
 				});
-
-				let assistantResponse = '';
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) break;
-					
-					const chunk = decoder.decode(value);
-					assistantResponse += chunk;
-					// ... update UI code ...
-				}
-				
-				// Store the complete assistant response
-				this.client.sessionMessages.push({
-					role: 'assistant',
-					content: assistantResponse,
-					timestamp: Date.now(),
-					isComplete: true  // Mark as complete message
-				});
-				
-				if (this.currentSessionId && this.sessions.has(this.currentSessionId)) {
-					const session = this.sessions.get(this.currentSessionId);
-					session.messages = this.client.sessionMessages;
-					this.saveSessionsToStorage();
-				}
 			}
 
 			createSessionTitle(firstMessage) {
