@@ -466,55 +466,7 @@
 			justify-content: center;
 			align-items: center;
 		}
-
-		.grid-2x2 {
-				display: grid;
-				grid-template-columns: 1fr 1fr;
-				grid-template-rows: 1fr 1fr;
-				gap: 4px;
-				width: 100%;
-				aspect-ratio: 1;
-				background: #1a1a1a;
-				border: 1px solid #333;
-		}
-
-		.grid-2x2-cell {
-				position: relative;
-				width: 100%;
-				height: 100%;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				background: #1a1a1a;
-				border: 1px solid #333;
-		}
-
-		.grid-2x2 img {
-				max-width: 100%;
-				max-height: 100%;
-				object-fit: contain;
-		}
-
-		.grid-2x2-loading {
-				position: absolute;
-				top: 50%;
-				left: 50%;
-				transform: translate(-50%, -50%);
-				color: #fff;
-				font-size: 0.8em;
-		}
-
-		.seed-label {
-				position: absolute;
-				bottom: 4px;
-				right: 4px;
-				background: rgba(0, 0, 0, 0.6);
-				color: #fff;
-				padding: 2px 6px;
-				border-radius: 4px;
-				font-size: 0.7em;
-		}
-
+		
     </style>
 </head>
 <body>
@@ -661,10 +613,6 @@
                     </div>
 
 					<div class="checkbox-group">
-						<div class="checkbox-container">
-								<input type="checkbox" id="grid2x2">
-								<label for="grid2x2">2x2 Grid Mode</label>
-						</div>
 						<div class="checkbox-container">
 							<input type="checkbox" id="randomSeed" checked>
 							<label for="randomSeed">Random Seed</label>
@@ -999,186 +947,91 @@
 					return;
 				}
 
-				// Get the active ratio button and verify
+				document.getElementById('imageOutput').innerHTML = 'Generating image...';
+
+				// Get the active ratio button
 				const activeRatio = document.querySelector('.ratio-button.active');
 				if (!activeRatio) {
 					console.error('No ratio selected');
 					return;
 				}
 
-				const is2x2Mode = document.getElementById('grid2x2').checked;
-				const imageOutput = document.getElementById('imageOutput');
-
-				if (is2x2Mode) {
-					// Setup 2x2 grid
-					imageOutput.className = 'grid-2x2';
-					imageOutput.innerHTML = Array(4).fill()
-						.map((_, i) => `
-							<div class="grid-2x2-cell" id="cell-${i}">
-								<div class="grid-2x2-loading">Generating...</div>
-							</div>
-						`).join('');
-
-					// Generate all 4 images using sequential seeds
-					for (let i = 0; i < 4; i++) {
-						try {
-							// Setup API request parameters
-							const imageModel = document.getElementById('imageModel').value;
-							const seed = document.getElementById('fibSeed').checked ? 
-								fibSeeder.getNextSeed() : 
-								Math.floor(Math.random() * 100000);
-
-							const dimensions = getAspectRatioDimensions(activeRatio.dataset.ratio);
-							const params = new URLSearchParams({
-								model: imageModel,
-								seed: seed,
-								width: dimensions.width,
-								height: dimensions.height,
-								enhance: document.getElementById('enhance').checked,  
-								refine: false,
-								nologo: true,
-								private: document.getElementById('private').checked,  
-								safe: document.getElementById('safe').checked
-							});
-
-							const finalPrompt = document.getElementById('finalPrompt').textContent;
-							const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?${params}`;
-							console.log(`Generation URL for cell ${i}:`, url);
-
-							const response = await fetch(url);
-							if (!response.ok) {
-								if (response.status === 500) {
-									try {
-										const errorText = await response.text();
-										if (errorText.includes("NSFW content detected")) {
-											document.getElementById(`cell-${i}`).innerHTML = 
-												`Generation blocked: NSFW content detected`;
-										} else {
-											document.getElementById(`cell-${i}`).innerHTML = 
-												`Server error (500)`;
-										}
-										continue;
-									} catch (parseError) {
-										document.getElementById(`cell-${i}`).innerHTML = 
-											`Server error (500)`;
-										continue;
-									}
-								}
-								throw new Error(`HTTP error! status: ${response.status}`);
-							}
-
-							const blob = await response.blob();
-							const imageUrl = URL.createObjectURL(blob);
-
-							document.getElementById(`cell-${i}`).innerHTML = `
-								<img 
-									src="${imageUrl}" 
-									alt="Generated Image ${i + 1}" 
-									class="blur-transition loaded"
-								>
-								<div class="seed-label">Seed: ${seed}</div>
-							`;
-
-							// Still add to thumbnails
-							addThumbnail(imageUrl);
-
-							// Extract EXIF data only for the first image
-							if (i === 0) {
-								try {
-									const metadata = await extractExifData(blob);
-									if (metadata) {
-										document.getElementById('exifPromptText').textContent = metadata.prompt || 'No prompt found in EXIF data';
-										document.querySelector('[data-tab="exif"]').click();
-									}
-								} catch (error) {
-									console.error('Error extracting EXIF data:', error);
-								}
-							}
-
-						} catch (error) {
-							console.error(`Error generating image for cell ${i}:`, error);
-							document.getElementById(`cell-${i}`).innerHTML = 
-								error.name === 'NetworkError' || error.message.includes('NetworkError') ?
-									`Connection failed - check connection` :
-									`Error: ${error.message}`;
-						}
-					}
+				// Setup API request parameters
+				const imageModel = document.getElementById('imageModel').value;
+				const enhance = document.getElementById('enhance').checked;
+				const private = document.getElementById('private').checked;
+				
+				let seed;
+				if (document.getElementById('fibSeed').checked) {
+					seed = fibSeeder.getNextSeed();
+				} else if (document.getElementById('randomSeed').checked) {
+					seed = Math.floor(Math.random() * 100000);
 				} else {
-					// Original single image generation code
-					imageOutput.className = '';
-					imageOutput.innerHTML = 'Generating image...';
+					seed = document.getElementById('seed').value;
+				}
 
-					// Setup API request parameters
-					const imageModel = document.getElementById('imageModel').value;
-					let seed;
-					if (document.getElementById('fibSeed').checked) {
-						seed = fibSeeder.getNextSeed();
-					} else if (document.getElementById('randomSeed').checked) {
-						seed = Math.floor(Math.random() * 100000);
-					} else {
-						seed = document.getElementById('seed').value;
-					}
+				const dimensions = getAspectRatioDimensions(activeRatio.dataset.ratio);
 
-					const dimensions = getAspectRatioDimensions(activeRatio.dataset.ratio);
-					const params = new URLSearchParams({
-						model: imageModel,
-						seed: seed,
-						width: dimensions.width,
-						height: dimensions.height,
-						enhance: document.getElementById('enhance').checked,  
-						refine: false,
-						nologo: true,
-						private: document.getElementById('private').checked,  
-						safe: document.getElementById('safe').checked
-					});
+				const params = new URLSearchParams({
+					model: imageModel,
+					seed: seed,
+					width: dimensions.width,
+					height: dimensions.height,
+					enhance: document.getElementById('enhance').checked,  
+					refine: false,
+					nologo: true,
+					private: document.getElementById('private').checked,  
+					safe: document.getElementById('safe').checked
+				});
 
-					const finalPrompt = document.getElementById('finalPrompt').textContent;
-					const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?${params}`;
-					console.log('Generation URL:', url);
+				const finalPrompt = document.getElementById('finalPrompt').textContent;
+				const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?${params}`;
+				console.log('Generation URL:', url);
 
-					const response = await fetch(url);
-					if (!response.ok) {
-						if (response.status === 500) {
-							try {
-								const errorText = await response.text();
-								if (errorText.includes("NSFW content detected")) {
-									document.getElementById('imageOutput').innerHTML = 
-										`Generation blocked: NSFW content detected - try adjusting your prompt`;
-								} else {
-									document.getElementById('imageOutput').innerHTML = 
-										`Server error (500): Unable to generate image`;
-								}
-							} catch (parseError) {
+				const response = await fetch(url);
+				if (!response.ok) {
+					if (response.status === 500) {
+						// Try to get the error message from the response
+						try {
+							const errorText = await response.text();
+							if (errorText.includes("NSFW content detected")) {
+								document.getElementById('imageOutput').innerHTML = 
+									`Generation blocked: NSFW content detected - try adjusting your prompt`;
+							} else {
 								document.getElementById('imageOutput').innerHTML = 
 									`Server error (500): Unable to generate image`;
 							}
-							return;
+						} catch (parseError) {
+							document.getElementById('imageOutput').innerHTML = 
+								`Server error (500): Unable to generate image`;
 						}
-						throw new Error(`HTTP error! status: ${response.status}`);
+						return;
 					}
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
 
-					const blob = await response.blob();
-					const imageUrl = URL.createObjectURL(blob);
+				const blob = await response.blob();
+				const imageUrl = URL.createObjectURL(blob);
 
-					document.getElementById('imageOutput').innerHTML = `
-						<img 
-							src="${imageUrl}" 
-							alt="Generated Image" 
-							class="blur-transition loaded"
-						>
-						<div class="seed-label">Seed: ${seed}</div>
-					`;
-					addThumbnail(imageUrl);
+				// Use img element for consistent sizing with thumbnails
+				document.getElementById('imageOutput').innerHTML = `
+					<img 
+						src="${imageUrl}" 
+						alt="Generated Image" 
+						class="blur-transition loaded"
+					>
+				`;
+				addThumbnail(imageUrl);
 
-					try {
-						const metadata = await extractExifData(blob);
-						if (metadata) {
-							document.getElementById('exifPromptText').textContent = metadata.prompt || 'No prompt found in EXIF data';
-							document.querySelector('[data-tab="exif"]').click();
-						}
-					} catch (error) {
-						console.error('Error extracting EXIF data:', error);
+				// Extract and display EXIF data
+				try {
+					const metadata = await extractExifData(blob);
+					if (metadata) {
+						document.getElementById('exifPromptText').textContent = metadata.prompt || 'No prompt found in EXIF data';
+						document.querySelector('[data-tab="exif"]').click();
 					}
+				} catch (error) {
+					console.error('Error extracting EXIF data:', error);
 				}
 
 			} catch (error) {
@@ -1942,12 +1795,6 @@
 				}
 			});
 
-			document.getElementById('grid2x2').addEventListener('change', function(e) {
-					isGridMode = e.target.checked;
-					// Clear current output when switching modes
-					document.getElementById('imageOutput').innerHTML = 'Generated image will appear here';
-					document.getElementById('imageOutput').className = isGridMode ? 'grid-2x2' : '';
-			});
 
 			// Modify the existing random seed listener
 			document.getElementById('randomSeed').addEventListener('change', function(e) {
