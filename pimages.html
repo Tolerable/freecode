@@ -224,37 +224,19 @@
 		}
 
 		#imageOutput {
-			display: grid;
-			grid-template-columns: repeat(2, 1fr);
-			gap: 0;
-			aspect-ratio: 1/1;
+			aspect-ratio: 1/1;  /* Force 1:1 ratio */
 			width: 100%;
+			min-height: 400px;
 			max-height: 800px;
 			background: #1a1a1a;
 			border-radius: 4px;
-			border: 1px solid #333;
-			overflow: hidden;
-		}
-
-		.image-cell {
-			position: relative;
-			width: 100%;
-			height: 100%;
 			display: flex;
-			flex-direction: column;
 			align-items: center;
-		}
-
-		.seed-label {
-			position: absolute;
-			top: 0;
-			left: 0;
-			right: 0;
-			background-color: rgba(26, 26, 26, 0.8);
-			padding: 5px;
-			text-align: center;
-			font-weight: bold;
-			z-index: 1;
+			justify-content: center;
+			margin-top: 20px;
+			border: 1px solid #333;
+			color: #fff;
+			overflow: hidden;
 		}
 
 		#imageOutput img {
@@ -574,7 +556,7 @@
                         </div>
                     </div>
 
-					<div class="checkbox-group">
+                    <div class="checkbox-group">
                         <div class="checkbox-container">
                             <input type="checkbox" id="enhance">
                             <label for="enhance">Remote Enhance</label>
@@ -586,10 +568,6 @@
                         <div class="checkbox-container">
                             <input type="checkbox" id="safe">
                             <label for="safe">Safe Mode</label>
-                        </div>
-                        <div class="checkbox-container">
-                            <input type="checkbox" id="gridMode">
-                            <label for="gridMode">2x2 Grid Mode</label>
                         </div>
                     </div>
                 </div>
@@ -767,94 +745,46 @@
 		}
 
 		async function copyToClipboard() {
-			// If we have an editCanvas, use existing functionality
-			const editCanvas = document.getElementById('editCanvas');
-			if (editCanvas) {
-				try {
-					// If we have a crop box, copy just that area
-					if (cropBox) {
-						const ctx = editCanvas.getContext('2d');
-						const cropRect = cropBox.getBoundingClientRect();
-						const canvasRect = editCanvas.getBoundingClientRect();
-						
-						const scaleX = editCanvas.width / canvasRect.width;
-						const scaleY = editCanvas.height / canvasRect.height;
-						
-						const cropX = (cropRect.left - canvasRect.left) * scaleX;
-						const cropY = (cropRect.top - canvasRect.top) * scaleY;
-						const cropWidth = cropRect.width * scaleX;
-						const cropHeight = cropRect.height * scaleY;
-						
-						const tempCanvas = document.createElement('canvas');
-						tempCanvas.width = cropWidth;
-						tempCanvas.height = cropHeight;
-						const tempCtx = tempCanvas.getContext('2d');
-						
-						tempCtx.drawImage(editCanvas,
-							cropX, cropY, cropWidth, cropHeight,
-							0, 0, cropWidth, cropHeight
-						);
-						
-						const blob = await new Promise(resolve => tempCanvas.toBlob(resolve));
-						await navigator.clipboard.write([
-							new ClipboardItem({ 'image/png': blob })
-						]);
-					} else {
-						// Copy entire editCanvas
-						const blob = await new Promise(resolve => editCanvas.toBlob(resolve));
-						await navigator.clipboard.write([
-							new ClipboardItem({ 'image/png': blob })
-						]);
-					}
-					console.log('Image copied to clipboard');
-				} catch (error) {
-					console.error('Failed to copy:', error);
-				}
-				return;
-			}
-
-			// Handle 4-image grid copying
-			const imageOutput = document.getElementById('imageOutput');
-			if (!imageOutput) return;
-
+			const canvas = document.getElementById('editCanvas');
+			if (!canvas) return;
+			
 			try {
-				const images = imageOutput.querySelectorAll('img');
-				if (images.length === 4) {
-					// Create a canvas for the 4-image grid
-					const canvas = document.createElement('canvas');
-					canvas.width = 1024;
-					canvas.height = 1024;
+				// If we have a crop box, copy just that area
+				if (cropBox) {
 					const ctx = canvas.getContext('2d');
-
-					// Draw each image in its quadrant
-					images.forEach((img, index) => {
-						const x = (index % 2) * 512;
-						const y = Math.floor(index / 2) * 512;
-						ctx.drawImage(img, x, y, 512, 512);
-					});
-
+					const cropRect = cropBox.getBoundingClientRect();
+					const canvasRect = canvas.getBoundingClientRect();
+					
+					const scaleX = canvas.width / canvasRect.width;
+					const scaleY = canvas.height / canvasRect.height;
+					
+					const cropX = (cropRect.left - canvasRect.left) * scaleX;
+					const cropY = (cropRect.top - canvasRect.top) * scaleY;
+					const cropWidth = cropRect.width * scaleX;
+					const cropHeight = cropRect.height * scaleY;
+					
+					const tempCanvas = document.createElement('canvas');
+					tempCanvas.width = cropWidth;
+					tempCanvas.height = cropHeight;
+					const tempCtx = tempCanvas.getContext('2d');
+					
+					tempCtx.drawImage(canvas,
+						cropX, cropY, cropWidth, cropHeight,
+						0, 0, cropWidth, cropHeight
+					);
+					
+					const blob = await new Promise(resolve => tempCanvas.toBlob(resolve));
+					await navigator.clipboard.write([
+						new ClipboardItem({ 'image/png': blob })
+					]);
+				} else {
+					// Copy entire canvas
 					const blob = await new Promise(resolve => canvas.toBlob(resolve));
 					await navigator.clipboard.write([
 						new ClipboardItem({ 'image/png': blob })
 					]);
-					console.log('Grid image copied to clipboard');
-				} else {
-					// Single image copy
-					const img = imageOutput.querySelector('img');
-					if (img) {
-						const canvas = document.createElement('canvas');
-						canvas.width = img.naturalWidth;
-						canvas.height = img.naturalHeight;
-						const ctx = canvas.getContext('2d');
-						ctx.drawImage(img, 0, 0);
-						
-						const blob = await new Promise(resolve => canvas.toBlob(resolve));
-						await navigator.clipboard.write([
-							new ClipboardItem({ 'image/png': blob })
-						]);
-						console.log('Single image copied to clipboard');
-					}
 				}
+				console.log('Image copied to clipboard');
 			} catch (error) {
 				console.error('Failed to copy:', error);
 			}
@@ -966,214 +896,108 @@
 			});
 		}
 
-		function fibonacciSequence(n) {
-			let seq = [0, 1];
-			for (let i = 2; i < n; i++) {
-				seq[i] = seq[i - 1] + seq[i - 2];
-			}
-			return seq;
-		}
 
 		async function generateImage() {
 			try {
-				const finalPrompt = document.getElementById('finalPrompt').textContent;
-				if (!finalPrompt) {
+				const prompt = document.getElementById('userPrompt').value;
+				if (!prompt) {
 					document.getElementById('imageOutput').innerHTML = 'Please enter a prompt';
 					return;
 				}
 
 				document.getElementById('imageOutput').innerHTML = 'Generating image...';
 
+				// Get the active ratio button
 				const activeRatio = document.querySelector('.ratio-button.active');
 				if (!activeRatio) {
 					console.error('No ratio selected');
 					return;
 				}
 
-				const dimensions = getAspectRatioDimensions(activeRatio.dataset.ratio);
-				const useGridMode = document.getElementById('gridMode').checked;
+				// Setup API request parameters
 				const imageModel = document.getElementById('imageModel').value;
 				const enhance = document.getElementById('enhance').checked;
 				const private = document.getElementById('private').checked;
-				const safe = document.getElementById('safe').checked;
+				const seed = document.getElementById('randomSeed').checked ? 
+					Math.floor(Math.random() * 100000) : 
+					document.getElementById('seed').value;
 
-				if (useGridMode) {
-					// Create 2x2 grid container
-					const container = document.createElement('div');
-					container.style.display = 'grid';
-					container.style.gridTemplateColumns = '1fr 1fr';
-					container.style.gridTemplateRows = '1fr 1fr';
-					container.style.gap = '2px';
-					container.style.width = '100%';
-					container.style.height = '100%';
-					container.style.aspectRatio = '1/1';
-					
-					document.getElementById('imageOutput').innerHTML = '';
-					document.getElementById('imageOutput').appendChild(container);
+				const dimensions = getAspectRatioDimensions(activeRatio.dataset.ratio);
 
-					// Generate 4 images with Fibonacci seeds
-					const maxFibonacciIndex = 90;
-					const fullFibSequence = fibonacciSequence(maxFibonacciIndex);
-					const filteredSeeds = fullFibSequence.filter(num => num >= 100000 && num < 100000000);
-					const startingIndex = Math.floor(Math.random() * (filteredSeeds.length - 3));
-					const selectedSeeds = filteredSeeds.slice(startingIndex, startingIndex + 4);
+				const params = new URLSearchParams({
+					model: imageModel,
+					seed: seed,
+					width: dimensions.width,
+					height: dimensions.height,
+					enhance: document.getElementById('enhance').checked,  
+					refine: false,
+					nologo: true,
+					private: document.getElementById('private').checked,  
+					safe: document.getElementById('safe').checked
+				});
 
-					for (let i = 0; i < 4; i++) {
-						const cell = document.createElement('div');
-						cell.style.position = 'relative';
-						cell.style.width = '100%';
-						cell.style.height = '100%';
-						cell.style.overflow = 'hidden';
+				const finalPrompt = document.getElementById('finalPrompt').textContent;
+				const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?${params}`;
+				console.log('Generation URL:', url);
 
-						const seedLabel = document.createElement('div');
-						seedLabel.textContent = `Seed: ${selectedSeeds[i]}`;
-						seedLabel.style.position = 'absolute';
-						seedLabel.style.top = '0';
-						seedLabel.style.left = '0';
-						seedLabel.style.right = '0';
-						seedLabel.style.background = 'rgba(26, 26, 26, 0.8)';
-						seedLabel.style.padding = '5px';
-						seedLabel.style.textAlign = 'center';
-						seedLabel.style.zIndex = '1';
-
-						const img = document.createElement('img');
-						img.style.width = '100%';
-						img.style.height = '100%';
-						img.style.objectFit = 'cover';
-						img.crossOrigin = 'anonymous';
-
-						cell.appendChild(seedLabel);
-						cell.appendChild(img);
-						container.appendChild(cell);
-
-						const params = new URLSearchParams({
-							model: imageModel,
-							seed: selectedSeeds[i],
-							width: dimensions.width,
-							height: dimensions.height,
-							enhance: enhance,
-							refine: false,
-							nologo: true,
-							private: private,
-							safe: safe
-						});
-
-						const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?${params}`;
-						console.log('Grid image URL:', url);  // Debug log
-
+				const response = await fetch(url);
+				if (!response.ok) {
+					if (response.status === 500) {
+						// Try to get the error message from the response
 						try {
-							const response = await fetch(url);
-							if (!response.ok) {
-								handleError(response, cell);
-								continue;
+							const errorText = await response.text();
+							if (errorText.includes("NSFW content detected")) {
+								document.getElementById('imageOutput').innerHTML = 
+									`Generation blocked: NSFW content detected - try adjusting your prompt`;
+							} else {
+								document.getElementById('imageOutput').innerHTML = 
+									`Server error (500): Unable to generate image`;
 							}
-
-							const blob = await response.blob();
-							const imageUrl = URL.createObjectURL(blob);
-							img.src = imageUrl;
-							addThumbnail(imageUrl);
-
-							// Extract EXIF data for the last image
-							if (i === 3) {
-								try {
-									const metadata = await extractExifData(blob);
-									if (metadata) {
-										document.getElementById('exifPromptText').textContent = metadata.prompt || 'No prompt found';
-										document.querySelector('[data-tab="exif"]').click();
-									}
-								} catch (error) {
-									console.error('Error extracting EXIF data:', error);
-								}
-							}
-						} catch (error) {
-							console.error('Error generating grid image:', error);
-							cell.innerHTML = `Error: ${error.message}`;
+						} catch (parseError) {
+							document.getElementById('imageOutput').innerHTML = 
+								`Server error (500): Unable to generate image`;
 						}
-					}
-				} else {
-					// Single image mode
-					const seed = document.getElementById('randomSeed').checked ? 
-						Math.floor(Math.random() * 100000) : 
-						document.getElementById('seed').value;
-
-					const params = new URLSearchParams({
-						model: imageModel,
-						seed: seed,
-						width: dimensions.width,
-						height: dimensions.height,
-						enhance: enhance,
-						refine: false,
-						nologo: true,
-						private: private,
-						safe: safe
-					});
-
-					const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?${params}`;
-					console.log('Single image URL:', url);  // Debug log
-
-					const response = await fetch(url);
-					if (!response.ok) {
-						handleError(response, document.getElementById('imageOutput'));
 						return;
 					}
-
-					const blob = await response.blob();
-					const imageUrl = URL.createObjectURL(blob);
-
-					const container = document.createElement('div');
-					container.style.width = '100%';
-					container.style.height = '100%';
-					container.style.aspectRatio = '1/1';
-					container.style.display = 'flex';
-					container.style.alignItems = 'center';
-					container.style.justifyContent = 'center';
-
-					const img = document.createElement('img');
-					img.src = imageUrl;
-					img.style.width = '100%';
-					img.style.height = '100%';
-					img.style.objectFit = 'contain';
-					img.className = 'blur-transition loaded';
-					img.alt = 'Generated Image';
-
-					container.appendChild(img);
-					document.getElementById('imageOutput').innerHTML = '';
-					document.getElementById('imageOutput').appendChild(container);
-					
-					addThumbnail(imageUrl);
-
-					try {
-						const metadata = await extractExifData(blob);
-						if (metadata) {
-							document.getElementById('exifPromptText').textContent = metadata.prompt || 'No prompt found';
-							document.querySelector('[data-tab="exif"]').click();
-						}
-					} catch (error) {
-						console.error('Error extracting EXIF data:', error);
-					}
+					throw new Error(`HTTP error! status: ${response.status}`);
 				}
+
+				const blob = await response.blob();
+				const imageUrl = URL.createObjectURL(blob);
+
+				// Use img element for consistent sizing with thumbnails
+				document.getElementById('imageOutput').innerHTML = `
+					<img 
+						src="${imageUrl}" 
+						alt="Generated Image" 
+						class="blur-transition loaded"
+					>
+				`;
+				addThumbnail(imageUrl);
+
+				// Extract and display EXIF data
+				try {
+					const metadata = await extractExifData(blob);
+					if (metadata) {
+						document.getElementById('exifPromptText').textContent = metadata.prompt || 'No prompt found in EXIF data';
+						document.querySelector('[data-tab="exif"]').click();
+					}
+				} catch (error) {
+					console.error('Error extracting EXIF data:', error);
+				}
+
 			} catch (error) {
 				console.error('Error generating image:', error);
-				document.getElementById('imageOutput').innerHTML = 
-					error.name === 'NetworkError' || error.message.includes('NetworkError') ?
-					'Connection failed - please check your internet connection and try again' :
-					`Error generating image: ${error.message}`;
+				if (error.name === 'NetworkError' || error.message.includes('NetworkError')) {
+					document.getElementById('imageOutput').innerHTML = 
+						`Connection failed - please check your internet connection and try again`;
+				} else {
+					document.getElementById('imageOutput').innerHTML = 
+						`Error generating image: ${error.message}`;
+				}
 			}
 		}
 
-		function handleError(response, container) {
-			if (response.status === 500) {
-				response.text().then(errorText => {
-					container.innerHTML = errorText.includes("NSFW content detected") ?
-						'Generation blocked: NSFW content detected - try adjusting your prompt' :
-						'Server error (500): Unable to generate image';
-				}).catch(() => {
-					container.innerHTML = 'Server error (500): Unable to generate image';
-				});
-			} else {
-				container.innerHTML = `HTTP error! status: ${response.status}`;
-			}
-		}
 
 		// Function to parse styles from the stylesTxt
 		function loadStyles() {
