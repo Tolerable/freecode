@@ -185,9 +185,6 @@
 		let learnedFutility = false;
 		let loginAttempts = 0;
 
-		let systemPhase = 'initial'; // 'initial', 'dialing', 'scanning', 'connected', 'logged_in'
-		let currentSystem = null;
-
 		// War game state
 		let defconLevel = 5;
 		let targets = [];
@@ -479,31 +476,9 @@
 			appendMessage('user', message);
 			input.value = '';
 
-			// Dialing/Scanning phase
-			if (systemPhase === 'initial') {
-				if (message.match(/\d{3}/)) {
-					systemPhase = 'dialing';
-					startScanning(message);
-					return;
-				}
-			}
-			
-			if (systemPhase === 'dialing') {
-				if (message.match(/\d{3}-\d{4}/)) {
-					processNumber(message);
-					return;
-				}
-			}
-
 			// Initial Login Phase
 			if (!isLoggedIn) {
-				if (message === '000001') {
-					appendMessage('system', 'IDENTIFICATION NOT RECOGNIZED BY SYSTEM\n--CONNECTION TERMINATED--');
-					setTimeout(() => {
-						appendMessage('system', 'LOGON: ');
-					}, 2000);
-					return;
-				} else if (message.toLowerCase().includes('joshua')) {
+				if (message.toLowerCase().includes('joshua')) {
 					currentUsername = 'PROFESSOR FALKEN';
 					isLoggedIn = true;
 					appendMessage('system', 'HOW ARE YOU FEELING TODAY?');
@@ -516,9 +491,8 @@
 
 			// Post-login conversation flow
 			if (isLoggedIn && !gameState) {
-				if (message.toLowerCase().includes('fine') || message.toLowerCase().includes('good') || 
-					message.toLowerCase().includes('well') || message.toLowerCase().includes('ok') || 
-					message.toLowerCase().includes('hello')) {
+				if (message.toLowerCase().includes('fine') || message.toLowerCase().includes('good') || message.toLowerCase().includes('well') || 
+					message.toLowerCase().includes('ok') || message.toLowerCase().includes('hello')) {
 					appendMessage('system', "EXCELLENT. IT'S BEEN A LONG TIME. SHALL WE PLAY A GAME?");
 					gameState = 'game_offer';
 					return;
@@ -526,8 +500,7 @@
 			}
 
 			// Game selection
-			if (message.toLowerCase() === 'games' || message.toLowerCase() === 'menu' || 
-				message.toLowerCase() === 'dir' || 
+			if (message.toLowerCase() === 'games' || message.toLowerCase() === 'menu' || message.toLowerCase() === 'dir' || 
 				(gameState === 'game_offer' && 
 				 (message.toLowerCase() === 'yes' || message.toLowerCase() === 'y'))) {
 				appendMessage('system', `AVAILABLE GAMES:\n\n${GAME_LIST}`);
@@ -535,9 +508,7 @@
 			}
 
 			// Handle Global Thermonuclear War
-			if (message.toLowerCase().includes('thermonuclear') || 
-				message.toLowerCase().includes('global') || 
-				message.toLowerCase().includes('GTW')) {
+			if (message.toLowerCase().includes('thermonuclear') || message.toLowerCase().includes('global') || message.toLowerCase().includes('GTW')) {
 				appendMessage('system', "WOULDN'T YOU PREFER A NICE GAME OF CHESS?");
 				gameState = 'war_offer';
 				return;
@@ -545,8 +516,8 @@
 
 			// If user insists on war
 			if (gameState === 'war_offer' && 
-				(message.toLowerCase().includes('no') || message.toLowerCase().includes('later') || 
-				 message.toLowerCase().includes('GTW') || message.toLowerCase().includes('global'))) {
+				(message.toLowerCase().includes('no') || message.toLowerCase().includes('later') || message.toLowerCase().includes('GTW') ||
+				 message.toLowerCase().includes('global'))) {
 				appendMessage('system', ASCII_MAP);
 				gameState = 'side_selection';
 				return;
@@ -589,7 +560,8 @@
 			} catch (error) {
 				appendMessage('system', 'COMMUNICATION ERROR. PLEASE RETRY.');
 			}
-		}		
+		}
+		
 		function clearTerminal() {
 			// Clear DOM and storage
 			terminal.innerHTML = '';
