@@ -220,124 +220,83 @@
         </div>
     </div>
     <script>
-		document.addEventListener('DOMContentLoaded', function() {
-			// Core game state initialization
-			const canvas = document.getElementById('map');
-			const ctx = canvas.getContext('2d');
-			
-			const gameState = {
-				currentTurn: 'none',
-				phase: 'setup',
-				selectedAction: null,
-				playerSide: null,
-				resources: {
-					mormon: {
-						people: 100,
-						missionaries: 10,
-						funds: 1000,
-						settlements: []
-					},
-					amish: {
-						people: 100,
-						farmers: 20,
-						grain: 1000,
-						settlements: []
-					}
-				},
-				baseLocations: {
-					mormon: {x: 300, y: 250},  // Utah
-					amish: {x: 600, y: 250}    // Pennsylvania
+        document.addEventListener('DOMContentLoaded', function() {
+            // Core game state initialization
+            const canvas = document.getElementById('map');
+            const ctx = canvas.getContext('2d');
+            
+            const gameState = {
+                currentTurn: 'none',
+                phase: 'setup',
+                selectedAction: null,
+                playerSide: null,
+                resources: {
+                    mormon: {
+                        people: 100,
+                        missionaries: 10,
+                        funds: 1000,
+                        settlements: []
+                    },
+                    amish: {
+                        people: 100,
+                        farmers: 20,
+                        grain: 1000,
+                        settlements: []
+                    }
+                },
+                baseLocations: {
+                    mormon: {x: 300, y: 250},  // Utah
+                    amish: {x: 600, y: 250}    // Pennsylvania
+                }
+            };
+
+            const factionRules = {
+                mormon: {
+                    settleCost: { people: 2, funds: 100 },
+                    range: 150,
+                    color: '#ff6b6b'
+                },
+                amish: {
+                    settleCost: { people: 6, grain: 200 },
+                    range: 80,
+                    farmRadius: 40,
+                    color: '#4ecdc4'
+                }
+            };
+
+			// Keep track of seeds for consistency
+			const imageSeed = Math.floor(Math.random() * 10000);
+
+			function showTitleScreen() {
+				if (!gameState.titleImage) {
+					gameState.titleImage = new Image();
+					gameState.titleImage.onload = () => {
+						ctx.clearRect(0, 0, canvas.width, canvas.height);
+						ctx.drawImage(gameState.titleImage, 0, 0, canvas.width, canvas.height);
+					};
+					gameState.titleImage.src = `https://image.pollinations.ai/prompt/epic%20illustrated%20Amish%20vs%20Mormon%20strategy%20game%20title%20screen%20with%20large%203d%20text,%20cartoon%20caricature%20style?width=1600&height=900&seed=${imageSeed}&nologo=true`;
+				} else {
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.drawImage(gameState.titleImage, 0, 0, canvas.width, canvas.height);
 				}
-			};
+			}
 
-			// NEW CODE STARTS HERE - Add the ImageCache object
-			const ImageCache = {
-				images: {},
-				loadingPromises: {},
-				maxConcurrent: 3,
-				loadingCount: 0,
-
-				async loadImage(key, url) {
-					// Return cached image if exists
-					if (this.images[key]) {
-						return this.images[key];
-					}
-
-					// Return existing promise if already loading
-					if (this.loadingPromises[key]) {
-						return this.loadingPromises[key];
-					}
-
-					// Wait if too many concurrent loads
-					while (this.loadingCount >= this.maxConcurrent) {
-						await new Promise(resolve => setTimeout(resolve, 100));
-					}
-
-					this.loadingCount++;
-					
-					// Create new loading promise
-					this.loadingPromises[key] = new Promise((resolve, reject) => {
-						const img = new Image();
-						
-						img.onload = () => {
-							this.images[key] = img;
-							delete this.loadingPromises[key];
-							this.loadingCount--;
-							resolve(img);
-						};
-						
-						img.onerror = () => {
-							delete this.loadingPromises[key];
-							this.loadingCount--;
-							reject(new Error(`Failed to load image: ${url}`));
-						};
-
-						// Force cache with cache-control
-						const cacheBuster = `&cache=${Date.now()}`;
-						img.src = url + cacheBuster;
-					});
-
-					return this.loadingPromises[key];
-				},
-
-				preloadImages() {
-					// Preload title screen and map
-					const titlePrompt = "epic illustrated Amish vs Mormon strategy game title screen with large 3d text, cartoon caricature style";
+			function loadMapBackground() {
+				if (!gameState.mapImage) {
 					const mapPrompt = "USA Map vector style clean outlines only state boundaries on white background no text no icons minimalist design";
-					
-					const promises = [
-						this.loadImage('title', `https://image.pollinations.ai/prompt/${encodeURIComponent(titlePrompt)}?width=1600&height=900&seed=${imageSeed}&nologo=true`),
-						this.loadImage('map', `https://image.pollinations.ai/prompt/${encodeURIComponent(mapPrompt)}?width=1600&height=900&seed=${imageSeed + 1}&nologo=true`)
-					];
-
-					return Promise.all(promises);
+					gameState.mapImage = new Image();
+					gameState.mapImage.onload = () => {
+						// Do NOT call renderSettlements here
+						ctx.clearRect(0, 0, canvas.width, canvas.height);
+						ctx.drawImage(gameState.mapImage, 0, 0, canvas.width, canvas.height);
+					};
+					gameState.mapImage.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(mapPrompt)}?width=1600&height=900&seed=${imageSeed + 1}&nologo=true`;
+				} else {
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.drawImage(gameState.mapImage, 0, 0, canvas.width, canvas.height);
 				}
-			};
+			}
 
-			// Start preloading images immediately after ImageCache definition
-			ImageCache.preloadImages().then(() => {
-				console.log('Initial images preloaded');
-				renderCanvas();
-			}).catch(error => {
-				console.error('Failed to preload images:', error);
-				renderCanvas(); // Still try to render with fallbacks
-			});
-			// NEW CODE ENDS HERE
-
-			const factionRules = {
-				mormon: {
-					settleCost: { people: 2, funds: 100 },
-					range: 150,
-					color: '#ff6b6b'
-				},
-				amish: {
-					settleCost: { people: 6, grain: 200 },
-					range: 80,
-					farmRadius: 40,
-					color: '#4ecdc4'
-				}
-			};
-	
 			function initGame(side) {
 				gameState.playerSide = side;
 				gameState.phase = 'playing';
@@ -367,64 +326,6 @@
 				updateUI();
 				addGameLog('system', 'Game started - Place your settlements from your base');
 			}
-
-
-            const factionRules = {
-                mormon: {
-                    settleCost: { people: 2, funds: 100 },
-                    range: 150,
-                    color: '#ff6b6b'
-                },
-                amish: {
-                    settleCost: { people: 6, grain: 200 },
-                    range: 80,
-                    farmRadius: 40,
-                    color: '#4ecdc4'
-                }
-            };
-
-			// Keep track of seeds for consistency
-			const imageSeed = Math.floor(Math.random() * 10000);
-
-			async function showTitleScreen() {
-				try {
-					const titleImage = await ImageCache.loadImage('title', 
-						`https://image.pollinations.ai/prompt/epic%20illustrated%20Amish%20vs%20Mormon%20strategy%20game%20title%20screen%20with%20large%203d%20text,%20cartoon%20caricature%20style?width=1600&height=900&seed=${imageSeed}&nologo=true`
-					);
-					
-					ctx.clearRect(0, 0, canvas.width, canvas.height);
-					ctx.drawImage(titleImage, 0, 0, canvas.width, canvas.height);
-				} catch (error) {
-					console.error('Failed to load title screen:', error);
-					// Show fallback content
-					ctx.fillStyle = '#333';
-					ctx.fillRect(0, 0, canvas.width, canvas.height);
-					ctx.fillStyle = '#fff';
-					ctx.font = '48px Arial';
-					ctx.fillText('Mormons vs Amish', canvas.width/2 - 150, canvas.height/2);
-				}
-			}
-
-			async function loadMapBackground() {
-				try {
-					const mapPrompt = "USA Map vector style clean outlines only state boundaries on white background no text no icons minimalist design";
-					const mapImage = await ImageCache.loadImage('map',
-						`https://image.pollinations.ai/prompt/${encodeURIComponent(mapPrompt)}?width=1600&height=900&seed=${imageSeed + 1}&nologo=true`
-					);
-					
-					ctx.clearRect(0, 0, canvas.width, canvas.height);
-					ctx.drawImage(mapImage, 0, 0, canvas.width, canvas.height);
-					renderSettlements();
-				} catch (error) {
-					console.error('Failed to load map:', error);
-					// Show fallback content
-					ctx.fillStyle = '#fff';
-					ctx.fillRect(0, 0, canvas.width, canvas.height);
-					ctx.strokeStyle = '#333';
-					ctx.strokeRect(0, 0, canvas.width, canvas.height);
-				}
-			}
-
 
 			function renderCanvas() {
 				if (!gameState.playerSide) {
@@ -465,38 +366,21 @@
             }
 
             // Set up faction portraits
-			async function setupPortraits() {
-				const seed1 = Math.floor(Math.random() * 10000);
-				const seed2 = Math.floor(Math.random() * 10000);
-				
-				const playerPortrait = document.querySelector('#player-info .player-portrait');
-				const aiPortrait = document.querySelector('#ai-info .player-portrait');
-				
-				try {
-					if (gameState.playerSide === 'mormon') {
-						await Promise.all([
-							ImageCache.loadImage('mormon', `https://image.pollinations.ai/prompt/young%20Mormon%20missionary%20in%20suit%20with%20nametag,%20portrait,%20headshot?width=400&height=400&seed=${seed1}&nologo=true`),
-							ImageCache.loadImage('amish', `https://image.pollinations.ai/prompt/Amish%20elder%20with%20beard%20traditional%20clothes,%20portrait,%20headshot?width=400&height=400&seed=${seed2}&nologo=true`)
-						]);
-						
-						playerPortrait.style.backgroundImage = `url('${ImageCache.images['mormon'].src}')`;
-						aiPortrait.style.backgroundImage = `url('${ImageCache.images['amish'].src}')`;
-					} else {
-						await Promise.all([
-							ImageCache.loadImage('amish', `https://image.pollinations.ai/prompt/Amish%20elder%20with%20beard%20traditional%20clothes,%20portrait,%20headshot?width=400&height=400&seed=${seed1}&nologo=true`),
-							ImageCache.loadImage('mormon', `https://image.pollinations.ai/prompt/young%20Mormon%20missionary%20in%20suit%20with%20nametag,%20portrait,%20headshot?width=400&height=400&seed=${seed2}&nologo=true`)
-						]);
-						
-						playerPortrait.style.backgroundImage = `url('${ImageCache.images['amish'].src}')`;
-						aiPortrait.style.backgroundImage = `url('${ImageCache.images['mormon'].src}')`;
-					}
-				} catch (error) {
-					console.error('Failed to load portraits:', error);
-					// Set fallback backgrounds
-					playerPortrait.style.backgroundColor = '#444';
-					aiPortrait.style.backgroundColor = '#444';
-				}
-			}
+            function setupPortraits() {
+                const seed1 = Math.floor(Math.random() * 10000);
+                const seed2 = Math.floor(Math.random() * 10000);
+                
+                const playerPortrait = document.querySelector('#player-info .player-portrait');
+                const aiPortrait = document.querySelector('#ai-info .player-portrait');
+                
+                if (gameState.playerSide === 'mormon') {
+                    playerPortrait.style.backgroundImage = `url('https://image.pollinations.ai/prompt/young%20Mormon%20missionary%20in%20suit%20with%20nametag,%20portrait,%20headshot?width=400&height=400&seed=${seed1}&nologo=true')`;
+                    aiPortrait.style.backgroundImage = `url('https://image.pollinations.ai/prompt/Amish%20elder%20with%20beard%20traditional%20clothes,%20portrait,%20headshot?width=400&height=400&seed=${seed2}&nologo=true')`;
+                } else {
+                    playerPortrait.style.backgroundImage = `url('https://image.pollinations.ai/prompt/Amish%20elder%20with%20beard%20traditional%20clothes,%20portrait,%20headshot?width=400&height=400&seed=${seed1}&nologo=true')`;
+                    aiPortrait.style.backgroundImage = `url('https://image.pollinations.ai/prompt/young%20Mormon%20missionary%20in%20suit%20with%20nametag,%20portrait,%20headshot?width=400&height=400&seed=${seed2}&nologo=true')`;
+                }
+            }
 
             // Settlement handling
             function addSettlement(side, position, isBase = false) {
