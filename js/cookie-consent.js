@@ -20,7 +20,17 @@ cookieScript.src = '//cdn.cookie-script.com/s/ec705f4147843dbfdb127ea600fc6d08.j
 cookieScript.setAttribute('data-cs-no-consent-autoblock', '1');
 document.head.appendChild(cookieScript);
 
-// Add age verification
+// Define age verification function globally
+window.verifyAge = function(isOver21) {
+    if (isOver21) {
+        localStorage.setItem('ageVerified', 'true');
+        document.querySelector('[style*="position: fixed"]').remove();
+    } else {
+        window.location.href = 'https://www.google.com';
+    }
+};
+
+// Age check function
 function checkAge() {
     // Check if already verified
     if (localStorage.getItem('ageVerified')) {
@@ -63,15 +73,5 @@ function checkAge() {
     document.body.appendChild(modal);
 }
 
-// Add to window so buttons can access it
-window.verifyAge = function(isOver21) {
-    if (isOver21) {
-        localStorage.setItem('ageVerified', 'true');
-        document.querySelector('[style*="position: fixed"]').remove();
-    } else {
-        window.location.href = 'https://www.google.com';
-    }
-};
-
-// Run age check after page loads
+// Call checkAge when document is ready
 document.addEventListener('DOMContentLoaded', checkAge);
