@@ -1,3 +1,10 @@
+// Load cookie consent first
+const cookieConsentScript = document.createElement('script');
+cookieConsentScript.src = '/js/cookie-consent.js';
+document.head.appendChild(cookieConsentScript);
+
+// Your existing nav-loader.js code below...
+
 document.addEventListener('DOMContentLoaded', function () {
     // Create a container div with a specific class for scoping
     const navContainer = document.createElement('div');
