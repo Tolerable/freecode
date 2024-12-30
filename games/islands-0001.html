@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Island Explorer Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #87CEEB; /* Sky blue */
+        }
+
+        #mainCanvas {
+            width: 800px;
+            height: 400px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #fff;
+        }
+
+        #title {
+            font-size: 36px;
+            color: #fff;
+            text-align: center;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .portrait {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            margin: 10px;
+        }
+
+        #charContainer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        #chatCanvas {
+            width: 300px;
+            height: 200px;
+            background-color: #fff;
+            border: 2px solid #fff;
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        #inputContainer {
+            display: flex;
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+        }
+
+        #userInput {
+            width: 200px;
+            padding: 5px;
+        }
+
+        #startButton {
+            background-color: #ffd700; /* Gold */
+            border: none;
+            padding: 10px 20px;
+            font-size: 24px;
+            cursor: pointer;
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #startButton:hover {
+            background-color: #ffa500; /* Darker orange */
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="mainCanvas">
+        <img id="backgroundImage" src="" alt="Island background" style="width: 100%; height: 100%; object-fit: cover;">
+        <div id="title">Island Explorer</div>
+        <div id="charContainer">
+            <img class="portrait" id="playerPortrait" src="" alt="Player Portrait">
+            <img class="portrait" id="companionPortrait" src="" alt="Companion Portrait">
+        </div>
+        <div id="chatCanvas"></div>
+        <div id="inputContainer">
+            <input type="text" id="userInput" placeholder="Type a message...">
+            <button id="sendButton">SEND</button>
+        </div>
+        <button id="startButton">START GAME</button>
+    </div>
+
+    <script>
+        // Constants for image dimensions
+        const IMAGE_WIDTH = 800;
+        const IMAGE_HEIGHT = 400;
+
+        // Function to fetch and display images
+        async function fetchImage(prompt, imgElementId) {
+            const response = await fetch(`https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${IMAGE_WIDTH}&height=${IMAGE_HEIGHT}&nologo=true&private=true`);
+            const imageBlob = await response.blob();
+            const imgElement = document.getElementById(imgElementId);
+            imgElement.src = URL.createObjectURL(imageBlob);
+        }
+
+        // Initialize the game loading screen
+        async function initializeGame() {
+            await fetchImage("A beautiful beach island with clear skies", 'backgroundImage');
+            await fetchImage("player portrait", 'playerPortrait');
+            await fetchImage("companion portrait", 'companionPortrait');
+        }
+
+        // Start the game when the button is clicked
+        document.getElementById('startButton').addEventListener('click', () => {
+            // Redirect to game main page here
+            document.getElementById('mainCanvas').innerHTML = '<h1>The game is now starting...</h1>';
+        });
+
+        // Initialize the game
+        initializeGame();
+    </script>
+</body>
+</html>
