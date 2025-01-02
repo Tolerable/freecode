@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Coin Merge Game</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a1a;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 400px;
+            height: 600px;
+        }
+        #game-canvas {
+            background: #2a2a2a;
+            border: 2px solid #444;
+            border-radius: 8px;
+        }
+        #score {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            color: #fff;
+            font-size: 20px;
+        }
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 24px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="score">Score: 0</div>
+        <canvas id="game-canvas"></canvas>
+        <div id="game-over">
+            Game Over!<br>
+            Click to restart
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const scoreElement = document.getElementById('score');
+        const gameOverElement = document.getElementById('game-over');
+        
+        canvas.width = 400;
+        canvas.height = 600;
+
+        // Matter.js setup
+        const engine = Matter.Engine.create();
+        const render = Matter.Render.create({
+            canvas: canvas,
+            engine: engine,
+            options: {
+                width: canvas.width,
+                height: canvas.height,
+                wireframes: false,
+                background: 'transparent'
+            }
+        });
+
+        const COIN_TYPES = [
+            { level: 1, radius: 15, color: '#CD7F32', value: 1, name: 'Bronze' },  // Bronze
+            { level: 2, radius: 18, color: '#C0C0C0', value: 3, name: 'Silver' },  // Silver
+            { level: 3, radius: 22, color: '#FFD700', value: 9, name: 'Gold' },    // Gold
+            { level: 4, radius: 25, color: '#E5E4E2', value: 27, name: 'Platinum' }, // Platinum
+            { level: 5, radius: 30, color: '#B9F2FF', value: 81, name: 'Diamond' }  // Diamond
+        ];
+
+        let score = 0;
+        let gameActive = true;
+        const walls = [
+            Matter.Bodies.rectangle(canvas.width/2, canvas.height + 50, canvas.width, 100, { isStatic: true }),
+            Matter.Bodies.rectangle(-10, canvas.height/2, 20, canvas.height, { isStatic: true }),
+            Matter.Bodies.rectangle(canvas.width + 10, canvas.height/2, 20, canvas.height, { isStatic: true })
+        ];
+
+        Matter.World.add(engine.world, walls);
+
+        let nextCoin = null;
+        let dropZone = { x: canvas.width / 2, y: 50 };
+        
+        function createCoin(x, y, type) {
+            const coin = Matter.Bodies.circle(x, y, type.radius, {
+                restitution: 0.3,
+                friction: 0.1,
+                density: 0.001,
+                render: {
+                    fillStyle: type.color,
+                    strokeStyle: '#000',
+                    lineWidth: 2
+                }
+            });
+            coin.coinType = type;
+            return coin;
+        }
+
+        function spawnNextCoin() {
+            const randomType = COIN_TYPES[Math.floor(Math.random() * 3)]; // Only spawn first 3 levels
+            nextCoin = createCoin(dropZone.x, dropZone.y, randomType);
+            nextCoin.isStatic = true;
+            Matter.World.add(engine.world, nextCoin);
+        }
+
+        function dropCoin() {
+            if (!nextCoin || !gameActive) return;
+            
+            nextCoin.isStatic = false;
+            spawnNextCoin();
+        }
+
+        function checkCollisions() {
+            const pairs = Matter.Query.collides(nextCoin, Matter.Composite.allBodies(engine.world));
+            if (pairs.length > 0) {
+                gameActive = false;
+                gameOverElement.style.display = 'block';
+            }
+        }
+
+        function mergeCoin(coinA, coinB) {
+            if (coinA.coinType.level === coinB.coinType.level && 
+                coinA.coinType.level < COIN_TYPES.length) {
+                
+                const nextLevel = COIN_TYPES[coinA.coinType.level];
+                const midX = (coinA.position.x + coinB.position.x) / 2;
+                const midY = (coinA.position.y + coinB.position.y) / 2;
+                
+                Matter.World.remove(engine.world, [coinA, coinB]);
+                const newCoin = createCoin(midX, midY, nextLevel);
+                Matter.World.add(engine.world, newCoin);
+                
+                score += nextLevel.value;
+                scoreElement.textContent = `Score: ${score}`;
+                
+                // Add particle effect for merging
+                createMergeEffect(midX, midY, nextLevel.color);
+            }
+        }
+
+        function createMergeEffect(x, y, color) {
+            const particles = [];
+            const numParticles = 8;
+            
+            for (let i = 0; i < numParticles; i++) {
+                const angle = (i / numParticles) * Math.PI * 2;
+                const velocity = 5;
+                
+                const particle = Matter.Bodies.circle(x, y, 2, {
+                    render: {
+                        fillStyle: color
+                    },
+                    friction: 0,
+                    frictionAir: 0.02
+                });
+                
+                Matter.Body.setVelocity(particle, {
+                    x: Math.cos(angle) * velocity,
+                    y: Math.sin(angle) * velocity
+                });
+                
+                particles.push(particle);
+            }
+            
+            Matter.World.add(engine.world, particles);
+            setTimeout(() => {
+                Matter.World.remove(engine.world, particles);
+            }, 1000);
+        }
+
+        canvas.addEventListener('mousemove', (event) => {
+            if (!nextCoin || !gameActive) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            dropZone.x = Math.max(30, Math.min(canvas.width - 30, x));
+            Matter.Body.setPosition(nextCoin, { x: dropZone.x, y: dropZone.y });
+        });
+
+        canvas.addEventListener('click', (event) => {
+            if (!gameActive) {
+                // Reset game
+                Matter.World.clear(engine.world, false);
+                Matter.World.add(engine.world, walls);
+                score = 0;
+                scoreElement.textContent = 'Score: 0';
+                gameActive = true;
+                gameOverElement.style.display = 'none';
+                spawnNextCoin();
+                return;
+            }
+            dropCoin();
+        });
+
+        Matter.Events.on(engine, 'collisionStart', (event) => {
+            event.pairs.forEach((pair) => {
+                const bodyA = pair.bodyA;
+                const bodyB = pair.bodyB;
+                
+                if (bodyA.coinType && bodyB.coinType) {
+                    mergeCoin(bodyA, bodyB);
+                }
+            });
+        });
+
+        spawnNextCoin();
+        Matter.Engine.run(engine);
+        Matter.Render.run(render);
+
+        // Game loop
+        function gameLoop() {
+            if (nextCoin && gameActive) {
+                checkCollisions();
+            }
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    </script>
+</body>
+</html>
