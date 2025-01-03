@@ -14,12 +14,6 @@
 		  z-index: 9999 !important; 
 		}
 
-		body {
-			padding-top: 72px !important;
-			height: calc(100vh - 72px) !important;
-			overflow: hidden !important;
-		}
-
 		nav .dropdown-menu {
 		  max-height: 70vh;
 		  overflow-y: auto;
@@ -57,19 +51,9 @@
 			position: relative;
 			width: 400px;
 			height: 600px;
-			margin-top: 72px;  /* Add this line to account for nav */
-			max-height: calc(100vh - 72px);
 			background: #4a1492;
 			border-radius: 12px;
 			overflow: hidden;
-		}
-
-		@media screen and (max-width: 768px) {
-			#game-container {
-				width: 100vw;
-				height: calc(100vh - 72px);
-				border-radius: 0;
-			}
 		}
 		.pattern-overlay {
 			position: absolute;
@@ -245,25 +229,12 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <script>
-		const canvas = document.getElementById('game-canvas');
-		const scoreElement = document.getElementById('score');
-		const gameOverElement = document.getElementById('game-over');
-		const gameContainer = document.getElementById('game-container');
-
-		// Set canvas size
-		canvas.width = gameContainer.offsetWidth;
-		canvas.height = gameContainer.offsetHeight;
-
-		// CRITICAL: Update the Matter.js render bounds to match new canvas size
-		Matter.Render.setPixelRatio(render, window.devicePixelRatio);
-		Matter.Render.lookAt(render, {
-			min: { x: 0, y: 0 },
-			max: { x: canvas.width, y: canvas.height }
-		});
-
-		// Update engine bounds
-		engine.world.bounds.max.x = canvas.width;
-		engine.world.bounds.max.y = canvas.height;
+        const canvas = document.getElementById('game-canvas');
+        const scoreElement = document.getElementById('score');
+        const gameOverElement = document.getElementById('game-over');
+        
+        canvas.width = 400;
+        canvas.height = 600;
 		const ctx = canvas.getContext('2d');
 
 		document.addEventListener('visibilitychange', () => {
@@ -545,7 +516,7 @@
 		
         // Create walls with higher friction
 		const walls = [
-			Matter.Bodies.rectangle(canvas.width/2, canvas.height + 50, canvas.width, 100, { 
+			Matter.Bodies.rectangle(canvas.width/2, canvas.height - 10, canvas.width, 20, { 
 				isStatic: true,
 				friction: 0.5,
 				restitution: 0.2,
@@ -629,7 +600,7 @@
             
             if (settledCoins.length > 0) {
                 const highestY = Math.min(...settledCoins.map(coin => coin.position.y));
-                if (highestY < (72 + 50)) {
+                if (highestY < 120) {
                     gameActive = false;
                     gameOverElement.style.display = 'block';
                 }
