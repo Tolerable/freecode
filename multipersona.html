@@ -87,39 +87,18 @@
 	  width: 100%;
 	}
 
-	#settings-container {
-	  margin-top: auto;
-	  width: 100%;
-	  display: flex;
-	  justify-content: flex-end;
-	  padding: 20px;
-	  padding-right: 40px;
-	  position: relative;
-	}
-
-	.settings-button {
-		background: none;
-		border: none;
-		font-size: 24px;
-		cursor: pointer;
-		padding: 8px;
-		border-radius: 50%;
-		transition: background-color 0.3s;
-	}
-
-	.settings-button:hover {
-		background-color: var(--context-menu-hover);
-	}
-
-	#mobileMenuToggle {
+	#menuButton {
 	  display: none;
+	  position: fixed;
+	  top: 82px;
+	  left: 2px;
+	  z-index: 1000;
 	  padding: 8px 12px;
-	  border-radius: 4px;
-	  background-color: var(--button-primary);
+	  background-color: #007bff;
 	  color: white;
 	  border: none;
+	  border-radius: 4px;
 	  cursor: pointer;
-	  margin-left: 5px;
 	}
 
 	#overlay {
@@ -141,9 +120,6 @@
 	  overflow-y: auto;
 	  border-right: 1px solid var(--border-color);
 	  z-index: 999;
-	  display: flex;
-	  flex-direction: column;
-	  height: 100%;
 	}
 
 	#sidebar h3:first-child {
@@ -372,16 +348,31 @@
 	  box-sizing: border-box;
 	}
 	
+	#themeToggle {
+	  padding: 8px 12px;
+	  border-radius: 4px;
+	  background-color: var(--button-primary);
+	  color: white;
+	  border: none;
+	  cursor: pointer;
+	  margin-left: 5px;  /* Space between Send and Theme buttons */
+	}
+
+	#themeToggle:hover {
+	  background-color: var(--button-hover);
+	}
+	
 	@media (max-width: 768px) {
+	  #menuButton {
+		display: block;
+	  }
+	  
 	  #sidebar {
-		position: fixed !important;
-		left: -270px;
+		position: fixed;
+		left: -270px;  /* Was -250px, increased to fully hide the 250px + padding */
 		top: 0;
 		bottom: 0;
 		transition: left 0.3s ease;
-		width: 250px;
-		height: 100vh;
-		margin: 0;
 	  }
 	  
 	  #sidebar.active {
@@ -410,45 +401,45 @@
 	  .message {
 		max-width: 85%;
 	  }
-	  #mobileMenuToggle {
-		display: block;
-	  }	  
 	}	
   </style>
 </head>
 <body>
 <script src="https://www.ai-ministries.com/js/nav-loader.js"></script>
-
 <div id="app-wrapper">
+    <button id="menuButton">☰</button>
     <div id="overlay"></div>
     <div id="sidebar">
       <h3>Personas</h3>
-      <div id="chat-personas"></div>
+      <div id="personas"></div>
       <button onclick="createPersona()">Add Persona</button>
       <h3>Sessions</h3>
       <div id="sessions"></div>
-      <div id="settings-container">
-        <button id="settingsButton" class="settings-button">⚙️</button>
-      </div>
     </div>
     <div id="main">
       <div id="chat-box">
         <div id="chatContainer"></div>
       </div>
-		<div id="messageInputContainer">
-			<input id="message-input" type="text" placeholder="Type your message...">
-			<button id="sendButton" onclick="sendMessage()">Send</button>
-			<button id="mobileMenuToggle">☰</button>
-		</div>
+      <div id="messageInputContainer">
+        <input id="message-input" type="text" placeholder="Type your message...">
+        <button id="sendButton" onclick="sendMessage()">Send</button>
+        <button id="themeToggle">🌙</button>
+      </div>
     </div>
 </div>
 
 <script>
+  
+	const menuButton = document.getElementById('menuButton');
 	const sidebar = document.getElementById('sidebar');
 	const overlay = document.getElementById('overlay');
-	const mobileToggle = document.getElementById('mobileMenuToggle');
+
+	menuButton.addEventListener('click', () => {
+	  sidebar.classList.toggle('active');
+	  overlay.classList.toggle('active');
+	});
+
 	const contextMenu = document.createElement('div');
-	
 	contextMenu.className = 'context-menu';
 	contextMenu.style.display = 'none';
 	document.body.appendChild(contextMenu);
@@ -470,21 +461,6 @@
 		  <div class="modal-buttons">
 			<button class="modal-button secondary" onclick="closeSystemMessageModal()">Cancel</button>
 			<button class="modal-button primary" onclick="saveSystemMessage()">Save</button>
-		  </div>
-		</div>
-	  </div>
-
-	  <div class="modal-overlay" id="settingsModal">
-		<div class="modal">
-		  <div class="modal-header">Settings</div>
-		  <div class="modal-content">
-			<div class="settings-option">
-			  <label>Theme</label>
-			  <button id="settingsThemeToggle">🌙</button>
-			</div>
-		  </div>
-		  <div class="modal-buttons">
-			<button class="modal-button secondary" onclick="closeSettingsModal()">Close</button>
 		  </div>
 		</div>
 	  </div>
@@ -513,7 +489,7 @@
 
 	const chatBox = document.getElementById('chat-box');
 	const messageInput = document.getElementById('message-input');
-	const personaList = document.getElementById('chat-personas'); // Fix added here
+	const personaList = document.getElementById('personas'); // Fix added here
 
 	console.log(personaList); // Should log the `#personas` div
 
@@ -528,19 +504,6 @@
 	}
 
 	let currentEditingPersonaIndex = null;
-
-	document.addEventListener('DOMContentLoaded', function() {
-		const toggleButton = document.getElementById('mobileMenuToggle');
-		const sidebar = document.getElementById('sidebar');
-		const overlay = document.getElementById('overlay');
-		
-		if(toggleButton) {
-			toggleButton.onclick = function() {
-				sidebar.classList.toggle('active');
-				overlay.classList.toggle('active');
-			}
-		}
-	});
 
 	function openSystemMessageModal(personaIndex) {
 	  currentEditingPersonaIndex = personaIndex;
@@ -958,34 +921,9 @@
 	}
 
 	function setTheme(isDark) {
-		document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-		localStorage.setItem('darkTheme', isDark);
-		
-		// Only try to update button if it exists
-		const themeToggle = document.getElementById('settingsThemeToggle');
-		if (themeToggle) {
-			themeToggle.textContent = isDark ? '☀️' : '🌙';
-		}
-	}
-
-	function openSettingsModal() {
-		const modal = document.getElementById('settingsModal');
-		if (!modal) return;
-		
-		modal.style.display = 'flex';
-		const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-		
-		const themeToggle = document.getElementById('settingsThemeToggle');
-		if (themeToggle) {
-			themeToggle.textContent = isDark ? '☀️' : '🌙';
-		}
-	}
-
-	function closeSettingsModal() {
-		const modal = document.getElementById('settingsModal');
-		if (modal) {
-			modal.style.display = 'none';
-		}
+	  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+	  document.getElementById('themeToggle').textContent = isDark ? '☀️' : '🌙';
+	  localStorage.setItem('darkTheme', isDark);
 	}
 
 	// Initialize theme
@@ -993,28 +931,17 @@
 	const storedTheme = localStorage.getItem('darkTheme');
 	setTheme(storedTheme !== null ? storedTheme === 'true' : prefersDark);
 
+	// Theme toggle handler
+	document.getElementById('themeToggle').addEventListener('click', () => {
+	  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+	  setTheme(!isDark);
+	});
+
 	window.onload = () => {
 	  loadData();
 	  migrateData();
 	  renderPersonas();
 	  
-	  // Settings and theme handlers
-	  document.getElementById('settingsButton').addEventListener('click', openSettingsModal);
-	  document.getElementById('settingsThemeToggle').addEventListener('click', () => {
-		const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-		setTheme(!isDark);
-	  });
-	  
-	  if(mobileToggle) {
-	  	  mobileToggle.addEventListener('click', function() {
-	  	  	  console.log('Toggle clicked');  // For debugging
-	  	  	  if(sidebar && overlay) {
-	  	  	  	  sidebar.classList.toggle('active');
-	   	  	  	  overlay.classList.toggle('active');
-	  	  	  }
-	  	  });
-	  } 
-
 	  // Add message input listener
 	  const messageInput = document.getElementById('message-input');
 	  if (messageInput) {
