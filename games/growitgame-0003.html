@@ -265,17 +265,7 @@
                         left: { water: false, food: false },
                         right: { water: false, food: false }
                     },
-                    startDate: new Date().toISOString(),
-                    phase: 'veg', // veg or flower
-                    logs: [], // daily activity log
-                    lastWatered: {
-                        left: null,
-                        right: null
-                    },
-                    lastFed: {
-                        left: null,
-                        right: null
-                    }
+                    startDate: new Date().toISOString()
                 });
                 updateCreditsDisplay();
                 updateTentDisplay();
@@ -295,70 +285,8 @@
         function setFeeding(tentId, side, type) {
             const tent = gameState.tents.find(t => t.id === tentId);
             if (tent) {
-                const timestamp = new Date().toISOString();
+                // Toggle the feeding state
                 tent.feeding[side][type] = !tent.feeding[side][type];
-                
-                if (tent.feeding[side][type]) {
-                    // Record the time of feeding/watering
-                    if (type === 'water') {
-                        tent.lastWatered[side] = timestamp;
-                    } else {
-                        tent.lastFed[side] = timestamp;
-                    }
-                    
-                    // Add to log
-                    tent.logs.unshift({
-                        date: timestamp,
-                        action: type,
-                        side: side
-                    });
-                    
-                    // Keep logs trimmed to last 50 entries
-                    if (tent.logs.length > 50) {
-                        tent.logs.pop();
-                    }
-                }
-                
-                updateTentDisplay();
-                saveGame();
-            }
-        }
-
-        function getTimeSince(dateStr) {
-            if (!dateStr) return null;
-            const date = new Date(dateStr);
-            const now = new Date();
-            const hours = Math.floor((now - date) / (1000 * 60 * 60));
-            if (hours < 24) return `${hours}h ago`;
-            const days = Math.floor(hours / 24);
-            return `${days}d ago`;
-        }
-
-        function getWeeksSince(dateStr) {
-            if (!dateStr) return 0;
-            const date = new Date(dateStr);
-            const now = new Date();
-            return Math.floor((now - date) / (1000 * 60 * 60 * 24 * 7));
-        }
-
-        function getFeedingStatus(lastTime) {
-            if (!lastTime) return 'alert';
-            const hours = Math.floor((new Date() - new Date(lastTime)) / (1000 * 60 * 60));
-            if (hours < 24) return 'recent';
-            if (hours < 48) return 'warning';
-            return 'alert';
-        }
-
-        function togglePhase(tentId) {
-            const tent = gameState.tents.find(t => t.id === tentId);
-            if (tent) {
-                tent.phase = tent.phase === 'veg' ? 'flower' : 'veg';
-                // Add to log
-                tent.logs.unshift({
-                    date: new Date().toISOString(),
-                    action: 'phase_change',
-                    newPhase: tent.phase
-                });
                 updateTentDisplay();
                 saveGame();
             }
@@ -369,23 +297,7 @@
             tentGrid.innerHTML = gameState.tents.map(tent => `
                 <div class="tent">
                     <div class="tent-header">
-                        <div class="tent-title">
-                            ${tent.size} Tent 
-                            <span class="phase-${tent.phase}">(${tent.phase.toUpperCase()})</span>
-                            <button class="phase-toggle" onclick="togglePhase(${tent.id})">
-                                Switch to ${tent.phase === 'veg' ? 'Flower' : 'Veg'}
-                            </button>
-                        </div>
-                    </div>
-                    <div class="tent-stats">
-                        <div class="stat-item">
-                            <div class="stat-label">Week</div>
-                            <div class="stat-value">${getWeeksSince(tent.startDate)}</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">Started</div>
-                            <div class="stat-value">${new Date(tent.startDate).toLocaleDateString()}</div>
-                        </div>
+                        <div class="tent-title">${tent.size} Tent</div>
                     </div>
                     <div class="tent-section">
                         <div class="tent-light-cycle">
@@ -400,7 +312,6 @@
                     <div class="tent-section">
                         <div class="tent-feeding">
                             <div>Left Side:
-                                <span class="feeding-indicator feeding-${getFeedingStatus(tent.lastWatered.left)}"></span>
                                 <button class="feeding-button ${tent.feeding.left.water ? 'active' : ''}"
                                         onclick="setFeeding(${tent.id}, 'left', 'water')">
                                     <i class="fas fa-tint"></i>
@@ -413,7 +324,6 @@
                                 </button>
                             </div>
                             <div>Right Side:
-                                <span class="feeding-indicator feeding-${getFeedingStatus(tent.lastWatered.right)}"></span>
                                 <button class="feeding-button ${tent.feeding.right.water ? 'active' : ''}"
                                         onclick="setFeeding(${tent.id}, 'right', 'water')">
                                     <i class="fas fa-tint"></i>
@@ -425,20 +335,6 @@
                                     Food
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                    <div class="tent-log">
-                        <div class="log-entries">
-                            ${tent.logs.map(log => `
-                                <div class="log-entry">
-                                    <span class="log-date">${new Date(log.date).toLocaleString()}</span>
-                                    ${log.action === 'phase_change' 
-                                        ? ` - Changed to ${log.newPhase.toUpperCase()} phase`
-                                        : ` - ${log.side.charAt(0).toUpperCase() + log.side.slice(1)} side: ${
-                                            log.action.charAt(0).toUpperCase() + log.action.slice(1)}`
-                                    }
-                                </div>
-                            `).join('')}
                         </div>
                     </div>
                 </div>
