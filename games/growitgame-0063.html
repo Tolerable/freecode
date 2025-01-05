@@ -219,14 +219,13 @@
 		}
 
 		.shopItem {
-			background: rgba(45, 55, 72, 0.9);
-			border-radius: 10px;
+			display: block;
+			margin: 10px 0;
 			padding: 15px;
-			margin-bottom: 15px;
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			border: 1px solid #48bb78;
+			border: 1px solid #ccc;
+			background-color: #f9f9f9;
+			border-radius: 5px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 		}
 
 		.shopItem-info {
@@ -391,15 +390,6 @@
 			color: #48bb78;
 			font-size: 0.8em;
 		}
-		.tent-stats {
-			display: grid;
-			grid-template-columns: repeat(3, 1fr);
-			gap: 10px;
-			padding: 15px;
-			background: rgba(0, 0, 0, 0.2);
-			border-radius: 8px;
-			margin: 15px 0;
-		}
 
 		.stat-block {
 			text-align: center;
@@ -464,46 +454,6 @@
 		.alert {
 			background: rgba(245, 101, 101, 0.2);
 			color: #f56565;
-		}	
-
-		.phase-badge {
-			padding: 5px 10px;
-			border-radius: 15px;
-			font-size: 0.9em;
-			font-weight: bold;
-		}
-
-		.phase-veg {
-			background: rgba(72, 187, 120, 0.2);
-			color: #48bb78;
-		}
-
-		.phase-flower {
-			background: rgba(214, 158, 46, 0.2);
-			color: #d69e2e;
-		}
-
-		.harvest-button {
-			background: #9f7aea;
-			color: white;
-			border: none;
-			padding: 8px 15px;
-			border-radius: 5px;
-			cursor: pointer;
-		}
-
-		.harvest-button:hover {
-			background: #805ad5;
-		}
-
-		.note-input {
-			background: rgba(45, 55, 72, 0.9);
-			border: 1px solid #4a5568;
-			border-radius: 5px;
-			color: white;
-			padding: 8px;
-			margin-right: 10px;
-			flex-grow: 1;
 		}	
 
 		.cycle-controls {
@@ -587,13 +537,6 @@
 			grid-template-columns: repeat(3, 1fr);
 			gap: 10px;
 			margin: 15px 0;
-		}
-
-		.tent-detail-image {
-			width: 100%;
-			max-height: 200px;
-			object-fit: cover;
-			border-radius: 10px;
 		}
 
 		.delete-button {
@@ -854,10 +797,12 @@
                     <div id="tentDetailView"></div>
                 </div>
                 
-                <div id="shopPage" class="page">
-                    <h2>Shop</h2>
-                    <!-- Shop content will go here -->
-                </div>
+				<div id="shopPage" class="page">
+					<h2 style="color: #48bb78; margin: 20px 0 20px 20px;">Grow Shop</h2>
+					<div style="padding: 20px;">
+						<!-- Shop items will be inserted here by updateShopDisplay() -->
+					</div>
+				</div>
                 
                 <div id="statsPage" class="page">
                     <h2>Stats</h2>
@@ -865,11 +810,21 @@
                 </div>
                 
 				<div id="settingsPage" class="page">
-					<h2>Settings</h2>
-					<div style="padding: 20px; text-align: center;">
-						<button class="reset-button" onclick="resetGame()">
-							<i class="fas fa-exclamation-triangle"></i> Reset Game
-						</button>
+					<h2 style="color: #48bb78; margin: 20px 0 20px 20px;">Settings</h2>
+					<div style="padding: 20px;">
+						<!-- Reset button container -->
+						<div style="background: rgba(45, 55, 72, 0.9); padding: 20px; border-radius: 8px; margin-bottom: 40px; text-align: center;">
+							<button class="reset-button" onclick="resetGame()">
+								<i class="fas fa-exclamation-triangle"></i> Reset Game
+							</button>
+						</div>
+						
+						<!-- Support button container -->
+						<div style="text-align: center; margin-top: 40px;">
+							<button class="cycle-button" onclick="showDonatePopup()" style="background: #9f7aea;">
+								💚 Support Development
+							</button>
+						</div>
 					</div>
 				</div>
             </div>
@@ -893,34 +848,126 @@
                 </button>
             </div>
         </div>
+		<div id="donatePopup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+			background: #2d3748; padding: 20px; border-radius: 10px; z-index: 1000; width: 300px; text-align: center;">
+			<h3 style="color: #48bb78; margin-bottom: 15px;">Support GROW IT</h3>
+			<p style="color: #a0aec0; margin-bottom: 15px;">
+				Your support keeps GROW IT ad-free and enables regular updates and new features.
+			</p>
+			<button id="donate-btn-reg" class="cycle-button" style="background: #9f7aea; margin-bottom: 15px;">
+				💚 Support via PayPal
+			</button>
+			<p style="color: #718096; font-size: 0.9em; margin-bottom: 15px;">
+				Developed by <a href="https://www.github.com/Tolerable/" 
+							  style="color: #48bb78; text-decoration: none;"
+							  target="_blank">Reverend Dr. Tolerant</a>
+			</p>
+			<button onclick="closeDonatePopup()" style="background: none; border: none; color: #a0aec0; cursor: pointer;">
+				Close
+			</button>
+		</div>
     </div>
 
     <script>
         // Game state
 		let gameState = {
-            credits: 2400,
-            tents: [],
-            lastSaved: null,
-            currentPage: 'homePage',
-            shop: {
-                items: [
-                    {
-                        id: 'tent3x3',
-                        name: '3x3 Grow Tent',
-                        description: 'Perfect for small grows',
-                        size: '3x3',
-                        price: 200
-                    },
-                    {
-                        id: 'tent4x4',
-                        name: '4x4 Grow Tent',
-                        description: 'Ideal for medium grows',
-                        size: '4x4',
-                        price: 300
-                    }
-                ]
-            }
-        };
+			credits: 2400,
+			tents: [],
+			lastSaved: null,
+			currentPage: 'homePage',
+			shop: {
+				items: [
+					{
+						id: 'tent2x2',
+						name: '2x2 Grow Tent',
+						description: 'Perfect for micro grows',
+						size: '2x2',
+						price: 100
+					},
+					{
+						id: 'light2x2',
+						name: 'LED Board S22',
+						description: 'Full spectrum light perfect for 2x2 space',
+						size: '2x2',
+						wattage: '100W',
+						price: 99
+					},
+					{
+						id: 'tent2x4',
+						name: '2x4 Grow Tent',
+						description: 'Ideal for small spaces',
+						size: '2x4',
+						price: 150
+					},
+					{
+						id: 'light2x4',
+						name: 'LED Bar EVO',
+						description: '280W Samsung diodes, ideal for 2x4 coverage',
+						size: '2x4',
+						wattage: '280W',
+						price: 319
+					},
+					{
+						id: 'tent3x3',
+						name: '3x3 Grow Tent',
+						description: 'Perfect for small grows',
+						size: '3x3',
+						price: 200
+					},
+					{
+						id: 'light3x3',
+						name: 'LED Bar EVO',
+						description: '300W Samsung diodes, perfect for 3x3 coverage',
+						size: '3x3',
+						wattage: '300W',
+						price: 329
+					},
+					{
+						id: 'tent4x4',
+						name: '4x4 Grow Tent',
+						description: 'Ideal for medium grows',
+						size: '4x4',
+						price: 300
+					},
+					{
+						id: 'light4x4',
+						name: 'LED Bar EVO',
+						description: '500W Samsung diodes, commercial grade 4x4 lighting',
+						size: '4x4',
+						wattage: '500W',
+						price: 569
+					},
+					{
+						id: 'tent5x5',
+						name: '5x5 Grow Tent',
+						description: 'Professional grade large grow space',
+						size: '5x5',
+						price: 400
+					},
+					{
+						id: 'light5x5',
+						name: 'LED Bar EVO',
+						description: '730W Samsung diodes, professional 5x5 coverage',
+						size: '5x5',
+						wattage: '730W',
+						price: 799
+					}
+				]
+			}
+		};
+		
+		let originalShopItems = JSON.stringify(gameState.shop.items); // Backup the original shop items
+
+		Object.defineProperty(gameState.shop, 'items', {
+			set: function(newItems) {
+				console.warn("gameState.shop.items was changed!", newItems);
+				originalShopItems = JSON.stringify(newItems); // Keep a log of the new state
+			},
+			get: function() {
+				return JSON.parse(originalShopItems);
+			}
+		});
+		
 		
 		let tentSelections = {};
 
@@ -957,7 +1004,19 @@
 				currentTentState[tentId] = 'none';
 			}
 			
-			const states = Object.keys(tentStates);
+			// Updated states to reflect the actual possible combinations
+			const states = [
+				'none',          // No actions
+				'waterBoth',     // Water both sides
+				'feedBoth',      // Feed both sides
+				'waterLeft',     // Just water left
+				'waterRight',    // Just water right
+				'feedLeft',      // Just feed left
+				'feedRight',     // Just feed right
+				'mixedWaterFeed',// Left water, right feed
+				'mixedFeedWater' // Left feed, right water
+			];
+			
 			const currentIndex = states.indexOf(currentTentState[tentId]);
 			const nextIndex = (currentIndex + 1) % states.length;
 			currentTentState[tentId] = states[nextIndex];
@@ -968,6 +1027,7 @@
 			document.getElementById(`confirm-buttons-${tentId}`).style.display = 'inline-flex';
 		}
 
+		// Update the confirmTentAction function to handle the new states properly
 		function confirmTentAction(tentId) {
 			const state = currentTentState[tentId];
 			const tent = gameState.tents.find(t => t.id === tentId);
@@ -976,13 +1036,24 @@
 			const now = new Date().toISOString();
 			const icons = tentStates[state];
 
-			// Update last actions based on icons
-			if (icons.left === '💧') tent.lastWatered.left = now;
-			if (icons.left === '🌱') tent.lastFed.left = now;
-			if (icons.right === '💧') tent.lastWatered.right = now;
-			if (icons.right === '🌱') tent.lastFed.right = now;
+			// Update timestamps based on actions
+			if (icons.left === '💧') {
+				tent.lastWatered.left = now;
+			} else if (icons.left === '🌱') {
+				// Feed includes water
+				tent.lastFed.left = now;
+				tent.lastWatered.left = now;
+			}
 
-			// Add log entry
+			if (icons.right === '💧') {
+				tent.lastWatered.right = now;
+			} else if (icons.right === '🌱') {
+				// Feed includes water
+				tent.lastFed.right = now;
+				tent.lastWatered.right = now;
+			}
+
+			// Add log entry with correct icons
 			tent.logs.unshift({
 				date: now,
 				action: state,
@@ -1322,49 +1393,40 @@
 		}
 
         // Tent management functions
-		function buyTent(tentId) {
-			const tent = gameState.shop.items.find(item => item.id === tentId);
-			if (tent && gameState.credits >= tent.price) {
-				gameState.credits -= tent.price;
-				gameState.tents.push({
-					id: Date.now(), // unique ID
-					type: tentId,
-					size: tent.size,
-					lightCycle: '18/6', // default cycle
-					feeding: {
-						left: { water: false, food: false },
-						right: { water: false, food: false }
-					},
-					startDate: new Date().toISOString(),
-					phase: 'veg', // veg or flower
-					logs: [], // daily activity log
-					lastWatered: {
-						left: null,
-						right: null
-					},
-					lastFed: {
-						left: null,
-						right: null
-					},
-					harvestCount: 0,
-					cycleHistory: [],
-					currentCycle: {
-						startDate: new Date().toISOString(),
-						phase: 'veg',
-						notes: []
-					},
-					environment: {
-						temperature: null,
-						humidity: null,
-						fans: false,
-						co2: false
-					}
-				});
-				updateCreditsDisplay();
-				updateTentDisplay();
-				saveGame();
+		function buyTentWithLight(tent, light) {
+			// Check if enough credits are available
+			const totalCost = tent.price + (light ? light.price : 0);
+			if (gameState.credits < totalCost) {
+				alert('Not enough credits!');
+				return;
 			}
+
+			// Deduct credits
+			gameState.credits -= totalCost;
+
+			// Add the tent with its light to the game state
+			gameState.tents.push({
+				id: Date.now(), // Unique identifier
+				type: tent.id,
+				size: tent.size,
+				light: light ? {
+					id: light.id,
+					name: light.name,
+					wattage: light.wattage,
+				} : null,
+				lightCycle: '18/6', // Default cycle
+				phase: 'veg', // Default phase
+				startDate: new Date().toISOString(),
+				logs: [],
+			});
+
+			updateCreditsDisplay();
+			updateTentDisplay();
+			saveGame();
+
+			alert(`${tent.name} purchased successfully!`);
 		}
+
 
 		function manageCycle(tentId, action, note = '') {
 			const tent = gameState.tents.find(t => t.id === tentId);
@@ -1668,31 +1730,44 @@
             }
         }
 
+		function showDonatePopup() {
+			document.getElementById('donatePopup').style.display = 'block';
+		}
+
+		function closeDonatePopup() {
+			document.getElementById('donatePopup').style.display = 'none';
+		}
+
+		document.getElementById('donate-btn-reg').onclick = () => {
+			window.open('https://paypal.me/ReverendDrTolerant?country.x=US&locale.x=en_US', '_blank');
+		};
+
 		function updateTentDetailDisplay(tent) {
 			const detailView = document.getElementById('tentDetailView');
 			if (!tent || !tent.id) {
 				hideTentDetail();
-				gameState.tents = gameState.tents.filter(t => t && t.id);  // Clean up invalid tents
+				gameState.tents = gameState.tents.filter(t => t && t.id); // Clean up invalid tents
 				updateTentDisplay();
 				saveGame();
 				return;
 			}
 			const tentIndex = gameState.tents.findIndex(t => t.id === tent.id);
-            
-            detailView.innerHTML = `
-                <div class="detail-header">
-                    <button class="back-button" onclick="hideTentDetail()">
-                        <i class="fas fa-arrow-left"></i>
-                    </button>
-                    <h2>${tent.size} Tent</h2>
-                    <button class="delete-button" onclick="confirmDeleteTent(${tent.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+			const light = tent.light; // Use the auto-assigned light from the tent object
 
-                <img src="https://image.pollinations.ai/prompt/indoor%20grow%20tent%20${tent.size}%20setup%20professional%20cannabis%20grow?nologo=true&private=true&enhance=false&width=400&height=300" 
-                     alt="Tent visualization" 
-                     class="tent-detail-image">
+			detailView.innerHTML = `
+				<div class="detail-header">
+					<button class="back-button" onclick="hideTentDetail()">
+						<i class="fas fa-arrow-left"></i>
+					</button>
+					<h2>${tent.size} Tent</h2>
+					<button class="delete-button" onclick="confirmDeleteTent(${tent.id})">
+						<i class="fas fa-trash"></i>
+					</button>
+				</div>
+
+				<img src="https://image.pollinations.ai/prompt/indoor%20grow%20tent%20${tent.size}%20setup%20professional%20cannabis%20grow?nologo=true&private=true&enhance=false&width=400&height=300" 
+					 alt="Tent visualization" 
+					 class="tent-detail-image">
 
 				<div class="tent-stats">
 					<div class="stat-item">
@@ -1715,48 +1790,53 @@
 				</div>
 
 				<div class="care-status">
-					<div class="care-item ${getTimeAlertClass(tent.lastWatered.left, 24, tent, 'left', 'water')}" title="Left Side Water">
-						💧L: ${getTimeSince(tent.lastWatered.left)}
+					<div class="care-item ${getTimeAlertClass(tent, 'left')}" title="Left Side">
+						L: ${getActionIcon(tent, 'left')} ${getTimeSince(getMostRecentAction(tent, 'left'))}
 					</div>
-					<div class="care-item ${getTimeAlertClass(tent.lastWatered.right, 24, tent, 'right', 'water')}" title="Right Side Water">
-						💧R: ${getTimeSince(tent.lastWatered.right)}
-					</div>
-					<div class="care-item ${getTimeAlertClass(tent.lastFed.left, 72, tent, 'left', 'feed')}" title="Left Side Feed">
-						🌱L: ${getTimeSince(tent.lastFed.left)}
-					</div>
-					<div class="care-item ${getTimeAlertClass(tent.lastFed.right, 72, tent, 'right', 'feed')}" title="Right Side Feed">
-						🌱R: ${getTimeSince(tent.lastFed.right)}
+					<div class="care-item ${getTimeAlertClass(tent, 'right')}" title="Right Side">
+						R: ${getActionIcon(tent, 'right')} ${getTimeSince(getMostRecentAction(tent, 'right'))}
 					</div>
 				</div>
 
-					<div class="cycle-controls">
-						<div class="control-row">
-							<span class="phase-badge phase-${tent.phase}">
-								${tent.phase.toUpperCase()}
-							</span>
-							<button class="cycle-button" 
-									onclick="manageCycle(${tent.id}, 'switchPhase')">
-								Switch to ${tent.phase === 'veg' ? 'FLOWER' : 'VEG'}
-							</button>
-							${tent.phase === 'flower' ? `
-								<button class="harvest-button"
-										onclick="manageCycle(${tent.id}, 'harvest')">
-									Harvest
-								</button>
-							` : ''}
+				<div class="tent-light-info">
+					${light ? `
+						<h3>Light Details:</h3>
+						<div class="light-detail">
+							<p><strong>${light.name}</strong></p>
+							<p>${light.description}</p>
+							<p>Wattage: ${light.wattage}</p>
 						</div>
-						
-						<div class="control-row">
-							<input type="text" 
-								   class="note-input" 
-								   id="note-${tent.id}" 
-								   placeholder="Add a note...">
-							<button class="cycle-button"
-									onclick="manageCycle(${tent.id}, 'addNote', document.getElementById('note-${tent.id}').value)">
-								Add Note
+					` : '<p>No light associated with this tent.</p>'}
+				</div>
+
+				<div class="cycle-controls">
+					<div class="control-row">
+						<span class="phase-badge phase-${tent.phase}">
+							${tent.phase.toUpperCase()}
+						</span>
+						<button class="cycle-button" 
+								onclick="manageCycle(${tent.id}, 'switchPhase')">
+							Switch to ${tent.phase === 'veg' ? 'FLOWER' : 'VEG'}
+						</button>
+						${tent.phase === 'flower' ? `
+							<button class="harvest-button"
+									onclick="manageCycle(${tent.id}, 'harvest')">
+								Harvest
 							</button>
-						</div>
+						` : ''}
 					</div>
+					
+					<div class="control-row">
+						<input type="text" 
+							   class="note-input" 
+							   id="note-${tent.id}" 
+							   placeholder="Add a note...">
+						<button class="cycle-button"
+								onclick="manageCycle(${tent.id}, 'addNote', document.getElementById('note-${tent.id}').value)">
+							Add Note
+						</button>
+					</div>
+				</div>
 				<div class="tent-section" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 30px;">
 					<div class="tent-light-cycle" style="margin-left: 20px;">
 						<button 
@@ -1790,35 +1870,53 @@
 						${tent.logs.map(log => `
 							<div class="log-entry">
 								<span class="log-date">${new Date(log.date).toLocaleString()}</span>
-								${log.left && log.right 
-									? ` [ ${log.left} / ${log.right} ]`
-									: log.action === 'phase_change' 
-										? ` - Changed to ${log.newPhase ? log.newPhase.toUpperCase() : 'new phase'}`
-										: log.action === 'light_cycle'
-											? ` - 💡 Changed to ${log.newCycle}`
-											: log.note 
-												? ` - 📝 ${log.note}`
-												: ` - ${log.action}`
+								${log.left && log.right ? 
+									` • [L:${log.left} R:${log.right}]` :
+									log.action === 'phase_change' ? 
+										` • Changed to ${log.newPhase ? log.newPhase.toUpperCase() : 'new phase'}` :
+									log.action === 'light_cycle' ?
+										` • 💡 Changed to ${log.newCycle}` :
+									log.action === 'date_change' ?
+										` • 📅 ${log.message}` :  // This is the new line to capture date changes
+									log.note ? 
+										` • 📝 ${log.note}` :
+									` • ${formatLogAction(log.action)}`
 								}
 							</div>
 						`).join('')}
 					</div>
 				</div>
 
-                <div class="detail-navigation">
-                    <button class="nav-button" 
-                            onclick="navigateTent(-1)" 
-                            ${tentIndex === 0 ? 'disabled' : ''}>
-                        <i class="fas fa-chevron-left"></i> Previous
-                    </button>
-                    <button class="nav-button" 
-                            onclick="navigateTent(1)" 
-                            ${tentIndex === gameState.tents.length - 1 ? 'disabled' : ''}>
-                        Next <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            `;
-        }
+				<div class="detail-navigation">
+					<button class="nav-button" 
+							onclick="navigateTent(-1)" 
+							${tentIndex === 0 ? 'disabled' : ''}>
+						<i class="fas fa-chevron-left"></i> Previous
+					</button>
+					<button class="nav-button" 
+							onclick="navigateTent(1)" 
+							${tentIndex === gameState.tents.length - 1 ? 'disabled' : ''}>
+						Next <i class="fas fa-chevron-right"></i>
+					</button>
+				</div>
+			`;
+		}
+
+
+
+		function formatLogAction(action) {
+			switch(action) {
+				case 'waterBoth': return '💧 Watered both sides';
+				case 'feedBoth': return '🌱 Fed both sides';
+				case 'waterLeft': return '💧 Watered left side';
+				case 'waterRight': return '💧 Watered right side';
+				case 'feedLeft': return '🌱 Fed left side';
+				case 'feedRight': return '🌱 Fed right side';
+				case 'mixedWaterFeed': return '💧 Watered left, 🌱 Fed right';
+				case 'mixedFeedWater': return '🌱 Fed left, 💧 Watered right';
+				default: return action;
+			}
+		}
 
 		const LIGHT_CYCLES = ['12/12', '18/6', '24/0', 'OFF'];
 		const tentLightStates = {};
@@ -1880,29 +1978,43 @@
 			delete tentLightStates[tentId];
 		}
 
-		function getTimeAlertClass(timestamp, hoursThreshold, tent, side, type) {
-			if (!timestamp) return 'alert-severe';
+		function getActionIcon(tent, side) {
+			// If both were done at exactly the same time, it was a feed
+			if (tent.lastFed[side] && tent.lastFed[side] === tent.lastWatered[side]) {
+				return '🌱';  // Feed (which includes water)
+			}
+			// If watered more recently than fed
+			if (tent.lastWatered[side] && 
+				(!tent.lastFed[side] || new Date(tent.lastWatered[side]) > new Date(tent.lastFed[side]))) {
+				return '💧';  // Just water
+			}
+			// If fed more recently than watered
+			if (tent.lastFed[side]) {
+				return '🌱';  // Feed (which includes water)
+			}
+			return '⛔';  // Nothing yet
+		}
+
+		function getMostRecentAction(tent, side) {
+			// If fed, that's our timestamp (since feed includes water)
+			if (tent.lastFed[side]) {
+				return tent.lastFed[side];
+			}
+			// Otherwise use water timestamp if it exists
+			if (tent.lastWatered[side]) {
+				return tent.lastWatered[side];
+			}
+			return null;
+		}
+
+		function getTimeAlertClass(tent, side) {
+			const lastAction = getMostRecentAction(tent, side);
+			if (!lastAction) return 'alert-severe';
 			
-			// For water alerts, check if recently fed (since feeding is liquid nutrients)
-			if (type === 'water' && tent.lastFed && tent.lastFed[side]) {
-				const fedHours = (new Date() - new Date(tent.lastFed[side])) / (1000 * 60 * 60);
-				if (fedHours < hoursThreshold) {
-					return 'alert-ok';  // If they were fed recently, no water needed
-				}
-			}
-
-			// For feed alerts, check if recently watered
-			if (type === 'feed' && tent.lastWatered && tent.lastWatered[side]) {
-				const wateredHours = (new Date() - new Date(tent.lastWatered[side])) / (1000 * 60 * 60);
-				if (wateredHours < hoursThreshold) {
-					return 'alert-ok';  // If they were watered recently, no feed needed yet
-				}
-			}
-
-			// Check the actual timestamp for this specific action
-			const hours = (new Date() - new Date(timestamp)) / (1000 * 60 * 60);
-			if (hours > hoursThreshold * 2) return 'alert-severe';
-			if (hours > hoursThreshold) return 'alert-warning';
+			const hours = (new Date() - new Date(lastAction)) / (1000 * 60 * 60);
+			// Using 24 hours as threshold since that's what you had before
+			if (hours > 48) return 'alert-severe';
+			if (hours > 24) return 'alert-warning';
 			return 'alert-ok';
 		}
 
@@ -2133,38 +2245,94 @@
 			tentGrid.innerHTML = html;
 		}
 
-		function updateShopDisplay() {
-			const shopPage = document.getElementById('shopPage');
-			shopPage.innerHTML = `
-				<h2 style="color: #48bb78; margin-bottom: 20px;">Grow Shop</h2>
-			`;
-			
-			if (gameState && gameState.shop && gameState.shop.items) {
-				gameState.shop.items.forEach(item => {
-					shopPage.innerHTML += `
-						<div class="shopItem">
-							<div class="shopItem-info">
-								<div class="shopItem-title">${item.name}</div>
-								<div class="shopItem-desc">${item.description}</div>
-							</div>
-							<div class="shopItem-price">${item.price} credits</div>
-							<button class="buyButton" 
-									onclick="buyTent('${item.id}')"
-									${gameState.credits < item.price ? 'disabled' : ''}>
-								Buy
-							</button>
-						</div>
-					`;
-				});
+		function ensureShopItemsInitialized() {
+			if (!gameState.shop || !gameState.shop.items || gameState.shop.items.length === 0) {
+				gameState.shop = {
+					items: [
+						{ id: 'tent2x2', name: '2x2 Grow Tent', description: 'Perfect for micro grows', size: '2x2', price: 100 },
+						{ id: 'light2x2', name: 'LED Board S22', description: 'Full spectrum light perfect for 2x2 space', size: '2x2', wattage: '100W', price: 99 },
+						{ id: 'tent2x4', name: '2x4 Grow Tent', description: 'Ideal for small spaces', size: '2x4', price: 150 },
+						{ id: 'light2x4', name: 'LED Bar EVO', description: '280W Samsung diodes, ideal for 2x4 coverage', size: '2x4', wattage: '280W', price: 319 },
+						{ id: 'tent3x3', name: '3x3 Grow Tent', description: 'Perfect for small grows', size: '3x3', price: 200 },
+						{ id: 'light3x3', name: 'LED Bar EVO', description: '300W Samsung diodes, perfect for 3x3 coverage', size: '3x3', wattage: '300W', price: 329 },
+						{ id: 'tent4x4', name: '4x4 Grow Tent', description: 'Ideal for medium grows', size: '4x4', price: 300 },
+						{ id: 'light4x4', name: 'LED Bar EVO', description: '500W Samsung diodes, commercial grade 4x4 lighting', size: '4x4', wattage: '500W', price: 569 },
+						{ id: 'tent5x5', name: '5x5 Grow Tent', description: 'Professional grade large grow space', size: '5x5', price: 400 },
+						{ id: 'light5x5', name: 'LED Bar EVO', description: '730W Samsung diodes, professional 5x5 coverage', size: '5x5', wattage: '730W', price: 799 }
+					]
+				};
 			}
 		}
+
+
+		function updateShopDisplay() {
+			const shopPage = document.getElementById('shopPage');
+			shopPage.innerHTML = '<h2 style="color: #48bb78; margin: 20px 0 20px 20px;">Grow Shop</h2>';
+			const shopContainer = document.createElement('div');
+			shopContainer.style.padding = '20px';
+
+			// Iterate through all tents in the shop
+			const tents = gameState.shop.items.filter(item => item.id.startsWith('tent'));
+			tents.forEach(tent => {
+				// Find the matching light for this tent size
+				const light = gameState.shop.items.find(light => light.id.startsWith('light') && light.size === tent.size);
+
+				const itemDiv = document.createElement('div');
+				itemDiv.className = 'shopItem';
+
+				const infoDiv = document.createElement('div');
+				infoDiv.className = 'shopItem-info';
+
+				// Render tent and light information
+				infoDiv.innerHTML = `
+					<div class="shopItem-title">${tent.name}</div>
+					<div class="shopItem-desc">${tent.description}</div>
+					<div class="shopItem-price">Tent Price: ${tent.price} credits</div>
+					${light ? `
+						<div class="shopItem-title">Includes Light: ${light.name}</div>
+						<div class="shopItem-desc">${light.description}</div>
+						<div class="shopItem-price">Light Price: ${light.price} credits</div>
+						<div class="shopItem-wattage">Wattage: ${light.wattage}</div>
+					` : '<p style="color: red;">No light available for this tent.</p>'}
+				`;
+
+				const buyButton = document.createElement('button');
+				buyButton.className = 'buyButton';
+				buyButton.textContent = 'Buy';
+				buyButton.onclick = () => buyTentWithLight(tent, light); // Call the existing function
+
+				itemDiv.appendChild(infoDiv);
+				itemDiv.appendChild(buyButton);
+				shopContainer.appendChild(itemDiv);
+			});
+
+			shopPage.appendChild(shopContainer);
+		}
+
+
+
 
         // Load saved game data
 		function loadGame() {
 			const savedData = localStorage.getItem('growItGameData');
 			if (savedData) {
-				let parsedData = JSON.parse(savedData);
-				Object.assign(gameState, parsedData); // This preserves gameState's structure
+				const parsedData = JSON.parse(savedData);
+				Object.assign(gameState, parsedData);
+
+				// Restore original shop items
+				gameState.shop.items = [
+					{ id: 'tent2x2', name: '2x2 Grow Tent', size: '2x2', price: 100 },
+					{ id: 'light2x2', name: 'LED Board S22', size: '2x2', wattage: '100W', price: 99 },
+					{ id: 'tent2x4', name: '2x4 Grow Tent', size: '2x4', price: 150 },
+					{ id: 'light2x4', name: 'LED Bar EVO', size: '2x4', wattage: '280W', price: 319 },
+					{ id: 'tent3x3', name: '3x3 Grow Tent', size: '3x3', price: 200 },
+					{ id: 'light3x3', name: 'LED Bar EVO', size: '3x3', wattage: '300W', price: 329 },
+					{ id: 'tent4x4', name: '4x4 Grow Tent', size: '4x4', price: 300 },
+					{ id: 'light4x4', name: 'LED Bar EVO', size: '4x4', wattage: '500W', price: 569 },
+					{ id: 'tent5x5', name: '5x5 Grow Tent', size: '5x5', price: 400 },
+					{ id: 'light5x5', name: 'LED Bar EVO', size: '5x5', wattage: '730W', price: 799 }
+				];
+
 				if (gameState.tents.length > 0) {
 					startGame();
 				}
@@ -2172,6 +2340,8 @@
 				showPage(gameState.currentPage);
 			}
 		}
+
+
 
         // Save game data
         function saveGame() {
@@ -2193,11 +2363,11 @@
 
         // Show page
 		function showPage(pageId) {
-			// Update game state
+			console.log(`Navigating to page: ${pageId}`);
+
 			gameState.currentPage = pageId;
 			saveGame();
 
-			// Hide all pages and deactivate all nav buttons
 			document.querySelectorAll('.page').forEach(page => {
 				page.classList.remove('active');
 			});
@@ -2205,12 +2375,12 @@
 				btn.classList.remove('active');
 			});
 
-			// Show selected page and activate its nav button
 			document.getElementById(pageId).classList.add('active');
 			document.querySelector(`[data-page="${pageId}"]`).classList.add('active');
 
-			// Update specific page content if needed
 			if (pageId === 'shopPage') {
+				console.log("Shop page triggered, calling updateShopDisplay()");
+				console.log("Current shop items before updateShopDisplay():", JSON.stringify(gameState.shop.items, null, 2));
 				updateShopDisplay();
 			} else if (pageId === 'homePage') {
 				updateTentDisplay();
@@ -2218,6 +2388,7 @@
 				updateStatsDisplay();
 			}
 		}
+
 
         // Event listeners
         document.getElementById('startButton').addEventListener('click', startGame);
