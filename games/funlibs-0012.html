@@ -335,29 +335,70 @@
         }, 300);
       }
     }
+
+    async function fetchStoryTemplate(theme = '') {
+      try {
+        // Create a more detailed prompt for richer story generation
+        const basePrompt = theme 
+          ? `Generate a detailed mad libs story template about ${theme}. Include at least 15-20 blanks for [NOUN], [ADJECTIVE], [VERB], [ADVERB], [NAME], [NUMBER], [PLURAL_NOUN], [FOOD], [DRINK], [PLACE], etc. Make it a full paragraph with multiple events and interesting details.` 
+          : 'Generate a detailed mad libs story template with at least 15-20 blanks for [NOUN], [ADJECTIVE], [VERB], [ADVERB], [NAME], [NUMBER], [PLURAL_NOUN], [FOOD], [DRINK], [PLACE], etc. Make it a full paragraph with multiple events and interesting details.';
+        
+        const prompt = `${basePrompt} Format all placeholder words in square brackets and UPPERCASE, like [NOUN] or [ADJECTIVE]. Create a coherent story that will be fun to fill in.`;
+        
+        const response = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(prompt)}?json=false&seed=${Math.random()}&private=true`);
+        const data = await response.text();
+        
+        // Process the response to ensure consistent formatting
+        const processedData = data
+          .replace(/\[(\w+)\]/gi, match => match.toUpperCase()) // Ensure all placeholders are uppercase
+          .replace(/\s+/g, ' ')  // Remove extra whitespace
+          .trim();
+        
+        return processedData;
+      } catch (error) {
+        console.error('Error fetching story template:', error);
+        return 'Error generating story. Please try again!';
+      }
     }
 
-    function showCompleteStory() {
-      document.getElementById('input-area').classList.add('hidden');
-      const storyDisplay = document.getElementById('story-display');
-      storyDisplay.classList.remove('hidden');
-      storyDisplay.textContent = currentStory;
+    async function fetchBackgroundImage(theme = '') {
+      try {
+        const prompt = theme 
+          ? `A creative background image for a story about ${theme}, subtle and not too distracting, light opacity` 
+          : 'A creative background image for a fun story, subtle and not too distracting, light opacity';
+        const response = await fetch(`https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${Math.random()}&private=true`);
+        return response.url;
+      } catch (error) {
+        console.error('Error fetching background image:', error);
+        return '';
+      }
+    }
+
+    async function generateFunLib(theme = '') {
+      const outputDiv = document.getElementById('story-display');
+      const inputArea = document.getElementById('input-area');
       
-      // Text-to-speech
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(currentStory);
-        window.speechSynthesis.speak(utterance);
-      }
+      // Hide input area and show loading
+      inputArea.classList.add('hidden');
+      outputDiv.innerHTML = 'Generating your Fun-Lib...';
+      outputDiv.classList.remove('hidden');
 
-      updateScore(50); // Bonus for completing the story
+      try {
+        const storyTemplate = await fetchStoryTemplate(theme);
+        const backgroundImageUrl = await fetchBackgroundImage(theme);
+        
+        // Reset game state
+        currentWordIndex = 0;
+        currentStory = storyTemplate;
+        words = extractWords(storyTemplate);
+        
+        // Show redacted story
+        startGame();
+      } catch (error) {
+        console.error('Error generating Fun-Lib:', error);
+        outputDiv.innerHTML = 'Error generating Fun-Lib. Please try again!';
+      }
     }
-
-    // Handle Enter key
-    document.getElementById('word-input').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        submitWord();
-      }
-    });
   </script>
 </body>
 </html>
