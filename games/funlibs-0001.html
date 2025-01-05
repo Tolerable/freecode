@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fun-Libs: AI-Powered Word Game</title>
+  <style>
+    /* General Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 400px;
+      aspect-ratio: 3 / 4;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('https://image.pollinations.ai/prompt/a%20vibrant%20abstract%20background%20with%20colors%20and%20shapes%20inspired%20by%20fun%20and%20creativity') no-repeat center/cover;
+      opacity: 0.2;
+      z-index: -1;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #333;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .story {
+      font-size: 16px;
+      color: #555;
+      text-align: center;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    input {
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    input:focus {
+      border-color: #ff6f61;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: #ff6f61;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #ff3b2f;
+    }
+
+    .result {
+      font-size: 18px;
+      color: #333;
+      text-align: center;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Fun-Libs</h1>
+    <div class="story" id="story">Loading your Fun-Lib...</div>
+    <div class="inputs" id="inputs"></div>
+    <button id="generateBtn">Generate Fun-Lib</button>
+    <div class="result hidden" id="result"></div>
+  </div>
+
+  <script>
+    const storyElement = document.getElementById('story');
+    const inputsElement = document.getElementById('inputs');
+    const generateBtn = document.getElementById('generateBtn');
+    const resultElement = document.getElementById('result');
+
+    let currentStory = '';
+    let blanks = [];
+
+    // Fetch a random Fun-Lib template from Pollinations.ai
+    async function fetchStoryTemplate() {
+      try {
+        const response = await fetch('https://text.pollinations.ai/prompt/Generate%20a%20fun%20and%20creative%20Mad%20Libs%20template%20with%20blanks%20for%20nouns%2C%20verbs%2C%20and%20adjectives.');
+        const data = await response.text();
+        return data;
+      } catch (error) {
+        console.error('Error fetching story template:', error);
+        return 'The [adjective] [noun] [verb] over the [adjective] [noun].';
+      }
+    }
+
+    // Extract blanks from the story template
+    function extractBlanks(story) {
+      const blankRegex = /\[(.*?)\]/g;
+      return story.match(blankRegex) || [];
+    }
+
+    // Render input fields for blanks
+    function renderInputs() {
+      inputsElement.innerHTML = blanks.map(blank => `
+        <input type="text" placeholder="${blank.slice(1, -1)}" />
+      `).join('');
+    }
+
+    // Generate the final story
+    function generateStory() {
+      const inputValues = Array.from(inputsElement.querySelectorAll('input')).map(input => input.value);
+      let finalStory = currentStory;
+      blanks.forEach((blank, index) => {
+        finalStory = finalStory.replace(blank, `<strong>${inputValues[index] || blank}</strong>`);
+      });
+      resultElement.innerHTML = finalStory;
+      resultElement.classList.remove('hidden');
+    }
+
+    // Initialize the game
+    async function init() {
+      currentStory = await fetchStoryTemplate();
+      blanks = extractBlanks(currentStory);
+      storyElement.textContent = currentStory.replace(/\[(.*?)\]/g, '_____');
+      renderInputs();
+    }
+
+    // Event listeners
+    generateBtn.addEventListener('click', generateStory);
+
+    // Start the game
+    init();
+  </script>
+</body>
+</html>
