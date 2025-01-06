@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Penpal Exchange</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Homemade+Apple&family=Caveat&display=swap');
+
+    body {
+      background: #1a1a2e;
+      min-height: 100vh;
+      color: #e1e2e6;
+    }
+
+    .portrait-frame {
+      aspect-ratio: 3/4;
+      background: #2a2a3e;
+      border: 12px solid #463e2e;
+      box-shadow: 0 0 25px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .portrait-frame::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+
+    .letter-paper {
+      background: #f8f5e6;
+      color: #2c2c2c;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+      background-image: repeating-linear-gradient(#f8f5e6 0px, #f8f5e6 24px, #e1d5c9 25px);
+    }
+
+    .handwritten {
+      font-family: 'Homemade Apple', cursive;
+      line-height: 25px;
+      padding-top: 6px;
+    }
+
+    .letters-container {
+      position: relative;
+      height: calc(100vh - 4rem);
+    }
+
+    .letter-section {
+      position: absolute;
+      left: 0;
+      right: 0;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .ai-section {
+      top: 0;
+      height: 50%;
+      z-index: 10;
+    }
+
+    .user-section {
+      bottom: 0;
+      height: 50%;
+      z-index: 5;
+    }
+
+    .ai-focused .ai-section {
+      height: 80%;
+    }
+
+    .ai-focused .user-section {
+      height: 20%;
+    }
+
+    .user-focused .ai-section {
+      height: 20%;
+    }
+
+    .user-focused .user-section {
+      height: 80%;
+    }
+
+    .toggle-focus {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.5rem;
+      border-radius: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .toggle-focus:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .ai-toggle {
+      bottom: -1rem;
+    }
+
+    .user-toggle {
+      top: -1rem;
+    }
+
+    .tts-word {
+      display: inline-block;
+      padding: 0 2px;
+      transition: all 0.3s ease;
+    }
+
+    .tts-word.highlight {
+      background: rgba(255, 221, 108, 0.3);
+    }
+
+    .penpal-info {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(5px);
+      border-radius: 1rem;
+      margin-top: 1rem;
+      padding: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid grid-cols-[35%_1fr] gap-8 p-8 h-screen">
+    <!-- Portrait Section -->
+    <div>
+      <div class="portrait-frame rounded-lg">
+        <img id="penpal-portrait" src="/api/placeholder/400/533" alt="Penpal" class="w-full h-full object-cover">
+      </div>
+      <div class="penpal-info">
+        <h2 id="penpal-name" class="text-2xl font-bold">Awaiting Penpal...</h2>
+        <p id="penpal-location" class="text-lg opacity-75"></p>
+        <p id="penpal-bio" class="mt-2 text-sm opacity-60"></p>
+      </div>
+    </div>
+
+    <!-- Letters Section -->
+    <div class="letters-container" id="letters-container">
+      <!-- AI Letter -->
+      <div class="letter-section ai-section p-2">
+        <div class="letter-paper rounded-lg p-6 h-full relative">
+          <div id="ai-letter" class="handwritten h-full overflow-auto"></div>
+          <button class="toggle-focus ai-toggle" onclick="toggleFocus('user')">
+            <i class="fas fa-chevron-down"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- User Letter -->
+      <div class="letter-section user-section p-2">
+        <div class="letter-paper rounded-lg p-6 h-full relative">
+          <textarea 
+            id="user-letter" 
+            class="w-full h-full bg-transparent handwritten resize-none focus:outline-none"
+            placeholder="Write your letter here..."
+          ></textarea>
+          <button 
+            onclick="sendLetter()" 
+            class="absolute bottom-4 right-4 bg-green-700 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors"
+          >
+            Send Letter
+          </button>
+          <button class="toggle-focus user-toggle" onclick="toggleFocus('ai')">
+            <i class="fas fa-chevron-up"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      currentFocus: 'ai',
+      writing: false,
+      currentPenpal: null
+    };
+
+    function toggleFocus(focus) {
+      state.currentFocus = focus;
+      const container = document.getElementById('letters-container');
+      container.className = `letters-container ${focus}-focused`;
+    }
+
+    async function generatePenpal() {
+      try {
+        // Generate penpal details
+        const prompt = `Create a detailed penpal character with unique personality. Include: name, age, location (city & country), occupation, hobbies, and writing style. Format as JSON with properties: name, location, bio, writingStyle`;
+        const response = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(prompt)}?json=true&seed=${Math.random()}`);
+        const data = await response.json();
+
+        // Generate portrait
+        const imagePrompt = `Portrait photograph of ${data.name} from ${data.location}, professional photography, detailed, natural lighting`;
+        const portraitUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?seed=${Math.random()}`;
+
+        // Update UI
+        document.getElementById('penpal-portrait').src = portraitUrl;
+        document.getElementById('penpal-name').textContent = data.name;
+        document.getElementById('penpal-location').textContent = data.location;
+        document.getElementById('penpal-bio').textContent = data.bio;
+
+        state.currentPenpal = { ...data, portrait: portraitUrl };
+        return data;
+      } catch (error) {
+        console.error('Error generating penpal:', error);
+      }
+    }
+
+    async function writeLetter(content, isAI = true) {
+      const letterElement = document.getElementById(isAI ? 'ai-letter' : 'user-letter');
+      letterElement.innerHTML = '';
+      
+      if (isAI) {
+        toggleFocus('ai');
+        state.writing = true;
+
+        // Split content into words for animation
+        const words = content.split(' ');
+        for (let i = 0; i < words.length; i++) {
+          const wordSpan = document.createElement('span');
+          wordSpan.className = 'tts-word';
+          wordSpan.textContent = words[i] + ' ';
+          letterElement.appendChild(wordSpan);
+          
+          await new Promise(resolve => setTimeout(resolve, 100));
+          wordSpan.style.opacity = '1';
+        }
+
+        state.writing = false;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        toggleFocus('user');
+      }
+
+      // Setup text-to-speech
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(content);
+        utterance.rate = 0.9;
+
+        let currentIndex = 0;
+        const wordElements = letterElement.querySelectorAll('.tts-word');
+
+        utterance.onboundary = (event) => {
+          if (event.name === 'word') {
+            wordElements.forEach(el => el.classList.remove('highlight'));
+            if (wordElements[currentIndex]) {
+              wordElements[currentIndex].classList.add('highlight');
+              currentIndex++;
+            }
+          }
+        };
+
+        utterance.onend = () => {
+          wordElements.forEach(el => el.classList.remove('highlight'));
+        };
+
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    async function sendLetter() {
+      const userInput = document.getElementById('user-letter').value.trim();
+      if (!userInput || state.writing) return;
+
+      // Clear user input and focus AI section
+      document.getElementById('user-letter').value = '';
+      toggleFocus('ai');
+
+      // Generate AI response
+      try {
+        const prompt = `As ${state.currentPenpal.name}, write a warm and personal letter responding to: "${userInput}". 
+                       Write in character using your background: ${state.currentPenpal.bio}. 
+                       Maintain the style: ${state.currentPenpal.writingStyle}`;
+        
+        const response = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(prompt)}?json=false&seed=${Math.random()}`);
+        const aiResponse = await response.text();
+
+        // Animate AI writing the response
+        await writeLetter(aiResponse, true);
+      } catch (error) {
+        console.error('Error generating response:', error);
+      }
+    }
+
+    // Initialize
+    window.onload = async () => {
+      await generatePenpal();
+      toggleFocus('ai');
+      
+      // Generate initial greeting
+      const prompt = `As ${state.currentPenpal.name}, write a warm first letter introducing yourself to a new penpal. Include details about your life in ${state.currentPenpal.location} and express enthusiasm about starting this correspondence.`;
+      const response = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(prompt)}?json=false&seed=${Math.random()}`);
+      const greeting = await response.text();
+      await writeLetter(greeting, true);
+    };
+  </script>
+</body>
+</html>
