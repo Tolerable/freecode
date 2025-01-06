@@ -454,37 +454,37 @@
 	  }
 	}
 
-   async function generatePenpal() {
-     try {
-       // Load saved signature if exists
-       const savedSignature = localStorage.getItem('penpalSignature');
-       if (savedSignature) {
-         state.userName = savedSignature;
-         state.userSignature = savedSignature;
-       }
-
-       // Generate penpal details
-       const prompt = `Create a detailed penpal character with unique personality. Include: name, age, location (city & country), occupation, hobbies, and writing style. Format as JSON with properties: name, location, bio, writingStyle`;
-       const response = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(prompt)}?json=true&seed=${Math.random()}`);
-       const data = await response.json();
-
-       // Generate portrait and location images
-       const portraitPrompt = `Portrait photograph of ${data.name} from ${data.location}, professional photography, detailed, natural lighting`;
-       const locationPrompt = `Beautiful photograph of ${data.location}, scenic view, professional photography`;
-       
-       const portraitUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(portraitPrompt)}?seed=${Math.random()}`;
-       const locationUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(locationPrompt)}?seed=${Math.random()}`;
-
-       // Add images to gallery
-       addImage(portraitUrl, `${data.name}'s Portrait`);
-       addImage(locationUrl, `View from ${data.location}`);
-
-       state.currentPenpal = { ...data, portrait: portraitUrl };
-       return data;
-     } catch (error) {
-       console.error('Error generating penpal:', error);
-     }
-   }
+    async function generatePenpal() {
+	  try {
+	    // Load saved signature if exists
+	    const savedSignature = localStorage.getItem('penpalSignature');
+	    if (savedSignature) {
+	 	 state.userName = savedSignature;
+	 	 state.userSignature = savedSignature;
+	    }
+    
+	    // Generate penpal details
+	    const prompt = `Create a detailed penpal character with unique personality. Include: name, age, location (city & country), occupation, hobbies, and writing style. Format as JSON with properties: name, location, bio, writingStyle`;
+	    const response = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(prompt)}?json=true&seed=${Math.random()}`);
+	    const data = await response.json();
+    
+	    // Generate portrait and location images
+	    const portraitPrompt = `Portrait photograph of ${data.name} from ${data.location}, professional photography, detailed, natural lighting`;
+	    const locationPrompt = `Beautiful photograph of ${data.location}, scenic view, professional photography`;
+	    
+	    const portraitUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(portraitPrompt)}?seed=${Math.random()}`;
+	    const locationUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(locationPrompt)}?seed=${Math.random()}`;
+    
+	    // Add images to gallery
+	    addImage(portraitUrl, `${data.name}'s Portrait`);
+	    addImage(locationUrl, `View from ${data.location}`);
+    
+	    state.currentPenpal = { ...data, portrait: portraitUrl };
+	    return data;
+	  } catch (error) {
+	    console.error('Error generating penpal:', error);
+	  }
+    }
 
 	async function writeLetter(content, isAI = true) {
 	  const letterElement = document.getElementById(isAI ? 'ai-letter' : 'user-letter');
@@ -596,46 +596,46 @@
 	  document.querySelector('.stop-reading').classList.add('hidden');
 	}
 
-   async function sendLetter() {
-	 const userInput = document.getElementById('user-letter').value.trim();
-	 const signature = state.userSignature || document.getElementById('signature-input').value;
-	 
-	 if (!userInput || state.isWriting || !signature) {
-	   if (!signature) {
+	async function sendLetter() {
+	   const userInput = document.getElementById('user-letter').value.trim();
+	   const signature = state.userSignature || document.getElementById('signature-input').value;
+	   
+	   if (!userInput || state.isWriting || !signature) {
+		 if (!signature) {
 		 document.getElementById('signature-input').classList.add('signature-required');
+		 }
+		 return;
 	   }
-	   return;
-	 }
-
-	 // Add signature to user's letter
-	 const signedLetter = `${userInput}\n\nBest regards,\n${signature}`;
-	 document.getElementById('user-letter').value = '';
-	 const userSection = document.getElementById('userSection');
-	 userSection.classList.remove('expanded');
-
-	 try {
-	   const salutation = signature ? `Dear ${signature}` : "Dear Penpal";
-	   const prompt = `As ${state.currentPenpal.name}, write a warm and personal letter responding to: "${signedLetter}". 
+	   
+	   // Add signature to user's letter
+	   const signedLetter = `${userInput}\n\nBest regards,\n${signature}`;
+	   document.getElementById('user-letter').value = '';
+	   const userSection = document.getElementById('userSection');
+	   userSection.classList.remove('expanded');
+	   
+	   try {
+		 const salutation = signature ? `Dear ${signature}` : "Dear Penpal";
+		 const prompt = `As ${state.currentPenpal.name}, write a warm and personal letter responding to: "${signedLetter}". 
 					  Start with "${salutation}," and write in character using your background: ${state.currentPenpal.bio}. 
 					  Maintain the style: ${state.currentPenpal.writingStyle}`;
+		 
+		 const response = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(prompt)}?json=false&seed=${Math.random()}`);
+		 const aiResponse = await response.text();
 	   
-	   const response = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(prompt)}?json=false&seed=${Math.random()}`);
-	   const aiResponse = await response.text();
-
-	   // Occasionally generate a new image to share
-	   if (Math.random() > 0.7) {
+		 // Occasionally generate a new image to share
+		 if (Math.random() > 0.7) {
 		 const imagePrompt = `A photo from ${state.currentPenpal.location} related to: ${aiResponse.slice(0, 100)}`;
 		 const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?seed=${Math.random()}`;
 		 addImage(imageUrl, `A glimpse of my world`);
 		 const polaroid = addPolaroidToLetter(imageUrl, `Thought you might like to see this!`);
 		 await writeLetter(aiResponse + '\n\n' + polaroid, true);
-	   } else {
+		 } else {
 		 await writeLetter(aiResponse, true);
+		 }
+	   } catch (error) {
+		 console.error('Error generating response:', error);
 	   }
-	 } catch (error) {
-	   console.error('Error generating response:', error);
-	 }
-   }
+	}
 
     // Initialize the app
     window.onload = async () => {
