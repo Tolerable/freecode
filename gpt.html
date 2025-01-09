@@ -63,32 +63,6 @@
 			display: flex;
 		}
 
-		/* Context Menu Styles */
-		.context-menu {
-			position: fixed;
-			z-index: 1000;
-			background: #2A2B32;
-			border: 1px solid #565869;
-			border-radius: 0.375rem;
-			padding: 0.5rem 0;
-			min-width: 160px;
-			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-		}
-
-		.context-menu-item {
-			padding: 0.5rem 1rem;
-			cursor: pointer;
-			color: #ECECF1;
-			font-size: 0.875rem;
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-		}
-
-		.context-menu-item:hover {
-			background: #40414F;
-		}
-
 		.sidebar {
 			width: var(--sidebar-width);
 			background: #202123;
@@ -278,12 +252,13 @@
 		.chat-container {
 			flex: 1;
 			width: 100%;
-			margin: 3rem auto 0 auto;
+			margin: 3rem auto;
 			padding: 0.75rem;
 			max-width: calc(100% - 80px);
 			overflow-y: auto;
 			scrollbar-gutter: stable;
 			scroll-behavior: smooth;
+			padding-bottom: 20px; /* Ensures input bar does not obstruct */
 		}
 
 		.message {
@@ -367,7 +342,7 @@
 		.input-container {
 			position: fixed;
 			bottom: 0;
-			left: var(--sidebar-width); 
+			left: var(--sidebar-width); /* Start after sidebar */
 			right: 0;
 			background: #343541;
 			padding: 1rem;
@@ -447,10 +422,6 @@
 			display: flex;
 			align-items: center;
 			gap: 1rem;
-		}
-
-		.temp-chat-toggle.hidden {
-			display: none;
 		}
 
 		.temp-chat-toggle {
@@ -641,7 +612,6 @@
 			height: 100%;
 			display: flex;
 			flex-direction: column;
-			padding-bottom: 80px;
 		}
 
 		@keyframes loading {
@@ -814,8 +784,8 @@
     <script>
 		class AIClient {
 			constructor() {
-				this.baseUrl = 'https://text.pollinations.ai';  // No trailing slash
-				this.imageUrl = 'https://image.pollinations.ai'; // No /prompt/ - we'll add it in generateImage
+				this.baseUrl = 'https://text.pollinations.ai';
+				this.imageUrl = 'https://image.pollinations.ai';
 				this.sessionMessages = [];
 				this.modelTraits = new Map();
 				this.userProfile = localStorage.getItem('userProfile') || '';
@@ -854,11 +824,10 @@
 				return models;
 			}
 
-			async makeApiRequest(model, content) {
+			async sendMessage(model, content) {
 				const modelTrait = this.modelTraits.get(model) || await this.getModelDefaults(model);
 				const messages = this.prepareMessages(content, modelTrait);
 				
-				// Since baseUrl now includes the trailing slash, we can use it directly
 				const response = await fetch(this.baseUrl, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -869,10 +838,7 @@
 					})
 				});
 
-				if (!response.ok) {
-					console.error(`HTTP error! status: ${response.status}`);
-					throw new Error(`HTTP error! status: ${response.status}`);
-				}
+				if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
 				this.sessionMessages.push({
 					role: 'user',
@@ -1022,38 +988,18 @@
 				};
 			}
 
-			async generateImage(prompt, retryCount = 3) {
+			async generateImage(prompt) {
 				const params = new URLSearchParams({
 					nologo: 'true',
 					private: 'true',
 					enhance: 'false',
-					seed: Math.floor(Math.random() * 1000000)
+					seed: Math.floor(Math.random() * 1000000) // Random seed for each generation
 				});
 				
-				// Since imageUrl now includes /prompt/, we don't need to add it
 				const encodedPrompt = encodeURIComponent(prompt);
 				const url = `${this.imageUrl}/prompt/${encodedPrompt}?${params.toString()}`;
-				
-				let lastError;
-				for (let i = 0; i < retryCount; i++) {
-					try {
-						console.log(`Attempt ${i + 1} to generate image with URL: ${url}`);
-						const response = await fetch(url);
-						
-						if (!response.ok) {
-							throw new Error(`HTTP error! status: ${response.status}, URL: ${url}`);
-						}
-						return response;
-					} catch (error) {
-						console.error(`Image generation attempt ${i + 1} failed:`, error);
-						lastError = error;
-						// Wait a bit longer between each retry
-						await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
-					}
-				}
-				
-				console.error('Final image generation error:', lastError);
-				throw new Error(`Failed to generate image after ${retryCount} attempts: ${lastError.message}`);
+				const response = await fetch(url);
+				return response;
 			}
 
 			clearHistory() {
@@ -1068,16 +1014,7 @@
 				this.chatState = document.getElementById('chat-state');
 				this.chatContainer = document.getElementById('chat-container');
 				this.modelSelector = document.getElementById('model-selector');
-
-				// Initialize temp chat toggle visibility
-				const tempChatToggle = document.getElementById('temp-chat-toggle');
-				const tempChatToggleContainer = document.querySelector('.temp-chat-toggle');
 				
-				// Show toggle only in initial state
-				if (this.chatState.style.display !== 'none') {
-					tempChatToggleContainer.classList.add('hidden');
-				}
-	
 				// Get both textareas
 				this.initialTextarea = this.initialState.querySelector('textarea');
 				this.chatTextarea = this.chatState.querySelector('textarea');
@@ -1098,6 +1035,7 @@
 				this.initialTextarea.value = '';
 
 				// Add temp chat toggle handling
+				const tempChatToggle = document.getElementById('temp-chat-toggle');
 				tempChatToggle.addEventListener('change', (e) => {
 					// When temp chat is enabled, we won't save the session
 					this.isTemporaryChat = e.target.checked;
@@ -1125,7 +1063,6 @@
 
 				// Initialize other functionality
 				this.initializeEventListeners();
-				this.initializeContextMenu();
 				this.loadModels();
 				this.setupInstructionsPanel();
 				
@@ -1136,143 +1073,20 @@
 					const sessionsData = JSON.parse(savedSessions);
 					Object.entries(sessionsData).forEach(([id, session]) => {
 						this.sessions.set(id, session);
+						this.addSessionToHistory(id, session.title, false);
 					});
-					// Update all history sections after loading sessions
-					this.updateHistorySections();
-				} else {
-					// If no saved sessions, just show "First Chat" in Today section
-					const chatHistory = document.querySelector('.chat-history');
-					const todaySection = this.getOrCreateHistorySection(Date.now().toString(), chatHistory);
-					const firstChat = document.createElement('div');
-					firstChat.className = 'chat-item';
-					firstChat.textContent = 'First Chat';
-					todaySection.appendChild(firstChat);
 				}
-			}
-
-			initializeContextMenu() {
-				// Create context menu element
-				this.contextMenu = document.createElement('div');
-				this.contextMenu.className = 'context-menu';
-				this.contextMenu.style.display = 'none';
-				document.body.appendChild(this.contextMenu);
-
-				// Hide context menu on click outside
-				document.addEventListener('click', () => {
-					this.contextMenu.style.display = 'none';
-				});
-
-				// Add context menu event listener to chat history
-				const chatHistory = document.querySelector('.chat-history');
-				chatHistory.addEventListener('contextmenu', (e) => {
-					const chatItem = e.target.closest('.chat-item');
-					if (chatItem && chatItem.dataset.sessionId) {
-						e.preventDefault();
-						this.showContextMenu(e.pageX, e.pageY, chatItem.dataset.sessionId);
-					}
-				});
-			}
-
-			showContextMenu(x, y, sessionId) {
-				// Clear existing menu items
-				this.contextMenu.innerHTML = '';
-
-				// Create menu items
-				const menuItems = [
-					{
-						label: 'Rename Session',
-						icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>',
-						action: () => this.renameSession(sessionId)
-					},
-					{
-						label: 'Delete Session',
-						icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>',
-						action: () => this.deleteSession(sessionId)
-					}
-				];
-
-				// Add menu items to context menu
-				menuItems.forEach(item => {
-					const menuItem = document.createElement('div');
-					menuItem.className = 'context-menu-item';
-					menuItem.innerHTML = `${item.icon} ${item.label}`;
-					menuItem.addEventListener('click', (e) => {
-						e.stopPropagation();
-						this.contextMenu.style.display = 'none';
-						item.action();
+				
+				if (savedSessions) {
+					const sessionsData = JSON.parse(savedSessions);
+					Object.entries(sessionsData).forEach(([id, session]) => {
+						this.sessions.set(id, session);
+						this.addSessionToHistory(id, session.title, false);
 					});
-					this.contextMenu.appendChild(menuItem);
-				});
-
-				// Position and show menu
-				this.contextMenu.style.left = `${x}px`;
-				this.contextMenu.style.top = `${y}px`;
-				this.contextMenu.style.display = 'block';
-
-				// Adjust position if menu would go off screen
-				const menuRect = this.contextMenu.getBoundingClientRect();
-				const windowWidth = window.innerWidth;
-				const windowHeight = window.innerHeight;
-
-				if (menuRect.right > windowWidth) {
-					this.contextMenu.style.left = `${windowWidth - menuRect.width - 5}px`;
-				}
-				if (menuRect.bottom > windowHeight) {
-					this.contextMenu.style.top = `${windowHeight - menuRect.height - 5}px`;
+					this.updateHistorySections(); // Add this line
 				}
 			}
 
-			async renameSession(sessionId) {
-				const session = this.sessions.get(sessionId);
-				if (!session) return;
-
-				const newTitle = prompt('Enter new session name:', session.title);
-				if (newTitle && newTitle.trim()) {
-					session.title = newTitle.trim();
-					
-					// Update UI
-					const sessionElement = document.querySelector(`.chat-item[data-session-id="${sessionId}"]`);
-					if (sessionElement) {
-						sessionElement.textContent = newTitle;
-					}
-
-					// Save to storage
-					this.saveSessionsToStorage();
-				}
-			}
-
-			deleteSession(sessionId) {
-				if (confirm('Are you sure you want to delete this session?')) {
-					// Remove from sessions map
-					this.sessions.delete(sessionId);
-					
-					// Remove from UI
-					const sessionElement = document.querySelector(`.chat-item[data-session-id="${sessionId}"]`);
-					if (sessionElement) {
-						sessionElement.remove();
-					}
-
-					// If this was the current session, clear the chat
-					if (this.currentSessionId === sessionId) {
-						this.showInitialState();
-					}
-
-					// Save to storage
-					this.saveSessionsToStorage();
-
-					// If no sessions left, show "First Chat"
-					if (this.sessions.size === 0) {
-						const todaySection = document.querySelector('.history-section[data-section="Today"]');
-						if (todaySection) {
-							const firstChat = document.createElement('div');
-							firstChat.className = 'chat-item';
-							firstChat.textContent = 'First Chat';
-							todaySection.appendChild(firstChat);
-						}
-					}
-				}
-			}
-			
 			highlightCodeBlocks() {
 				document.querySelectorAll('pre code').forEach((block) => {
 					// First ensure the content is properly escaped
@@ -1286,22 +1100,10 @@
 				const chatHistory = document.querySelector('.chat-history');
 				chatHistory.innerHTML = ''; // Clear existing sections
 				
-				// Sort sessions by date, newest first
-				const sortedSessions = Array.from(this.sessions.entries())
-					.sort(([, a], [, b]) => b.created - a.created);
-				
-				for (const [sessionId, session] of sortedSessions) {
+				// Recreate sections based on session dates
+				this.sessions.forEach((session, sessionId) => {
 					this.addSessionToHistory(sessionId, session.title, false);
-				}
-				
-				// If no sessions exist, add the "First Chat" placeholder in Today section
-				if (this.sessions.size === 0) {
-					const todaySection = this.getOrCreateHistorySection(Date.now().toString(), chatHistory);
-					const firstChat = document.createElement('div');
-					firstChat.className = 'chat-item';
-					firstChat.textContent = 'First Chat';
-					todaySection.appendChild(firstChat);
-				}
+				});
 			}
 	
             addImagePreview(blob) {
@@ -1567,7 +1369,7 @@
                     }
 
                     try {
-                        const response = await this.client.makeApiRequest(model, content);
+                        const response = await this.client.sendMessage(model, content);
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         
@@ -1628,46 +1430,33 @@
 			switchToChat(initialMessage) {
 				if (!initialMessage.trim()) return;
 				
-				const tempChatToggle = document.getElementById('temp-chat-toggle');
-				const isTemporary = tempChatToggle.checked;
-				
-				const tempChatToggleContainer = document.querySelector('.temp-chat-toggle');
-				tempChatToggleContainer.classList.add('hidden');
-				
+				// Switch display states
 				this.initialState.style.display = 'none';
 				this.chatState.style.display = 'flex';
 				
-				if (!isTemporary) {
+				// Only create session if not temporary
+				if (!this.isTemporaryChat) {
+					// Create session ID and title
 					const sessionId = Date.now().toString();
 					const sessionTitle = this.createSessionTitle(initialMessage);
 					
+					// Clear the old 'First Chat' placeholder
 					const firstChat = document.querySelector('.chat-item');
 					if (firstChat && firstChat.textContent === 'First Chat') {
 						firstChat.remove();
 					}
 					
-					// Create session with initial message
-					this.sessions.set(sessionId, {
-						title: sessionTitle,
-						messages: [{
-							role: 'user',
-							content: initialMessage,
-							timestamp: Date.now()
-						}],
-						created: Date.now()
-					});
-					
-					// Add to history and switch - this will display the message
+					// Add to session history
 					this.addSessionToHistory(sessionId, sessionTitle);
 					this.switchToSession(sessionId);
-				} else {
-					// For temporary chats, add message to UI directly since there's no session
-					this.addMessage('user', initialMessage);
 				}
+				
+				// Add the message to UI immediately
+				this.addMessage('user', initialMessage);
 
-				// Send to AI and handle response
+				// Send to AI and get response
 				const model = this.modelSelector.value || 'openai';
-				this.client.makeApiRequest(model, initialMessage).then(response => {
+				this.client.sendMessage(model, initialMessage).then(response => {
 					const reader = response.body.getReader();
 					const decoder = new TextDecoder();
 					
@@ -1678,11 +1467,7 @@
 					
 					const readChunk = async () => {
 						const { done, value } = await reader.read();
-						if (done) {
-							// Add this line to focus the input after response is complete
-							this.chatTextarea.focus();
-							return;
-						}
+						if (done) return;
 						
 						const chunk = decoder.decode(value);
 						const messageContent = assistantMessage.querySelector('.message-content');
@@ -1692,16 +1477,6 @@
 						messageContent.querySelectorAll('pre code').forEach((block) => {
 							hljs.highlightBlock(block);
 						});
-						
-						if (this.currentSessionId && this.sessions.has(this.currentSessionId)) {
-							const session = this.sessions.get(this.currentSessionId);
-							session.messages.push({
-								role: 'assistant',
-								content: chunk,
-								timestamp: Date.now()
-							});
-							this.saveSessionsToStorage();
-						}
 						
 						return readChunk();
 					};
@@ -1722,14 +1497,6 @@
 				this.initialTextarea.value = ''; // Clear main chat textarea
 				this.chatTextarea.value = '';    // Clear initial textarea too
 				this.currentSessionId = null;
-				
-				// Show the temp chat toggle again
-				const tempChatToggleContainer = document.querySelector('.temp-chat-toggle');
-				tempChatToggleContainer.classList.remove('hidden');
-				
-				// Reset the toggle to unchecked state
-				const tempChatToggle = document.getElementById('temp-chat-toggle');
-				tempChatToggle.checked = false;
 			}
 
 			
@@ -1752,43 +1519,49 @@
 					const chunk = decoder.decode(value);
 					fullResponse += chunk;
 					
+					// Process any image tags in the response
 					const messageContent = assistantMessage.querySelector('.message-content');
 					let processedResponse = fullResponse;
-
-					// Modified pattern matching to be more flexible
-					const regex = /IMAGE:\[(.*?)\]/g;
-					let match;
-					while ((match = regex.exec(processedResponse)) !== null) {
-						const imagePrompt = match[1];
-						const fullMatch = match[0];
-						const loadingPlaceholder = '<div class="loading-image">Generating image...</div>';
-						
-						processedResponse = processedResponse.replace(
-							fullMatch,
-							loadingPlaceholder
-						);
-						
-						try {
-							const imageResponse = await this.client.generateImage(imagePrompt);
-							const imageBlob = await imageResponse.blob();
-							const base64Image = await this.convertBlobToBase64(imageBlob);
-							
+					
+					// Find all IMAGE:[...] patterns
+					const imageMatches = processedResponse.match(/IMAGE:\[(.*?)\]/g);
+					if (imageMatches) {
+						for (const match of imageMatches) {
+							const imagePrompt = match.match(/IMAGE:\[(.*?)\]/)[1];
 							processedResponse = processedResponse.replace(
-								loadingPlaceholder,
-								`<img src="${base64Image}" alt="Generated image" style="max-width: 512px;">`
+								match,
+								'<div class="loading-image">Generating image...</div>'
 							);
 							
-							if (this.currentSessionId && this.sessions.has(this.currentSessionId)) {
-								const session = this.sessions.get(this.currentSessionId);
-								session.messages[session.messages.length - 1].content = processedResponse;
-								this.saveSessionsToStorage();
+							try {
+								const imageResponse = await this.client.generateImage(imagePrompt);
+								const imageBlob = await imageResponse.blob();
+								
+								// Convert blob to base64 string
+								const base64Image = await new Promise((resolve) => {
+									const reader = new FileReader();
+									reader.onloadend = () => resolve(reader.result);
+									reader.readAsDataURL(imageBlob);
+								});
+								
+								// Update the display and save to session
+								processedResponse = processedResponse.replace(
+									'<div class="loading-image">Generating image...</div>',
+									`<img src="${base64Image}" alt="Generated image" style="max-width: 512px;">`
+								);
+								
+								if (this.currentSessionId && this.sessions.has(this.currentSessionId)) {
+									const session = this.sessions.get(this.currentSessionId);
+									session.messages[session.messages.length - 1].content = processedResponse;
+									this.saveSessionsToStorage();
+								}
+							} catch (error) {
+								// Replace the loading indicator with an error message
+								processedResponse = processedResponse.replace(
+									'<div class="loading-image">Generating image...</div>',
+									'<div class="error">Failed to generate image</div>'
+								);
 							}
-						} catch (error) {
-							console.error('Image generation error:', error);
-							processedResponse = processedResponse.replace(
-								loadingPlaceholder,
-								'<div class="error">Failed to generate image</div>'
-							);
 						}
 					}
 					
@@ -1798,6 +1571,37 @@
 					messageContent.querySelectorAll('pre code').forEach((block) => {
 						hljs.highlightBlock(block);
 					});
+				}
+				
+				// When storing the message, add clear separation
+				this.client.sessionMessages.push({
+					role: 'user',
+					content: content,
+					timestamp: Date.now()
+				});
+
+				let assistantResponse = '';
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					
+					const chunk = decoder.decode(value);
+					assistantResponse += chunk;
+					// ... update UI code ...
+				}
+				
+				// Store the complete assistant response
+				this.client.sessionMessages.push({
+					role: 'assistant',
+					content: assistantResponse,
+					timestamp: Date.now(),
+					isComplete: true  // Mark as complete message
+				});
+				
+				if (this.currentSessionId && this.sessions.has(this.currentSessionId)) {
+					const session = this.sessions.get(this.currentSessionId);
+					session.messages = this.client.sessionMessages;
+					this.saveSessionsToStorage();
 				}
 			}
 
@@ -1859,16 +1663,15 @@
 			}
 
             // Add this new method
-			saveSessionsToStorage() {
-				const sessionsData = {};
-				this.sessions.forEach((session, id) => {
-					sessionsData[id] = session;
-				});
-				localStorage.setItem('chatSessions', JSON.stringify(sessionsData));
-				this.updateHistorySections(); // Add this line
-			}
+            saveSessionsToStorage() {
+                const sessionsData = {};
+                this.sessions.forEach((session, id) => {
+                    sessionsData[id] = session;
+                });
+                localStorage.setItem('chatSessions', JSON.stringify(sessionsData));
+            }
 
-			getOrCreateHistorySection(sessionId, chatHistory) {
+			getOrCreateHistorySection(title, chatHistory) {
 				const now = new Date();
 				const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 				const yesterday = new Date(today);
@@ -1885,17 +1688,15 @@
 					'Previous 30 Days': (date) => {
 						const thirtyDays = new Date(today);
 						thirtyDays.setDate(today.getDate() - 30);
-						return date >= thirtyDays && date < sevenDays;
-					},
-					'Older': (date) => date < thirtyDays // Add this for older items
+						return date >= thirtyDays;
+					}
 				};
 				
-				// Get session date from the actual session, not the title
-				const session = this.sessions.get(sessionId);
-				const sessionDate = new Date(session ? session.created : Date.now());
+				// Get session date
+				const sessionDate = new Date(this.sessions.get(title)?.created || Date.now());
 				
 				// Determine which section this session belongs in
-				let sectionTitle = 'Today'; // default
+				let sectionTitle = 'Today';
 				for (const [name, checker] of Object.entries(sections)) {
 					if (checker(sessionDate)) {
 						sectionTitle = name;
@@ -1912,39 +1713,15 @@
 					
 					const heading = document.createElement('h3');
 					heading.textContent = sectionTitle;
+					
 					section.appendChild(heading);
-					
-					// Insert section in chronological order
-					const sectionOrder = ['Today', 'Yesterday', 'Previous 7 Days', 'Previous 30 Days', 'Older'];
-					const existingSections = Array.from(chatHistory.children);
-					let insertBefore = null;
-					
-					for (const orderSection of sectionOrder) {
-						if (orderSection === sectionTitle) {
-							break;
-						}
-						insertBefore = existingSections.find(s => s.dataset.section === orderSection);
-						if (insertBefore) {
-							break;
-						}
-					}
-					
-					if (insertBefore) {
-						chatHistory.insertBefore(section, insertBefore);
-					} else {
-						chatHistory.appendChild(section);
-					}
+					chatHistory.insertBefore(section, chatHistory.firstChild);
 				}
 				
 				return section;
 			}
 
 			switchToSession(sessionId) {
-				// If we're already on this session, do nothing
-				if (this.currentSessionId === sessionId) {
-					return;
-				}
-	
 				// Clear active state from all sessions
 				document.querySelectorAll('.chat-item').forEach(item => {
 					item.classList.remove('active');
@@ -1982,15 +1759,6 @@
 				}
 			}
 
-			async convertBlobToBase64(blob) {
-				return new Promise((resolve) => {
-					const reader = new FileReader();
-					reader.onloadend = () => resolve(reader.result);
-					reader.readAsDataURL(blob);
-				});
-			}
-
-			// Modified handleImageGeneration
 			async handleImageGeneration(prompt) {
 				const loadingMessage = this.addMessage('assistant', '<div class="loading"></div>');
 				try {
@@ -1998,29 +1766,27 @@
 					if (!response.ok) throw new Error('Failed to generate image');
 					
 					const imageBlob = await response.blob();
-					const base64Image = await this.convertBlobToBase64(imageBlob);
+					const imageUrl = URL.createObjectURL(imageBlob);
 					
-					const messageContent = `<div><img src="${base64Image}" alt="Generated image" style="max-width: 100%; height: auto;"></div>`;
-					loadingMessage.querySelector('.message-content').innerHTML = messageContent;
-					
-					if (this.currentSessionId && this.sessions.has(this.currentSessionId)) {
-						const session = this.sessions.get(this.currentSessionId);
-						session.messages.push({
-							role: 'assistant',
-							content: messageContent,
-							timestamp: Date.now()
-						});
-						this.saveSessionsToStorage();
-					}
+					loadingMessage.querySelector('.message-content').innerHTML = `
+						<div>
+							<img src="${imageUrl}" alt="Generated image" style="max-width: 100%; height: auto;">
+						</div>
+					`;
 					
 					this.client.sessionMessages.push({
 						role: 'assistant',
-						content: messageContent
+						content: 'Here is the generated image based on your request.'
 					});
 				} catch (error) {
 					console.error('Error generating image:', error);
-					const errorMessage = 'Sorry, there was an error generating the image. Please try again.';
-					loadingMessage.querySelector('.message-content').textContent = errorMessage;
+					loadingMessage.querySelector('.message-content').textContent = 
+						'Sorry, there was an error generating the image. Please try again.';
+					
+					this.client.sessionMessages.push({
+						role: 'assistant',
+						content: 'Error generating image.'
+					});
 				}
 			}
 
