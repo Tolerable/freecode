@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAPTCHA Challenge</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .grid img {
+      width: 100%;
+      height: auto;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .grid img:hover {
+      transform: scale(1.05);
+    }
+
+    button {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 15px;
+      }
+
+      h1 {
+        font-size: 1.2rem;
+      }
+
+      .grid {
+        gap: 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Find the Odd One Out!</h1>
+    <div class="grid" id="grid"></div>
+    <button onclick="refreshGrid()">Refresh</button>
+  </div>
+
+  <script>
+    // Predefined image data (Base64 strings for simplicity)
+    const imageData = [
+      { label: "TROLL", base64: "https://via.placeholder.com/100?text=TROLL" },
+      { label: "ELF", base64: "https://via.placeholder.com/100?text=ELF" },
+      { label: "DWARF", base64: "https://via.placeholder.com/100?text=DWARF" },
+      { label: "PICKLE", base64: "https://via.placeholder.com/100?text=PICKLE" },
+      { label: "APPLE", base64: "https://via.placeholder.com/100?text=APPLE" },
+    ];
+
+    // Store image data in localStorage (simulated for this example)
+    localStorage.setItem("imageData", JSON.stringify(imageData));
+
+    // Function to populate the grid
+    const populateGrid = () => {
+      const grid = document.getElementById("grid");
+      grid.innerHTML = ""; // Clear the grid
+
+      // Randomly select categories
+      const categories = ["TROLL", "ELF", "DWARF", "PICKLE", "APPLE"];
+      const mainCategory = categories[Math.floor(Math.random() * categories.length)];
+      let oddCategory = categories[Math.floor(Math.random() * categories.length)];
+      while (oddCategory === mainCategory) {
+        oddCategory = categories[Math.floor(Math.random() * categories.length)];
+      }
+
+      // Create the grid (8 main + 1 odd)
+      for (let i = 0; i < 9; i++) {
+        const img = document.createElement("img");
+        img.src = i === 4 ? // Place the odd one in the center
+          imageData.find(item => item.label === oddCategory).base64 :
+          imageData.find(item => item.label === mainCategory).base64;
+        img.dataset.label = i === 4 ? oddCategory : mainCategory;
+        img.addEventListener("click", handleClick);
+        grid.appendChild(img);
+      }
+    };
+
+    // Handle user clicks
+    const handleClick = (event) => {
+      const clickedLabel = event.target.dataset.label;
+      const oddCategory = Array.from(document.querySelectorAll(".grid img"))
+        .find(img => img.dataset.label !== event.target.dataset.label).dataset.label;
+
+      if (clickedLabel === oddCategory) {
+        alert("Correct! You found the odd one out.");
+      } else {
+        alert("Try again!");
+      }
+    };
+
+    // Refresh the grid
+    const refreshGrid = () => {
+      populateGrid();
+    };
+
+    // Initialize the grid on page load
+    window.onload = populateGrid;
+  </script>
+</body>
+</html>
