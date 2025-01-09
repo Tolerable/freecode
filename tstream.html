@@ -295,29 +295,43 @@
 			align-items: center;
 			gap: 5px;
 		}
+		
+		.model-stats-popup {
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background: #1a1a1a;
+			padding: 15px;
+			border-radius: 8px;
+			z-index: 1000;
+			box-shadow: 0 0 20px rgba(0,0,0,0.5);
+		}
+
+		.stats-overlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(0,0,0,0.8);
+			z-index: 999;
+		}
+		
     </style>
 </head>
 <body>
     <script src="js/nav-loader.js"></script>
     <div class="content-wrapper">
-		<div id="controls">
-			<button class="button" id="pauseButton">Pause</button>
-			<button class="button" id="clearButton">Clear All</button>
-			<button class="button" id="layoutToggle">Show Dual Pages</button>
-			<button class="button" id="toggleFilters">Show Filters</button>
-			<span id="status">Stream Active</span>
-			<span id="pageInfo"></span>
-			<table style="margin-left: 20px; border-collapse: collapse;">
-				<tr>
-					<td style="padding: 4px 8px; border: 1px solid #444;">Flux</td>
-					<td style="padding: 4px 8px; border: 1px solid #444;" id="fluxCount">0</td>
-				</tr>
-				<tr>
-					<td style="padding: 4px 8px; border: 1px solid #444;">Turbo</td>
-					<td style="padding: 4px 8px; border: 1px solid #444;" id="turboCount">0</td>
-				</tr>
-			</table>
-		</div>
+        <div id="controls">
+            <button class="button" id="pauseButton">Pause</button>
+            <button class="button" id="clearButton">Clear All</button>
+            <button class="button" id="layoutToggle">Show Dual Pages</button>
+            <button class="button" id="toggleFilters">Show Filters</button>
+            <span id="status">Stream Active</span>
+            <span id="pageInfo"></span>
+			<button class="button" id="statsButton">Show Stats</button>
+        </div>
 
 		<div id="filterControls" style="display: none;">
             <div class="filter-item" style="width: 100%; margin-bottom: 10px;">
@@ -365,6 +379,27 @@
         </div>
     </div>
 
+	<div id="statsPopup" class="model-stats-popup" style="display: none;">
+		<h3 style="margin: 0 0 10px 0; color: #4aff4a;">Model Usage Stats</h3>
+		<div>
+			<span>Last updated: <span id="lastUpdate">00:00:00</span></span>
+			<span style="margin-left: 20px;">Total entries: <span id="totalEntries">0</span></span>
+		</div>
+		<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+			<thead>
+				<tr>
+					<th style="text-align: left; padding: 4px;">(index)</th>
+					<th style="text-align: left; padding: 4px;">model</th>
+					<th style="text-align: right; padding: 4px;">count</th>
+					<th style="text-align: right; padding: 4px;">percentage</th>
+				</tr>
+			</thead>
+			<tbody id="modelStatsBody"></tbody>
+		</table>
+		<button class="button" style="margin-top: 10px; float: right;" onclick="toggleStats()">Close</button>
+	</div>
+	<div id="statsOverlay" class="stats-overlay" style="display: none;" onclick="toggleStats()"></div>
+
     <script>
         const displayContainer = document.getElementById('displayContainer');
         const page1 = document.getElementById('page1');
@@ -382,11 +417,7 @@
         const addFilterBtn = document.getElementById('addFilter');
         const customFilterInput = document.getElementById('customFilter');
         const customFiltersContainer = document.getElementById('customFilters');
-		let modelCounts = { flux: 0, turbo: 0 };
-		let modelStats = {};
-		let lastUpdate = new Date();
-		let totalEntries = 0;
-		
+
 		const PAGES_PER_BLOCK = 50;
 		const MAX_BLOCKS = 3;
 		const MAX_PAGES = PAGES_PER_BLOCK * MAX_BLOCKS;
@@ -402,6 +433,10 @@
 		
 		let currentBlock = 1;
 		let totalBlocks = 1;
+
+		let modelCounts = {};
+		let totalEntries = 0;
+		let lastUpdate = new Date();
 
 		function toggleLayout() {
 			isDualPage = !isDualPage;
@@ -852,8 +887,6 @@
 			try {
 				const modelSelect = itemDiv.querySelector('select');
 				const model = modelSelect.value;
-				modelCounts[model]++;
-				document.getElementById(model + 'Count').textContent = modelCounts[model];
 				const encodedPrompt = encodeURIComponent(prompt);
 				const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true&model=${model}&enhance=false&private=true`;
 				
@@ -968,7 +1001,19 @@
 			}
 		}
 
+		function toggleStats() {
+			const popup = document.getElementById('statsPopup');
+			const overlay = document.getElementById('statsOverlay');
+			const isShowing = popup.style.display === 'block';
+			
+			popup.style.display = isShowing ? 'none' : 'block';
+			overlay.style.display = isShowing ? 'none' : 'block';
+		}
+
         // Event Listeners
+		
+		document.getElementById('statsButton').onclick = toggleStats;
+		
 		toggleFilters.onclick = () => {
 			filterControls.style.display = filterControls.style.display === 'none' ? 'flex' : 'none';
 			toggleFilters.textContent = filterControls.style.display === 'none' ? 'Show Filters' : 'Hide Filters';
@@ -1039,72 +1084,12 @@
         };
 
         const evtSource = new EventSource('https://text.pollinations.ai/feed');
-
-		function updateModelStats() {
-			let statsTable = document.getElementById('modelStatsTable');
-			if (!statsTable) {
-				const table = document.createElement('table');
-				table.id = 'modelStatsTable';
-				table.style.width = '100%';
-				table.style.maxWidth = '600px';
-				table.style.borderCollapse = 'collapse';
-				table.style.marginBottom = '10px';
-				table.innerHTML = `
-					<tr>
-						<td colspan="4" style="padding: 5px; color: #4aff4a;">
-							Last updated: <span id="lastUpdate"></span><br>
-							Total entries: <span id="totalEntries"></span>
-						</td>
-					</tr>
-					<tr style="border-bottom: 1px solid #444;">
-						<th style="text-align: left; padding: 5px;">Model</th>
-						<th style="text-align: right; padding: 5px;">Count</th>
-						<th style="text-align: right; padding: 5px;">Percentage</th>
-					</tr>
-				`;
-				
-				// Insert the table at the top of page1
-				const page1 = document.getElementById('page1');
-				page1.insertBefore(table, page1.firstChild);
-				statsTable = table;
-			}
-			
-			// Update stats
-			document.getElementById('lastUpdate').textContent = lastUpdate.toLocaleTimeString();
-			document.getElementById('totalEntries').textContent = totalEntries;
-			
-			// Clear existing rows except header
-			while (statsTable.rows.length > 2) {
-				statsTable.deleteRow(2);
-			}
-			
-			// Add model stats rows
-			Object.entries(modelStats)
-				.sort((a, b) => b[1] - a[1])
-				.forEach(([model, count]) => {
-					const row = statsTable.insertRow();
-					const percentage = ((count / totalEntries) * 100).toFixed(1) + '%';
-					
-					row.innerHTML = `
-						<td style="padding: 5px;">${model}</td>
-						<td style="text-align: right; padding: 5px;">${count}</td>
-						<td style="text-align: right; padding: 5px;">${percentage}</td>
-					`;
-				});
-		}
         
 		evtSource.onmessage = function(event) {
 			if (isPaused) return;
 
 			try {
 				const data = JSON.parse(event.data);
-				if (data.parameters?.model) {
-					const model = data.parameters.model;
-					modelStats[model] = (modelStats[model] || 0) + 1;
-					totalEntries++;
-					lastUpdate = new Date();
-					updateModelStats();
-				}				
 				if (!data.response) return;
 
 				let currentPageArray = allPages[allPages.length - 1];
