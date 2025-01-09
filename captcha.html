@@ -374,7 +374,6 @@
 				return;
 			}
 			
-			// Update speed bar
 			const responseTime = now - lastClickTime;
 			const speedPercentage = Math.min(100, (responseTime / 5000) * 100);
 			document.getElementById('speedBar').style.height = `${speedPercentage}%`;
@@ -383,22 +382,25 @@
 				speedPercentage < 75 ? "yellow" : "red";
 			
 			lastClickTime = now;
-			
-			if (isOdd) {
-				score += POINTS_PER_CORRECT;
-				correctClicks++;
-				if (correctClicks >= currentLevel * 5) {
-					levelUp(); // HERE'S WHERE WE CALL THE NEW FUNCTION
-				}
-			} else {
-				score += POINTS_PER_WRONG;
-				correctClicks = 0;
-			}
-			
-			document.getElementById('score').textContent = score;
-			scrambleGrid();
-			updateTimers();
-		}
+            
+            if (isOdd) {
+                score += POINTS_PER_CORRECT;
+                correctClicks++;
+                if (correctClicks >= currentLevel * 5) {
+                    currentLevel++;
+                    correctClicks = 0;
+                    document.getElementById('levelIndicator').textContent = `Level: ${currentLevel}`;
+                    document.getElementById('resultMessage').textContent = "Level Up!";
+                }
+            } else {
+                score += POINTS_PER_WRONG;
+                correctClicks = 0;
+            }
+            
+            document.getElementById('score').textContent = score;
+            scrambleGrid();
+            updateTimers();
+        }
 
         function endGame(message) {
             gameActive = false;
