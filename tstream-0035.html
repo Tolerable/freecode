@@ -1102,42 +1102,37 @@
         };
 
         const evtSource = new EventSource('https://text.pollinations.ai/feed');
-        
+
 		evtSource.onmessage = function(event) {
 			if (isPaused) return;
 			try {
 				const data = JSON.parse(event.data);
 				if (!data.response) return;
 				
+				// Track model usage
 				if (data.parameters?.model) {
-					const model = data.parameters.model;
-					modelCounts[model] = (modelCounts[model] || 0) + 1;
+					modelCounts[data.parameters.model] = (modelCounts[data.parameters.model] || 0) + 1;
 					totalEntries++;
 					lastUpdate = new Date();
 					
-					const startTimeEl = document.getElementById('startTime');
-					const lastUpdateEl = document.getElementById('lastUpdate');
-					const totalEntriesEl = document.getElementById('totalEntries');
-					const tbody = document.getElementById('modelStatsBody');
-					
-					if (startTimeEl && lastUpdateEl && totalEntriesEl && tbody) {
-						startTimeEl.textContent = startTime.toLocaleTimeString();
-						lastUpdateEl.textContent = lastUpdate.toLocaleTimeString();
-						totalEntriesEl.textContent = totalEntries;
+					// Update stats display
+					if (document.getElementById('modelStatsBody')) {
+						document.getElementById('lastUpdate').textContent = lastUpdate.toLocaleTimeString();
+						document.getElementById('totalEntries').textContent = totalEntries;
+						const tbody = document.getElementById('modelStatsBody');
 						tbody.innerHTML = '';
 						
 						Object.entries(modelCounts)
 							.sort((a, b) => b[1] - a[1])
 							.forEach(([model, count], index) => {
-								const percentage = ((count / totalEntries) * 100).toFixed(1);
-								const row = document.createElement('tr');
-								row.innerHTML = `
-									<td style="padding: 4px;">${index}</td>
-									<td style="padding: 4px;">'${model}'</td>
-									<td style="text-align: right; padding: 4px;">${count}</td>
-									<td style="text-align: right; padding: 4px;">'${percentage}%'</td>
-								`;
-								tbody.appendChild(row);
+								tbody.insertAdjacentHTML('beforeend', `
+									<tr>
+										<td style="padding: 4px;">${index}</td>
+										<td style="padding: 4px;">'${model}'</td>
+										<td style="text-align: right; padding: 4px;">${count}</td>
+										<td style="text-align: right; padding: 4px;">'${((count/totalEntries)*100).toFixed(1)}%'</td>
+									</tr>
+								`);
 							});
 					}
 				}
@@ -1154,13 +1149,11 @@
 						allPages.splice(0, PAGES_PER_BLOCK);
 						currentPageArray = [];
 						allPages.push(currentPageArray);
-						
 						if (currentPage > PAGES_PER_BLOCK) {
 							currentPage -= PAGES_PER_BLOCK;
 						} else {
 							currentPage = 1;
 						}
-						
 						status.textContent = 'Removed oldest block of pages';
 						status.style.color = '#ffaa00';
 						setTimeout(() => {
