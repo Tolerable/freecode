@@ -53,15 +53,16 @@ function createWobbleEffect(targetElement, options = {}) {
     // Create and append foreground image
     const foreground = document.createElement('img');
     foreground.src = settings.foregroundImage;
-    foreground.style.cssText = `
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: ${settings.foregroundWidth};
-        max-height: ${settings.maxForegroundHeight};
-        object-fit: contain;
-    `;
+	foreground.style.cssText = `
+		position: absolute;
+		bottom: -30%; /* Push it down further to hide feet */
+		left: 50%;
+		transform: translateX(-50%);
+		width: 80%; /* Make it a bit larger */
+		max-height: 130%; /* Allow it to be taller than container */
+		object-fit: contain;
+		mix-blend-mode: multiply; /* This will remove the white background */
+	`;
 
     // Add animation
     const keyframes = `
