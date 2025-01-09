@@ -171,12 +171,49 @@
     }
 
     // Start new round
-    async function startNewGame() {
-        // Same logic as before to preload, display images, and handle scoring and levels
-        // Fetch and display 9 images, ensure odd image is random
-        // Add streak tracking and reset on failure
-        // Update the speed bar dynamically
-    }
+	async function startNewGame() {
+		if (gameInProgress) return; // Prevent multiple clicks
+		gameInProgress = true;
+
+		// Reset UI
+		document.getElementById("resultMessage").innerText = "";
+		document.getElementById("spinner").style.display = "block";
+		const imageContainer = document.getElementById("imageContainer");
+		imageContainer.innerHTML = ""; // Clear previous images
+		clearInterval(timerInterval);
+		startTime = Date.now();
+
+		// Preload images if not enough preloaded
+		if (preloadedImages.length < 1) {
+			await preloadImages();
+		}
+
+		// Get the images for this round
+		const { good, bad } = preloadedImages.shift(); // Use the first preloaded pair
+		await preloadImages(); // Queue next set for preloading
+
+		// Randomly choose a placement for the odd image
+		const oddIndex = Math.floor(Math.random() * 9);
+
+		// Display the 3x3 grid with one odd image
+		for (let i = 0; i < 9; i++) {
+			const img = document.createElement("img");
+			img.src = i === oddIndex ? bad : good;
+			img.addEventListener("click", () => handleImageClick(i === oddIndex));
+			imageContainer.appendChild(img);
+		}
+
+		// Start timer
+		document.getElementById("timer").innerText = "0.0";
+		timerInterval = setInterval(() => {
+			const elapsed = (Date.now() - startTime) / 1000;
+			document.getElementById("timer").innerText = elapsed.toFixed(1);
+		}, 100);
+
+		document.getElementById("spinner").style.display = "none"; // Hide spinner
+		gameInProgress = false;
+	}
+
 
 	// Timer and scoring variables
 	let gameInProgress = false;
