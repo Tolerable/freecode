@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concept Map Chat</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <style>
+		body {
+			display: flex;
+			flex-direction: column;
+			min-height: 100vh;  /* Changed from height to min-height */
+			margin: 0;
+			font-family: Arial, sans-serif;
+			background-color: black;
+			color: white;
+			overflow: hidden;  /* Add this to prevent page scrolling */
+		}
+
+		.concept-content {
+			display: flex;
+			flex: 1;
+			height: calc(100vh - 80px);  /* Add explicit height calculation */
+			overflow: hidden;  /* Add this to prevent content scrolling */
+		}
+
+		#intro-screen {
+			position: fixed;
+			top: 80px;  /* Add space for nav bar */
+			left: 0;
+			width: 100%;
+			height: calc(100% - 80px);  /* Adjust for nav bar */
+			background-color: rgba(0,0,0,0.8);
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			z-index: 100;  /* Lower than nav */
+		}
+        #intro-input {
+            width: 80%;
+            max-width: 600px;
+            padding: 20px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+        }
+		#concept-map {
+			flex: 1;
+			border: 1px solid #333;
+			overflow: hidden;
+			position: relative;
+		}
+        #info-panel {
+            width: 450px;
+            padding: 20px;
+            background-color: #111;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 80px);
+            box-sizing: border-box;
+        }
+        #node-title {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        #node-content {
+            font-size: 16px;
+            margin-bottom: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        #node-image {
+            max-width: 100%;
+            height: auto;
+            margin-top: auto;
+            margin-bottom: 20px;
+        }
+        #custom-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .node text {
+            font-size: 12px;
+            text-anchor: middle;
+            fill: white;
+        }
+		
+		/* Ensure text isn't truncated with ellipses in buttons and headers */
+		.regen-button {
+			padding: 10px;
+			margin: 5px;
+			background-color: #444;
+			color: white;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+			white-space: nowrap; /* Prevent text from wrapping or getting cut off */
+			overflow: visible;   /* Ensure text overflow is visible */
+			text-overflow: clip; /* Prevent ellipses from being used */
+			font-size: 16px;     /* Adjust font size if needed */
+		}
+
+		.regen-button:hover {
+			background-color: #555;
+		}
+
+		#node-title {
+			font-size: 24px;
+			white-space: normal;  /* Allow text wrapping */
+			overflow: visible;    /* Ensure full text is visible */
+			text-overflow: clip;  /* Avoid cutting text with ellipses */
+		}
+
+		#node-content {
+			font-size: 16px;
+			white-space: normal;  /* Allow wrapping in the content */
+			overflow-y: auto;
+		}
+
+    </style>
+</head>
+<body>
+<script src="js/nav-loader.js"></script>
+   <div class="concept-content">
+       <div id="intro-screen">
+           <input type="text" id="intro-input" placeholder="Enter your initial question or topic...">
+       </div>
+       <div id="concept-map"></div>
+       <div id="info-panel">
+           <h2 id="node-title"></h2>
+           <div id="node-content"></div>
+           <div id="keyword-container">
+               <p><strong>Related Ideas:</strong></p>
+               <div id="keywords"></div> <!-- This will hold the clickable keywords -->
+           </div>
+           <img id="node-image" src="" alt="Node image" style="display: none;">
+           <div>
+               <button id="regen-info" class="regen-button">Regenerate Info</button> <!-- Regenerate the details only -->
+               <button id="regen-node" class="regen-button">Regenerate Node</button> <!-- Regenerate the entire node -->
+           </div>
+           <input type="text" id="custom-input" placeholder="Enter custom question...">
+       </div>
+   </div>
+   <script>
+		const width = 1000;
+		const height = 800;
+
+		const svg = d3.select("#concept-map")
+			.append("svg")
+			.attr("width", "100%")
+			.attr("height", "100%")
+			.attr("viewBox", [0, 0, width, height]);
+
+		const zoom = d3.zoom()
+			.scaleExtent([0.1, 4])
+			.on("zoom", zoomed)
+			.filter(event => {
+				// Only allow zoom on mouse wheel when Ctrl is pressed
+				if (event.type === 'wheel') {
+					if (!event.ctrlKey) {
+						event.preventDefault();
+						return false;
+					}
+				}
+				return true;
+			});
+
+		svg.call(zoom);
+
+        let currentNode = null;
+        let nodes = [];
+        let links = [];
+        let imageQueue = [];
+        let isProcessingImages = false;
+        let simulation;
+		let nodeStack = []; 
+
+        function cleanText(text) {
+            return text.replace(/\*\*/g, '').replace(/^-\s*/gm, '').trim();
+        }
+
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            return text.substr(0, maxLength-1) + '…';
+        }
+
+		function navigateToKeyword(keyword, originalNode) {
+			fetch(`/get_response`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ prompt: keyword.name, is_regen: false, current_content: null })
+			})
+			.then(response => response.json())
+			.then(data => {
+				const responses = data.responses || [];
+
+				// Create new node for the keyword
+				const newNode = {
+					id: `node${nodes.length}`,
+					name: truncateText(cleanText(responses[0]?.title || keyword.name), 30),
+					fullName: cleanText(responses[0]?.title || keyword.name),
+					fullContent: cleanText(responses[0]?.content),
+					x: width / 2 + (Math.random() - 0.5) * 200,
+					y: height / 2 + (Math.random() - 0.5) * 200,
+					keywords: extractKeywordsFromContent(responses[0]?.content),
+					locked: true // Mark this node as locked
+				};
+
+				// Add the new node and the link
+				nodes.push(newNode);
+				links.push({ source: originalNode.id, target: newNode.id, distance: 150, color: "#FFD700" }); // Yellow link
+
+				// Mark the keyword button as "locked" and turn it red
+				keyword.locked = true;
+				updateGraph(); // Redraw the graph with the new node and link
+				displayNodeInfo(newNode); // Show the new node's info
+				currentNode = newNode;
+			});
+		}
+
+
+		function updateGraph() {
+			if (simulation) {
+				simulation.stop();
+			}
+
+			simulation = d3.forceSimulation(nodes)
+				.force("link", d3.forceLink(links).id(d => d.id).distance(d => d.distance || 150))
+				.force("charge", d3.forceManyBody().strength(-1000))
+				.force("collision", d3.forceCollide().radius(60))
+				.on("tick", ticked);
+
+			svg.selectAll("*").remove();
+
+			const linkGroup = svg.append("g").attr("class", "links");
+			const nodeGroup = svg.append("g").attr("class", "nodes");
+
+			const link = linkGroup.selectAll("line")
+				.data(links, d => `${d.source.id}-${d.target.id}`)
+				.join("line")
+				.attr("stroke", d => d.explored ? "#FFD700" : "#555") // Yellow for explored, grey for unexplored
+				.attr("stroke-width", 2);
+
+			const node = nodeGroup.selectAll("g.node")
+				.data(nodes, d => d.id)
+				.join("g")
+				.attr("class", "node")
+				.call(d3.drag()
+					.on("start", dragstarted)
+					.on("drag", dragged)
+					.on("end", dragended));
+
+			node.append("circle")
+				.attr("r", d => d.isCenter ? 50 : 40)
+				.attr("fill", "black")
+				.attr("stroke", d => d === currentNode ? "red" : (d.hasImage ? "#00ff00" : "white"))
+				.attr("stroke-width", d => d === currentNode ? 6 : (d.hasImage ? 4 : 2))
+				.style("cursor", "pointer");
+
+			// Wrapping text inside the circle
+			node.append("text")
+				.attr("text-anchor", "middle")
+				.attr("fill", "white")
+				.style("font-size", "10px")
+				.style("pointer-events", "none")
+				.each(function(d) {
+					const text = d3.select(this);
+					const words = d.name.split(/\s+/); // Split title into words
+					const lineHeight = 1.1;
+					const maxWidth = d.isCenter ? 80 : 60; // Adjust based on the circle size
+					let lines = [];
+					let line = [];
+
+					words.forEach(word => {
+						const testLine = [...line, word].join(" ");
+						const testWidth = getTextWidth(testLine, "10px Arial");
+
+						if (testWidth > maxWidth && line.length > 0) {
+							lines.push(line.join(" "));
+							line = [word];
+						} else {
+							line.push(word);
+						}
+					});
+					if (line.length > 0) lines.push(line.join(" "));
+
+					const totalHeight = lines.length * lineHeight;
+					const startY = -totalHeight / 2 + lineHeight / 2;
+
+					lines.forEach((line, i) => {
+						text.append("tspan")
+							.attr("x", 0)
+							.attr("y", startY + i * lineHeight + "em")
+							.text(line);
+					});
+				});
+
+			// Add tooltips for full titles
+			node.append("title")
+				.text(d => d.fullName); // Display the full name in the tooltip
+
+			node.on("click", clicked);
+
+			function ticked() {
+				if (currentNode) {
+					currentNode.fx = width / 2;
+					currentNode.fy = (height / 2) - 60;
+				}
+
+				link
+					.attr("x1", d => d.source.x)
+					.attr("y1", d => d.source.y)
+					.attr("x2", d => d.target.x)
+					.attr("y2", d => d.target.y);
+
+				node.attr("transform", d => `translate(${d.x},${d.y})`);
+			}
+
+			return simulation;
+		}
+
+
+
+        function getTextWidth(text, font) {
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            context.font = font;
+            return context.measureText(text).width;
+        }
+
+
+
+		function queueConnectedNodes(node) {
+			const connectedNodes = links
+				.filter(link => link.source.id === node.id || link.target.id === node.id)
+				.map(link => link.source.id === node.id ? link.target : link.source);
+			
+			imageQueue = [...new Set([node, ...connectedNodes, ...imageQueue.filter(n => !n.hasImage)])];
+			processImageQueue();
+		}
+
+
+
+
+		function processImageQueue() {
+			if (isProcessingImages || imageQueue.length === 0) return;
+
+			isProcessingImages = true;
+			const node = imageQueue.shift();  // Fetch the first node in the queue
+
+			if (!node.hasImage) {
+				getImage(node).then(imageUrl => {
+					if (imageUrl) {
+						node.hasImage = true;
+						node.imageUrl = imageUrl;
+
+						// Display the image only for the current selected node
+						if (node === currentNode) {
+							d3.select("#node-image").attr("src", imageUrl).style("display", "block");
+						}
+					}
+
+					// Do not turn the node green until image processing is finished
+					updateGraph();
+					isProcessingImages = false;
+					setTimeout(processImageQueue, 1000);
+				}).catch(error => {
+					console.error('Error processing image:', error);
+					isProcessingImages = false;
+					setTimeout(processImageQueue, 1000);
+				});
+			} else {
+				// If the node already has an image, just continue processing the queue
+				isProcessingImages = false;
+				processImageQueue();
+			}
+		}
+
+
+
+		function displayNodeInfo(node) {
+			// Ensure the query is used as the title for the main node (Node 0)
+			const nodeTitle = node.isCenter ? node.fullName : node.name;
+			d3.select("#node-title").text(nodeTitle);  // Display the correct title for Node 0
+
+			d3.select("#node-content").html(`
+				<p><strong>Summary:</strong> ${node.name}</p>
+				<p><strong>Details:</strong> ${node.fullContent}</p>
+			`);
+
+			// Display only the selected node's image
+			if (node.hasImage && node === currentNode) {
+				d3.select("#node-image").attr("src", node.imageUrl).style("display", "block");
+			} else {
+				d3.select("#node-image").style("display", "none");  // Hide the image if it doesn't match the current node
+			}
+
+			// Clear and update associated ideas/keywords
+			const keywords = node.keywords || [];
+			const keywordContainer = d3.select("#keywords").html(''); // Clear previous keywords
+			keywords.forEach(keyword => {
+				const keywordButton = keywordContainer.append("button")
+					.attr("class", "keyword-button")
+					.style("background-color", keyword.locked ? "red" : "gold")
+					.text(keyword.name)
+					.on("click", () => {
+						if (!keyword.locked) {
+							navigateToKeyword(keyword, node);
+						} else {
+							returnToOriginalNode(node, keyword);
+						}
+					});
+			});
+
+			// Add the node to the stack for context tracking
+			if (!nodeStack.includes(node)) {
+				nodeStack.push(node);
+				if (nodeStack.length > 5) nodeStack.shift();  // Limit stack size
+			}
+		}
+
+
+
+		function generateNodeImage(node) {
+			// Prevent duplicate image generation
+			if (node.hasImage) return;
+
+			// Fetch image for the node
+			getImage(node).then(imageUrl => {
+				if (imageUrl) {
+					node.hasImage = true;
+					node.imageUrl = imageUrl;
+
+					// Display the image only if this is the current node
+					if (node === currentNode) {
+						d3.select("#node-image").attr("src", imageUrl).style("display", "block");
+					}
+				}
+			}).catch(error => {
+				console.error('Error fetching image:', error);
+			});
+		}
+
+
+
+
+
+		function navigateToKeyword(keyword, originalNode) {
+			getResponse(keyword.name, false, originalNode);
+		}
+
+
+
+		function extractKeywordsFromContent(content) {
+			// Basic extraction excluding stopwords
+			const stopwords = ['to', 'the', 'and', 'of', 'in', 'on', 'with', 'it', 'by', 'for'];
+			const words = content.split(/\s+/);
+			const keywords = words.filter(word => !stopwords.includes(word.toLowerCase()));
+
+			// Limit keywords to top 5
+			return keywords.slice(0, 5).map(keyword => ({
+				name: keyword,
+				locked: false
+			}));
+		}
+
+
+
+		function returnToOriginalNode(originalNode, keyword) {
+			// Return to the original node and keep the keywords
+			displayNodeInfo(originalNode);
+			updateGraph();
+
+			// Unlock the keyword and reset the button color
+			keyword.locked = false;
+			d3.selectAll(".keyword-button")
+				.filter(d => d.name === keyword.name)
+				.style("background-color", "gold");
+
+			currentNode = originalNode;
+		}
+
+
+
+		function clicked(event, d) {
+			if (event) event.stopPropagation();
+			
+			if (currentNode) {
+				currentNode.fx = null;
+				currentNode.fy = null;
+			}
+
+			currentNode = d;
+			currentNode.fx = width / 2;
+			currentNode.fy = (height / 2) - 60;
+
+			// Update the visual appearance of the nodes
+			svg.selectAll("circle")
+				.attr("stroke", node => node === currentNode ? "red" : (node.hasImage ? "#00ff00" : "white"))
+				.attr("stroke-width", node => node === currentNode ? 6 : (node.hasImage ? 4 : 2));
+
+			// Display the info for the selected node
+			displayNodeInfo(d);
+			if (!d.hasImage) {
+				generateNodeImage(d);
+			}
+
+			// Mark links as explored by changing their color
+			links.forEach(link => {
+				if (link.source === currentNode || link.target === currentNode) {
+					link.explored = true;  // Mark the link as explored
+				}
+			});
+
+			// Update the graph to reflect the new link color
+			updateGraph();
+
+			// Fetch new response if there are no child nodes
+			const childNodes = links.filter(link => link.source === d).map(link => link.target);
+			if (childNodes.length === 0) {
+				getResponse(d.name, false, d);
+			}
+
+			simulation.alpha(1).restart();
+		}
+
+
+
+		function getResponse(prompt, isInitial = false, parentNode = null, isRegen = false) {
+			// Create the messages array exactly as it was in app.py
+			const messages = [
+				{
+					role: "system",
+					content: "You are an AI assistant for a concept map visualization. " +
+						"First, restate the given concept as a short question with user query as concept. " +
+						"Provide 3-5 detailed responses related to the given concept. " +
+						"Each response should have a short, descriptive title (3-5 words) and a detailed explanation. " +
+						"Also, provide a list of 3-5 associated topic keywords related to the concept, which can be used for further exploration. " +
+						"Be creative and consider various aspects of the concept or if multiple concepts use those as your 3-5 first detailed responses. " +
+						"Do not use numbering or bullet points. " +
+						"Format: 'Short Title: Detailed explanation (50-100 words)'. Keywords: [comma-separated keywords]" +
+						(isRegen ? "This is a regeneration request. Please provide a more detailed, creative, or alternative perspective on the concept." : "")
+				},
+				{
+					role: "user",
+					content: "Concept: " + prompt
+				}
+			];
+
+			// Make the direct call to Pollinations API
+			fetch('https://text.pollinations.ai/', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ messages: messages })
+			})
+			.then(response => response.text())
+			.then(text => {
+				// Parse the response exactly as before
+				const sections = text.trim().split('\n\n');
+				const responses = [];
+				const keywords = [];
+
+				sections.forEach(section => {
+					if (section.startsWith('Keywords:')) {
+						const keywordList = section.replace('Keywords:', '')
+							.split(',')
+							.map(k => ({ name: k.trim(), locked: false }));
+						keywords.push(...keywordList);
+					} else if (section.includes(':')) {
+						const [title, content] = section.split(':', 2);
+						responses.push({
+							title: title.trim(),
+							content: content.trim()
+						});
+					}
+				});
+
+				// Create the data object
+				const data = {
+					prompt: prompt,
+					responses: responses,
+					keywords: keywords
+				};
+
+				// Rest of your existing getResponse function remains exactly the same
+				if (isInitial || isRegen) {
+					const node = isRegen ? currentNode : {
+						id: 'center',
+						name: truncateText(cleanText(prompt), 30),
+						fullName: cleanText(prompt),
+						x: width / 2,
+						y: (height / 2) - 60,
+						isCenter: true,
+						hasImage: false
+					};
+
+					node.fullContent = responses[0]?.content || prompt;
+					node.keywords = keywords;
+
+					if (isInitial) {
+						nodes = [node];
+						links = [];
+						currentNode = node;
+					}
+
+					const newNodes = responses.slice(1).map((response, index) => ({
+						id: `node${nodes.length + index}`,
+						name: truncateText(cleanText(response.title), 30),
+						fullName: cleanText(response.title),
+						x: width / 2 + (Math.random() - 0.5) * 200,
+						y: height / 2 + (Math.random() - 0.5) * 200,
+						fullContent: cleanText(response.content),
+						keywords: extractKeywordsFromContent(response.content)
+					}));
+
+					if (isRegen) {
+						const oldChildLinks = links.filter(link => link.source === node);
+						const oldChildNodes = oldChildLinks.map(link => link.target);
+						nodes = nodes.filter(n => !oldChildNodes.includes(n));
+						links = links.filter(link => !oldChildLinks.includes(link));
+					}
+
+					nodes = [...nodes, ...newNodes];
+					links = [...links, ...newNodes.map(newNode => ({
+						source: node.id,
+						target: newNode.id,
+						distance: 150
+					}))];
+
+					updateGraph();
+					displayNodeInfo(node);
+					generateNodeImage(node);
+				} else {
+					const newNodes = responses.map((response, index) => ({
+						id: `node${nodes.length + index}`,
+						name: truncateText(cleanText(response.title), 30),
+						fullName: cleanText(response.title),
+						x: width / 2 + (Math.random() - 0.5) * 200,
+						y: height / 2 + (Math.random() - 0.5) * 200,
+						fullContent: cleanText(response.content),
+						keywords: extractKeywordsFromContent(response.content)
+					}));
+
+					nodes = [...nodes, ...newNodes];
+					links = [...links, ...newNodes.map(node => ({
+						source: parentNode.id,
+						target: node.id,
+						distance: 150
+					}))];
+
+					updateGraph();
+					displayNodeInfo(parentNode);
+				}
+
+				queueConnectedNodes(isInitial ? nodes[0] : parentNode);
+			})
+			.catch(error => {
+				console.error('Error:', error);
+				alert('An error occurred while fetching the response. Please try again.');
+			});
+		}
+
+
+
+
+		function getImage(node) {
+			const nodeName = cleanText(node.fullName || '');
+			const nodeContent = cleanText(node.fullContent || '');
+			
+			// Build a context string from the node stack for image generation
+			const stackContext = nodeStack
+				.map(n => `${n.fullName}: ${n.fullContent}`)
+				.join('. ');
+			
+			const fullPrompt = `${nodeName}: ${nodeContent}. ${stackContext}. Create an image that reflects this concept and its context.`;
+			const encodedPrompt = encodeURIComponent(fullPrompt);
+			const seed = Math.floor(Math.random() * 1000000);  // Random seed for image uniqueness
+			const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true&nofeed=true&model=flux&seed=${seed}`;
+			
+			return fetch(imageUrl)
+				.then(response => response.blob())
+				.then(blob => URL.createObjectURL(blob))
+				.catch(error => {
+					console.error('Error fetching image:', error);
+					return null;
+				});
+		}
+
+
+
+
+		function regenerateInfo() {
+			if (!currentNode) return;
+			getResponse(currentNode.fullName, false, currentNode, true);
+		}
+
+
+
+		function regenerateNode() {
+			if (!currentNode) return;
+			getResponse(currentNode.fullName, true, null, true);
+		}
+
+
+
+        function dragstarted(event, d) {
+            if (!event.active) d3.forceSimulation(nodes).alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+
+
+        function dragended(event, d) {
+            if (!event.active) d3.forceSimulation(nodes).alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+
+
+        function regenerateImage() {
+            if (!currentNode) return;
+            currentNode.hasImage = false;
+            getImage(currentNode.fullName).then(imageUrl => {
+                if (imageUrl) {
+                    currentNode.hasImage = true;
+                    currentNode.imageUrl = imageUrl;
+                    updateGraph();
+                    displayNodeInfo(currentNode);
+                }
+            });
+        }
+
+        // Initialize the concept map
+        d3.select("#intro-input").on("keyup", function(event) {
+            if (event.key === "Enter") {
+                const initialPrompt = this.value;
+                d3.select("#intro-screen").style("display", "none");
+                getResponse(initialPrompt, true);
+            }
+        });
+
+        d3.select("#custom-input").on("keyup", function(event) {
+            if (event.key === "Enter") {
+                const customPrompt = this.value;
+                this.value = "";
+                getResponse(customPrompt, true);
+            }
+        });
+
+        // Add event listeners for regeneration buttons
+		d3.select("#regen-info").on("click", regenerateInfo);  // This button regenerates the info only
+		d3.select("#regen-node").on("click", regenerateNode);  // This button regenerates the entire node
+
+        function zoomed(event) {
+            svg.selectAll("g.node, line").attr("transform", event.transform);
+        }
+    </script>
+</body>
+</html>
