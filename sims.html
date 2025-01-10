@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulations - AI Ministries</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        h1 {
+            color: #4a9eff;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            color: #4a9eff;
+            margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #333;
+        }
+
+        .featured-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .featured-card {
+            background: #2c2c2c;
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .featured-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(74, 158, 255, 0.2);
+        }
+        
+        .featured-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .sims-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin: 0 auto;
+        }
+        
+        .sim-card {
+            background: #2c2c2c;
+            border-radius: 8px;
+            padding: 1.2rem;
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sim-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(74, 158, 255, 0.2);
+        }
+        
+        .sim-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .sim-card h2, .featured-card h2 {
+            color: #4a9eff;
+            margin: 0.7rem 0;
+            font-size: 1.1rem;
+        }
+        
+        .sim-card p, .featured-card p {
+            color: #bbb;
+            flex-grow: 1;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+        
+        .sim-card a, .featured-card a {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: #4a9eff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            text-align: center;
+            transition: background 0.2s;
+        }
+        
+        .sim-card a:hover, .featured-card a:hover {
+            background: #3182ce;
+        }
+
+        .categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        
+        .category {
+            background: #4a9eff;
+            color: white;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 1200px) {
+            .sims-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .sims-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .featured-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .sims-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script>
+        const simsData = [
+            {
+                title: "Life",
+                image: "https://github.com/user-attachments/assets/e15cfebd-b804-4569-ad2a-2d43b2f0791e",
+                description: "Explore Conway's Game of Life - a fascinating cellular automata simulation where patterns evolve based on simple rules. Watch as complex behaviors emerge from basic interactions.",
+                url: "games/life.html",
+                categories: ["Cellular Automata", "Evolution"],
+                featured: true
+            },
+            {
+                title: "Life Creature",
+                image: "https://github.com/user-attachments/assets/962cea81-c73b-4d68-a13f-f4cd25315ebd",
+                description: "Observe a bioluminescent creature's journey through space as it consumes nutrients and evolves. Watch its fascinating patterns of growth and adaptation in this mesmerizing simulation.",
+                url: "games/lifecreature.html",
+                categories: ["Evolution", "Biology"],
+                featured: true
+            },
+            {
+                title: "Cave Creature",
+                image: "https://github.com/user-attachments/assets/f5341fc0-b2a5-402d-8b0e-d79bf916cef3",
+                description: "Experience procedurally generated cave environments and observe creature behavior as it navigates through different levels, consuming resources and adapting to its surroundings.",
+                url: "games/eatcreature.html",
+                categories: ["Procedural", "Ecosystem"],
+                featured: false
+            }
+        ];
+
+        window.onload = function() {
+            const featured = simsData.filter(sim => sim.featured);
+            const regular = simsData.filter(sim => !sim.featured);
+            
+            if (featured.length > 0) {
+                const featuredHTML = `
+                    <h2 class="section-title">Featured Simulations</h2>
+                    <div class="featured-grid">
+                        ${featured.map(sim => `
+                            <div class="featured-card">
+                                <img src="${sim.image}" alt="${sim.title}" class="featured-image">
+                                <div class="categories">
+                                    ${sim.categories.map(cat => `<span class="category">${cat}</span>`).join('')}
+                                </div>
+                                <h2>${sim.title}</h2>
+                                <p>${sim.description}</p>
+                                <a href="${sim.url}">Start Simulation</a>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                document.getElementById('featured').innerHTML = featuredHTML;
+            }
+            
+            const regularHTML = regular.map(sim => `
+                <div class="sim-card">
+                    <img src="${sim.image}" alt="${sim.title}" class="sim-image">
+                    <div class="categories">
+                        ${sim.categories.map(cat => `<span class="category">${cat}</span>`).join('')}
+                    </div>
+                    <h2>${sim.title}</h2>
+                    <p>${sim.description}</p>
+                    <a href="${sim.url}">Start Simulation</a>
+                </div>
+            `).join('');
+            
+            document.getElementById('sims-grid').innerHTML = regularHTML;
+        };
+    </script>
+</head>
+<body>
+<script src="/js/nav-loader.js"></script>
+    <div class="container">
+        <div id="featured"></div>
+        <h2 class="section-title">All Simulations</h2>
+        <div id="sims-grid" class="sims-grid"></div>
+    </div>
+</body>
+</html>
