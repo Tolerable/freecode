@@ -169,47 +169,70 @@
 
                 cardsContainer.appendChild(card);
             }
-        }
-
-		let conversationHistory = ""; // Initialize conversation history
+        }			
+			 
+		let messages = [
+			{ role: 'system', content: 'You are a helpful Chinese AI assistant. When queried in Chinese only respond in proper Chinese [If query is in english, assume English user and respond in broken English-Chinese].' }
+				];
+		let isMessagePending = false; // Track if a message is being processed
 
 		async function sendMessage() {
-			const userInput = document.getElementById('user-input');
-			const userMessage = userInput.value;
-			if (!userMessage) return;
+			const messageInput = document.getElementById('message-input');
+			const content = messageInput.value.trim();
 
-			// Display User Message
-			chatResponseArea.innerHTML += `<div class="chat-response">你: ${userMessage}</div>`;
-			userInput.value = "";
+			if (!content || isMessagePending) {
+				return;  // Exit if empty message or message is pending
+			}
 
-			// Append user message to the conversation history
-			conversationHistory += `USER: ${userMessage}\n`;
+			isMessagePending = true; // Set flag before sending
+			const sendButton = document.getElementById('sendButton');
+			sendButton.disabled = true; // Disable the send button for visual feedback
 
-			// Create the system and assistant prompts
-			const systemPrompt = "SYSTEM: You are a helpful Chinese AI assistant. When queried in Chinese only respond in proper Chinese [If query is in english, assume English user and respond in broken English-Chinese].\n";
-			const assistantPrompt = "ASSISTANT: ";
+			try {
+				// Add user message to the conversation history
+				messages.push({ role: 'user', content });
+				appendMessage('user', content); // Function to append user messages to UI
 
-			// Send the POST request
-			const response = await fetch('https://text.pollinations.ai/', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'text/plain',  // Set as plain text
-				},
-				body: systemPrompt + conversationHistory + assistantPrompt // Concatenate prompts
-			});
+				// Clear input immediately after showing user message
+				messageInput.value = '';
 
-			const aiMessage = await response.text() || "对不起，我没有理解。";
+				// Prepare the body content for the request
+				const bodyContent = messages.map(msg => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n');
 
-			// Append AI message to conversation history
-			conversationHistory += `ASSISTANT: ${aiMessage}\n`;
+				// Fetch AI response
+				const response = await fetch('https://text.pollinations.ai/', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'text/plain', // Sending as plain text
+					},
+					body: bodyContent // Send formatted body content
+				});
 
-			// Update with AI response
-			chatResponseArea.innerHTML += `<div class="chat-response">人工智能：${aiMessage}</div>`;
-			chatResponseArea.scrollTop = chatResponseArea.scrollHeight; // Scroll down to the latest message
+				const aiResponse = await response.text() || "对不起，我没有理解。"; // Fallback message
+				messages.push({ role: 'assistant', content: aiResponse }); // Track AI response
+
+				appendMessage('ai', aiResponse); // Function to display AI messages
+				saveData(); // Potentially save session data
+
+			} catch (error) {
+				console.error('Error getting AI response:', error);
+				alert('Failed to get AI response. Please try again.');
+			} finally {
+				isMessagePending = false; // Reset flag regardless of success/failure
+				sendButton.disabled = false; // Re-enable button
+			}
+		}
+
+		// Optional: Function to append a message to the chat UI
+		function appendMessage(role, content) {
+			const chatResponseArea = document.getElementById('chatResponseArea');
+			const message = role === 'user' ? `你: ${content}` : `人工智能：${content}`;
+			chatResponseArea.innerHTML += `<div class="chat-response">${message}</div>`;
+			chatResponseArea.scrollTop = chatResponseArea.scrollHeight; // Scroll to the latest message
 		}
 
 		// Event listener for sending message on pressing Enter key
-		document.getElementById('user-input').addEventListener('keypress', function (event) {
+		document.getElementById('message-input').addEventListener('keypress', function (event) {
 			if (event.key === 'Enter') {
 				sendMessage();
 			}
