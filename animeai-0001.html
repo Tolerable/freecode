@@ -47,7 +47,6 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
             overflow: hidden;
             transition: transform 0.2s;
-            cursor: pointer; /* Makes it clear it's clickable */
         }
         .card:hover {
             transform: translateY(-10px);
@@ -86,14 +85,6 @@
             background-color: #ffcc00;
             cursor: pointer;
         }
-        .chat-response-area {
-            max-height: 300px;
-            overflow-y: auto; /* Enables scrolling when content exceeds height */
-            background-color: #333; /* Chat area background */
-            border-radius: 5px;
-            padding: 10px;
-            margin: 10px 0;
-        }
         .chat-response {
             margin: 10px;
             padding: 10px;
@@ -122,11 +113,11 @@
     <div class="content" id="anime-cards"></div>
     
     <div class="chat-container">
-        <div class="chat-response-area" id="chat-response-area"></div>
         <div class="input-container">
             <input type="text" id="user-input" placeholder="输入你的问题..." />
             <button onclick="sendMessage()">发送</button>
         </div>
+        <div id="chat-response-area"></div>
     </div>
 
     <script>
@@ -138,7 +129,6 @@
         ];
 
         const cardsContainer = document.getElementById('anime-cards');
-        const chatResponseArea = document.getElementById('chat-response-area');
 
         async function fetchAnimeContent() {
             for (let prompt of prompts) {
@@ -159,13 +149,6 @@
                     <img src="${imgUrl}" alt="${prompt}"/>
                     <div class="card-title">${animeDescription}</div>
                 `;
-
-                // Add click event to card for more interactions
-                card.onclick = function() {
-                    alert(`You clicked on: ${animeDescription}`);
-                    // Here you can replace with a more sophisticated interaction
-                };
-
                 cardsContainer.appendChild(card);
             }
         }
@@ -174,6 +157,8 @@
             const userInput = document.getElementById('user-input');
             const userMessage = userInput.value;
             if (!userMessage) return;
+
+            const chatResponseArea = document.getElementById('chat-response-area');
 
             // Display User Message
             chatResponseArea.innerHTML += `<div class="chat-response">你: ${userMessage}</div>`;
@@ -189,17 +174,16 @@
 
             // Update with AI response
             chatResponseArea.innerHTML += `<div class="chat-response">人工智能：${aiMessage}</div>`;
-            chatResponseArea.scrollTop = chatResponseArea.scrollHeight; // Scroll down to the latest message
         }
 
-        // Event listener for sending message on pressing Enter key
-        document.getElementById('user-input').addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        });
+		document.getElementById('user-input').addEventListener('keypress', function(event) {
+			if (event.key === 'Enter') {
+				sendMessage();
+			}
+		});
 
-        fetchAnimeContent();
+		fetchAnimeContent();
+
     </script>
 </body>
 </html>
