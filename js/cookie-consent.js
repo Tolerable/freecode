@@ -1,16 +1,19 @@
-// Load cookie script with your ID - this is all we need for cookie consent
+// Load cookie script with your ID and styling options
 const cookieScript = document.createElement('script');
 cookieScript.src = '//cdn.cookie-script.com/s/ec705f4147843dbfdb127ea600fc6d08.js';
 cookieScript.setAttribute('data-cs-no-consent-autoblock', '1');
-// Add these customization attributes
-cookieScript.setAttribute('data-cs-position', 'bottom-right'); // Change position
-cookieScript.setAttribute('data-cs-style-vars', '--cs_bg_color:rgba(0,0,0,0.8); --cs_icon_size:24px;'); // Make icon smaller and more transparent
+cookieScript.setAttribute('data-cs-position', 'bottom-right');
+cookieScript.setAttribute('data-cs-style-vars', '--cs_bg_color:rgba(0,0,0,0.8); --cs_icon_size:24px;');
 document.head.appendChild(cookieScript);
 
 // Age verification code
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(showAgeVerification, 1000); // Increased delay for better reliability
+});
+
+// Age verification function
 function showAgeVerification() {
     if (localStorage.getItem('ageVerified')) return;
-
     const modal = document.createElement('div');
     modal.innerHTML = `
         <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -45,5 +48,3 @@ window.verifyAge = function(isOver21) {
         window.location.href = 'https://www.google.com';
     }
 };
-
-setTimeout(showAgeVerification, 500);
