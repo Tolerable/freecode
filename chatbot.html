@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        #chat-log {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            background-color: white;
+        }
+        #user-input {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chatbot</h1>
+    <div id="chat-log"></div>
+    <input type="text" id="user-input" placeholder="Type your message..." />
+    <button id="send-button">Send</button>
+
+    <script>
+        const messages = [
+            { role: 'system', content: 'Respond conversationally as a helpful AI assistant with no more than 3 sentences in a response.' }
+        ];
+
+        async function generateText(messages) {
+            const randomSeed = Math.floor(Math.random() * 1000000);
+            
+            const response = await fetch('https://text.pollinations.ai/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: messages,
+                    seed: randomSeed,
+                    jsonMode: false,
+                    model: 'openai',
+                }),
+            });
+            
+            const data = await response.text(); // Get the plain text response
+            return data; // Return the text response
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input').value;
+            if (userInput.trim() === "") return; // Prevent empty messages
+
+            messages.push({ role: 'user', content: userInput }); // Add user's message
+            
+            const aiResponse = await generateText(messages); // Get AI's response
+            messages.push({ role: 'assistant', content: aiResponse }); // Add AI's response
+
+            // Update chat log
+            const chatLog = document.getElementById('chat-log');
+            chatLog.innerHTML += `<strong>You:</strong> ${userInput}<br>`;
+            chatLog.innerHTML += `<strong>AI:</strong> ${aiResponse}<br>`;
+            chatLog.scrollTop = chatLog.scrollHeight; // Scroll to the bottom
+
+            document.getElementById('user-input').value = ''; // Clear input field
+        }
+
+        document.getElementById('send-button').addEventListener('click', sendMessage);
+        document.getElementById('user-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') sendMessage(); // Allow sending with 'Enter'
+        });
+    </script>
+</body>
+</html>
