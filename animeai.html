@@ -61,6 +61,45 @@
             font-size: 1.5em;
             text-align: center;
         }
+        .chat-container {
+            text-align: center;
+            margin: 20px;
+        }
+        .input-container {
+            margin-top: 20px;
+        }
+        .input-container input[type="text"] {
+            width: 300px;
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 5px;
+            border: none;
+            background-color: #ffffff;
+            color: #000;
+        }
+        .input-container button {
+            padding: 10px;
+            margin-left: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #ffcc00;
+            cursor: pointer;
+        }
+        .chat-response {
+            margin: 10px;
+            padding: 10px;
+            background-color: #444;
+            color: #ffcc00;
+            border-radius: 5px;
+            max-width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+        .loading {
+            color: #ffcc00;
+            font-size: 1.2em;
+        }
     </style>
 </head>
 <body>
@@ -72,6 +111,14 @@
         <a href="#">爱好者交流</a>
     </nav>
     <div class="content" id="anime-cards"></div>
+    
+    <div class="chat-container">
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="输入你的问题..." />
+            <button onclick="sendMessage()">发送</button>
+        </div>
+        <div id="chat-response-area"></div>
+    </div>
 
     <script>
         const prompts = [
@@ -80,21 +127,21 @@
             "An intense duel between powerful anime warriors, dynamic poses and effects, blending traditional Japanese art with modern digital techniques, full of action and emotion, colorful and eye-catching.",
             "A whimsical anime creature exploring a colorful alien world, showcasing vibrant flora and fauna, filled with imaginative character designs and surreal landscapes."
         ];
-        
+
         const cardsContainer = document.getElementById('anime-cards');
 
         async function fetchAnimeContent() {
             for (let prompt of prompts) {
-                const randomSeed = Math.floor(Math.random() * 10000); // Generate a random seed between 0 and 9999
+                const randomSeed = Math.floor(Math.random() * 10000);
 
                 // Fetch Image
-                const imgResponse = await fetch(`https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=300&height=300&seed=${randomSeed}&enhance=true&private=true&nologo=true`);
+                const imgResponse = await fetch(`https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&enhance=true&private=true&width=300&height=300&seed=${randomSeed}`);
                 const imgUrl = imgResponse.url;
 
                 // Fetch Text
                 const textResponse = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai&json=true`);
                 const textData = await textResponse.json();
-                const animeDescription = textData.content;
+                const animeDescription = textData.content || "描述不可用";
 
                 const card = document.createElement('div');
                 card.className = 'card';
@@ -104,6 +151,29 @@
                 `;
                 cardsContainer.appendChild(card);
             }
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const userMessage = userInput.value;
+            if (!userMessage) return;
+
+            const chatResponseArea = document.getElementById('chat-response-area');
+
+            // Display User Message
+            chatResponseArea.innerHTML += `<div class="chat-response">你: ${userMessage}</div>`;
+            userInput.value = "";
+
+            // Simulate AI response
+            chatResponseArea.innerHTML += `<div class="loading">AI正在思考...</div>`;
+
+            // Fetching a fun AI response
+            const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(userMessage)}?model=openai&json=true`);
+            const responseData = await response.json();
+            const aiMessage = responseData.content || "对不起，我没有理解。";
+
+            // Update with AI response
+            chatResponseArea.innerHTML += `<div class="chat-response">AI: ${aiMessage}</div>`;
         }
 
         fetchAnimeContent();
