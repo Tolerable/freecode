@@ -9,9 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
             navContainer.innerHTML = html;
             document.body.insertBefore(navContainer, document.body.firstChild);
 			
-			const cookieScript = document.createElement('script');
-			cookieScript.src = '/js/cookie-consent.js';
-			document.head.appendChild(cookieScript);
+		const cookieScript = document.createElement('script');
+		cookieScript.src = '/js/cookie-consent.js';
+		document.head.appendChild(cookieScript);
 
             // Execute scripts with better error handling
             const scripts = navContainer.getElementsByTagName('script');
