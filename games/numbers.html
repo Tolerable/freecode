@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Numbers Station Simulator</title>
+    <style>
+        body {
+            background-color: black;
+            color: green;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        #output {
+            font-size: 48px;
+            white-space: nowrap;
+            overflow: hidden;
+            width: 100%;
+            text-align: center;
+            animation: scrolling 20s linear infinite;
+        }
+        @keyframes scrolling {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        #toggleTTS {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: green;
+            color: black;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        #toggleTTS:hover {
+            background-color: rgba(0, 255, 0, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <div id="output">Loading...</div>
+    <button id="toggleTTS">Toggle TTS</button>
+
+    <script>
+        let ttsEnabled = false;
+        const outputElement = document.getElementById('output');
+
+        function generateRandomNumber() {
+            return Math.floor(Math.random() * 1000);
+        }
+
+        function updateNumbers() {
+            const number = generateRandomNumber();
+            outputElement.textContent = number;
+            if (ttsEnabled) {
+                speakNumber(number);
+            }
+        }
+
+        function speakNumber(number) {
+            const utterance = new SpeechSynthesisUtterance(number);
+            window.speechSynthesis.speak(utterance);
+        }
+
+        document.getElementById('toggleTTS').addEventListener('click', () => {
+            ttsEnabled = !ttsEnabled;
+            document.getElementById('toggleTTS').textContent = ttsEnabled ? 'TTS ON' : 'TTS OFF';
+        });
+
+        setInterval(updateNumbers, 1000);
+    </script>
+</body>
+</html>
