@@ -352,75 +352,47 @@
 					seed: Math.random().toString()
 				})
 			});
-			const text = await response.text();
-			return text; // Return the text to be streamed
+			return await response.text();
 		}
 
-		async function streamText(text, targetElement) {
-			const lines = text.split('\n'); // Split text into lines
-			for (const line of lines) {
-				// Add the line to the TOP of the panel
-				const newLine = document.createElement('div');
-				newLine.textContent = line;
-				targetElement.prepend(newLine); // Add to the top
+		document.getElementById('toggleDecode').addEventListener('change', async () => {
+			decodingEnabled = !decodingEnabled;
+			const imageContainer = document.querySelector('.image-container');
+			imageContainer.classList.toggle('active');
 
-				// Scroll down slightly to show the new line
-				targetElement.scrollTop += newLine.offsetHeight;
-
-				// Add a delay between lines
-				await new Promise(r => setTimeout(r, 100)); // Adjust speed as needed
-			}
-		}
-
-		let isStreamingLeft = false; // Track if the left panel is streaming
-		let isStreamingRight = false; // Track if the right panel is streaming
-
-		document.getElementById('toggleTTS').addEventListener('change', () => {
-			ttsEnabled = !ttsEnabled;
-			if (ttsEnabled) {
-				document.getElementById('toggleDecode').checked = true;
-				decodingEnabled = true;
-				const imageContainer = document.querySelector('.image-container');
-				imageContainer.classList.add('active');
-
+			if (decodingEnabled) {
 				const leftInterval = setInterval(async () => {
-					if (!ttsEnabled || isStreamingLeft) {
+					if (!decodingEnabled) {
 						clearInterval(leftInterval);
 						return;
 					}
-					isStreamingLeft = true; // Lock the left panel
 					const text = await generateProphecyText(systemPrompt1);
-					await streamText(text, document.getElementById('prophecy-left'));
-					isStreamingLeft = false; // Unlock the left panel
+					document.getElementById('prophecy-left').textContent += text + '\n\n';
+					document.getElementById('prophecy-left').scrollTop = 
+						document.getElementById('prophecy-left').scrollHeight;
 				}, 2000);
 
 				const rightInterval = setInterval(async () => {
-					if (!ttsEnabled || isStreamingRight) {
+					if (!decodingEnabled) {
 						clearInterval(rightInterval);
 						return;
 					}
-					isStreamingRight = true; // Lock the right panel
 					const text = await generateProphecyText(systemPrompt2);
-					await streamText(text, document.getElementById('prophecy-right'));
-					isStreamingRight = false; // Unlock the right panel
+					document.getElementById('prophecy-right').textContent += text + '\n\n';
+					document.getElementById('prophecy-right').scrollTop = 
+						document.getElementById('prophecy-right').scrollHeight;
 				}, 2300);
 
 				setTimeout(() => {
 					generateImage();
 					setInterval(generateImage, 10000);
 				}, 1000);
-				displayNumber();
 			} else {
-				document.getElementById('toggleDecode').checked = false;
-				decodingEnabled = false;
-				const imageContainer = document.querySelector('.image-container');
-				imageContainer.classList.remove('active');
 				document.getElementById('prophecy-left').textContent = '';
 				document.getElementById('prophecy-right').textContent = '';
-				window.speechSynthesis.cancel();
-				document.getElementById('main-number').textContent = '';
 			}
 		});
+
     </script>
 </body>
 </html>
