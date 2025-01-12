@@ -22,19 +22,18 @@
             display: flex;
             justify-content: center;
             align-items: flex-start;
-           padding-top: 0;
+            padding-top: 72px; /* Account for nav height */
         }
 
-       #game-container {
+        #game-container {
             width: 80%;
             max-width: 800px;
-            height: calc(100vh - 72px); /* 72px nav */
+            height: calc(100vh - 92px); /* 72px nav + 20px padding */
             display: flex;
             flex-direction: column;
             padding: 20px;
             box-sizing: border-box;
         }
-
 
         #output {
             flex: 1;
@@ -83,7 +82,7 @@
 
         #startup-screen {
             position: fixed;
-             top: 72px;
+            top: 72px; /* Account for nav height */
             left: 0;
             right: 0;
             bottom: 0;
@@ -168,9 +167,9 @@
         // Initialize game state
         let gameState = JSON.parse(localStorage.getItem('mudGameState')) || {
             currentRoom: 'Start Room',
-             rooms: {
+            rooms: {
                 'Start Room': {
-                     description: 'You awaken in a bare, empty room. Type "help" to see the commands available to you.',
+                    description: 'You are in an empty room. The walls are bare and the air is still.',
                     items: [],
                     exits: {},
                     actions: {}
@@ -252,16 +251,16 @@
                          gameState.currentRoom = currentRoom.exits[action];
                         displayMessage(describeRoom(gameState.currentRoom));
                     } else {
-                         displayMessage(`There is no exit to the ${action}. Create one? (yes/no)`);
+                        displayMessage(`There is no exit to the ${action}. Create one? (yes/no)`);
                         gameState.pendingAction = { 
                             type: 'create-exit', 
                             direction: action,
-                             sourceRoom: gameState.currentRoom
+                            sourceRoom: gameState.currentRoom 
                         };
                     }
                     break;
                 }
-                case 'place': {
+                  case 'place': {
                     if (target) {
                          generateWithAI(`Describe an item called ${target}.`, (description) => {
                                 const newItem = { name: target, description: description, actions: {} };
@@ -291,7 +290,7 @@
                         }
                         break;
                    }
-                case 'use': {
+                 case 'use': {
                     if(item) {
                         const inventoryItem = gameState.inventory.find(i => i.name === item);
                         if(inventoryItem) {
@@ -323,36 +322,13 @@
                              displayMessage("What do you want to add an action to?");
                         }
                         break;
-                    }
-                   case 'portal': {
-                    if (gameState.pendingAction?.type === 'create-exit') {
-                         const { direction, sourceRoom } = gameState.pendingAction;
-                        const newRoomName = `Room ${Object.keys(gameState.rooms).length + 1}`;
-                             generateWithAI(`Describe a new room as if you are standing in it, connected to the ${getOppositeDirection(direction)}.`, (description) => {
-                            gameState.rooms[newRoomName] = {
-                                description: description,
-                                items: [{ name: "portal", description: "(floats here)", actions: {}}],
-                                exits: {
-                                    [getOppositeDirection(direction)]: sourceRoom,
-                                    'portal': 'Start Room'
-                                },
-                                actions: {}
-                            };
-                             gameState.rooms[sourceRoom].exits[direction] = newRoomName;
-
-                            displayMessage(describeRoom(gameState.currentRoom));
-                             saveGameState();
-                        });
-
-                         gameState.pendingAction = null;
-                         break;
-                    }
-                 }
+                }
                 case 'yes': {
                     if (gameState.pendingAction?.type === 'create-exit') {
                         const { direction, sourceRoom } = gameState.pendingAction;
                         const newRoomName = `Room ${Object.keys(gameState.rooms).length + 1}`;
-                           generateWithAI(`Describe a new room as if you are standing in it, connected to the ${getOppositeDirection(direction)}.`, (description) => {
+                        
+                        generateWithAI(`Describe a new room as if you are standing in it, connected to the ${getOppositeDirection(direction)}.`, (description) => {
                             gameState.rooms[newRoomName] = {
                                 description: description,
                                 items: [],
@@ -361,7 +337,8 @@
                                 },
                                 actions: {}
                             };
-                             gameState.rooms[sourceRoom].exits[direction] = newRoomName;
+
+                            gameState.rooms[sourceRoom].exits[direction] = newRoomName;
                             displayMessage(describeRoom(gameState.currentRoom));
                             saveGameState();
                         });
@@ -384,7 +361,7 @@
                          `- add-action <item> <command> : Add an interaction to an item\n` +
                         `- use <item> <command> : Use an item with an action you added \n` +
                         `- i / inventory : Show your inventory\n` +
-                          `- help : Show this help message`
+                         `- help : Show this help message`
                     );
                      break;
                 }
@@ -427,7 +404,7 @@
         });
 
         // Initial welcome message
-         displayMessage(describeRoom(gameState.currentRoom));
+        displayMessage('Welcome to FREEWORLD! Creating your world, your way.');
     </script>
 </body>
 </html>
