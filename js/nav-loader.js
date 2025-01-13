@@ -9,6 +9,7 @@
     };
 	ageCheckScript.onerror = function() {
         console.error('Error loading agecheck.js');
+        loadNavigation(); // Still try to load navigation even if this fails
     };
     document.head.appendChild(ageCheckScript);
 
@@ -30,59 +31,35 @@
                 document.body.insertBefore(navContainer, document.body.firstChild);
 
                 // Execute scripts with better error handling
-                const scripts = navContainer.getElementsByTagName('script');
-                Array.from(scripts).forEach(script => {
-                    try {
+               const scripts = navContainer.getElementsByTagName('script');
+                const loadScripts = Array.from(scripts).map(script => {
+                    return new Promise((resolve, reject) => {
                         const newScript = document.createElement('script');
                         // Copy any attributes from the original script
                         Array.from(script.attributes).forEach(attr => {
                             newScript.setAttribute(attr.name, attr.value);
                         });
                         newScript.textContent = script.textContent;
+                        newScript.onload = () => resolve();
+                        newScript.onerror = () => {
+                            console.error('Error executing nav script:', script);
+                             resolve(); // Resolve even if there's an error with this script, try to load others.
+                        }
                         script.parentNode.replaceChild(newScript, script);
-                    } catch (error) {
-                        console.error('Error executing nav script:', error);
-                    }
+
+                   });
                 });
+                Promise.all(loadScripts).then(() => {
+                     // Dispatch the navLoaded event
+                   document.dispatchEvent(new Event('navLoaded'));
+                 });
 
-                // Add touch event handling for mobile devices
-                const mobileMenuButton = document.getElementById('mobile-menu-button');
-                const mobileMenu = document.getElementById('mobile-menu');
-                const dropdowns = document.querySelectorAll('.mobile-dropdown-trigger');
 
-                if (mobileMenuButton && mobileMenu) {
-                    // Handle both click and touch events
-                    ['click', 'touchstart'].forEach(eventType => {
-                        mobileMenuButton.addEventListener(eventType, function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            mobileMenu.classList.toggle('show');
-                        }, { passive: false });
-                    });
-
-                    // Improve scrolling on iOS
-                    mobileMenu.addEventListener('touchmove', function(e) {
-                        e.stopPropagation();
-                    }, { passive: true });
-
-                    // Close menu on outside click/touch
-                    document.addEventListener('click', function(e) {
-                        if (!mobileMenu.contains(e.target) && !mobileMenuButton.contains(e.target)) {
-                            mobileMenu.classList.remove('show');
-                        }
-                    });
-
-                    // Handle orientation change
-                    window.addEventListener('orientationchange', function() {
-                        if (window.innerWidth > 768) {
-                            mobileMenu.classList.remove('show');
-                        }
-                    });
-                }
-            })
+             })
             .catch(error => {
                 console.error('Error loading navigation:', error);
                 navContainer.innerHTML = '<div style="text-align: center; padding: 1rem;">Navigation loading error. Please refresh.</div>';
+                 document.dispatchEvent(new Event('navLoaded')); // Still fire this in case of failure
             });
     }
 
