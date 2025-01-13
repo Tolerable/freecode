@@ -1,7 +1,7 @@
 (function() {
     // Dynamically load the agecheck.js
     const ageCheckScript = document.createElement('script');
-    ageCheckScript.src = '/js/agecheck.js';
+    ageCheckScript.src = 'https://www.ai-ministries.com/js/agecheck.js';
     ageCheckScript.onload = function() {
       // After agecheck.js loads, proceed with navigation loading and then check for the modal.
         loadNavigation();
@@ -14,7 +14,7 @@
 
     // Load the cookie consent
     const cookieScript = document.createElement('script');
-    cookieScript.src = '/js/cookie-consent.js';
+    cookieScript.src = 'https://www.ai-ministries.com/js/cookie-consent.js';
     document.head.appendChild(cookieScript);
 
 
@@ -23,7 +23,7 @@
         const navContainer = document.createElement('div');
         navContainer.id = 'navigation-container';
 
-        fetch('/components/nav.html')
+        fetch('https://www.ai-ministries.com/components/nav.html')
             .then(response => response.text())
             .then(html => {
                 navContainer.innerHTML = html;
