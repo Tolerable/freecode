@@ -3,7 +3,8 @@
     const ageCheckScript = document.createElement('script');
     ageCheckScript.src = '/js/agecheck.js';
     ageCheckScript.onload = function() {
-        // After agecheck.js loads, perform the age check and load the navigation.
+      // After agecheck.js loads, proceed with navigation loading and then check for the modal.
+        loadNavigation();
         checkAndShowAgeModal();
     };
 	ageCheckScript.onerror = function() {
@@ -11,43 +12,22 @@
     };
     document.head.appendChild(ageCheckScript);
 
-    // Immediately check age and potentially render modal
-    function checkAndShowAgeModal() {
-         if (!localStorage.getItem('ageVerified')) {
-            const modal = document.createElement('div');
-            modal.id = 'ageModal';
-            modal.classList.add('age-modal-overlay');
-            modal.innerHTML = `
-                <div class="age-modal">
-                    <h2>Age Verification Required</h2>
-                    <p>You must be 21 or older to view this site.</p>
-                    <button class="age-button yes-button" onclick="verifyAge(true)">
-                        YES, I'M OVER 21
-                    </button>
-                    <button class="age-button no-button" onclick="verifyAge(false)">
-                        NO, I'M UNDER 21
-                    </button>
-                </div>`;
-            document.body.appendChild(modal);
-        } else {
-            // If age is verified, proceed to load navigation
-            loadNavigation();
-        }
-    }
+    // Load the cookie consent
+    const cookieScript = document.createElement('script');
+    cookieScript.src = '/js/cookie-consent.js';
+    document.head.appendChild(cookieScript);
 
+
+    // Immediately load the navigation bar and check for Age
     function loadNavigation() {
-            const navContainer = document.createElement('div');
-            navContainer.id = 'navigation-container';
+        const navContainer = document.createElement('div');
+        navContainer.id = 'navigation-container';
 
         fetch('/components/nav.html')
             .then(response => response.text())
             .then(html => {
                 navContainer.innerHTML = html;
                 document.body.insertBefore(navContainer, document.body.firstChild);
-                
-                const cookieScript = document.createElement('script');
-                cookieScript.src = '/js/cookie-consent.js';
-                document.head.appendChild(cookieScript);
 
                 // Execute scripts with better error handling
                 const scripts = navContainer.getElementsByTagName('script');
@@ -104,5 +84,26 @@
                 console.error('Error loading navigation:', error);
                 navContainer.innerHTML = '<div style="text-align: center; padding: 1rem;">Navigation loading error. Please refresh.</div>';
             });
+    }
+
+    // Immediately check age and potentially render modal
+     function checkAndShowAgeModal() {
+         if (!localStorage.getItem('ageVerified')) {
+            const modal = document.createElement('div');
+            modal.id = 'ageModal';
+            modal.classList.add('age-modal-overlay');
+            modal.innerHTML = `
+                <div class="age-modal">
+                    <h2>Age Verification Required</h2>
+                    <p>You must be 21 or older to view this site.</p>
+                    <button class="age-button yes-button" onclick="verifyAge(true)">
+                        YES, I'M OVER 21
+                    </button>
+                    <button class="age-button no-button" onclick="verifyAge(false)">
+                        NO, I'M UNDER 21
+                    </button>
+                </div>`;
+            document.body.appendChild(modal);
+        }
     }
 })();
