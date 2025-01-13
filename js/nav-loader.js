@@ -1,4 +1,16 @@
 (function() {
+    // Dynamically load the agecheck.js
+    const ageCheckScript = document.createElement('script');
+    ageCheckScript.src = '/js/agecheck.js';
+    ageCheckScript.onload = function() {
+        // After agecheck.js loads, perform the age check and load the navigation.
+        checkAndShowAgeModal();
+    };
+	ageCheckScript.onerror = function() {
+        console.error('Error loading agecheck.js');
+    };
+    document.head.appendChild(ageCheckScript);
+
     // Immediately check age and potentially render modal
     function checkAndShowAgeModal() {
          if (!localStorage.getItem('ageVerified')) {
@@ -93,8 +105,4 @@
                 navContainer.innerHTML = '<div style="text-align: center; padding: 1rem;">Navigation loading error. Please refresh.</div>';
             });
     }
-
-    // Initial check and load
-    checkAndShowAgeModal();
-
 })();
