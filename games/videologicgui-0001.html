@@ -4,119 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VideoLogic Configurator</title>
+    <title>VideoLogic HUD Configurator</title>
     <style>
         body {
             font-family: sans-serif;
-            margin: 20px;
-            background-color: #f4f4f4;
+            margin: 0;
+            overflow: hidden;
+            background-color: #333;
         }
 
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-
-        .container {
-            width: 80%;
-            margin: 20px auto;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .section {
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-            background-color: #f9f9f9;
-        }
-
-        .setting {
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-        }
-
-        .setting label {
-            width: 200px;
-            display: inline-block;
-            text-align: right;
-            margin-right: 10px;
-            color: #555;
-        }
-
-        .setting input[type="text"] {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            flex: 1;
-        }
-
-        .setting select {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .setting input[type="checkbox"] {
-            margin-right: 5px;
-        }
-
-        #saveButton,
-        #loadButton {
-            background-color: #5cb85c;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
+        canvas {
             display: block;
         }
-
-        #saveButton:hover {
-            background-color: #4cae4c;
-        }
-
-        #pasteContainer {
-            margin-bottom: 10px;
-        }
-
-        #pasteText {
-            width: 100%;
-            height: 200px;
-            box-sizing: border-box;
-        }
-
-        .input-row {
-            display: flex;
-            align-items: center;
-        }
-
-        .input-row label {
-            margin-right: 10px;
-        }
-
-        .help-button {
-            margin-left: 5px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            color: #007bff;
-            /* Add padding for mobile */
-            padding: 2px;
-        }
-
-        .help-button:hover {
-            color: #0056b3;
-        }
-
         .chat-popup {
             position: fixed;
             bottom: 20px;
@@ -208,27 +107,19 @@
             max-width: 80%;
             margin-bottom: 5px;
         }
+         #status-message {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+        }
     </style>
 </head>
 
 <body>
-    <h1>VideoLogic Configurator</h1>
-    <div class="container">
-        <div class="input-row">
-            <label for="pasteText">Paste INI text:</label>
-            <textarea id="pasteText"></textarea>
-        </div>
-        <div class="input-row">
-            <label for="loadText">Or load .ini file:</label>
-            <input type="file" id="iniFileInput" accept=".ini">
-        </div>
-        <button id="loadButton">Load Settings</button>
-        <div id="settings-container"></div>
-
-        <button id="saveButton">Save INI File</button>
-        <p id="status-message"></p>
-    </div>
-
+    <canvas id="configCanvas"></canvas>
+      <textarea id="pasteText" style="display:none"></textarea>
+      <input type="file" id="iniFileInput" style="display:none" accept=".ini">
     <div class="chat-popup" id="chat-popup">
         <div class="chat-header">
             <h3>AI Help</h3>
@@ -241,64 +132,25 @@
             <button id="chat-send-button">Send</button>
         </div>
     </div>
+     <p id="status-message"></p>
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const settingsContainer = document.getElementById('settings-container');
-            const saveButton = document.getElementById('saveButton');
-            const statusMessage = document.getElementById('status-message');
-            const loadButton = document.getElementById('loadButton');
-            const pasteText = document.getElementById('pasteText');
-            const iniFileInput = document.getElementById('iniFileInput');
-            const chatPopup = document.getElementById('chat-popup');
-            const closeChatButton = document.getElementById('close-chat-button');
-            const chatMessages = document.getElementById('chat-messages');
-            const chatInputText = document.getElementById('chat-input-text');
-            const chatSendButton = document.getElementById('chat-send-button');
+        const canvas = document.getElementById('configCanvas');
+        const ctx = canvas.getContext('2d');
+        const pasteText = document.getElementById('pasteText');
+        const iniFileInput = document.getElementById('iniFileInput');
+        const chatPopup = document.getElementById('chat-popup');
+        const closeChatButton = document.getElementById('close-chat-button');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInputText = document.getElementById('chat-input-text');
+         const chatSendButton = document.getElementById('chat-send-button');
+        const statusMessage = document.getElementById('status-message');
+        let chatHistory = [];
+         let currentHelpSetting = '';
+        let currentSettings = {}; // To store the INI data
 
-            let currentSettings = {}; // To store the INI data
-            let chatHistory = [];
-           let currentHelpSetting = '';
-
-            const convertIni = (iniText) => {
-                const config = {};
-                const lines = iniText.split('\n');
-                let currentSection = '';
-
-                for (const line of lines) {
-                    const trimmedLine = line.trim();
-                    if (trimmedLine.startsWith('#') || trimmedLine === '') {
-                        continue; //skip comments and empty lines
-                    }
-
-                    if (trimmedLine.startsWith('[')) {
-                        currentSection = trimmedLine.slice(1, -1);
-                        config[currentSection] = {};
-                        continue;
-                    }
-
-                    const eqIndex = trimmedLine.indexOf('=');
-                    if (eqIndex !== -1) {
-                        const key = trimmedLine.slice(0, eqIndex).trim();
-                        const value = trimmedLine.slice(eqIndex + 1).trim();
-                        config[currentSection][key] = value;
-                    }
-                }
-                return config;
-            }
-            const updateIni = (settings) => {
-                let iniText = '';
-                for (const section in settings) {
-                    iniText += `[${section}]\n`;
-                    for (const key in settings[section]) {
-                        iniText += `${key} = ${settings[section][key]}\n`;
-                    }
-                    iniText += '\n';
-                }
-                return iniText;
-            }
-
-            const systemMessage = "You are an expert in explaining and configuring VideoLogic, an application that processes video files using FFmpeg. Your goal is to help users configure the app to their needs. Answer with useful, actionable info. Be concise.";
-            const documentation = `
+         const systemMessage = "You are an expert in explaining and configuring VideoLogic, an application that processes video files using FFmpeg. Your goal is to help users configure the app to their needs. Answer with useful, actionable info. Be concise.";
+        const documentation = `
             # You may add extra text to the title bar of the VideoLogic program
             # to help dinstinguish multiple parallel running instances.
             ##app.branding = [VLC]
@@ -756,7 +608,7 @@
             # AAC qscale is between 1 to 5.  5 is the best quality and highest VBR.
             # MP3 qscale is between 0 to 9.  0 is the best quality and highest VBR.
             ffmpeg.audio.aac.qscale  = 4
-			ffmpeg.audio.mp3.qscale  = 3
+            ffmpeg.audio.mp3.qscale  = 3
 
 
             # Languages of audio tracks to keep (in ISO 639-2 three-letter format).
@@ -823,9 +675,7 @@
             # episode and not an other/miscellaneous video.  This affects conversion/
             # quality settings.
             video.duration_for_tv = 10
-
-
-            # Whether or not to process other videos: videos less than 10 minutes long,
+			             # Whether or not to process other videos: videos less than 10 minutes long,
             # by default (configured via 'video.duration_for_tv').  These videos can
             # be skipped or processed.
             video.process_others = no
@@ -890,221 +740,318 @@
             video.max_res_tv_keyword = Penn & Teller, Fool Us: none
             `;
 
+        const canvas = document.getElementById('configCanvas');
+        const ctx = canvas.getContext('2d');
+        const pasteText = document.getElementById('pasteText');
+        const iniFileInput = document.getElementById('iniFileInput');
+        const chatPopup = document.getElementById('chat-popup');
+        const closeChatButton = document.getElementById('close-chat-button');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInputText = document.getElementById('chat-input-text');
+        const chatSendButton = document.getElementById('chat-send-button');
+        const statusMessage = document.getElementById('status-message');
+        let chatHistory = [];
+        let currentHelpSetting = '';
+        let currentSettings = {}; // To store the INI data
+        let uiElements = []; // Store the locations of our ui components for interacting
+        let canvasWidth = 0;
+        let canvasHeight = 0;
+        let hudLayout = {
+          sectionPadding: 30,
+          settingPadding: 15,
+          labelWidth: 250,
+          inputWidth: 250,
+          inputHeight: 30,
+        }
+
+        const systemMessage = "You are an expert in explaining and configuring VideoLogic, an application that processes video files using FFmpeg. Your goal is to help users configure the app to their needs. Answer with useful, actionable info. Be concise.";
 
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const settingsContainer = document.getElementById('settings-container');
-            const saveButton = document.getElementById('saveButton');
-            const statusMessage = document.getElementById('status-message');
-            const loadButton = document.getElementById('loadButton');
-            const pasteText = document.getElementById('pasteText');
-            const iniFileInput = document.getElementById('iniFileInput');
-            const chatPopup = document.getElementById('chat-popup');
-            const closeChatButton = document.getElementById('close-chat-button');
-            const chatMessages = document.getElementById('chat-messages');
-            const chatInputText = document.getElementById('chat-input-text');
-            const chatSendButton = document.getElementById('chat-send-button');
+        function handleResize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvasWidth = canvas.width;
+            canvasHeight = canvas.height;
+            render();
+          }
+        window.addEventListener('resize', handleResize);
 
-            let currentSettings = {}; // To store the INI data
-            let chatHistory = [];
-            let currentHelpSetting = '';
+        function convertIni(iniText) {
+            const config = {};
+            const lines = iniText.split('\n');
+            let currentSection = '';
 
-            const convertIni = (iniText) => {
-                const config = {};
-                const lines = iniText.split('\n');
-                let currentSection = '';
-
-                for (const line of lines) {
-                    const trimmedLine = line.trim();
-                    if (trimmedLine.startsWith('#') || trimmedLine === '') {
-                        continue; //skip comments and empty lines
-                    }
-
-                    if (trimmedLine.startsWith('[')) {
-                        currentSection = trimmedLine.slice(1, -1);
-                        config[currentSection] = {};
-                        continue;
-                    }
-
-                    const eqIndex = trimmedLine.indexOf('=');
-                    if (eqIndex !== -1) {
-                        const key = trimmedLine.slice(0, eqIndex).trim();
-                        const value = trimmedLine.slice(eqIndex + 1).trim();
-                        config[currentSection][key] = value;
-                    }
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('#') || trimmedLine === '') {
+                    continue; //skip comments and empty lines
                 }
-                return config;
-            }
-            const updateIni = (settings) => {
-                let iniText = '';
-                for (const section in settings) {
-                    iniText += `[${section}]\n`;
-                    for (const key in settings[section]) {
-                        iniText += `${key} = ${settings[section][key]}\n`;
-                    }
-                    iniText += '\n';
+
+                if (trimmedLine.startsWith('[')) {
+                    currentSection = trimmedLine.slice(1, -1);
+                    config[currentSection] = {};
+                    continue;
                 }
-                return iniText;
-            }
 
-            const systemMessage = "You are an expert in explaining and configuring VideoLogic, an application that processes video files using FFmpeg. Your goal is to help users configure the app to their needs. Answer with useful, actionable info. Be concise.";
-
-
-            function displaySettings(settings) {
-                currentSettings = settings;
-                settingsContainer.innerHTML = '';
-                for (const section in settings) {
-                    const sectionDiv = document.createElement('div');
-                    sectionDiv.classList.add('section');
-                    sectionDiv.innerHTML = `<h2>${section}</h2>`;
-                    for (const key in settings[section]) {
-                        const settingDiv = document.createElement('div');
-                        settingDiv.classList.add('setting');
-                        const label = document.createElement('label');
-                        label.textContent = `${key}:`;
-                        settingDiv.appendChild(label);
-                        let inputElement;
-                        if (settings[section][key] === "yes" || settings[section][key] === "no") {
-                            inputElement = document.createElement('select');
-                            inputElement.innerHTML = `<option value="yes">Yes</option>
-                                                  <option value="no">No</option>`;
-                            inputElement.value = settings[section][key];
-
-                        } else {
-                            inputElement = document.createElement('input');
-                            inputElement.type = 'text';
-                            inputElement.value = settings[section][key];
-                        }
-
-                        inputElement.setAttribute('data-section', section);
-                        inputElement.setAttribute('data-key', key);
-                         inputElement.addEventListener('change', (e) => {
-                           currentSettings[e.target.dataset.section][e.target.dataset.key] = e.target.value;
-                         });
-                        settingDiv.appendChild(inputElement);
-
-                        const helpButton = document.createElement('button');
-                        helpButton.classList.add('help-button');
-                        helpButton.textContent = '?';
-                        helpButton.addEventListener('click', () => {
-                            currentHelpSetting = `${section}.${key}`;
-                            chatPopup.style.display = 'block';
-                            chatHistory = [];
-                            chatMessages.innerHTML = "";
-                            addAssistantMessage("How can I help with " + currentHelpSetting + "?");
-                         });
-
-                        settingDiv.appendChild(helpButton);
-                        sectionDiv.appendChild(settingDiv);
-                    }
-                    settingsContainer.appendChild(sectionDiv);
+                const eqIndex = trimmedLine.indexOf('=');
+                if (eqIndex !== -1) {
+                    const key = trimmedLine.slice(0, eqIndex).trim();
+                    const value = trimmedLine.slice(eqIndex + 1).trim();
+                    config[currentSection][key] = value;
                 }
             }
+            return config;
+        }
 
-            loadButton.addEventListener('click', function () {
-                let iniText = pasteText.value;
-                if (iniFileInput.files.length > 0) {
-                    const file = iniFileInput.files[0];
-                    const reader = new FileReader();
-
-                    reader.onload = (event) => {
-                        iniText = event.target.result;
-                        const settings = convertIni(iniText);
-                        displaySettings(settings);
-                        statusMessage.textContent = `Settings Loaded`
-                    }
-                    reader.onerror = (error) => {
-                        statusMessage.textContent = `Error reading file: ${error}`
-                    }
-                    reader.readAsText(file)
-                } else if (iniText) {
-                    const settings = convertIni(iniText);
-                    displaySettings(settings);
-                    statusMessage.textContent = `Settings Loaded`
-                } else {
-                    statusMessage.textContent = `No text or file`
+        function updateIni(settings) {
+            let iniText = '';
+            for (const section in settings) {
+                iniText += `[${section}]\n`;
+                for (const key in settings[section]) {
+                    iniText += `${key} = ${settings[section][key]}\n`;
                 }
-            })
+                iniText += '\n';
+            }
+            return iniText;
+        }
 
 
-            saveButton.addEventListener('click', () => {
-                if (Object.keys(currentSettings).length === 0) {
-                    statusMessage.textContent = 'No settings loaded.';
+        function drawText(x, y, text, align='left', fontSize=16, color='white', bold=false) {
+          ctx.fillStyle = color;
+          ctx.font = `${bold ? 'bold ' : ''}${fontSize}px sans-serif`;
+          ctx.textAlign = align;
+          ctx.fillText(text, x, y);
+        }
+
+
+        function drawInput(x, y, width, height, value, isSelect = false, options = ['yes', 'no'] ) {
+            ctx.fillStyle = '#444';
+            ctx.fillRect(x, y, width, height);
+            ctx.fillStyle = 'white';
+           ctx.strokeRect(x, y, width, height)
+          if(isSelect){
+            drawText(x + 5, y + 20, value, 'left', 14)
+          } else {
+            drawText(x + 5, y + 20, value, 'left', 14)
+          }
+            
+        }
+        function drawButton(x, y, width, height, text){
+            ctx.fillStyle = '#007bff';
+          ctx.fillRect(x,y,width, height)
+           drawText(x + width/2, y + height/2, text, 'center', 16, 'white', true);
+
+        }
+        function drawHelpButton(x, y, size = 16){
+              ctx.fillStyle = '#007bff';
+            drawText(x,y, '?', 'center', size, '#007bff', true)
+        }
+         function addAssistantMessage(message) {
+            const messageElement = document.createElement('p');
+            messageElement.classList.add('assistant-message');
+            messageElement.textContent = message;
+            chatMessages.appendChild(messageElement);
+           chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        function addUserMessage(message) {
+            const messageElement = document.createElement('p');
+            messageElement.classList.add('user-message');
+            messageElement.textContent = message;
+             chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function fetchAiResponse(message) {
+             chatHistory.push({ role: "user", content: message });
+
+             const requestBody = {
+                 messages: [
+                    { role: "system", content: systemMessage },
+                   ...chatHistory,
+                 ],
+                 model: 'openai',
+             };
+            try {
+                const response = await fetch("https://text.pollinations.ai/openai", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      ...requestBody,
+                    }),
+                });
+                if (!response.ok) {
+                    addAssistantMessage(`Error contacting the AI.`);
                     return;
                 }
-                const iniText = updateIni(currentSettings);
-                const blob = new Blob([iniText], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'VideoLogic.ini';
-                a.click();
-                URL.revokeObjectURL(url);
-                statusMessage.textContent = 'INI File Downloaded.';
-            });
-            closeChatButton.addEventListener('click', () => {
-              chatPopup.style.display = 'none';
-            });
-              function addAssistantMessage(message) {
-                  const messageElement = document.createElement('p');
-                  messageElement.classList.add('assistant-message');
-                  messageElement.textContent = message;
-                  chatMessages.appendChild(messageElement);
-                  chatMessages.scrollTop = chatMessages.scrollHeight;
-              }
 
-              function addUserMessage(message) {
-                  const messageElement = document.createElement('p');
-                  messageElement.classList.add('user-message');
-                  messageElement.textContent = message;
-                 chatMessages.appendChild(messageElement);
-                 chatMessages.scrollTop = chatMessages.scrollHeight;
-              }
+                const data = await response.text();
+
+                chatHistory.push({ role: "assistant", content: data });
+
+                 addAssistantMessage(data);
+
+            } catch (error) {
+               addAssistantMessage(`Error contacting the AI: ${error}`);
+            }
+        }
+          chatSendButton.addEventListener('click', async () => {
+            const userMessage = chatInputText.value.trim();
+            if (!userMessage) return;
+
+              addUserMessage(userMessage);
+              chatInputText.value = '';
+              fetchAiResponse(userMessage)
+          });
+         closeChatButton.addEventListener('click', () => {
+             chatPopup.style.display = 'none';
+        });
 
 
-            chatSendButton.addEventListener('click', async () => {
-                const userMessage = chatInputText.value.trim();
-                if (!userMessage) return;
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let currentY = hudLayout.sectionPadding;
+            uiElements = [];
 
-                addUserMessage(userMessage);
-                chatInputText.value = '';
+           if(Object.keys(currentSettings).length > 0) {
+              for(const section in currentSettings) {
+                   drawText(hudLayout.sectionPadding, currentY, section, 'left', 20, 'white', true)
+                  currentY += hudLayout.sectionPadding;
 
-                chatHistory.push({ role: "user", content: userMessage });
+                    for (const key in currentSettings[section]) {
+                        const inputX = hudLayout.labelWidth + hudLayout.sectionPadding;
+                        const inputY = currentY;
+                        const isSelect = currentSettings[section][key] === 'yes' || currentSettings[section][key] === 'no'
+                         drawText(hudLayout.sectionPadding, currentY + 20, `${key}:`, 'left', 14);
 
-                const requestBody = {
-                    messages: [
-                       { role: "system", content: systemMessage },
-                      ...chatHistory,
-                    ],
-                    model: 'openai',
-                };
+                       drawInput(inputX, inputY, hudLayout.inputWidth, hudLayout.inputHeight, currentSettings[section][key], isSelect)
+                        uiElements.push({
+                          type:'input',
+                          x: inputX,
+                          y: inputY,
+                          width: hudLayout.inputWidth,
+                          height: hudLayout.inputHeight,
+                          setting: `${section}.${key}`,
+                          value: currentSettings[section][key],
+                           isSelect,
+                        });
+                          drawHelpButton(inputX + hudLayout.inputWidth + 10, inputY+20 )
+                            uiElements.push({
+                              type:'helpButton',
+                               x: inputX + hudLayout.inputWidth + 10,
+                             y: inputY+18,
+                            size:16,
+                            setting: `${section}.${key}`,
+                          });
 
-                try {
-                     const response = await fetch("https://text.pollinations.ai/openai", {
-                         method: "POST",
-                         headers: {
-                             "Content-Type": "application/json",
-                         },
-                         body: JSON.stringify({
-                           ...requestBody,
-                         }),
-                     });
-                    if (!response.ok) {
-                        addAssistantMessage(`Error contacting the AI.`);
-                        return;
+                        currentY += hudLayout.settingPadding + hudLayout.inputHeight;
                     }
 
-                   const data = await response.text();
+                 currentY += hudLayout.settingPadding;
+             }
+               drawButton(canvasWidth/2 - 75, currentY + 30, 150, 50, "Save INI File")
+                  uiElements.push({
+                  type: 'saveButton',
+                     x:canvasWidth/2 - 75,
+                     y: currentY + 30,
+                     width: 150,
+                     height: 50,
+                  })
+            } else {
+                drawText(canvasWidth/2, canvasHeight/2, "Paste INI text or load a .ini file to start", 'center', 24, 'white')
+            }
 
-                   chatHistory.push({ role: "assistant", content: data });
 
-                    addAssistantMessage(data);
 
-                } catch (error) {
-                     addAssistantMessage(`Error contacting the AI: ${error}`);
+            requestAnimationFrame(render);
+        }
+          function getElementAtPosition(mouseX, mouseY){
+             for(const uiElement of uiElements){
+                if(mouseX >= uiElement.x && mouseX <= uiElement.x + uiElement.width &&
+                   mouseY >= uiElement.y && mouseY <= uiElement.y + uiElement.height){
+                    return uiElement;
                 }
+             }
+             return null;
+           }
+
+
+         canvas.addEventListener('click', (event) => {
+            const mouseX = event.clientX;
+            const mouseY = event.clientY;
+             const clickedElement = getElementAtPosition(mouseX, mouseY);
+
+             if(clickedElement){
+                  if(clickedElement.type === 'input'){
+                       const newValue = prompt(`Enter new value for ${clickedElement.setting}:`, clickedElement.value)
+                     if(newValue !== null){
+                         const [section, key] = clickedElement.setting.split('.');
+                       currentSettings[section][key] = newValue;
+                       render()
+                     }
+                   }  else if (clickedElement.type === 'helpButton'){
+                         currentHelpSetting = clickedElement.setting;
+                          chatPopup.style.display = 'block';
+                           chatHistory = [];
+                          chatMessages.innerHTML = "";
+                           addAssistantMessage("How can I help with " + currentHelpSetting + "?");
+                     } else if(clickedElement.type === 'saveButton'){
+                          if(Object.keys(currentSettings).length === 0){
+                            statusMessage.textContent = 'No settings loaded.';
+                              return;
+                          }
+                            const iniText = updateIni(currentSettings);
+                            const blob = new Blob([iniText], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'VideoLogic.ini';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            statusMessage.textContent = 'INI File Downloaded.';
+                    }
+              }
+           });
+
+
+           function loadSettings(iniText) {
+              if(!iniText && iniFileInput.files.length === 0) return;
+              try {
+                   if(iniFileInput.files.length > 0){
+                         const file = iniFileInput.files[0];
+                           const reader = new FileReader();
+                           reader.onload = (event) => {
+                               const iniText = event.target.result;
+                                currentSettings = convertIni(iniText);
+                                 render()
+                                 statusMessage.textContent = `Settings Loaded`;
+                           }
+                         reader.onerror = (error) => {
+                                statusMessage.textContent = `Error reading file: ${error}`
+                            }
+                           reader.readAsText(file)
+                      } else if(iniText){
+                        currentSettings = convertIni(iniText);
+                         render()
+                        statusMessage.textContent = `Settings Loaded`;
+                     }
+
+              } catch (error) {
+                   statusMessage.textContent = `Error reading settings`
+              }
+           }
+             window.addEventListener('load', () => {
+               handleResize();
+              pasteText.addEventListener('change', (e) => {
+                loadSettings(e.target.value)
+              });
+              iniFileInput.addEventListener('change', () => {
+                loadSettings(null);
+              });
+
+              render();
             });
-        });
     </script>
 </body>
 
