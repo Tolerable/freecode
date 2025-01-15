@@ -1347,7 +1347,6 @@
 
 		function renderSettings() {
 			currentHelpSetting = null;
-			const panelContent = document.getElementById('panel-content');
 			panelContent.innerHTML = '';
 			pageCountDisplay.innerText = `${currentPage + 1}/${Object.keys(currentSettings).length + 1}`;
 			const allSections = Object.keys(currentSettings);
@@ -1370,105 +1369,104 @@
 						sectionDiv.appendChild(settingDiv);
 					}
 					panelContent.appendChild(sectionDiv);
-					}
 				return;
-		   }
+			}
+			
 			const panelSettings = Object.keys(currentSettings)[currentPage];
 			currentPanelTitle.innerText = panelSettings;
-			 let summaryText = "";
-			switch (panelSettings) {
-			   case 'app':
+			let summaryText = "";
+			 switch (panelSettings) {
+				case 'app':
 					summaryText = "The app section includes settings for general app behavior, such as branding and console options.";
 					break;
-				 case 'files':
-						summaryText = "This section allows you to define how files are handled, such as extensions, keep original settings and nested files.";
-						break;
-				 case 'path':
-						   summaryText = "The path section sets the output location for the converted files.";
-						 break;
-					case 'video':
-						  summaryText = "The video section sets the options for video processing like black bar removal and frame rate.";
-						  break;
-				 case 'ffmpeg':
-						   summaryText = "This configures the FFMPEG options for quality, bitrate, codec and profile.";
-							break;
-					case 'videos':
-							 summaryText = "This controls the transcode settings for audio and video based on a variety of parameters.";
-							  break;
-		   }
-		  panelSummary.innerText = summaryText;
-
+				case 'files':
+					summaryText = "This section allows you to define how files are handled, such as extensions, keep original settings and nested files.";
+					break;
+				case 'path':
+					summaryText = "The path section sets the output location for the converted files.";
+					break;
+				case 'video':
+					summaryText = "The video section sets the options for video processing like black bar removal and frame rate.";
+					break;
+				case 'ffmpeg':
+					summaryText = "This configures the FFMPEG options for quality, bitrate, codec and profile.";
+					break;
+				 case 'videos':
+					   summaryText = "This controls the transcode settings for audio and video based on a variety of parameters.";
+					 break;
+			}
+			panelSummary.innerText = summaryText;
+			
 			const section = Object.keys(currentSettings)[currentPage];
-			 for (const key in currentSettings[section]) {
-				 const settingDiv = document.createElement('div');
-					 settingDiv.classList.add('setting');
-					  const label = document.createElement('label');
-					   label.textContent = `${key}:`;
-					settingDiv.appendChild(label);
-					let inputElement;
-					 if (currentSettings[section][key] === "yes" || currentSettings[section][key] === "no") {
-						  inputElement = document.createElement('select');
-						 inputElement.innerHTML = `<option value="yes">Yes</option>
-													  <option value="no">No</option>`;
-						 inputElement.value = currentSettings[section][key];
+			for (const key in currentSettings[section]) {
+				const settingDiv = document.createElement('div');
+				settingDiv.classList.add('setting');
+				const label = document.createElement('label');
+				label.textContent = `${key}:`;
+				settingDiv.appendChild(label);
+				let inputElement;
+				if (currentSettings[section][key] === "yes" || currentSettings[section][key] === "no") {
+					 inputElement = document.createElement('select');
+						inputElement.innerHTML = `<option value="yes">Yes</option>
+														<option value="no">No</option>`;
+					inputElement.value = currentSettings[section][key];
 
-				   } else {
-						 inputElement = document.createElement('input');
-						  inputElement.type = 'text';
-						  inputElement.value = currentSettings[section][key];
-					}
-					inputElement.setAttribute('data-section', section);
-					inputElement.setAttribute('data-key', key);
-					  inputElement.addEventListener('change', (e) => {
-						currentSettings[e.target.dataset.section][e.target.dataset.key] = e.target.value;
-					});
-					settingDiv.appendChild(inputElement);
+				} else {
+					 inputElement = document.createElement('input');
+						inputElement.type = 'text';
+					   inputElement.value = currentSettings[section][key];
+				}
+				inputElement.setAttribute('data-section', section);
+				inputElement.setAttribute('data-key', key);
+				inputElement.addEventListener('change', (e) => {
+					 currentSettings[e.target.dataset.section][e.target.dataset.key] = e.target.value;
+			   });
+				settingDiv.appendChild(inputElement);
 
-					const helpButton = document.createElement('button');
-					helpButton.classList.add('help-button');
-					helpButton.textContent = '?';
-					helpButton.setAttribute('data-help', `${section}.${key}`);
-					 helpButton.addEventListener('click', (e) => {
-						currentHelpSetting = e.target.dataset.help;
-						  chatPopup.style.display = 'block';
-						   chatHistory = [];
-							chatMessages.innerHTML = "";
-						  addAssistantMessage("How can I help with " + currentHelpSetting + "?");
-				   });
-
-					settingDiv.appendChild(helpButton);
-					panelContent.appendChild(settingDiv);
+				const helpButton = document.createElement('button');
+				helpButton.classList.add('help-button');
+				 helpButton.textContent = '?';
+				helpButton.setAttribute('data-help', `${section}.${key}`);
+				helpButton.addEventListener('click', (e) => {
+					currentHelpSetting = e.target.dataset.help;
+					   chatPopup.style.display = 'block';
+						chatHistory = [];
+						chatMessages.innerHTML = "";
+						addAssistantMessage("How can I help with " + currentHelpSetting + "?");
+				});
+				settingDiv.appendChild(helpButton);
+				panelContent.appendChild(settingDiv);
 			}
 
-			leftPanelContent.innerHTML = "";
-			 const sectionKeys = Object.keys(currentSettings);
+		   leftPanelContent.innerHTML = "";
+			const sectionKeys = Object.keys(currentSettings);
 			for (let i = 0; i < sectionKeys.length; i++) {
-				  const sectionKey = sectionKeys[i];
-				  const sectionDiv = document.createElement('div');
-					  sectionDiv.textContent = sectionKey;
+			   const sectionKey = sectionKeys[i];
+				 const sectionDiv = document.createElement('div');
+				  sectionDiv.textContent = sectionKey;
 					sectionDiv.style.padding = '10px';
-					sectionDiv.style.cursor = 'pointer';
-					sectionDiv.addEventListener('click', () => {
-						currentPage = i;
-						renderSettings();
-						 if (window.innerWidth < 768) {
-								toggleLeftPanel()
-						   }
-				   });
-				  leftPanelContent.appendChild(sectionDiv);
-		   }
-			  const summaryDiv = document.createElement('div');
+				 sectionDiv.style.cursor = 'pointer';
+			   sectionDiv.addEventListener('click', () => {
+				   currentPage = i;
+					renderSettings();
+					  if (window.innerWidth < 768) {
+						toggleLeftPanel()
+					 }
+			   });
+				leftPanelContent.appendChild(sectionDiv);
+			}
+			const summaryDiv = document.createElement('div');
 				summaryDiv.textContent = "Summary";
 				summaryDiv.style.padding = '10px';
-				 summaryDiv.style.cursor = 'pointer';
-			summaryDiv.addEventListener('click', () => {
-				 currentPage = sectionKeys.length;
-				  renderSettings();
-					if (window.innerWidth < 768) {
-						 toggleLeftPanel()
-					  }
-			});
-			  leftPanelContent.appendChild(summaryDiv);
+				summaryDiv.style.cursor = 'pointer';
+		  summaryDiv.addEventListener('click', () => {
+			 currentPage = sectionKeys.length;
+			   renderSettings();
+				if (window.innerWidth < 768) {
+					   toggleLeftPanel()
+					}
+		   });
+		  leftPanelContent.appendChild(summaryDiv);
 		}
 		
         function loadSettings(iniText) {
