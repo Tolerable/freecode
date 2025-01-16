@@ -45,12 +45,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
 
-        // 3. Load cookie script ONCE with proper configuration
+        // 3. Load cookie script ONCE
         const cookieScript = document.createElement('script');
         cookieScript.src = 'https://cdn.cookie-script.com/s/ec705f4147843dbfdb127ea600fc6d08.js';
         cookieScript.setAttribute('data-cs-no-consent-autoblock', '1');
-        cookieScript.setAttribute('data-cs-same-site', 'None');
-        cookieScript.setAttribute('data-cs-secure', 'true');
         document.head.appendChild(cookieScript);
 
         // 4. Check age if not verified this session
