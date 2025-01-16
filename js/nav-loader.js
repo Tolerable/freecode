@@ -84,18 +84,7 @@ const navigationHandler = {
     }
 };
 
-// Cookie handler
-const cookieHandler = {
-    async init() {
-        try {
-            await loadScript('https://cdn.cookie-script.com/s/ec705f4147843dbfdb127ea600fc6d08.js', {
-                'data-cs-no-consent-autoblock': '1'
-            });
-        } catch (error) {
-            console.error('Error loading cookie script:', error);
-        }
-    }
-};
+
 
 // Main initialization
 document.addEventListener('DOMContentLoaded', async () => {
