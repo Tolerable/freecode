@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Your Afterlife</title>
+    <style>
+        /* Insert your existing nav styles here */
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
+        .game-container {
+            margin-top: 72px; /* Space for nav */
+            padding: 2rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .game-card {
+            background-color: #2a2a2a;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .host-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 1rem;
+        }
+
+        .host-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #dc2626;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .host-message {
+            flex: 1;
+            background-color: #333;
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        .choice-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .choice-button {
+            background-color: #333;
+            border: 2px solid #dc2626;
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative; /* Ensure relative positioning for tooltip */
+        }
+
+        .choice-button:hover {
+            background-color: #dc2626;
+            transform: translateY(-2px);
+            z-index: 10; /* Raise button on hover */
+        }
+
+        /* Improved tooltip positioning and visibility */
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            width: 220px;
+            top: calc(100% + 10px); /* Position below with gap */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20; /* Ensure tooltip is above buttons */
+            border: 1px solid #dc2626;
+            pointer-events: none; /* Prevent tooltip from blocking interactions */
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .choice-button:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .outcome-image {
+            width: 100%;
+            height: 300px;
+            border-radius: 10px;
+            margin: 1rem 0;
+            object-fit: cover;
+        }
+
+        .progress-bar {
+            background-color: #333;
+            border-radius: 10px;
+            height: 10px;
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background-color: #dc2626;
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        /* Tooltip styles */
+        .choice-button {
+            position: relative;
+        }
+
+        .tooltip {
+            display: none;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            width: 200px;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 0.5rem;
+            z-index: 100;
+            border: 1px solid #dc2626;
+        }
+
+        .choice-button:hover .tooltip {
+            display: block;
+        }
+
+        /* Update choice container for 6 items */
+        .choice-container {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+    </style>
+</head>
+<body>
+    <!-- Your existing nav bar goes here -->
+    
+    <div class="game-container">
+        <div class="game-card">
+            <div class="host-container">
+                <div class="host-avatar">👻</div>
+                <div class="host-message">
+                    Welcome, seeker! I am your Afterlife Guide. Ready to discover your eternal destiny? Let's begin with some simple questions about your beliefs...
+                </div>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%"></div>
+            </div>
+
+            <div id="question-container">
+                <h3>First, tell me about your current spiritual beliefs:</h3>
+                <div class="choice-container">
+                    <button class="choice-button" data-value="abrahamic">
+                        ✝️ Abrahamic Faiths
+                        <span class="tooltip">Including Christianity, Catholicism, Islam, and Judaism</span>
+                    </button>
+                    <button class="choice-button" data-value="dharmic">
+                        🕉️ Dharmic Traditions
+                        <span class="tooltip">Including Hinduism, Buddhism, Jainism, and Sikhism</span>
+                    </button>
+                    <button class="choice-button" data-value="pagan">
+                        🌙 Earth-Based Spirituality
+                        <span class="tooltip">Including Wicca, Paganism, and Nature-based beliefs</span>
+                    </button>
+                    <button class="choice-button" data-value="philosophical">
+                        🤔 Philosophical
+                        <span class="tooltip">Including Agnosticism and Spiritual-but-not-religious</span>
+                    </button>
+                    <button class="choice-button" data-value="atheistic">
+                        ⚛️ Atheistic
+                        <span class="tooltip">Including Atheism, Secular Humanism, and Materialism</span>
+                    </button>
+                    <button class="choice-button" data-value="nihilistic">
+                        🌌 Nihilistic
+                        <span class="tooltip">Including Existential Nihilism and Non-belief in afterlife</span>
+                    </button>
+                </div>
+            </div>
+
+            <img class="outcome-image" src="/api/placeholder/800/300" alt="Spiritual journey visualization">
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            currentStep: 0,
+            choices: {},
+            karmaScore: 0
+        };
+
+        // Sample questions and logic will go here
+        const questions = [
+            {
+                text: "First, tell me about your current spiritual beliefs:",
+                choices: [
+                    { text: "✝️ Christianity", value: "christianity" },
+                    { text: "☪️ Islam", value: "islam" },
+                    { text: "☸️ Buddhism", value: "buddhism" },
+                    { text: "🕉️ Hinduism", value: "hinduism" }
+                ]
+            }
+            // More questions will be added
+        ];
+
+        // We'll add the game logic and Pollinations.AI integration in the next iteration
+    </script>
+</body>
+</html>
