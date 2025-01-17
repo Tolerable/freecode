@@ -60,33 +60,37 @@
 
         async function getResponse(type) {
             const topic = document.getElementById('topicInput').value;
-            // Construct the message for the request
-            const messages = [
-                { role: 'user', content: topic },
-                { role: 'assistant', content: type }
-            ];
 
-            // Define wrapped messages
-            const wrappedMessages = [{ role: 'user', content: `Provide a ${type} for: ${topic}` }];
+            // Prepare the message wrapped with role
+            const wrappedMessages = [
+                { role: 'system', content: 'You are a helpful assistant that provides a point or counterpoint.' },
+                { role: 'user', content: `Provide a ${type} for: ${topic}` }
+            ];
 
             // Send POST request to API
             try {
-                const retryResponse = await fetch('https://text.pollinations.ai/openai/', {
+                const response = await fetch('https://text.pollinations.ai/openai', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         messages: wrappedMessages,
-                        model: 'openai-large',
-                        code: 'beesknees'
+                        model: 'openai',
+                        seed: Math.floor(Math.random() * 1000)  // Random seed for variation
                     })
                 });
-                
-                const data = await retryResponse.json();
-                const assistantResponse = data.response;
 
-                // Update the display
-                updateDisplay(assistantResponse);
-                storeConversation(topic, assistantResponse);
+                const data = await response.json();
+
+                // Check if response has content
+                if (data && data.choices && data.choices.length > 0) {
+                    const assistantResponse = data.choices[0].message.content; // Access response correctly
+
+                    // Update the display
+                    updateDisplay(assistantResponse);
+                    storeConversation(topic, assistantResponse);
+                } else {
+                    console.error('Response format is unexpected:', data);
+                }
 
                 // Clear input
                 document.getElementById('topicInput').value = '';
