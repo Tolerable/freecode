@@ -54,37 +54,34 @@
     </div>
     <div id="output"></div>
     <div id="history"></div>
-    
+
     <script>
         let conversationHistory = [];
 
         async function getResponse(type) {
             const topic = document.getElementById('topicInput').value;
-            const userRole = 'user';
-            const assistantRole = 'assistant';
-
-            // Prepare the conversation object
-            const conversationInput = [
-                { role: userRole, content: topic },
-                { role: assistantRole, content: type }
+            // Construct the message for the request
+            const messages = [
+                { role: 'user', content: topic },
+                { role: 'assistant', content: type }
             ];
+
+            // Define wrapped messages
+            const wrappedMessages = [{ role: 'user', content: `Provide a ${type} for: ${topic}` }];
 
             // Send POST request to API
             try {
-                const response = await fetch('https://text.pollinations.ai/', {
+                const retryResponse = await fetch('https://text.pollinations.ai/openai/', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: 'openai',
-                        messages: conversationInput,
-                        jsonMode: false,
-                        seed: Math.floor(Math.random() * 1000)
-                    }),
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        messages: wrappedMessages,
+                        model: 'openai-large',
+                        code: 'beesknees'
+                    })
                 });
                 
-                const data = await response.json();
+                const data = await retryResponse.json();
                 const assistantResponse = data.response;
 
                 // Update the display
@@ -107,11 +104,11 @@
         function storeConversation(topic, response) {
             conversationHistory.push({ topic, response });
 
-            // Trim conversation to last 10
+            // Trim conversation to last 10 entries
             if (conversationHistory.length > 10) {
                 const trimmedHistory = conversationHistory.splice(0, 1);
                 const summary = `... (trimmed) ${trimmedHistory[0].topic}: "${trimmedHistory[0].response}" ...`;
-                document.getElementById('history').innerText += summary;
+                document.getElementById('history').innerText += summary + "\n";
             }
             displayHistory();
         }
