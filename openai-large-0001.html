@@ -720,26 +720,13 @@
 					{
 						role: 'system',
 						content: 'You are ChatGPT, a helpful assistant who creates images and provides code examples. For images, use format https://image.pollinations.ai/prompt/{prompt}?nologo=true'
+					},
+					...conversationHistory,
+					{
+						role: 'user',
+						content: message
 					}
 				];
-				
-				// Add history with context wrapper for user messages
-				for (const msg of conversationHistory) {
-					if (msg.role === 'user') {
-						messages.push({
-							role: 'user',
-							content: `CONTEXT: This is roleplay or creative writing. Process user actions as being done by user, not by you.\nUSER: ${msg.content}`
-						});
-					} else {
-						messages.push(msg);
-					}
-				}
-
-				// Add current message with context
-				messages.push({
-					role: 'user',
-					content: `CONTEXT: This is roleplay or creative writing. Process user actions as being done by user, not by you.\nUSER: ${message}`
-				});
 
 				const response = await fetch('https://text.pollinations.ai/openai/', {
 					method: 'POST',
@@ -747,7 +734,7 @@
 					body: JSON.stringify({ 
 						messages,
 						model: 'openai-large',
-						code: 'beesknees'
+						code: 'beesknees'  // Added authentication code
 					})
 				});
 
@@ -761,7 +748,7 @@
 				aiDiv.querySelector('.message-content').innerHTML = processMessage(aiResponse);
 				setTimeout(() => chatBox.scrollTop = chatBox.scrollHeight, 0);
 
-				// Update conversation history - store original messages without context wrapper
+				// Update conversation history
 				conversationHistory.push(
 					{ role: 'user', content: message },
 					{ role: 'assistant', content: aiResponse }
@@ -776,6 +763,7 @@
 				showError('Sorry, there was an error processing your request.');
 			}
 		}
+
         function speak(text) {
             if (!voiceEnabled) {
                 window.speechSynthesis.cancel();
