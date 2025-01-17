@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Point Counter Point Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f3f3f3;
+            color: #333;
+            padding: 20px;
+        }
+        #output {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #fff;
+            width: 80%;
+            margin-top: 20px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #6200ea;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #3700b3;
+        }
+        #history {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Point Counter Point Simulator</h1>
+    <input type="text" id="topicInput" placeholder="Enter your topic here..." />
+    <div>
+        <button onclick="getResponse('point')">Point</button>
+        <button onclick="getResponse('counter')">Counter Point</button>
+        <button onclick="getResponse('both')">Both</button>
+    </div>
+    <div id="output"></div>
+    <div id="history"></div>
+    
+    <script>
+        let conversationHistory = [];
+
+        async function getResponse(type) {
+            const topic = document.getElementById('topicInput').value;
+            const userRole = 'user';
+            const assistantRole = 'assistant';
+
+            // Prepare the conversation object
+            const conversationInput = [
+                { role: userRole, content: topic },
+                { role: assistantRole, content: type }
+            ];
+
+            // Send POST request to API
+            try {
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'openai',
+                        messages: conversationInput,
+                        jsonMode: false,
+                        seed: Math.floor(Math.random() * 1000)
+                    }),
+                });
+                
+                const data = await response.json();
+                const assistantResponse = data.response;
+
+                // Update the display
+                updateDisplay(assistantResponse);
+                storeConversation(topic, assistantResponse);
+
+                // Clear input
+                document.getElementById('topicInput').value = '';
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function updateDisplay(response) {
+            const output = document.getElementById('output');
+            output.innerText += `\n${response}`;
+            output.scrollTop = output.scrollHeight; // Auto scroll to latest message
+        }
+
+        function storeConversation(topic, response) {
+            conversationHistory.push({ topic, response });
+
+            // Trim conversation to last 10
+            if (conversationHistory.length > 10) {
+                const trimmedHistory = conversationHistory.splice(0, 1);
+                const summary = `... (trimmed) ${trimmedHistory[0].topic}: "${trimmedHistory[0].response}" ...`;
+                document.getElementById('history').innerText += summary;
+            }
+            displayHistory();
+        }
+
+        function displayHistory() {
+            const historyElement = document.getElementById('history');
+            historyElement.innerText = conversationHistory.map(entry => `Topic: ${entry.topic} | Response: ${entry.response}`).join('\n');
+        }
+    </script>
+</body>
+</html>
