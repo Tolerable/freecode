@@ -989,6 +989,44 @@
 			return invalidCodes.includes(code) || /^(.)\1+$/.test(code);
 		}
 
+		document.getElementById('submit-code').onclick = () => {
+			const code = document.getElementById('unlock-code').value.toUpperCase();
+			
+			if (!isValidFormat(code)) {
+				document.getElementById('code-error').textContent = 'Code must be 6 alphanumeric characters';
+				return;
+			}
+			
+			if (isTooSimple(code)) {
+				document.getElementById('code-error').textContent = 'Invalid code format. Try something more complex.';
+				return;
+			}
+			
+			// Valid code entered - unlock everything
+			localStorage.setItem(REGISTERED_KEY, 'true');
+			localStorage.setItem(UNLOCK_CODE_KEY, code);
+
+			// Update UI
+			const buttons = document.querySelectorAll('.ai-expand-btn');
+			buttons.forEach(btn => {
+				btn.classList.remove('locked');
+				btn.innerHTML = btn.innerHTML.replace('🔒', '');
+			});
+			
+			// Close modal
+			document.getElementById('register-modal').style.display = 'none';
+			document.getElementById('unlock-code').value = '';
+			document.getElementById('code-error').textContent = '';
+			
+			// Update history panel
+			updateHistoryPanel();
+		};
+
+		// Add this helper function
+		function isValidFormat(code) {
+			return /^[A-Z0-9]{6}$/.test(code);
+		}
+
 		// Initialize event listeners
 		document.addEventListener('DOMContentLoaded', () => {
 		
