@@ -221,18 +221,21 @@
 			border-radius: 4px;
 		}
 
-        nav {
-            position: auto;
-            bottom: 0;
-            height: var(--nav-height);
-            background: var(--bg-darker);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
-            z-index: 100;
+		nav {
+			position: fixed; /* Stick the nav to the bottom */
+			bottom: 0;
+			left: 0;
+			right: 0;
+			height: var(--nav-height);
+			background: var(--bg-darker);
+			display: flex;
+			justify-content: center; /* Center the buttons as a group */
+			align-items: center;
+			box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+			z-index: 100;
 			max-width: 900px;
-        }
+			margin: 0 auto; /* Center the nav horizontally */
+		}
 
         .nav-button {
             flex: 1;
@@ -397,6 +400,10 @@
 			max-width: 400px;
 			position: relative;
 			color: white;
+		}
+
+		.registration-button {
+			margin-left: auto; /* Push the registration button to the right */
 		}
 
 		.registration-button button {
@@ -695,39 +702,39 @@
 		</div>
 		</main>
 
-    <!-- Navigation -->
-    <nav>
-        <button class="nav-button active" data-page="home">
-            <i class="fas fa-home"></i>
-            <span>Home</span>
-        </button>
-        <button class="nav-button" data-page="foods">
-            <i class="fas fa-utensils"></i>
-            <span>Foods</span>
-        </button>
-        <button class="nav-button" data-page="shop">
-            <i class="fas fa-shopping-cart"></i>
-            <span>Shop</span>
-        </button>
-        <button class="nav-button" data-page="config">
-            <i class="fas fa-cog"></i>
-            <span>Config</span>
-        </button>
-    </nav>
+	<!-- Navigation -->
+	<nav>
+		<button class="nav-button active" data-page="home">
+			<i class="fas fa-home"></i>
+			<span>Home</span>
+		</button>
+		<button class="nav-button" data-page="foods">
+			<i class="fas fa-utensils"></i>
+			<span>Foods</span>
+		</button>
+		<button class="nav-button" data-page="shop">
+			<i class="fas fa-shopping-cart"></i>
+			<span>Shop</span>
+		</button>
+		<button class="nav-button" data-page="config">
+			<i class="fas fa-cog"></i>
+			<span>Config</span>
+		</button>
+	</nav>
 
 	<!-- Registration Modal -->
-	<div id="register-modal" class="modal">
+	<div id="register-modal" class="modal" style="display: none;">
 		<div class="modal-content">
 			<span class="close">&times;</span>
 			<h2>Enter Unlock Code</h2>
-			
+
 			<!-- Registration view -->
 			<div id="registration-view">
 				<p>Please enter your 6-character unlock code:</p>
 				<input type="text" id="unlock-code" maxlength="6" placeholder="XXXXXX">
 				<p id="code-error" class="error"></p>
 				<button id="submit-code">Submit</button>
-				
+
 				<div class="code-actions">
 					<button id="get-code-btn" class="secondary-btn">Get Free Code</button>
 					<button id="donate-btn" class="secondary-btn">❤️ Support Development</button>
@@ -1242,30 +1249,59 @@ class ImageManager {
         this.renderImageList();
     }
 }
-		const modal = document.getElementById('register-modal');
+
+		const registerModal = document.getElementById('register-modal'); // Updated variable name
 		const registerBtn = document.getElementById('register-btn');
-		const closeBtn = document.querySelector('.close');
+		const closeBtn = registerModal.querySelector('.close'); // Updated to scope within registerModal
 		const submitBtn = document.getElementById('submit-code');
 		const codeInput = document.getElementById('unlock-code');
 		const errorText = document.getElementById('code-error');
-		
+
+		// Open modal when register button is clicked
 		registerBtn.onclick = () => {
 			const isRegistered = localStorage.getItem('registered') === 'true';
 			if (isRegistered) {
 				// Show registered status view
 				document.getElementById('registration-view').style.display = 'none';
 				document.getElementById('registered-view').style.display = 'block';
-				document.getElementById('current-code').textContent = 
+				document.getElementById('current-code').textContent =
 					localStorage.getItem('unlock-code') || 'Unknown';
 			} else {
 				// Show registration view
 				document.getElementById('registration-view').style.display = 'block';
 				document.getElementById('registered-view').style.display = 'none';
 			}
-			register-modal.style.display == 'block';
+			registerModal.style.display = 'block'; // Updated to use registerModal
 		};
 
-        // Event Listeners
+		// Close modal when close button is clicked
+		closeBtn.onclick = () => {
+			registerModal.style.display = 'none'; // Updated to use registerModal
+		};
+
+		// Close modal when clicking outside the modal
+		window.onclick = (event) => {
+			if (event.target === registerModal) { // Updated to use registerModal
+				registerModal.style.display = 'none'; // Updated to use registerModal
+			}
+		};
+
+		// Handle code submission
+		submitBtn.onclick = () => {
+			const code = codeInput.value.trim();
+			if (code.length === 6) {
+				// Save code and registration status to localStorage
+				localStorage.setItem('unlock-code', code);
+				localStorage.setItem('registered', 'true');
+				errorText.textContent = ''; // Clear error message
+				registerModal.style.display = 'none'; // Updated to use registerModal
+				alert('Registration successful!'); // Optional: Show success message
+			} else {
+				errorText.textContent = 'Please enter a valid 6-character code.';
+			}
+		};
+		
+
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
 
