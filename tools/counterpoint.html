@@ -384,9 +384,9 @@
 
 		/* Button alignment */
 		.ai-expand-btn {
-			background: #6200ea !important;
+			background: #444;
 			border: none;
-			color: white !important;
+			color: white;
 			padding: 10px 15px;
 			border-radius: 5px;
 			margin-top: 15px;
@@ -396,11 +396,11 @@
 		}
 
 		.ai-expand-btn:hover {
-			background: #7722ff !important;
+			background: #555;
 		}
 
 		.ai-expand-btn.locked {
-			background: #333 !important;
+			background: #333;
 			cursor: not-allowed;
 		}
 
@@ -787,32 +787,28 @@
 
 		const GAME_CATEGORIES = {
 			ethics: [
-				"Should genetic engineering be allowed?",
-				"Is privacy more important than security?",
-				"Should euthanasia be legal?",
-				"Is it ethical to eat meat?",
-				"Should we colonize other planets?"
+				"Should lying ever be justified?",
+				"Is genetic engineering ethical?",
+				"Should privacy be sacrificed for security?",
+				// Add more ethical dilemmas
 			],
 			social: [
 				"Should social media be regulated?",
 				"Is remote work better than office work?",
-				"Should college education be free?",
-				"Are video games beneficial to society?",
-				"Should voting be mandatory?"
+				"Should college be free?",
+				// Add more social topics
 			],
 			technology: [
-				"Are AI assistants good for humanity?",
+				"Are AI assistants beneficial to society?",
 				"Should cryptocurrency be mainstream?",
 				"Is space exploration worth the cost?",
-				"Should self-driving cars replace human drivers?",
-				"Is nuclear power the future?"
+				// Add more tech topics
 			],
 			philosophy: [
 				"Does free will exist?",
 				"Is happiness more important than truth?",
 				"Should we prioritize individual or collective good?",
-				"Can artificial intelligence be conscious?",
-				"Is human nature good or evil?"
+				// Add more philosophical questions
 			]
 		};
 
@@ -914,40 +910,12 @@
 			}
 		}
 
-		function saveGameToHistory(gameData) {
-			const savedGames = JSON.parse(localStorage.getItem('saved_games') || '[]');
-			const gameHistory = {
-				id: Date.now(),
-				date: new Date().toISOString(),
-				stats: {
-					topicsAnswered: gameData.currentSession.topics.length,
-					categories: gameData.currentSession.categories,
-					streak: gameData.streakDays,
-					score: gameData.currentSession.score
-				}
-			};
-			savedGames.push(gameHistory);
-			localStorage.setItem('saved_games', JSON.stringify(savedGames));
-		}
-
 		function getRandomTopic() {
 			const categories = Object.keys(GAME_CATEGORIES);
 			const randomCategory = categories[Math.floor(Math.random() * categories.length)];
 			const topics = GAME_CATEGORIES[randomCategory];
-			const gameData = getGameData();
-			
-			// Filter out topics already used in this session
-			const unusedTopics = topics.filter(topic => 
-				!gameData.currentSession.topics.includes(topic)
-			);
-			
-			if (unusedTopics.length === 0) {
-				// If all topics in this category are used, pick from another category
-				return getRandomTopic();
-			}
-			
 			return {
-				topic: unusedTopics[Math.floor(Math.random() * unusedTopics.length)],
+				topic: topics[Math.floor(Math.random() * topics.length)],
 				category: randomCategory
 			};
 		}
@@ -1161,16 +1129,16 @@
 
 		// Function to initialize or get game data
 		function getGameData() {
-			return JSON.parse(localStorage.getItem('game_data') || JSON.stringify({
-				votes: {},
-				streakDays: 0,
-				lastVoteDate: null,
-				inProgress: false,
-				currentSession: {
-					startTime: null,
-					topics: [],
-					categories: {},
-					score: 0
+			return JSON.parse(localStorage.getItem(GAME_DATA_KEY) || JSON.stringify({
+				votes: {},          // Store vote history
+				streakDays: 0,      // Track daily participation
+				lastVoteDate: null, // Track when last voted
+				categories: {       // Track category participation
+					ethics: 0,
+					social: 0,
+					technology: 0,
+					philosophy: 0,
+					controversial: 0
 				}
 			}));
 		}
@@ -1427,64 +1395,67 @@
 
 		// AI expansion functionality
 		async function expandAIAnalysis(type) {
-			// First check if we have cached analysis
-			const cacheKey = `${currentTopic}_${type}_analysis`;
-			const cachedAnalysis = localStorage.getItem(cacheKey);
-			
-			if (cachedAnalysis) {
-				const analysis = JSON.parse(cachedAnalysis);
-				document.getElementById('prose-content').innerHTML = analysis.prose;
-				document.getElementById('points-content').innerHTML = analysis.points;
+			const isRegistered = localStorage.getItem(REGISTERED_KEY) === 'true';
+			if (!isRegistered) {
+				showRegistrationPrompt();
 				return;
 			}
-
-			// If no cache, generate new analysis with separate calls
+			
+			const content = document.getElementById(`${type}Output`).innerText;
+			
+			// Reset modal content first
+			document.getElementById('prose-content').innerHTML = '';
+			document.getElementById('points-content').innerHTML = '';
+			
+			// Check if there's actual generated content (not the welcome message)
+			if (!content || content.includes('Welcome!') || content.includes('This panel will show')) {
+				document.getElementById('ai-modal').classList.add('show');
+				document.querySelector('.info-message').style.display = 'block';
+				document.getElementById('prose-content').style.display = 'none';
+				document.getElementById('points-content').style.display = 'none';
+				document.getElementById('copy-content').style.display = 'none';
+				return;
+			}
+			
+			// Show loading state in modal
+			document.querySelector('.info-message').style.display = 'none';
+			document.getElementById('prose-content').style.display = 'block';
+			document.getElementById('points-content').style.display = 'none';
+			document.getElementById('copy-content').style.display = 'block';
+			document.getElementById('prose-content').innerHTML = 'Generating detailed analysis...';
+			document.getElementById('points-content').innerHTML = 'Preparing talking points...';
+			document.getElementById('ai-modal').classList.add('show');
+			
 			try {
-				const [proseResponse, pointsResponse] = await Promise.all([
-					fetch('https://text.pollinations.ai/openai', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							messages: [
-								{
-									role: 'system',
-									content: `Write a comprehensive prose expansion of this ${type}. Focus on depth and clarity.`
-								},
-								{ role: 'user', content: document.getElementById(`${type}Output`).innerText }
-							],
-							model: 'openai'
-						})
-					}),
-					fetch('https://text.pollinations.ai/openai', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							messages: [
-								{
-									role: 'system',
-									content: 'Create a clear, numbered list of key talking points from this argument.'
-								},
-								{ role: 'user', content: document.getElementById(`${type}Output`).innerText }
-							],
-							model: 'openai'
-						})
+				const response = await fetch('https://text.pollinations.ai/openai', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						messages: [
+							{
+								role: 'system',
+								content: `Analyze this ${type} and provide two sections:
+		1) A comprehensive prose expansion of the argument
+		2) A numbered list of key talking points
+		Separate the sections with [SECTION_BREAK]`
+							},
+							{ role: 'user', content }
+						],
+						model: 'openai'
 					})
-				]);
-
-				const prose = await proseResponse.json();
-				const points = await pointsResponse.json();
-
-				const analysis = {
-					prose: prose.choices[0].message.content,
-					points: points.choices[0].message.content
-				};
-
-				// Cache the results
-				localStorage.setItem(cacheKey, JSON.stringify(analysis));
-
-				// Update UI
-				document.getElementById('prose-content').innerHTML = analysis.prose;
-				document.getElementById('points-content').innerHTML = analysis.points;
+				});
+				
+				const data = await response.json();
+				const expandedContent = data.choices[0].message.content;
+				
+				if (expandedContent.includes('[SECTION_BREAK]')) {
+					const [prose, points] = expandedContent.split('[SECTION_BREAK]');
+					document.getElementById('prose-content').innerHTML = prose.trim();
+					document.getElementById('points-content').innerHTML = points.trim();
+				} else {
+					document.getElementById('prose-content').innerHTML = expandedContent;
+					document.getElementById('points-content').innerHTML = 'No specific talking points provided.';
+				}
 			} catch (error) {
 				console.error('Error:', error);
 				document.getElementById('prose-content').innerHTML = 'Failed to generate analysis.';
@@ -1559,15 +1530,6 @@
 		document.addEventListener('DOMContentLoaded', () => {
 			document.getElementById('topicInput').value = ''; 
 			
-			// Reset game mode on page refresh/load if it was active
-			if (localStorage.getItem('gameMode') === 'true') {
-				const gameData = getGameData();
-				if (gameData && gameData.inProgress) {
-					saveGameToHistory(gameData); // You'll need to create this function
-				}
-				localStorage.setItem('gameMode', 'false');
-			}
-			
 			// Check registration status on page load
 			checkRegistrationStatus();
 			
@@ -1587,53 +1549,55 @@
 			document.getElementById('return-to-demo').addEventListener('click', () => {
 				localStorage.removeItem(REGISTERED_KEY);
 				localStorage.removeItem(UNLOCK_CODE_KEY);
-				window.location.reload();
+				window.location.reload(); // Force page refresh to reset everything
 			});
-
+	
 			document.querySelector('.refresh-button').addEventListener('click', refreshImage);
+		
 			document.querySelector('.sort-btn').addEventListener('click', () => sortDebates());
+			
 			document.querySelector('.clear-btn').addEventListener('click', clearAllDebates);
+			
 			document.getElementById('unlock-more').addEventListener('click', showRegistrationPrompt);
 			
 			document.getElementById('get-code-btn').onclick = () => {
 				const code = generateUnlockCode();
 				document.getElementById('unlock-code').value = code;
-			};            
+			};			
 
 			// Handle mode toggle - ONE handler for the game mode button
 			document.getElementById('game-mode').addEventListener('click', function() {
+				// First time or switching back on - show intro
 				if (localStorage.getItem('gameMode') !== 'true') {
 					document.getElementById('game-intro-modal').classList.add('show');
 				} else {
+					// Turning game mode off
 					localStorage.setItem('gameMode', 'false');
 					this.style.background = '#292929';
 					updateResultsPanel();
-					
-					// Reset panels to default state
-					document.getElementById('pointOutput').innerHTML = 
-						'👋 This panel will display a passionate argument FOR your topic. Enter any topic, concept, or question in the input box below and watch as two perspectives emerge. The system will generate a strong, concise case supporting your topic. 💡 Try topics like "remote work", "social media", or "space exploration"!';
-					document.getElementById('counterOutput').innerHTML = 
-						'🤔 This panel will show the opposing viewpoint to your topic. For every point, there\'s a counter point! The response here will challenge the other panel\'s position with equal conviction. 🎯 The goal is to explore different perspectives and encourage critical thinking. Ready to start a debate?';
 				}
 			});
+
+			// Initialize game mode if it was on
+			if (localStorage.getItem('gameMode') === 'true') {
+				initializeGameFeatures();
+				document.getElementById('game-mode').style.background = '#6200ea';
+			}
 
 			// Handle starting the game from intro modal
 			document.getElementById('start-game').addEventListener('click', function() {
 				localStorage.setItem('gameMode', 'true');
 				document.getElementById('game-mode').style.background = '#6200ea';
 				document.getElementById('game-intro-modal').classList.remove('show');
-				document.getElementById('pointOutput').innerHTML = '';
-				document.getElementById('counterOutput').innerHTML = '';
 				updateResultsPanel();
 				initializeGameFeatures();
-				generateNextGameTopic();
 			});
 
 			// Handle closing modal
 			document.querySelector('#game-intro-modal .close').addEventListener('click', function() {
 				document.getElementById('game-intro-modal').classList.remove('show');
 			});
-
+		
 			// History panel toggle
 			document.querySelector('.history-toggle').addEventListener('click', () => {
 				document.querySelector('.history-panel').classList.toggle('open');
@@ -1650,17 +1614,12 @@
 				navigator.clipboard.writeText(activeTab.innerText);
 			});
 			
-			// Tab switching (removed duplicate)
+			// Tab switching
 			document.querySelectorAll('.tab-btn').forEach(btn => {
 				btn.addEventListener('click', () => {
 					document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 					document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
 					btn.classList.add('active');
-					
-					const isProse = btn.dataset.tab === 'prose';
-					document.getElementById('prose-content').style.display = isProse ? 'block' : 'none';
-					document.getElementById('points-content').style.display = isProse ? 'none' : 'block';
-					
 					document.getElementById(`${btn.dataset.tab}-content`).classList.add('active');
 				});
 			});
@@ -1670,6 +1629,7 @@
 				btn.addEventListener('click', () => {
 					const modal = btn.closest('.modal');
 					modal.classList.remove('show');
+					// Reset content if it's the AI modal
 					if (modal.id === 'ai-modal') {
 						document.getElementById('prose-content').innerHTML = '';
 						document.getElementById('points-content').innerHTML = '';
@@ -1680,36 +1640,52 @@
 			
 			// Initialize history panel
 			updateHistoryPanel();
+		});
 
-			// Handle image loading
-			document.getElementById('conceptImage').addEventListener('load', function() {
-				this.classList.add('loaded');
+		document.querySelectorAll('.tab-btn').forEach(btn => {
+			btn.addEventListener('click', () => {
+				// Update button states
+				document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+				btn.classList.add('active');
+				
+				// Update content visibility
+				const isProse = btn.dataset.tab === 'prose';
+				document.getElementById('prose-content').style.display = isProse ? 'block' : 'none';
+				document.getElementById('points-content').style.display = isProse ? 'none' : 'block';
+			});
+		});
+
+        // Handle image loading
+        document.getElementById('conceptImage').addEventListener('load', function() {
+            this.classList.add('loaded');
+        });
+
+		// Initialize container
+		document.getElementById('conceptImage').style.display = 'block';
+		document.querySelector('.refresh-button').style.display = 'none';
+
+		// Force replace any existing stored image with our logo
+		fetch(DEFAULT_IMAGE)
+			.then(response => response.blob())
+			.then(blob => {
+				const reader = new FileReader();
+				reader.onloadend = () => {
+					// Force store the correct logo in localStorage
+					localStorage.setItem('defaultDebateImage', reader.result);
+					// Display the logo
+					document.getElementById('conceptImage').src = reader.result;
+					document.getElementById('conceptImage').classList.add('loaded');
+				};
+				reader.readAsDataURL(blob);
 			});
 
-			// Initialize container
-			document.getElementById('conceptImage').style.display = 'block';
-			document.querySelector('.refresh-button').style.display = 'none';
+		// Add startup info text to panels
+		document.getElementById('pointOutput').innerHTML = 
+			'👋 This panel will display a passionate argument FOR your topic. Enter any topic, concept, or question in the input box below and watch as two perspectives emerge. The system will generate a strong, concise case supporting your topic. 💡 Try topics like "remote work", "social media", or "space exploration"!';
 
-			// Force replace any existing stored image with our logo
-			fetch(DEFAULT_IMAGE)
-				.then(response => response.blob())
-				.then(blob => {
-					const reader = new FileReader();
-					reader.onloadend = () => {
-						localStorage.setItem('defaultDebateImage', reader.result);
-						document.getElementById('conceptImage').src = reader.result;
-						document.getElementById('conceptImage').classList.add('loaded');
-					};
-					reader.readAsDataURL(blob);
-				});
-
-			// Add startup info text to panels only if NOT in game mode
-			document.getElementById('pointOutput').innerHTML = 
-				'👋 This panel will display a passionate argument FOR your topic. Enter any topic, concept, or question in the input box below and watch as two perspectives emerge. The system will generate a strong, concise case supporting your topic. 💡 Try topics like "remote work", "social media", or "space exploration"!';
-
-			document.getElementById('counterOutput').innerHTML = 
-				'🤔 This panel will show the opposing viewpoint to your topic. For every point, there\'s a counter point! The response here will challenge the other panel\'s position with equal conviction. 🎯 The goal is to explore different perspectives and encourage critical thinking. Ready to start a debate?';
-		});
+		document.getElementById('counterOutput').innerHTML = 
+			'🤔 This panel will show the opposing viewpoint to your topic. For every point, there\'s a counter point! The response here will challenge the other panel\'s position with equal conviction. 🎯 The goal is to explore different perspectives and encourage critical thinking. Ready to start a debate?';
+	
     </script>
 </body>
 </html>
