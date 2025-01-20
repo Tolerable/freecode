@@ -1,95 +1,162 @@
-import React, { useState } from 'react';
-import { Send } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+        }
 
-const ImageGenerator = () => {
-  const [userPrompt, setUserPrompt] = useState('');
-  const [imageUrl, setImageUrl] = useState('/api/placeholder/600/600');
-  const [isLoading, setIsLoading] = useState(false);
+        .container {
+            width: 600px;
+            margin: 120px auto 0;
+        }
 
-  const MAIN_STYLE = `Mobile Photography style, spontaneous, convenient, real-time editing, social media-driven, lowbrow art, pop culture, surreal, vibrant colors, highly detailed, grunge, gritty, dark, textured, realism, lifelike, detailed, accurate, everyday scenes, muted colors, traditional, natural colors, cluttered scenes depicting candid real life that is not arranged and is caught in the moment`;
+        .canvas {
+            width: 600px;
+            height: 600px;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!userPrompt.trim()) return;
-    
-    setIsLoading(true);
-    const seed = Math.floor(Math.random() * 1000000);
-    const messages = [
-      {
-        role: "system",
-        content: `You are an AI image generation assistant. Your task is to combine user prompts with a specific photography style while ensuring the user's prompt doesn't conflict with the intended style. Main style: ${MAIN_STYLE}`
-      },
-      {
-        role: "user",
-        content: userPrompt
-      }
-    ];
+        .canvas img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-    try {
-      const response = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(userPrompt)}?model=flux&enhance=false&width=600&height=600&seed=${seed}&jsonMode=false`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ messages })
-      });
+        .input-container {
+            width: 600px;
+            display: flex;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            overflow: hidden;
+        }
 
-      if (response.ok) {
-        const imageBlob = await response.blob();
-        const imageUrl = URL.createObjectURL(imageBlob);
-        setImageUrl(imageUrl);
-      }
-    } catch (error) {
-      console.error('Error generating image:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        #prompt-input {
+            flex-grow: 1;
+            padding: 12px 16px;
+            border: none;
+            background-color: transparent;
+            color: white;
+            font-size: 16px;
+            outline: none;
+        }
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      handleSubmit(e);
-    }
-  };
+        #send-button {
+            padding: 12px 24px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
 
-  return (
-    <div className="flex flex-col items-center min-h-screen bg-gray-900 pt-32">
-      <div className="w-[600px] h-[600px] bg-gray-800 rounded-lg overflow-hidden">
-        {isLoading ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
-          </div>
-        ) : (
-          <img
-            src={imageUrl}
-            alt="Generated artwork"
-            className="w-full h-full object-cover"
-          />
-        )}
-      </div>
-      
-      <div className="mt-8 w-[600px]">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={userPrompt}
-            onChange={(e) => setUserPrompt(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Enter your prompt..."
-            className="flex-1 px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-blue-500"
-          />
-          <button
-            type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none flex items-center gap-2"
-            disabled={isLoading}
-          >
-            <Send size={20} />
-            Send
-          </button>
-        </form>
-      </div>
+        #send-button:hover {
+            background-color: #0052a3;
+        }
+
+        .loader {
+            display: none;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loader::after {
+            content: "";
+            width: 80px;
+            height: 80px;
+            border: 6px solid #ffffff;
+            border-top: 6px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas">
+            <div class="loader"></div>
+            <img id="generated-image" src="/api/placeholder/600/600" alt="Generated image">
+        </div>
+        <div class="input-container">
+            <input type="text" id="prompt-input" placeholder="Enter your prompt...">
+            <button id="send-button">Send</button>
+        </div>
     </div>
-  );
-};
 
-export default ImageGenerator;
+    <script>
+        const MAIN_STYLE = `Mobile Photography style, spontaneous, convenient, real-time editing, social media-driven, lowbrow art, pop culture, surreal, vibrant colors, highly detailed, grunge, gritty, dark, textured, realism, lifelike, detailed, accurate, everyday scenes, muted colors, traditional, natural colors, cluttered scenes depicting candid real life that is not arranged and is caught in the moment`;
+
+        const promptInput = document.getElementById('prompt-input');
+        const sendButton = document.getElementById('send-button');
+        const generatedImage = document.getElementById('generated-image');
+        const loader = document.querySelector('.loader');
+
+        async function generateImage() {
+            const userPrompt = promptInput.value.trim();
+            if (!userPrompt) return;
+
+            // Show loader, hide image
+            loader.style.display = 'flex';
+            generatedImage.style.display = 'none';
+
+            const seed = Math.floor(Math.random() * 1000000);
+            const messages = [
+                {
+                    role: "system",
+                    content: `You are an AI image generation assistant. Your task is to combine user prompts with a specific photography style while ensuring the user's prompt doesn't conflict with the intended style. Main style: ${MAIN_STYLE}`
+                },
+                {
+                    role: "user",
+                    content: userPrompt
+                }
+            ];
+
+            try {
+                const response = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(userPrompt)}?model=flux&enhance=false&width=600&height=600&seed=${seed}&jsonMode=false`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ messages })
+                });
+
+                if (response.ok) {
+                    const imageBlob = await response.blob();
+                    const imageUrl = URL.createObjectURL(imageBlob);
+                    generatedImage.src = imageUrl;
+                    generatedImage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error generating image:', error);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', generateImage);
+        promptInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                generateImage();
+            }
+        });
+    </script>
+</body>
+</html>
