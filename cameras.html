@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Test</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        video {
+            width: 640px;
+            height: 480px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Webcam Test</h1>
+    <select id="cameraSelect"></select>
+    <button id="startBtn">Start Webcam</button>
+    <video id="video" autoplay></video>
+
+    <script>
+        const videoElement = document.getElementById('video');
+        const cameraSelect = document.getElementById('cameraSelect');
+        const startBtn = document.getElementById('startBtn');
+
+        async function getCameras() {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            devices.forEach(device => {
+                if (device.kind === 'videoinput') {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Camera ${cameraSelect.length + 1}`;
+                    cameraSelect.appendChild(option);
+                }
+            });
+        }
+
+        async function startCamera() {
+            const constraints = {
+                video: {
+                    deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined
+                }
+            };
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            videoElement.srcObject = stream;
+        }
+
+        cameraSelect.addEventListener('change', startCamera);
+        startBtn.addEventListener('click', startCamera);
+
+        // Initialize on page load
+        getCameras();
+    </script>
+</body>
+</html>
