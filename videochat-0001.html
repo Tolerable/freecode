@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Video Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+        }
+
+        .chat-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .video-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .video-wrapper {
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+        }
+
+        #userVideo, #aiImage {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .chat-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-content {
+            background: #e9ecef;
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 70%;
+            margin: 0 10px;
+        }
+
+        .message.user .message-content {
+            background: #0084ff;
+            color: white;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        #messageInput {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+
+        #sendButton {
+            padding: 10px 20px;
+            background: #0084ff;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        #sendButton:hover {
+            background: #0073e6;
+        }
+
+        .name-tag {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="video-section">
+            <div class="video-wrapper">
+                <video id="userVideo" autoplay muted></video>
+            </div>
+            <div class="name-tag">You</div>
+        </div>
+        <div class="video-section">
+            <div class="video-wrapper">
+                <img id="aiImage" src="/api/placeholder/640/360" alt="AI Assistant">
+            </div>
+            <div class="name-tag">Luna - AI Assistant</div>
+        </div>
+        <div class="chat-section" style="grid-column: 1 / -1">
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="input-area">
+                <input type="text" id="messageInput" placeholder="Type a message...">
+                <button id="sendButton">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mediaStream = null;
+        const aiPersonality = {
+            name: 'Luna',
+            traits: 'curious, friendly, and slightly playful',
+            interests: ['technology', 'art', 'human behavior', 'learning'],
+            lastImageUpdate: 0,
+            imageUpdateInterval: 30000 // 30 seconds
+        };
+
+        async function initializeWebcam() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const userVideo = document.getElementById('userVideo');
+                userVideo.srcObject = mediaStream;
+            } catch (error) {
+                console.error('Error accessing webcam:', error);
+            }
+        }
+
+        async function captureImage() {
+            if (!mediaStream) return null;
+            
+            const video = document.getElementById('userVideo');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            // Get base64 without the data:image/jpeg;base64, prefix
+            const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
+            return base64Image;
+        }
+
+        async function analyzeImage(base64Image) {
+            const requestBody = {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            { 
+                                "type": "text", 
+                                "text": "Describe what you see in this webcam image, focusing on the person, their expression, and the environment. Be concise but detailed." 
+                            },
+                            { 
+                                "type": "image_url", 
+                                "image_url": { 
+                                    "url": `data:image/jpeg;base64,${base64Image}` 
+                                } 
+                            }
+                        ]
+                    }
+                ],
+                "model": "openai-large"
+            };
+
+            try {
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) throw new Error('Failed to analyze image');
+                
+                const result = await response.json();
+                return result.choices[0].message.content;
+            } catch (error) {
+                console.error('Error analyzing image:', error);
+                return null;
+            }
+        }
+
+        async function generateAiImage(prompt) {
+            try {
+                const response = await fetch(`https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=640&height=360&nologo=true`);
+                if (response.ok) {
+                    const aiImage = document.getElementById('aiImage');
+                    aiImage.src = URL.createObjectURL(await response.blob());
+                }
+            } catch (error) {
+                console.error('Error generating AI image:', error);
+            }
+        }
+
+        async function generateAiResponse(messages, imageDescription = null) {
+            try {
+                const systemMessage = {
+                    role: 'system',
+                    content: `You are ${aiPersonality.name}, an AI assistant who is ${aiPersonality.traits}. 
+                    You can see the user through their webcam and occasionally comment on what you observe.
+                    Keep responses concise and natural, as if in a video chat.
+                    When you receive a webcam observation, incorporate it naturally into the conversation without explicitly stating it's from the webcam.`
+                };
+
+                const conversationMessages = [...messages];
+                
+                if (imageDescription) {
+                    conversationMessages.push({
+                        role: 'system',
+                        content: `Current webcam observation: ${imageDescription}`
+                    });
+                }
+
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [systemMessage, ...conversationMessages],
+                        model: 'openai-large'
+                    })
+                });
+                
+                const data = await response.json();
+                return data.choices[0].message.content;
+            } catch (error) {
+                console.error('Error generating AI response:', error);
+                return "I'm having trouble connecting right now. Could you try again?";
+            }
+        }
+
+        function addMessage(content, isUser = false) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : ''}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${content}
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function handleUserMessage(message) {
+            if (!message.trim()) return;
+
+            addMessage(message, true);
+            
+            // Capture and analyze image if AI might want to see it
+            const shouldCaptureImage = Math.random() < 0.3; // 30% chance
+            let imageDescription = null;
+            
+            if (shouldCaptureImage) {
+                const imageData = await captureImage();
+                if (imageData) {
+                    imageDescription = await analyzeImage(imageData);
+                }
+            }
+
+            const aiResponse = await generateAiResponse([
+                { role: 'user', content: message }
+            ], imageDescription);
+            
+            addMessage(aiResponse);
+
+            // Update AI's image occasionally
+            const now = Date.now();
+            if (now - aiPersonality.lastImageUpdate > aiPersonality.imageUpdateInterval) {
+                generateAiImage(`photorealistic portrait of ${aiPersonality.name}, young female AI assistant, friendly expression, warm smile, professional lighting, high detail`);
+                aiPersonality.lastImageUpdate = now;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeWebcam();
+            
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+
+            const sendMessage = () => {
+                const message = messageInput.value;
+                if (message.trim()) {
+                    handleUserMessage(message);
+                    messageInput.value = '';
+                }
+            };
+
+            sendButton.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Initial AI image
+            generateAiImage(`portrait of ${aiPersonality.name}, AI assistant, friendly expression, digital art style`);
+            
+            // Welcome message
+            setTimeout(() => {
+                addMessage("Hi there! I'm Luna. It's nice to see you! Feel free to chat with me about anything. I can see you through the webcam and will occasionally comment on what I observe. How are you doing today?");
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
