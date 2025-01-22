@@ -19,35 +19,22 @@
             border: 1px solid #ccc;
             margin-top: 10px;
         }
-        button {
-            margin-top: 10px;
-            font-size: 24px;
-            padding: 10px 20px;
-            cursor: pointer;
-        }
-        #outputDescription {
-            margin-top: 10px;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
     <h1>Webcam Test</h1>
     <select id="cameraSelect"></select>
     <button id="startBtn">Start Webcam</button>
-    <button id="captureBtn">📸 Capture Frame</button>
     <video id="video" autoplay></video>
     <p id="errorMessage" style="color: red;"></p>
-    <p id="outputDescription"></p>
 
     <script>
         const videoElement = document.getElementById('video');
         const cameraSelect = document.getElementById('cameraSelect');
         const startBtn = document.getElementById('startBtn');
-        const captureBtn = document.getElementById('captureBtn');
         const errorMessage = document.getElementById('errorMessage');
-        const outputDescription = document.getElementById('outputDescription');
 
+        // Get list of available video devices
         async function getCameras() {
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices();
@@ -68,13 +55,14 @@
             }
         }
 
+        // Start video stream from the selected camera
         async function startCamera() {
             const selectedDeviceId = cameraSelect.value;
             const constraints = {
                 video: {
                     deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
-                    width: { min: 640 },
-                    height: { min: 480 }
+                    width: { min: 640 }, // Adjust width as needed
+                    height: { min: 480 } // Adjust height as needed
                 }
             };
 
@@ -87,50 +75,8 @@
             }
         }
 
-        function captureFrame() {
-            const canvas = document.createElement('canvas');
-            canvas.width = videoElement.videoWidth;
-            canvas.height = videoElement.videoHeight;
-            const context = canvas.getContext('2d');
-            context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-            const base64Image = canvas.toDataURL('image/jpeg').split(',')[1]; // Get base64 string
-            analyzeImage(base64Image);
-        }
-
-        async function analyzeImage(base64Image) {
-            const prompt = "Describe the image exactly as you see it including any detected gender and fine details and visual styles used.";
-            const requestBody = {
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            { "type": "text", "text": prompt },
-                            { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64Image}` } }
-                        ]
-                    }
-                ],
-                "model": "openai",
-                "jsonMode": false
-            };
-
-            try {
-                const response = await fetch('https://text.pollinations.ai/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody)
-                });
-
-                const result = await response.text();
-                outputDescription.textContent = `AI Description: ${result.trim()}`;
-            } catch (error) {
-                outputDescription.textContent = 'Error analyzing image. Please try again.';
-                console.error('Error:', error);
-            }
-        }
-
         cameraSelect.addEventListener('change', startCamera);
         startBtn.addEventListener('click', startCamera);
-        captureBtn.addEventListener('click', captureFrame);
 
         // Initialize on page load
         getCameras();
