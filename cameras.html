@@ -127,47 +127,42 @@
             analyzeImage(base64Image.split(',')[1]); // Pass Base64 data only (without `data:image/jpeg;base64,`)
         }
 
-		async function analyzeImage(base64Image) {
-			const prompt = "Describe the image exactly as you see it including any detected gender and fine details and visual styles used.";
-			const requestBody = {
-				messages: [
-					{
-						role: "user",
-						content: [
-							{ type: "text", text: prompt },
-							{ type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
-						]
-					}
-				],
-				model: "openai",
-				jsonMode: false // Ensures we're not expecting JSON
-			};
+        async function analyzeImage(base64Image) {
+            const prompt = "Describe the image exactly as you see it including any detected gender and fine details and visual styles used.";
+            const requestBody = {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            { "type": "text", "text": prompt },
+                            { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64Image}` } }
+                        ]
+                    }
+                ],
+                "model": "openai",
+                "jsonMode": false
+            };
 
-			try {
-				const response = await fetch('https://text.pollinations.ai/', {
-					method: 'POST',
-					headers: { 
-						'Content-Type': 'application/json',
-						'Accept': 'text/plain' // Accepting response as plain text
-					},
-					body: JSON.stringify(requestBody)
-				});
+            try {
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
 
-				// Check for HTTP response status
-				if (!response.ok) {
-					const errorText = await response.text(); // Read error as text
-					throw new Error(`HTTP error! Status: ${response.status}, Body: ${errorText}`); // Show error in console
-				}
+                const result = await response.text();
+                // Check for empty response
+                if (result.trim()) {
+                    outputDescription.textContent = `AI Description: ${result.trim()}`;
+                } else {
+                    outputDescription.textContent = 'No description received.';
+                }
+            } catch (error) {
+                outputDescription.textContent = 'Error analyzing image. Please try again.';
+                console.error('Error:', error);
+            }
+        }
 
-				const resultText = await response.text(); // Read response as raw text
-				outputDescription.textContent = resultText || 'No description received.'; // Display result
-
-			} catch (error) {
-				outputDescription.textContent = 'Error analyzing image: ' + error.message; // Show error message
-				console.error('Error:', error); // Log errors to console
-			}
-		}
-		
         cameraSelect.addEventListener('change', startCamera);
         startBtn.addEventListener('click', startCamera);
         captureBtn.addEventListener('click', captureFrame);
