@@ -34,6 +34,7 @@
         const startBtn = document.getElementById('startBtn');
         const errorMessage = document.getElementById('errorMessage');
 
+        // Get list of available video devices
         async function getCameras() {
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices();
@@ -54,12 +55,17 @@
             }
         }
 
+        // Start video stream from the selected camera
         async function startCamera() {
+            const selectedDeviceId = cameraSelect.value;
             const constraints = {
                 video: {
-                    deviceId: { exact: cameraSelect.value },
-                },
+                    deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
+                    width: { min: 640 }, // Adjust width as needed
+                    height: { min: 480 } // Adjust height as needed
+                }
             };
+
             try {
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 videoElement.srcObject = stream;
