@@ -17,6 +17,7 @@
             width: 640px;
             height: 480px;
             border: 1px solid #ccc;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -25,32 +26,47 @@
     <select id="cameraSelect"></select>
     <button id="startBtn">Start Webcam</button>
     <video id="video" autoplay></video>
+    <p id="errorMessage" style="color: red;"></p>
 
     <script>
         const videoElement = document.getElementById('video');
         const cameraSelect = document.getElementById('cameraSelect');
         const startBtn = document.getElementById('startBtn');
+        const errorMessage = document.getElementById('errorMessage');
 
         async function getCameras() {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            devices.forEach(device => {
-                if (device.kind === 'videoinput') {
-                    const option = document.createElement('option');
-                    option.value = device.deviceId;
-                    option.text = device.label || `Camera ${cameraSelect.length + 1}`;
-                    cameraSelect.appendChild(option);
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const cameras = devices.filter(device => device.kind === 'videoinput');
+
+                if (cameras.length === 0) {
+                    errorMessage.textContent = "No cameras found.";
+                } else {
+                    cameras.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `Camera ${cameraSelect.length + 1}`;
+                        cameraSelect.appendChild(option);
+                    });
                 }
-            });
+            } catch (error) {
+                errorMessage.textContent = `Error getting cameras: ${error.message}`;
+            }
         }
 
         async function startCamera() {
             const constraints = {
                 video: {
-                    deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined
-                }
+                    deviceId: { exact: cameraSelect.value },
+                },
             };
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            videoElement.srcObject = stream;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = stream;
+                errorMessage.textContent = "";
+            } catch (error) {
+                errorMessage.textContent = `Error accessing camera: ${error.message}`;
+            }
         }
 
         cameraSelect.addEventListener('change', startCamera);
