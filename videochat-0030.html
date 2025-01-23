@@ -4,91 +4,18 @@
     <meta charset="UTF-8">
     <title>Luna AI Video Chat</title>
     <style>
-        /* ... existing styles ... */
-
-        .connection-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            color: white;
-            font-family: monospace;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .connection-status {
-            font-size: 1.2em;
-            margin: 20px;
-            text-align: center;
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            overflow: hidden;
         }
-
-        .status-log {
-            width: 80%;
-            max-width: 600px;
-            height: 200px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid #333;
-            padding: 10px;
-            margin: 20px;
-            overflow-y: auto;
-            font-size: 0.9em;
-        }
-
-        .status-log p {
-            margin: 5px 0;
-            color: #0f0;
-        }
-
-        .start-button {
-            padding: 15px 40px;
-            font-size: 1.2em;
-            background: #0084ff;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .start-button:hover {
-            background: #0073e6;
-        }
-
-        .progress-bar {
-            width: 80%;
-            max-width: 600px;
-            height: 4px;
-            background: #333;
-            margin: 20px;
-            position: relative;
-        }
-
-        .progress-fill {
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            background: #0084ff;
-            width: 0%;
-            transition: width 0.5s;
-        }
-    </style>
-
-    <!-- Connection overlay -->
-    <div id="connectionOverlay" class="connection-overlay">
-        <button id="startChat" class="start-button">START CHAT</button>
-        <div class="connection-status" id="connectionStatus">Ready to connect...</div>
-        <div class="status-log" id="statusLog"></div>
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressBar"></div>
-        </div>
-    </div>
 
         .main-container {
             height: 100vh;
@@ -437,86 +364,14 @@
             addMessage(response);
         }
 
-        // Connection and startup handling
-    async function initializeConnection() {
-        const startButton = document.getElementById('startChat');
-        const overlay = document.getElementById('connectionOverlay');
-        const status = document.getElementById('connectionStatus');
-        const log = document.getElementById('statusLog');
-        const progress = document.getElementById('progressBar');
-        
-        function updateStatus(message, progressPct) {
-            status.textContent = message;
-            log.innerHTML += `<p>[${new Date().toLocaleTimeString()}] ${message}</p>`;
-            log.scrollTop = log.scrollHeight;
-            progress.style.width = `${progressPct}%`;
-        }
-
-        startButton.addEventListener('click', async () => {
-            startButton.style.display = 'none';
-            
-            // Initialize camera first
-            updateStatus('Initializing video systems...', 10);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const cameraReady = await initializeWebcam();
-            
-            if (!cameraReady) {
-                updateStatus('ERROR: Camera initialization failed', 0);
-                return;
-            }
-
-            // Simulated connection sequence
-            updateStatus('Searching for available chat partners...', 20);
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            updateStatus('Partner found, establishing connection...', 35);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Actually generate AI avatar while showing connection progress
-            updateStatus('Initializing video stream...', 50);
+        // Initialize Application
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeWebcam();
             await updateAiAvatar();
 
-            updateStatus('Performing initial handshake...', 65);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Actually analyze user's video while showing more progress
-            updateStatus('Calibrating video quality...', 80);
-            const base64Image = captureImage();
-            const description = await analyzeImage(base64Image);
-
-            updateStatus('Establishing secure channel...', 90);
-            await new Promise(resolve => setTimeout(resolve, 800));
-
-            // Generate initial greeting using video description
-            updateStatus('Connection established!', 100);
-            const response = await generateResponse("SYSTEM_INIT_GREETING", description);
-            
-            // Fade out overlay and show chat
-            await new Promise(resolve => setTimeout(resolve, 500));
-            overlay.style.opacity = 0;
-            await new Promise(resolve => setTimeout(resolve, 500));
-            overlay.style.display = 'none';
-            
-            // Show initial message
-            addMessage(response);
-        });
-
-        // Setup shutdown handler
-        window.addEventListener('beforeunload', async (event) => {
-            overlay.style.display = 'flex';
-            overlay.style.opacity = 1;
-            updateStatus('Closing connection...', 50);
-            
-            // Clean up video streams
-            if (state.mediaStream) {
-                state.mediaStream.getTracks().forEach(track => track.stop());
-            }
-            
-            // Small delay to show shutdown status
-            await new Promise(resolve => setTimeout(resolve, 500));
-            updateStatus('Connection closed.', 100);
-        });
-    }
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const snapshotButton = document.getElementById('snapshotButton');
 
             const sendMessage = () => {
                 const message = messageInput.value.trim();
