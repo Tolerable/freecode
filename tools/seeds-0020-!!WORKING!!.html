@@ -271,82 +271,6 @@
 		   transform: translate(-50%, -50%);
 		   color: var(--text-color);
 		}
-
-		.profile-controls {
-			display: flex;
-			gap: 8px;
-			padding: 10px;
-			background: var(--card-bg);
-			margin-bottom: 10px;
-			border-radius: 8px;
-			flex-wrap: wrap;
-		}
-
-		.profile-select {
-			flex: 1;
-			min-width: 120px;
-			padding: 8px;
-			border-radius: 4px;
-			background: var(--bg-color);
-			color: var(--text-color);
-			border: 1px solid var(--border-color);
-		}
-
-		.profile-btn {
-			padding: 8px 16px;
-			border-radius: 4px;
-			background: var(--bg-color);
-			color: var(--text-color);
-			border: 1px solid var(--border-color);
-			cursor: pointer;
-		}
-
-		.profile-btn:hover {
-			background: var(--border-color);
-		}
-
-		.modal {
-			display: none;
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			background: rgba(0,0,0,0.7);
-			z-index: 1000;
-		}
-
-		.modal-content {
-			position: absolute;
-			top: 50%;
-			left: 50%;
-			transform: translate(-50%, -50%);
-			background: var(--card-bg);
-			padding: 20px;
-			border-radius: 8px;
-			width: 80%;
-			max-width: 300px;
-		}
-
-		.modal-content input {
-			width: 100%;
-			padding: 8px;
-			margin: 10px 0;
-			border-radius: 4px;
-			background: var(--bg-color);
-			color: var(--text-color);
-			border: 1px solid var(--border-color);
-		}
-
-		.modal-content button {
-			margin: 5px;
-			padding: 8px 16px;
-			border-radius: 4px;
-			background: var(--bg-color);
-			color: var(--text-color);
-			border: 1px solid var(--border-color);
-			cursor: pointer;
-		}
 		
 		@media (max-width: 600px) { /* For small devices, like Android phones */
 			body {
@@ -388,25 +312,6 @@
     </style>
 </head>
 <body>
-
-	<div class="profile-controls">
-		<select id="profileSelector" class="profile-select"></select>
-		<button onclick="showNewProfileDialog()" class="profile-btn">New Profile</button>
-		<button onclick="exportData()" class="profile-btn">Export</button>
-		<label for="importFile" class="profile-btn">Import
-			<input type="file" id="importFile" accept=".json" style="display: none">
-		</label>
-	</div>
-
-	<div id="newProfileDialog" class="modal">
-		<div class="modal-content">
-			<h3>Create New Profile</h3>
-			<input type="text" id="newProfileName" placeholder="Profile Name">
-			<button onclick="createNewProfile()">Create</button>
-			<button onclick="closeNewProfileDialog()">Cancel</button>
-		</div>
-	</div>
-
 	<div class="container">
 	   <div class="parents">
 		   <div class="parent female" onclick="loadParent(this.dataset.id)" data-id=""></div>
@@ -431,168 +336,23 @@ let strains = [];
 let currentIndex = 0;
 let currentStrain = null;
 
-const STORAGE_KEY = 'strainTrackerData';
-
-const defaultData = {
-    activeProfile: null,
-    profiles: {},
-    lastBackup: null
-};
-
-const defaultProfile = {
-    name: '',
-    strains: [],
-    customStrainInfo: {},
-    created: null,
-    lastModified: null
-};
-
-// Data management functions
-function initializeStorage() {
-    if (!localStorage.getItem(STORAGE_KEY)) {
-        const baseData = {
-            ...defaultData,
-            profiles: {
-                'default': {
-                    ...defaultProfile,
-                    name: 'Default',
-                    strains: strains,
-                    customStrainInfo: strainInfo,
-                    created: new Date().toISOString(),
-                    lastModified: new Date().toISOString()
-                }
-            },
-            activeProfile: 'default'
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(baseData));
-    }
-    return JSON.parse(localStorage.getItem(STORAGE_KEY));
-}
-
-function saveData(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-function createProfile(name) {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    const profileId = 'profile_' + Date.now();
-    
-    data.profiles[profileId] = {
-        ...defaultProfile,
-        name: name,
-        created: new Date().toISOString(),
-        lastModified: new Date().toISOString()
-    };
-    
-    data.activeProfile = profileId;
-    saveData(data);
-    return profileId;
-}
-
-function switchProfile(profileId) {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (data.profiles[profileId]) {
-        data.activeProfile = profileId;
-        saveData(data);
-        loadStrainData(); // Reload strain data for new profile
-        return true;
-    }
-    return false;
-}
-
-function deleteProfile(profileId) {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (profileId === 'default') return false;
-    if (data.profiles[profileId]) {
-        delete data.profiles[profileId];
-        if (data.activeProfile === profileId) {
-            data.activeProfile = 'default';
-        }
-        saveData(data);
-        return true;
-    }
-    return false;
-}
-
-function exportData() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    const blob = new Blob([data], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `strain-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-function importData(jsonFile) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const data = JSON.parse(e.target.result);
-                if (data.profiles && data.activeProfile) {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                    resolve(true);
-                } else {
-                    reject(new Error('Invalid backup file format'));
-                }
-            } catch (err) {
-                reject(err);
-            }
-        };
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsText(jsonFile);
-    });
-}
-
 async function loadStrainData() {
     try {
-        const data = initializeStorage();
-        const activeProfile = data.profiles[data.activeProfile];
-        strains = activeProfile.strains;
-        strainInfo = activeProfile.customStrainInfo;
-        
+        const [strainsResponse, infoResponse] = await Promise.all([
+            fetch('./strains/strains.json'),
+            fetch('./strains/strainInfo.json')
+        ]);
+        const [strainsData, infoData] = await Promise.all([
+            strainsResponse.json(),
+            infoResponse.json()
+        ]);
+        strains = strainsData.strains;
+        strainInfo = infoData.info;
         currentIndex = strains.findIndex(s => s.id === 'hwm-001');
         if (currentIndex === -1) currentIndex = 0;
         await loadStrain(strains[currentIndex].id);
     } catch (err) {
         console.error('Error loading data:', err);
-    }
-}
-
-function updateProfileSelector() {
-    const selector = document.getElementById('profileSelector');
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    
-    selector.innerHTML = '';
-    Object.entries(data.profiles).forEach(([id, profile]) => {
-        const option = document.createElement('option');
-        option.value = id;
-        option.textContent = profile.name;
-        option.selected = id === data.activeProfile;
-        selector.appendChild(option);
-    });
-}
-
-function showNewProfileDialog() {
-    document.getElementById('newProfileDialog').style.display = 'block';
-}
-
-function closeNewProfileDialog() {
-    document.getElementById('newProfileDialog').style.display = 'none';
-    document.getElementById('newProfileName').value = '';
-}
-
-function createNewProfile() {
-    const name = document.getElementById('newProfileName').value.trim();
-    if (name) {
-        createProfile(name);
-        closeNewProfileDialog();
-        updateProfileSelector();
-        loadStrainData();
     }
 }
 
@@ -612,22 +372,6 @@ mainImage.addEventListener('touchend', e => {
         else prevStrain();
     }
 });
-
-document.getElementById('profileSelector').addEventListener('change', function(e) {
-    switchProfile(e.target.value);
-});
-
-document.getElementById('importFile').addEventListener('change', function(e) {
-    if (e.target.files.length > 0) {
-        importData(e.target.files[0])
-            .then(() => {
-                updateProfileSelector();
-                loadStrainData();
-            })
-            .catch(err => alert('Import failed: ' + err.message));
-    }
-});
-
 
 function getBadges(strain) {
     const badges = [];
@@ -837,11 +581,7 @@ function nextStrain() {
     loadStrain(strains[currentIndex].id);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    initializeStorage();
-    updateProfileSelector();
-    loadStrainData();
-});
+loadStrainData();
     </script>
 </body>
 </html>
