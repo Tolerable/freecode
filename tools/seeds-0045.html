@@ -785,86 +785,44 @@ function importData(jsonFile) {
     });
 }
 
-async function loadStrain(id) {
-    if (!id || strains.length === 0) {
-        updateDisplayForEmptyProfile();
-        const mainImage = document.querySelector('.main-image-container');
-        mainImage.onclick = showAddStrainDialog;
-        return;
-    }
-    
-    const strain = strains.find(p => p.id === id);
-    if (!strain || strain.id === undefined) {
-        // Stay on current strain if invalid parent clicked
-        if (currentStrain) {
-            return;
-        }
-        updateDisplayForEmptyProfile();
-        return;
-    }
-    
-    currentStrain = strain;
-    document.querySelector('.strain-title').textContent = strain.strain;
-    const parents = document.querySelector('.parents');
-    parents.innerHTML = '';
+async function loadStrainData() {
+   try {
+       const data = initializeStorage();
+       const activeProfile = data.profiles[data.activeProfile];
+       
+       if (data.activeProfile === 'default' && (!activeProfile.strains || !activeProfile.strains.length)) {
+           const response = await fetch('./strains/strainInfo.json');
+           const strainInfoData = await response.json();
+           strainInfo = strainInfoData.info;
 
-    if (!strain.mother && !strain.father) {
-        parents.style.display = 'none';
-    } else {
-        parents.style.display = 'flex';
-        
-        if (strain.father?.includes('-silver')) {
-            const self = document.createElement('div');
-            self.className = 'parent self';
-            const motherStrain = strains.find(s => s.id === strain.mother);
-            self.textContent = `Self: ${motherStrain?.strain || strain.mother}`;
-            self.dataset.id = strain.mother;
-            self.onclick = () => loadParent(strain.mother);
-            parents.appendChild(self);
-        } else {
-            if (strain.mother) {
-                const mother = document.createElement('div');
-                mother.className = 'parent female';
-                const motherStrain = strains.find(s => s.id === strain.mother);
-                mother.textContent = `Mother: ${motherStrain?.strain || strain.mother}`;
-                mother.dataset.id = strain.mother;
-                mother.onclick = () => loadParent(strain.mother);
-                parents.appendChild(mother);
-            }
-            
-            if (strain.father) {
-                const father = document.createElement('div');
-                father.className = 'parent male';
-                const fatherBaseName = strain.father.replace('-male', '');
-                const fatherStrain = strains.find(s => s.id === fatherBaseName);
-                father.textContent = `Father: ${fatherStrain?.strain || strain.father}`;
-                father.dataset.id = strain.father;
-                father.onclick = () => loadParent(fatherBaseName);
-                parents.appendChild(father);
-            }
-        }
-    }
+           const strainsResponse = await fetch('./strains/strains.json');
+           const strainsData = await strainsResponse.json();
+           strains = strainsData.strains;
 
-    const mainImageContainer = document.querySelector('.main-image-container');
-    const mainImage = document.querySelector('.main-image');
-    
-    const editBtn = document.createElement('button');
-    editBtn.className = 'edit-btn';
-    editBtn.innerHTML = '✎';
-    editBtn.onclick = (e) => {
-        e.stopPropagation();
-        showStrainDialog(strain);
-    };
-    mainImageContainer.appendChild(editBtn);
-    
-    const imageUrl = await getImageUrl(strain);
-    mainImage.style.backgroundImage = imageUrl ? `url("${imageUrl}")` : 'none';
-    mainImage.style.backgroundSize = 'cover';
-    mainImage.textContent = imageUrl ? '' : 'No image available';
-    
-    updateBadges(strain);
-    await updateOffspring(strain.id);
-    updateStrainInfo(strain);
+           activeProfile.strains = strains;
+           activeProfile.customStrainInfo = strainInfo;
+           saveData(data);
+       } else {
+           strains = activeProfile.strains;
+           strainInfo = activeProfile.customStrainInfo;
+       }
+
+       // Always set default profile to start at Highwayman
+       if (data.activeProfile === 'default') {
+           currentIndex = strains.findIndex(s => s.id === 'hwm-001');
+           if (currentIndex === -1) currentIndex = 0;
+       } else {
+           currentIndex = strains.length ? 0 : -1;
+       }
+       
+       if (strains.length) {
+           await loadStrain(strains[currentIndex].id);
+       } else {
+           updateDisplayForEmptyProfile();
+       }
+   } catch (err) {
+       console.error('Error loading data:', err);
+   }
 }
 
 function updateProfileSelector() {
@@ -1063,7 +1021,11 @@ async function loadStrain(id) {
     }
     
     const strain = strains.find(p => p.id === id);
-    if (!strain) {
+    if (!strain || strain.id === undefined) {
+        // Stay on current strain if invalid parent clicked
+        if (currentStrain) {
+            return;
+        }
         updateDisplayForEmptyProfile();
         return;
     }
@@ -1113,7 +1075,6 @@ async function loadStrain(id) {
     const mainImageContainer = document.querySelector('.main-image-container');
     const mainImage = document.querySelector('.main-image');
     
-    // Add edit button
     const editBtn = document.createElement('button');
     editBtn.className = 'edit-btn';
     editBtn.innerHTML = '✎';
