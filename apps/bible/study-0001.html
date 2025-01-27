@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bible Study AI Assistant</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f5f5;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: var(--secondary-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .search-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        input, select, button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        input {
+            flex: 1;
+        }
+
+        button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #357abd;
+        }
+
+        .results-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .scripture-display, .ai-insights {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .generated-image {
+            width: 100%;
+            max-width: 512px;
+            margin: 20px auto;
+            display: block;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .results-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Bible Study AI Assistant</h1>
+        </div>
+
+        <div class="search-section">
+            <div class="input-group">
+                <select id="version">
+                    <option value="kjv">King James Version</option>
+                    <option value="asv">American Standard Version</option>
+                    <option value="erv">English Revised Version</option>
+                    <option value="akjv">American King James Version</option>
+                </select>
+                <input type="text" id="reference" placeholder="Enter Bible reference (e.g., John 3:16)">
+                <input type="text" id="question" placeholder="Ask a question about this passage">
+                <button onclick="searchScripture()">Search</button>
+            </div>
+            <div class="input-group">
+                <input type="text" id="imagePrompt" placeholder="Describe an image related to this passage">
+                <button onclick="generateImage()">Generate Image</button>
+            </div>
+        </div>
+
+        <div class="loading">Loading...</div>
+
+        <div class="results-section">
+            <div class="scripture-display">
+                <h2>Scripture</h2>
+                <div id="scriptureText"></div>
+            </div>
+            <div class="ai-insights">
+                <h2>AI Insights</h2>
+                <div id="aiResponse"></div>
+                <img id="generatedImage" class="generated-image" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://www.ai-ministries.com/apps/bible/';
+        const VERSIONS = ['kjv', 'asv', 'erv', 'akjv'];
+        let bibleData = {};
+
+        // Load Bible data for each version
+        async function loadBibleData() {
+            for (const version of VERSIONS) {
+                try {
+                    const response = await fetch(`${BASE_URL}${version}.txt`);
+                    const text = await response.text();
+                    bibleData[version] = parseBibleText(text);
+                } catch (error) {
+                    console.error(`Error loading ${version}:`, error);
+                }
+            }
+        }
+
+        function parseBibleText(text) {
+            const verses = {};
+            const lines = text.split('\n');
+            lines.forEach(line => {
+                const match = line.match(/^(\w+\s\d+:\d+)\t(.+)$/);
+                if (match) {
+                    verses[match[1]] = match[2];
+                }
+            });
+            return verses;
+        }
+
+        async function searchScripture() {
+            const version = document.getElementById('version').value;
+            const reference = document.getElementById('reference').value;
+            const question = document.getElementById('question').value;
+
+            document.querySelector('.loading').classList.add('active');
+
+            try {
+                // Get scripture text
+                const verse = bibleData[version][reference];
+                if (verse) {
+                    document.getElementById('scriptureText').innerHTML = `
+                        <p><strong>${reference}</strong></p>
+                        <p>${verse}</p>
+                    `;
+
+                    // Get AI insights
+                    if (question) {
+                        const aiResponse = await fetch('https://text.pollinations.ai/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                messages: [
+                                    {
+                                        role: 'system',
+                                        content: 'You are a knowledgeable Bible scholar who provides thoughtful, respectful insights about scripture. Focus on historical context, interpretation, and practical application.'
+                                    },
+                                    {
+                                        role: 'user',
+                                        content: `Regarding this verse: "${verse}" (${reference})\n\nQuestion: ${question}`
+                                    }
+                                ],
+                                model: 'openai'
+                            })
+                        });
+
+                        const data = await aiResponse.json();
+                        document.getElementById('aiResponse').innerHTML = `
+                            <p><strong>Your question:</strong> ${question}</p>
+                            <p>${data.choices[0].message.content}</p>
+                        `;
+                    }
+                } else {
+                    document.getElementById('scriptureText').innerHTML = 'Verse not found. Please check the reference format.';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('scriptureText').innerHTML = 'An error occurred while fetching the verse.';
+            }
+
+            document.querySelector('.loading').classList.remove('active');
+        }
+
+        async function generateImage() {
+            const prompt = document.getElementById('imagePrompt').value;
+            if (!prompt) return;
+
+            document.querySelector('.loading').classList.add('active');
+            const img = document.getElementById('generatedImage');
+            
+            try {
+                img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&nologo=true`;
+                img.style.display = 'block';
+            } catch (error) {
+                console.error('Error generating image:', error);
+            }
+
+            document.querySelector('.loading').classList.remove('active');
+        }
+
+        // Load Bible data when page loads
+        loadBibleData();
+    </script>
+</body>
+</html>
