@@ -198,7 +198,7 @@
 	  display: flex;
 	  align-items: center;
 	  justify-content: space-between;
-	  padding: 0rem;
+	  padding: 1rem;
 	}
 
 	.clear-session-btn {
@@ -208,11 +208,10 @@
 	  opacity: 0.6;
 	  cursor: pointer;
 	  padding: 0.5rem;
-	  display: none;  /* Hidden by default */
+	  display: flex;
 	  align-items: center;
 	  justify-content: center;
 	  border-radius: 4px;
-	  margin-right: 1rem;  /* Added */
 	}
 
 	.clear-session-btn:hover {
@@ -641,7 +640,7 @@
   
   <script>
 	let appState = {
-	  sessions: [{
+	  session: {
 		id: Date.now(),
 		messages: [],
 		config: {
@@ -650,13 +649,9 @@
 		  contextWindow: 20,
 		  chainOfThought: false
 		},
-		thoughtStates: {}
-	  }],
-	  currentSessionId: null // Initialize properly below
+		thoughtStates: {} // Add this to store thought states
+	  }
 	};
-
-	// Set initial current session
-	appState.currentSessionId = appState.sessions[0].id;
 
 	let thoughtStates = new Map();
 
@@ -682,23 +677,22 @@
 	  document.addEventListener('click', closeMenu);
 	}
 
-	function toggleChainOfThought() {
-	  const button = document.getElementById('toggleCOT');
-	  const currentSession = getCurrentSession();
-	  currentSession.config.chainOfThought = !currentSession.config.chainOfThought;
+    function toggleChainOfThought() {
+      const button = document.getElementById('toggleCOT');
+      appState.session.config.chainOfThought = !appState.session.config.chainOfThought;
       button.classList.toggle('active');
       saveSession();
     }
 
 	function clearCurrentSession() {
-	  const currentSession = getCurrentSession();
-	  if (currentSession.messages.length > 0) {
-		currentSession.messages = [];
+	  if (appState.session.messages.length > 0) {
+		appState.session.messages = [];
 		document.getElementById('messageHistory').innerHTML = '';
 		saveSession();
 	  }
 	}
 
+	// Add this to your setActiveSession function
 	function setActiveSession(sessionId) {
 	  document.querySelectorAll('.session-item').forEach(item => {
 		item.classList.remove('active');
@@ -712,19 +706,6 @@
 		}
 	  } else {
 		document.getElementById('clearCurrentSession').style.display = 'none';
-	  }
-	}
-
-	function switchToSession(sessionId) {
-	  const selectedSession = appState.sessions.find(s => s.id === sessionId);
-	  if (selectedSession) {
-		appState.currentSessionId = sessionId;
-		document.getElementById('messageHistory').innerHTML = '';
-		selectedSession.messages.forEach(renderMessage);
-		setActiveSession(sessionId);
-		
-		// Restore thought states for this session
-		thoughtStates = new Map(Object.entries(selectedSession.thoughtStates || {}));
 	  }
 	}
 
@@ -804,67 +785,24 @@
 	  return sessionEl;
 	}
 
-	function createDateGroup(date) {
-	  const group = document.createElement('div');
-	  group.className = 'session-group';
-	  
-	  const header = document.createElement('div');
-	  header.className = 'session-group-header';
-	  header.textContent = getGroupHeader(date);
-	  
-	  group.appendChild(header);
-	  return group;
-	}
-
-	function getGroupHeader(date) {
-	  const today = new Date();
-	  const sessionDate = new Date(date);
-	  
-	  if (sessionDate.toDateString() === today.toDateString()) {
-		return 'Today';
-	  }
-	  
-	  if (sessionDate.toDateString() === new Date(today.setDate(today.getDate() - 1)).toDateString()) {
-		return 'Yesterday';
-	  }
-	  
-	  return sessionDate.toLocaleDateString();
-	}
-
 	function addNewSession(message) {
-	  const sessionsContainer = document.querySelector('.sessions-list');
+	  const sessionsContainer = document.querySelector('.session-group');
 	  const sessionItem = createSessionItem(message);
-	  const currentDate = new Date();
+	  sessionsContainer.appendChild(sessionItem);
 	  
-	  // Find or create today's group
-	  let todayGroup = sessionsContainer.querySelector('.session-group');
-	  if (!todayGroup) {
-		todayGroup = createDateGroup(currentDate);
-		sessionsContainer.insertBefore(todayGroup, sessionsContainer.firstChild);
-	  }
-	  
-	  // Add header if it doesn't exist
-	  if (!todayGroup.querySelector('.session-group-header')) {
-		const header = document.createElement('div');
-		header.className = 'session-group-header';
-		header.textContent = 'Today';
-		todayGroup.insertBefore(header, todayGroup.firstChild);
-	  }
-	  
-	  // Insert new session at the top of today's group, after the header
-	  todayGroup.insertBefore(sessionItem, todayGroup.querySelector('.session-group-header').nextSibling);
-	  
+	  // Add context menu functionality (keeping existing listener)
 	  sessionItem.addEventListener('contextmenu', (e) => {
 		e.preventDefault();
 		showSessionContextMenu(e, sessionItem);
 	  });
 
+	  // Add click listener for session switching
 	  sessionItem.addEventListener('click', () => {
-		switchToSession(sessionItem.dataset.sessionId);
+		setActiveSession(appState.session.id);
 	  });
 	  
+	  // Set this as active session
 	  setActiveSession(appState.session.id);
-	  saveSession();
 	}
 
 	function showSessionContextMenu(e, sessionEl) {
@@ -890,17 +828,7 @@
 	  const message = input.value.trim();
 	  if (!message) return;
 
-	  const currentSession = getCurrentSession();
-	  
-	  // Improved model validation
-	  const modelSelect = document.getElementById('modelSelect');
-	  if (!currentSession.config.model && modelSelect.value) {
-		// If session doesn't have model but select does, use it
-		currentSession.config.model = modelSelect.value;
-		saveSession();
-	  }
-	  
-	  if (!currentSession.config.model) {
+	  if (!appState.session.config.model) {
 		showError('Please select a model from the dropdown before sending a message.');
 		return;
 	  }
@@ -947,20 +875,12 @@
 	  history.scrollTop = history.scrollHeight;
 	}
 
-	function addMessage(role, content, thoughts = null) {
-	  const currentSession = appState.sessions.find(s => s.id === appState.currentSessionId);
-	  if (currentSession) {
-		const message = { 
-		  role, 
-		  content, 
-		  thoughts,
-		  timestamp: Date.now()
-		};
-		currentSession.messages.push(message);
-		renderMessage(message);
-		saveSession();
-	  }
-	}
+    function addMessage(role, content, thoughts = null) {
+      const message = { role, content, thoughts };
+      appState.session.messages.push(message);
+      renderMessage(message);
+      saveSession();
+    }
 
 	async function generateResponse(messages) {
 	  if (!appState.session.config.model) {
@@ -1083,75 +1003,42 @@
     }
 
 	function saveSession() {
-	  // Save current thought states to current session
-	  const currentSession = appState.sessions.find(s => s.id === appState.currentSessionId);
-	  if (currentSession) {
-		currentSession.thoughtStates = Object.fromEntries(thoughtStates);
-	  }
-	  localStorage.setItem('aiSessions', JSON.stringify(appState));
+	  // Ensure thought states are saved with the session
+	  appState.session.thoughtStates = Object.fromEntries(thoughtStates);
+	  localStorage.setItem('aiSession', JSON.stringify(appState.session));
 	}
 
 	function loadSession() {
-	  const saved = localStorage.getItem('aiSessions');
-	  if (saved) {
-		appState = JSON.parse(saved);
+	  const savedSession = localStorage.getItem('aiSession');
+	  if (savedSession) {
+		appState.session = JSON.parse(savedSession);
 		
-		// Add fallback for currentSessionId
-		if (!appState.currentSessionId && appState.sessions.length > 0) {
-		  appState.currentSessionId = appState.sessions[0].id;
+		// Restore thought states
+		if (appState.session.thoughtStates) {
+		  thoughtStates = new Map(Object.entries(appState.session.thoughtStates));
 		}
 		
-		// Restore thought states using helper
-		const currentSession = getCurrentSession();
-		if (currentSession?.thoughtStates) {
-		  thoughtStates = new Map(Object.entries(currentSession.thoughtStates));
+		const systemPromptEl = document.getElementById('systemPrompt');
+		const contextWindowEl = document.getElementById('contextWindow');
+		
+		if (systemPromptEl) {
+		  systemPromptEl.value = appState.session.config.systemPrompt;
+		}
+		if (contextWindowEl) {
+		  contextWindowEl.value = appState.session.config.contextWindow;
 		}
 		
-		// Render sessions in sidebar
-		const sessionsContainer = document.querySelector('.sessions-list');
-		sessionsContainer.innerHTML = '';
-		
-		// Group sessions by date
-		const sessionsByDate = {};
-		appState.sessions.forEach(session => {
-		  const firstMessage = session.messages[0];
-		  if (firstMessage) {
-			const date = new Date(firstMessage.timestamp).toDateString();
-			if (!sessionsByDate[date]) {
-			  sessionsByDate[date] = [];
-			}
-			sessionsByDate[date].push(session);
-		  }
-		});
-		
-		// Add groups and sessions
-		Object.keys(sessionsByDate)
-		  .sort((a, b) => new Date(b) - new Date(a))
-		  .forEach(date => {
-			const group = createDateGroup(new Date(date));
-			sessionsContainer.appendChild(group);
-			
-			sessionsByDate[date].forEach(session => {
-			  const firstMessage = session.messages[0];
-			  if (firstMessage) {
-				const sessionItem = createSessionItem(firstMessage.content);
-				sessionItem.dataset.sessionId = session.id;
-				group.appendChild(sessionItem);
-			  }
-			});
-		  });
-		
-		// Load current session if exists
-		if (currentSession) {
-		  currentSession.messages.forEach(renderMessage);
-		  setActiveSession(appState.currentSessionId);
+		appState.session.messages.forEach(renderMessage);
+
+		// Add this block to restore session in sidebar
+		if (appState.session.messages.length > 0) {
+		  addNewSession(appState.session.messages[0].content);
 		}
 	  }
 	}
 
-	function saveConfig() {
-	  const currentSession = getCurrentSession();
-	  currentSession.config = {
+    function saveConfig() {
+      appState.session.config = {
         model: document.getElementById('modelSelect').value,
         systemPrompt: document.getElementById('systemPrompt').value,
         contextWindow: parseInt(document.getElementById('contextWindow').value)
@@ -1161,92 +1048,41 @@
     }
 
 	function clearHistory() {
-	  const newSession = {  // Create new session with your exact structure
-		id: Date.now(),
-		messages: [],
-		config: {
-		  model: null,
-		  systemPrompt: '',
-		  contextWindow: 20,
-		  chainOfThought: false
-		},
-		thoughtStates: {}
-	  };
-	  
-	  appState.sessions.push(newSession);
-	  appState.currentSessionId = newSession.id;
-	  
+	  appState.session.messages = [];
 	  document.getElementById('messageHistory').innerHTML = '';
+	  appState.session.config.chainOfThought = false;
 	  document.getElementById('toggleCOT').classList.remove('active');
 	  
-	  // Clear thought states for new session
+	  // Clear thought states
 	  thoughtStates.clear();
+	  appState.session.thoughtStates = {};
 	  
-	  setActiveSession(newSession.id);
 	  saveSession();
 	}
 
-	async function loadModels() {
-	  try {
-		const response = await fetch('https://text.pollinations.ai/models');
-		const models = await response.json();
-		const chatModels = models.filter(m => m.type === 'chat');
-		
-		// Populate the select and set default
-		populateModelSelect(chatModels);
-		
-		// Set default model if none is selected
-		const currentSession = getCurrentSession();
-		if (!currentSession.config.model && chatModels.length > 0) {
-		  currentSession.config.model = chatModels[0].name;
-		  document.getElementById('modelSelect').value = chatModels[0].name;
-		  saveSession();
-		}
-	  } catch (error) {
-		showError('Failed to load models: ' + error.message);
-	  }
-	}
+    async function loadModels() {
+      try {
+        const response = await fetch('https://text.pollinations.ai/models');
+        const models = await response.json();
+        populateModelSelect(models.filter(m => m.type === 'chat'));
+      } catch (error) {
+        showError('Failed to load models: ' + error.message);
+      }
+    }
 
-	function populateModelSelect(models) {
-	  const select = document.getElementById('modelSelect');
-	  select.innerHTML = models.map(m => `
-		<option value="${m.name}" ${m.censored ? 'data-censored="true"' : ''} data-info='${JSON.stringify(m)}'>
-		  ${m.description} (${m.censored ? 'censored' : 'uncensored'})
-		</option>
-	  `).join('');
-	  select.disabled = false;
+    function populateModelSelect(models) {
+      const select = document.getElementById('modelSelect');
+      select.innerHTML = models.map(m => `
+        <option value="${m.name}" ${m.censored ? 'data-censored="true"' : ''} data-info='${JSON.stringify(m)}'>
+          ${m.description} (${m.censored ? 'censored' : 'uncensored'})
+        </option>
+      `).join('');
+      select.disabled = false;
 
-	  // Set the selected value to match current session
-	  const currentSession = getCurrentSession();
-	  if (currentSession.config.model) {
-		select.value = currentSession.config.model;
-	  }
-	}
-
-	function getCurrentSession() {
-	  // Find the current session
-	  const session = appState.sessions.find(s => s.id === appState.currentSessionId);
-	  
-	  // If no session found, create a new one
-	  if (!session) {
-		const newSession = {
-		  id: Date.now(),
-		  messages: [],
-		  config: {
-			model: null,
-			systemPrompt: '',
-			contextWindow: 20,
-			chainOfThought: false
-		  },
-		  thoughtStates: {}
-		};
-		appState.sessions.push(newSession);
-		appState.currentSessionId = newSession.id;
-		return newSession;
-	  }
-	  
-	  return session;
-	}
+      if (appState.session.config.model) {
+        select.value = appState.session.config.model;
+      }
+    }
 
 	function constructMessagePayload(newMessage) {
 	  const messages = [];
@@ -1289,16 +1125,8 @@
 	});
 
 	async function initializeApp() {
-	  // Ensure we have a valid session
-	  const currentSession = getCurrentSession();
-	  
-	  // Load models first to ensure we have a default
-	  await loadModels();
-	  
-	  // Then load session to preserve any existing settings
 	  loadSession();
-	  
-	  // Rest of your existing initializeApp code...
+	  await loadModels();
 	  setupEventListeners();
 	  updateSendButtonState();
 	  
@@ -1312,13 +1140,13 @@
 		  'rotate(180deg)' : 'rotate(0deg)';
 	  }
 	  
-	  if (currentSession.config.chainOfThought) {
+	  if (appState.session.config.chainOfThought) {
 		document.getElementById('toggleCOT').classList.add('active');
 	  }
 	  
 	  // Initialize thought states if none exist
-	  if (!currentSession.thoughtStates) {
-		currentSession.thoughtStates = {};
+	  if (!appState.session.thoughtStates) {
+		appState.session.thoughtStates = {};
 		thoughtStates = new Map();
 	  }
 	}
