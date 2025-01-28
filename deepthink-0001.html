@@ -206,43 +206,35 @@
       }
     }
 
-	function handleResponse(response) {
-		if (response && response.content) {
-			addMessage('assistant', response.content);
-		} else {
-			showError('Invalid response from the API');
-		}
-	}
+    async function sendMessage() {
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+      if (!message) return;
 
-	async function sendMessage() {
-		const input = document.getElementById('userInput');
-		const message = input.value.trim();
-		if (!message) return;
+      // Disable UI during processing
+      const sendBtn = document.getElementById('sendBtn');
+      sendBtn.disabled = true;
+      input.disabled = true;
 
-		// Disable UI during processing
-		const sendBtn = document.getElementById('sendBtn');
-		sendBtn.disabled = true;
-		input.disabled = true;
+      try {
+        // Add user message
+        addMessage('user', message);
+        input.value = '';
 
-		try {
-			// Add user message
-			addMessage('user', message);
-			input.value = '';
+        // Prepare messages payload
+        const messages = constructMessagePayload(message);
 
-			// Prepare messages payload
-			const messages = constructMessagePayload(message);
-
-			// Generate response
-			const response = await generateResponse(messages);
-			handleResponse(response);
-		} catch (error) {
-			showError(error.message);
-		} finally {
-			sendBtn.disabled = false;
-			input.disabled = false;
-			Prism.highlightAll();
-		}
-	}
+        // Generate response
+        const response = await generateResponse(messages);
+        handleResponse(response);
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        sendBtn.disabled = false;
+        input.disabled = false;
+        Prism.highlightAll();
+      }
+    }
 
     function constructMessagePayload(newMessage) {
       return [
@@ -266,66 +258,67 @@
       }
     }
 
-	async function streamResponse(messages, model) {
-		const controller = new AbortController();
-		const response = await fetch('https://text.pollinations.ai/', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				messages,
-				model,
-				stream: true
-			}),
-			signal: controller.signal
-		});
+    async function streamResponse(messages, model) {
+      const controller = new AbortController();
+      const response = await fetch('https://text.pollinations.ai/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages,
+          model,
+          stream: true
+        }),
+        signal: controller.signal
+      });
 
-		const reader = response.body.getReader();
-		const decoder = new TextDecoder();
-		let buffer = '';
-		let assistantMessage = { role: 'assistant', content: '' };
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let assistantMessage = { role: 'assistant', content: '' };
 
-		try {
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-				buffer += decoder.decode(value, { stream: true });
-				const chunks = buffer.split('\n');
+          buffer += decoder.decode(value, { stream: true });
+          const chunks = buffer.split('\n');
 
-				for (const chunk of chunks) {
-					if (!chunk.startsWith('data: ')) continue;
-					
-					try {
-						const data = JSON.parse(chunk.slice(6));
-						const content = data.choices[0].delta.content || '';
-						
-						assistantMessage.content += content;
-						updateLastMessage(content);
-					} catch (error) {
-						console.warn('Error parsing chunk:', error);
-					}
-				}
+          for (const chunk of chunks) {
+            if (!chunk.startsWith('data: ')) continue;
+            
+            try {
+              const data = JSON.parse(chunk.slice(6));
+              const content = data.choices[0].delta.content || '';
+              
+              assistantMessage.content += content;
+              updateLastMessage(content);
+            } catch (error) {
+              console.warn('Error parsing chunk:', error);
+            }
+          }
 
-				buffer = chunks.pop() || '';
-			}
-		} finally {
-			reader.releaseLock();
-			appState.session.messages.push(assistantMessage);
-			saveSession();
-		}
-	}
+          buffer = chunks.pop() || '';
+        }
+      } finally {
+        reader.releaseLock();
+        appState.session.messages.push(assistantMessage);
+        saveSession();
+      }
+    }
 
-	async function batchResponse(messages, model) {
-		const response = await fetch('https://text.pollinations.ai/', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ messages, model })
-		});
+    async function batchResponse(messages, model) {
+      const response = await fetch('https://text.pollinations.ai/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, model })
+      });
 
-		if (!response.ok) throw new Error(`API Error: ${response.status}`);
-		const data = await response.json();
-		handleResponse(data);
-	}
+      if (!response.ok) throw new Error(`API Error: ${response.status}`);
+      const data = await response.json();
+      addMessage('assistant', data.content);
+      saveSession();
+    }
 
     // UI Functions
     function addMessage(role, content) {
