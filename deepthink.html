@@ -71,6 +71,10 @@
 	  transform: translateX(-277px);
 	}
 
+	.sidebar.collapsed .toggle-sidebar {
+	  left: 0;
+	}
+
 	.toggle-sidebar svg {
 	  transition: transform 0.3s;
 	}
@@ -672,7 +676,10 @@
 
 	function toggleSidebar() {
 	  const sidebar = document.getElementById('sidebar');
-	  if (!sidebar) return;
+	  const toggleBtn = document.querySelector('.toggle-sidebar');
+	  
+	  if (!sidebar || !toggleBtn) return;
+	  
 	  sidebar.classList.toggle('collapsed');
 	}
 
@@ -1036,7 +1043,7 @@
 	  saveSession();
 	});
 
-	function initializeApp() {
+	async function initializeApp() {
 	  loadSession();
 	  await loadModels();
 	  setupEventListeners();
@@ -1044,10 +1051,19 @@
 	  
 	  document.getElementById('sendBtn').disabled = false;
 	  
+	  // Initialize toggle button state
+	  const sidebar = document.getElementById('sidebar');
+	  const toggleBtn = document.querySelector('.toggle-sidebar svg');
+	  if (sidebar && toggleBtn) {
+		toggleBtn.style.transform = sidebar.classList.contains('collapsed') ? 
+		  'rotate(180deg)' : 'rotate(0deg)';
+	  }
+	  
 	  if (appState.session.config.chainOfThought) {
 		document.getElementById('toggleCOT').classList.add('active');
 	  }
 	  
+	  // Initialize thought states if none exist
 	  if (!appState.session.thoughtStates) {
 		appState.session.thoughtStates = {};
 		thoughtStates = new Map();
