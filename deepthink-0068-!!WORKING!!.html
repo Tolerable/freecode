@@ -494,70 +494,6 @@
 	  background: rgba(255,255,255,0.2);
 	}
 
-	.attachment-preview {
-	  margin-top: 0.5rem;
-	  background: rgba(0,0,0,0.2);
-	  border-radius: 4px;
-	  padding: 0.5rem;
-	}
-
-	.image-preview {
-	  display: flex;
-	  align-items: center;
-	  gap: 0.5rem;
-	}
-
-	.image-preview img {
-	  max-height: 100px;
-	  border-radius: 4px;
-	}
-
-	.text-preview {
-	  display: flex;
-	  align-items: center;
-	  gap: 0.5rem;
-	}
-
-	.remove-attachment {
-	  background: transparent;
-	  border: none;
-	  color: var(--text);
-	  opacity: 0.6;
-	  cursor: pointer;
-	  padding: 0.25rem;
-	}
-
-	.remove-attachment:hover {
-	  opacity: 1;
-	}
-
-	.message-attachment {
-	  margin-bottom: 0.5rem;
-	  background: rgba(0,0,0,0.2);
-	  border-radius: 4px;
-	  padding: 0.5rem;
-	}
-
-	.message-attachment.image img {
-	  max-width: 300px;
-	  max-height: 200px;
-	  border-radius: 4px;
-	}
-
-	.message-attachment.text {
-	  display: flex;
-	  align-items: center;
-	  gap: 0.5rem;
-	}
-
-	.text-file-icon {
-	  font-size: 1.5rem;
-	}
-
-	.message-text {
-	  margin-top: 0.5rem;
-	}
-
 	@media (max-width: 768px) {
 	  .sidebar {
 		width: 100%;
@@ -927,107 +863,7 @@
 	  document.addEventListener('click', () => menu.remove(), { once: true });
 	}
 
-
-	function showError(message) {
-	  const history = document.getElementById('messageHistory');
-	  const errorElement = document.createElement('div');
-	  errorElement.className = 'message error';
-	  errorElement.textContent = `Error: ${message}`;
-	  history.appendChild(errorElement);
-	  history.scrollTop = history.scrollHeight;
-	}
-
-
-	async function sendMessage() {
-	  const input = document.getElementById('userInput');
-	  const message = input.value.trim();
-	  const attachments = document.querySelectorAll('.attachment-preview');
-	  
-	  // Check if we have either text or attachments
-	  if (!message && !attachments.length) return;
-
-	  if (!appState.config.model) {
-		showError('Please select a model from the dropdown before sending a message.');
-		return;
-	  }
-
-	  const sendBtn = document.getElementById('sendBtn');
-	  sendBtn.disabled = true;
-	  input.disabled = true;
-
-	  const startTime = Date.now();
-
-	  try {
-		// Process any image attachments first to get their analysis
-		const attachmentData = [];
-		for (const attachment of attachments) {
-		  const img = attachment.querySelector('img');
-		  const textPreview = attachment.querySelector('.text-preview');
-		  
-		  if (img) {
-			// It's an image attachment
-			const analysis = attachment.dataset.analysis || '';
-			attachmentData.push({
-			  type: 'image',
-			  content: img.src,
-			  analysis: analysis
-			});
-		  } else if (textPreview) {
-			// It's a text attachment
-			attachmentData.push({
-			  type: 'text',
-			  content: attachment.dataset.content,
-			  filename: textPreview.querySelector('span').textContent
-			});
-		  }
-		}
-
-		// Create new session if this is the first message
-		const activeSession = appState.sessions.find(s => s.isActive);
-		if (!activeSession?.messages.length) {
-		  addNewSession(message);
-		}
-
-		// Build the complete message object with attachments
-		const userMessage = {
-		  role: 'user',
-		  content: message,
-		  attachments: attachmentData
-		};
-		
-		// Add user message
-		addMessage('user', message, null, null, attachmentData);
-		
-		// Clear input and attachments
-		input.value = '';
-		input.style.height = 'auto';
-		attachments.forEach(a => a.remove());
-		updateSendButtonState();
-
-		// Construct message payload with context from attachments
-		let messages = constructMessagePayload(userMessage);
-		
-		// Generate response
-		const response = await generateResponse(messages);
-		const thinkTime = ((Date.now() - startTime) / 1000).toFixed(1);
-		
-		if (response) {
-		  if (appState.config.chainOfThought) {
-			addMessage('assistant', response.content, response.thoughts, thinkTime);
-		  } else {
-			addMessage('assistant', response.content);
-		  }
-		}
-	  } catch (error) {
-		showError(error.message);
-	  } finally {
-		sendBtn.disabled = false;
-		input.disabled = false;
-	  }
-	}
-
-	// Update constructMessagePayload to handle attachments
-	function constructMessagePayload(userMessage) {
+	function constructMessagePayload(newMessage) {
 	  const messages = [];
 	  const activeSession = appState.sessions.find(s => s.isActive);
 	  
@@ -1054,99 +890,84 @@
 		messages.push(...activeSession.messages.slice(-appState.config.contextWindow));
 	  }
 	  
-	  // Construct the final user message with attachments
-	  const finalMessage = { role: 'user', content: userMessage.content };
-	  
-	  // Add attachment context if any exists
-	  if (userMessage.attachments?.length > 0) {
-		const attachmentContext = userMessage.attachments.map(att => {
-		  if (att.type === 'image') {
-			return `[User shared an image. Analysis: ${att.analysis}]`;
-		  } else if (att.type === 'text') {
-			return `[User shared a text file "${att.filename}". Content: ${att.content}]`;
-		  }
-		  return '';
-		}).join('\n');
-		
-		finalMessage.content = `${attachmentContext}\n\n${finalMessage.content}`;
-	  }
-	  
-	  messages.push(finalMessage);
+	  // Add new message
+	  messages.push({ role: 'user', content: newMessage });
+
 	  return messages;
 	}
 
-	// Update addMessage to handle attachments in rendering
-	function addMessage(role, content, thoughts = null, thinkTime = null, attachments = null) {
+	async function sendMessage() {
+	  const input = document.getElementById('userInput');
+	  const message = input.value.trim();
+	  if (!message) return;
+
+	  if (!appState.config.model) {
+		showError('Please select a model from the dropdown before sending a message.');
+		return;
+	  }
+
+	  const sendBtn = document.getElementById('sendBtn');
+	  sendBtn.disabled = true;
+	  input.disabled = true;
+
+	  const startTime = Date.now();  // Start timing
+
+	  try {
+		// Create new session if this is the first message
+		const activeSession = appState.sessions.find(s => s.isActive);
+		if (!activeSession?.messages.length) {
+		  addNewSession(message);
+		}
+		
+		addMessage('user', message);
+		input.value = '';
+		input.style.height = 'auto';
+		updateSendButtonState();
+
+		const messages = constructMessagePayload(message);
+		const response = await generateResponse(messages);
+		
+		const thinkTime = ((Date.now() - startTime) / 1000).toFixed(1);  // Calculate time in seconds
+		
+		if (response) {
+		  if (appState.config.chainOfThought) {
+			addMessage('assistant', response.content, response.thoughts, thinkTime);  // Pass thinking time
+		  } else {
+			addMessage('assistant', response.content);
+		  }
+		}
+	  } catch (error) {
+		showError(error.message);
+	  } finally {
+		sendBtn.disabled = false;
+		input.disabled = false;
+	  }
+	}
+
+	function showError(message) {
+	  const history = document.getElementById('messageHistory');
+	  const errorElement = document.createElement('div');
+	  errorElement.className = 'message error';
+	  errorElement.textContent = `Error: ${message}`;
+	  history.appendChild(errorElement);
+	  history.scrollTop = history.scrollHeight;
+	}
+
+
+	function addMessage(role, content, thoughts = null, thinkTime = null) {
 	  const activeSession = appState.sessions.find(s => s.isActive);
 	  if (!activeSession) return;
 	  
-	  const message = { role, content, thoughts, thinkTime, attachments };
+	  const message = { role, content, thoughts, thinkTime };  // Include thinkTime in message object
 	  activeSession.messages.push(message);
 	  
 	  renderMessage(message);
 	  saveSession();
 	  
+	  // Update session list on first message
 	  if (activeSession.messages.length === 1) {
 		renderSessionsList();
 	  }
-	}
-
-	// Update renderMessage to display attachments
-	function renderMessage(message) {
-	  const history = document.getElementById('messageHistory');
-	  const messageElement = document.createElement('div');
-	  messageElement.className = `message ${message.role}`;
-	  
-	  let content = message.content;
-	  
-	  // Add attachment previews if they exist
-	  if (message.attachments?.length > 0) {
-		const attachmentHtml = message.attachments.map(att => {
-		  if (att.type === 'image') {
-			return `
-			  <div class="message-attachment image">
-				<img src="${att.content}" alt="Attached image" class="attachment-preview">
-			  </div>
-			`;
-		  } else if (att.type === 'text') {
-			return `
-			  <div class="message-attachment text">
-				<div class="text-file-icon">📄</div>
-				<span class="filename">${att.filename}</span>
-			  </div>
-			`;
-		  }
-		  return '';
-		}).join('');
-		
-		content = `${attachmentHtml}<div class="message-text">${content}</div>`;
-	  }
-	  
-	  if (message.role === 'assistant') {
-		if (message.thoughts && appState.config.chainOfThought) {
-		  const thoughtsId = 'thoughts-' + message.thoughts.substr(0, 32).replace(/[^a-z0-9]/gi, '');
-		  const isCollapsed = !appState.config.chainOfThought;
-		  
-		  messageElement.innerHTML = `
-			<div class="thoughts-container${isCollapsed ? ' collapsed' : ''}" onclick="toggleThoughts('${thoughtsId}')">
-			  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<polyline points="6 9 12 15 18 9"></polyline>
-			  </svg>
-			  Thoughts ${message.thinkTime}s
-			</div>
-			<div id="${thoughtsId}" class="thoughts-content" style="display: ${isCollapsed ? 'none' : 'block'}">
-			  ${message.thoughts}
-			</div>
-			<div class="response">${content}</div>`;
-		} else {
-		  messageElement.innerHTML = `<div class="response">${content}</div>`;
-		}
-	  } else {
-		messageElement.innerHTML = content;
-	  }
-
-	  history.appendChild(messageElement);
-	  history.scrollTop = history.scrollHeight;
 	}
 
 	async function generateResponse(messages) {
@@ -1215,6 +1036,34 @@
 		console.error('Response error:', error);
 		throw error;
 	  }
+	}
+
+	function renderMessage(message) {
+	  const history = document.getElementById('messageHistory');
+	  const messageElement = document.createElement('div');
+	  messageElement.className = `message ${message.role}`;
+	  
+	  if (message.role === 'assistant' && message.thoughts) {
+		const thoughtsId = 'thoughts-' + message.thoughts.substr(0, 32).replace(/[^a-z0-9]/gi, '');
+		const isCollapsed = !appState.config.chainOfThought;
+		
+		messageElement.innerHTML = `
+		  <div class="thoughts-container${isCollapsed ? ' collapsed' : ''}" onclick="toggleThoughts('${thoughtsId}')">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+			  <polyline points="6 9 12 15 18 9"></polyline>
+			</svg>
+			Thoughts ${message.thinkTime}s
+		  </div>
+		  <div id="${thoughtsId}" class="thoughts-content" style="display: ${isCollapsed ? 'none' : 'block'}">
+			${message.thoughts}
+		  </div>
+		  <div class="response">${message.content}</div>`;
+	  } else {
+		messageElement.innerHTML = `<div class="response">${message.content}</div>`;
+	  }
+
+	  history.appendChild(messageElement);
+	  history.scrollTop = history.scrollHeight;
 	}
 
 	function toggleThoughts(id) {
@@ -1471,134 +1320,6 @@
       const option = select.querySelector(`option[value="${modelName}"]`);
       return option ? JSON.parse(option.dataset.info || '{}') : null;
     }
-
-	function setupEventListeners() {
-	  const userInput = document.getElementById('userInput');
-	  const fileButton = document.querySelector('.action-button[title="Attach File"]');
-	  
-	  // Create hidden file input
-	  const fileInput = document.createElement('input');
-	  fileInput.type = 'file';
-	  fileInput.accept = 'image/*,text/*';
-	  fileInput.style.display = 'none';
-	  document.body.appendChild(fileInput);
-	  
-	  // File button click handler
-	  fileButton.addEventListener('click', () => {
-		fileInput.click();
-	  });
-
-	  // File selection handler
-	  fileInput.addEventListener('change', async (e) => {
-		if (e.target.files.length > 0) {
-		  const file = e.target.files[0];
-		  await handleFileUpload(file);
-		}
-	  });
-	  
-	  // Paste handler
-	  userInput.addEventListener('paste', async (e) => {
-		e.preventDefault();
-		
-		// Handle text paste
-		const text = e.clipboardData.getData('text');
-		if (text) {
-		  if (text.length > 500) { // Long text becomes attachment
-			await handleFileContent('text', text, 'pasted-content.txt');
-		  } else {
-			userInput.value += text;
-		  }
-		  return;
-		}
-		
-		// Handle image paste
-		const items = Array.from(e.clipboardData.items);
-		const imageItem = items.find(item => item.type.startsWith('image/'));
-		if (imageItem) {
-		  const file = imageItem.getAsFile();
-		  await handleFileUpload(file);
-		}
-	  });
-	  
-	  // Existing event listeners...
-	  userInput.addEventListener('input', () => {
-		updateSendButtonState();
-		userInput.style.height = 'auto';
-		userInput.style.height = Math.min(userInput.scrollHeight, 150) + 'px';
-	  });
-
-	  userInput.addEventListener('keydown', (e) => {
-		if (e.key === 'Enter' && !e.shiftKey && !userInput.disabled) {
-		  e.preventDefault();
-		  sendMessage();
-		}
-	  });
-	}
-
-	async function handleFileUpload(file) {
-	  try {
-		if (file.type.startsWith('image/')) {
-		  const reader = new FileReader();
-		  reader.onload = async (e) => {
-			const base64 = e.target.result.split(',')[1];
-			const analysis = await analyzeImage(base64);
-			
-			// Create thumbnail and show in input area
-			await createAttachmentPreview(file, analysis);
-		  };
-		  reader.readAsDataURL(file);
-		} else if (file.type.startsWith('text/')) {
-		  const reader = new FileReader();
-		  reader.onload = async (e) => {
-			await handleFileContent('text', e.target.result, file.name);
-		  };
-		  reader.readAsText(file);
-		}
-	  } catch (error) {
-		console.error('Error handling file:', error);
-		showError('Failed to process file');
-	  }
-	}
-
-	async function handleFileContent(type, content, filename) {
-	  const attachmentContainer = document.createElement('div');
-	  attachmentContainer.className = 'attachment-preview';
-	  
-	  if (type === 'text') {
-		attachmentContainer.innerHTML = `
-		  <div class="text-preview">
-			<svg>...</svg>
-			<span>${filename}</span>
-			<button class="remove-attachment">×</button>
-		  </div>
-		`;
-	  }
-	  
-	  // Add to input area
-	  const inputContainer = document.querySelector('.input-container');
-	  inputContainer.insertBefore(attachmentContainer, inputContainer.lastChild);
-	}
-
-	async function createAttachmentPreview(file, analysis) {
-	  const reader = new FileReader();
-	  reader.onload = (e) => {
-		const attachmentContainer = document.createElement('div');
-		attachmentContainer.className = 'attachment-preview';
-		attachmentContainer.innerHTML = `
-		  <div class="image-preview">
-			<img src="${e.target.result}" alt="Preview">
-			<button class="remove-attachment">×</button>
-		  </div>
-		`;
-		
-		const inputContainer = document.querySelector('.input-container');
-		inputContainer.insertBefore(attachmentContainer, inputContainer.lastChild);
-		
-		// Store analysis for sending
-		attachmentContainer.dataset.analysis = analysis;
-	  };
-	  reader.readAsDataURL(file);
-	}
 
 	window.addEventListener('beforeunload', () => {
 	  saveSession();
