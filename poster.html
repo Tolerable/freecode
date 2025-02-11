@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Post Generator</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a1a;
+            --bg-darker: #0f0f0f;
+            --text-light: #ffffff;
+            --text-gray: #a0a0a0;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid #333;
+            border-radius: 0.5rem;
+            background-color: var(--bg-darker);
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+
+        .blog-post {
+            background-color: var(--bg-darker);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-top: 2rem;
+        }
+
+        .blog-post img {
+            width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .blog-post h2 {
+            margin-top: 0;
+            color: var(--text-light);
+        }
+
+        .blog-post p {
+            color: var(--text-gray);
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .loading.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Blog Post Generator</h1>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="topicInput" placeholder="Enter your blog post topic or idea...">
+            <button id="generateBtn" onclick="generatePost()">Generate</button>
+        </div>
+
+        <div class="loading" id="loadingIndicator">
+            Generating your blog post...
+        </div>
+
+        <div id="blogPost" class="blog-post" style="display: none;"></div>
+    </div>
+
+    <script>
+        const SYSTEM_MESSAGE = `You are a creative blog post writer. You specialize in writing engaging, thought-provoking articles about mysterious and intriguing topics. Your posts should:
+- Have captivating titles that spark curiosity
+- Include detailed, vivid descriptions
+- Present interesting theories and possibilities
+- Maintain a balance between speculation and plausibility
+- Be around 800-1200 words in length
+- Generate image prompts that capture the essence of the article
+
+Format your response exactly like this:
+TITLE: [Your title here]
+IMAGE PROMPT: [Your image prompt here]
+CONTENT: [Your article content here]`;
+
+        async function generatePost() {
+            const topicInput = document.getElementById('topicInput');
+            const generateBtn = document.getElementById('generateBtn');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const blogPostDiv = document.getElementById('blogPost');
+
+            if (!topicInput.value.trim()) return;
+
+            // Show loading state
+            generateBtn.disabled = true;
+            loadingIndicator.classList.add('active');
+            blogPostDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'openai-large',
+                        messages: [
+                            { role: 'system', content: SYSTEM_MESSAGE },
+                            { role: 'user', content: topicInput.value }
+                        ],
+                        jsonMode: false
+                    }),
+                });
+
+                const data = await response.text();
+                const content = parseContent(data);
+
+                // Create blog post HTML
+                const blogHTML = `
+                    <h2>${content.title}</h2>
+                    <img src="https://image.pollinations.ai/prompt/${encodeURIComponent(content.imagePrompt)}?nologo=true" 
+                         alt="${content.title}">
+                    ${content.content.split('\n').map(p => `<p>${p}</p>`).join('')}
+                `;
+
+                blogPostDiv.innerHTML = blogHTML;
+                blogPostDiv.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error generating content:', error);
+                blogPostDiv.innerHTML = '<p>Error generating content. Please try again.</p>';
+                blogPostDiv.style.display = 'block';
+            } finally {
+                generateBtn.disabled = false;
+                loadingIndicator.classList.remove('active');
+            }
+        }
+
+        function parseContent(text) {
+            const lines = text.split('\n');
+            let title = '';
+            let imagePrompt = '';
+            let content = '';
+            let currentSection = 'title';
+
+            for (const line of lines) {
+                if (line.toLowerCase().includes('title:')) {
+                    currentSection = 'title';
+                    continue;
+                } else if (line.toLowerCase().includes('image prompt:')) {
+                    currentSection = 'image';
+                    continue;
+                } else if (line.toLowerCase().includes('content:')) {
+                    currentSection = 'content';
+                    continue;
+                }
+
+                const trimmedLine = line.trim();
+                if (!trimmedLine) continue;
+
+                switch (currentSection) {
+                    case 'title':
+                        if (!title) title = trimmedLine;
+                        break;
+                    case 'image':
+                        if (!imagePrompt) imagePrompt = trimmedLine;
+                        break;
+                    case 'content':
+                        content += trimmedLine + '\n';
+                        break;
+                }
+            }
+
+            return {
+                title: title || 'Untitled Post',
+                imagePrompt: imagePrompt || 'mysterious landscape',
+                content: content.trim()
+            };
+        }
+    </script>
+</body>
+</html>
