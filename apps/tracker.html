@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trump Tracker</title>
+    <style>
+        :root {
+            --primary-color: #1a1a1a;
+            --secondary-color: #2d2d2d;
+            --accent-color: #3498db;
+            --text-color: #ffffff;
+            --panel-padding: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--primary-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+            height: 100vh;
+        }
+
+        .main-panel {
+            background-color: var(--secondary-color);
+            border-radius: 10px;
+            padding: var(--panel-padding);
+            overflow-y: auto;
+        }
+
+        .side-panel {
+            display: grid;
+            grid-template-rows: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .panel {
+            background-color: var(--secondary-color);
+            border-radius: 10px;
+            padding: var(--panel-padding);
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--accent-color);
+        }
+
+        .news-item, .order-item, .case-item {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .news-item:hover, .order-item:hover, .case-item:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .news-date, .order-date, .case-date {
+            font-size: 0.8em;
+            color: #999;
+        }
+
+        .news-title, .order-title, .case-title {
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .news-description {
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+            
+            .side-panel {
+                grid-template-rows: none;
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .side-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-panel" id="newsPanel">
+            <div class="panel-header">Current Events & News</div>
+            <div id="newsFeed"></div>
+        </div>
+        
+        <div class="side-panel">
+            <div class="panel" id="executiveOrders">
+                <div class="panel-header">Executive Orders</div>
+                <div id="ordersFeed"></div>
+            </div>
+            
+            <div class="panel" id="appointments">
+                <div class="panel-header">Key Appointments</div>
+                <div id="appointmentsFeed"></div>
+            </div>
+            
+            <div class="panel" id="legalCases">
+                <div class="panel-header">Legal Cases</div>
+                <div id="casesFeed"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = 'https://text.pollinations.ai/';
+        
+        async function fetchData(prompt, model = 'searchgpt') {
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: 'You are a helpful assistant focusing on current political news and events.' },
+                            { role: 'user', content: prompt }
+                        ],
+                        model: model,
+                        jsonMode: true
+                    })
+                });
+
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                return null;
+            }
+        }
+
+        function createNewsItem(item) {
+            return `
+                <div class="news-item">
+                    <div class="news-date">${item.date}</div>
+                    <div class="news-title">${item.title}</div>
+                    <div class="news-description">${item.description}</div>
+                </div>
+            `;
+        }
+
+        function createOrderItem(order) {
+            return `
+                <div class="order-item">
+                    <div class="order-date">${order.date}</div>
+                    <div class="order-title">${order.title}</div>
+                </div>
+            `;
+        }
+
+        function createCaseItem(case_) {
+            return `
+                <div class="case-item">
+                    <div class="case-date">${case_.date}</div>
+                    <div class="case-title">${case_.title}</div>
+                </div>
+            `;
+        }
+
+        async function updateNewsFeed() {
+            const newsFeed = document.getElementById('newsFeed');
+            newsFeed.innerHTML = '<div class="loading">Loading news...</div>';
+
+            const newsData = await fetchData('List the latest news about Donald Trump from the past week, return as JSON with fields: date, title, description');
+            
+            if (newsData && newsData.length > 0) {
+                newsFeed.innerHTML = newsData.map(createNewsItem).join('');
+            } else {
+                newsFeed.innerHTML = '<div class="loading">Unable to load news</div>';
+            }
+        }
+
+        async function updateExecutiveOrders() {
+            const ordersFeed = document.getElementById('ordersFeed');
+            ordersFeed.innerHTML = '<div class="loading">Loading orders...</div>';
+
+            const ordersData = await fetchData('List Donald Trump\'s most recent executive orders, return as JSON with fields: date, title');
+            
+            if (ordersData && ordersData.length > 0) {
+                ordersFeed.innerHTML = ordersData.map(createOrderItem).join('');
+            } else {
+                ordersFeed.innerHTML = '<div class="loading">Unable to load orders</div>';
+            }
+        }
+
+        async function updateLegalCases() {
+            const casesFeed = document.getElementById('casesFeed');
+            casesFeed.innerHTML = '<div class="loading">Loading cases...</div>';
+
+            const casesData = await fetchData('List current legal cases involving Donald Trump, return as JSON with fields: date, title');
+            
+            if (casesData && casesData.length > 0) {
+                casesFeed.innerHTML = casesData.map(createCaseItem).join('');
+            } else {
+                casesFeed.innerHTML = '<div class="loading">Unable to load cases</div>';
+            }
+        }
+
+        async function updateAppointments() {
+            const appointmentsFeed = document.getElementById('appointmentsFeed');
+            appointmentsFeed.innerHTML = '<div class="loading">Loading appointments...</div>';
+
+            const appointmentsData = await fetchData('List Donald Trump\'s recent key appointments and nominations, return as JSON with fields: date, title');
+            
+            if (appointmentsData && appointmentsData.length > 0) {
+                appointmentsFeed.innerHTML = appointmentsData.map(createOrderItem).join('');
+            } else {
+                appointmentsFeed.innerHTML = '<div class="loading">Unable to load appointments</div>';
+            }
+        }
+
+        // Initial load
+        updateNewsFeed();
+        updateExecutiveOrders();
+        updateLegalCases();
+        updateAppointments();
+
+        // Refresh data every 5 minutes
+        setInterval(() => {
+            updateNewsFeed();
+            updateExecutiveOrders();
+            updateLegalCases();
+            updateAppointments();
+        }, 300000);
+    </script>
+</body>
+</html>
