@@ -5,18 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Basic Chat</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
 
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 			background: #1a1a1a;
 			color: #ffffff;
 			height: 100vh;
-			display: flex;
+			width: 100vw;
+			overflow: hidden;
 		}
 
 		.sidebar {
@@ -31,26 +32,24 @@
 		}
 
 		.main {
-			flex: 1;
 			margin-left: 300px;
 			height: 100vh;
+			width: calc(100vw - 300px);
 			display: flex;
 			flex-direction: column;
-			overflow: hidden;  /* Important: prevent double scroll */
+			overflow: hidden;
 		}
 
 		.chat-container {
 			flex: 1;
 			overflow-y: auto;
 			padding: 2rem;
-			padding-bottom: 100px;
+			display: flex;
+			flex-direction: column;
 		}
 
 		.input-container {
-			position: fixed;
-			bottom: 0;
-			left: 300px;
-			right: 0;
+			width: 100%;
 			background: #1a1a1a;
 			padding: 1rem;
 			border-top: 1px solid #404040;
@@ -61,52 +60,49 @@
 			margin: 0 auto;
 			display: flex;
 			gap: 1rem;
+			width: 100%;
 		}
 
-		.content-container {
-			max-width: 800px;
-			margin: 0 auto;
-			padding: 0 2rem;
+		input[type="text"] {
+			flex: 1;
+			padding: 1rem;
+			border: 1px solid #404040;
+			border-radius: 0.5rem;
+			background: #2d2d2d;
+			color: #ffffff;
+			font-size: 1rem;
 		}
 
-        input[type="text"] {
-            flex: 1;
-            padding: 1rem;
-            border: 1px solid #404040;
-            border-radius: 0.5rem;
-            background: #2d2d2d;
-            color: #ffffff;
-            font-size: 1rem;
-        }
-
-        button {
-            padding: 0 1.5rem;
-            background: #3b82f6;
-            border: none;
-            border-radius: 0.5rem;
-            color: white;
-            cursor: pointer;
-        }
+		button {
+			padding: 0 1.5rem;
+			background: #3b82f6;
+			border: none;
+			border-radius: 0.5rem;
+			color: white;
+			cursor: pointer;
+		}
 
 		.message {
-			width: 800px;
+			max-width: 800px;
+			width: 100%;
 			margin: 0 auto 1.5rem auto;
 			display: flex;
 		}
 
 		.message.user {
-			justify-content: flex-end;  /* Push user messages to right */
+			justify-content: flex-end;
 		}
 
 		.message.assistant {
-			justify-content: flex-start;  /* Push AI messages to left */
+			justify-content: flex-start;
 		}
 
 		.message-content {
-			max-width: 80%;  /* This ensures the bubble isn't too wide */
+			max-width: 80%;
 			background: #2d2d2d;
 			padding: 1rem;
 			border-radius: 0.5rem;
+			word-wrap: break-word;
 		}
 
 		.message.user .message-content {
@@ -115,20 +111,17 @@
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <!-- Empty for now -->
-    </div>
-    <div class="main">
-        <div class="content-container">
-            <div class="chat-container" id="chatContainer"></div>
-        </div>
-        <div class="input-container">
-            <div class="input-box">
-                <input type="text" id="messageInput" placeholder="Type your message..." autocomplete="off">
-                <button id="sendButton">Send</button>
-            </div>
-        </div>
-    </div>
+	<div class="sidebar">
+	</div>
+	<div class="main">
+		<div class="chat-container" id="chatContainer"></div>
+		<div class="input-container">
+			<div class="input-box">
+				<input type="text" id="messageInput" placeholder="Type your message..." autocomplete="off">
+				<button id="sendButton">Send</button>
+			</div>
+		</div>
+	</div>
 
     <script>
         const API_ENDPOINT = 'https://text.pollinations.ai/';
