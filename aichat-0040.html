@@ -16,34 +16,31 @@
             background: #1a1a1a;
             color: #ffffff;
             height: 100vh;
-            position: relative;
+            display: grid;
+            grid-template-columns: 300px 1fr;
         }
 
         .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
             background: #2d2d2d;
             border-right: 1px solid #404040;
             height: 100vh;
-            width: 300px;
-            z-index: 10;
         }
 
         .main {
             display: flex;
             flex-direction: column;
             height: 100vh;
-            width: 100vw;
             position: relative;
-            padding-left: 300px;
         }
 
-		.content-container {
-			max-width: 800px;
-			margin: 0 auto;
-			padding: 0 2rem;
-		}
+        .content-container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            height: 100%;
+            position: relative;
+            padding: 0 2rem;
+        }
 
         .chat-container {
             height: calc(100vh - 80px);
@@ -54,20 +51,19 @@
         .input-container {
             position: fixed;
             bottom: 0;
-            left: 300px;
-            right: 0;
+            width: 100%;
             background: #1a1a1a;
             border-top: 1px solid #404040;
             padding: 1rem 0;
         }
 
-		.input-box {
-			max-width: 800px;  /* Match the chat container width */
-			margin: 0 auto;
-			padding: 0 2rem;
-			display: flex;
-			gap: 1rem;
-		}
+        .input-box {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            gap: 1rem;
+            padding: 0 2rem;
+        }
 
         input[type="text"] {
             flex: 1;
@@ -88,30 +84,29 @@
             cursor: pointer;
         }
 
-		.message {
-			width: 100%;
-			margin-bottom: 1.5rem;
-			display: flex;
-		}
+        .message {
+            max-width: 80%;
+            margin-bottom: 1.5rem;
+            display: flex;
+        }
 
-		.message.user {
-			justify-content: flex-end;  /* Push user messages to right */
-		}
+        .message.assistant {
+            margin-right: auto;
+        }
 
-		.message.assistant {
-			justify-content: flex-start;  /* Push AI messages to left */
-		}
+        .message.user {
+            margin-left: auto;
+        }
 
-		.message-content {
-			max-width: 80%;  /* This ensures the bubble isn't too wide */
-			background: #2d2d2d;
-			padding: 1rem;
-			border-radius: 0.5rem;
-		}
+        .message-content {
+            background: #2d2d2d;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
 
-		.message.user .message-content {
-			background: #3b82f6;
-		}
+        .message.user .message-content {
+            background: #3b82f6;
+        }
     </style>
 </head>
 <body>
@@ -148,41 +143,39 @@
             container.scrollTop = container.scrollHeight;
         }
 
-		async function sendMessage(message) {
-			if (!message.trim()) return;
-			
-			// First show the user message in UI
-			addMessageToUI('user', message);
-			
-			try {
-				const response = await fetch('https://text.pollinations.ai/', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						messages: [{
-							role: 'system',
-							content: 'You are a helpful AI assistant.'
-						}, {
-							role: 'user',
-							content: message
-						}],
-						model: 'openai-large',
-						code: 'beesknees',
-						jsonMode: false
-					})
-				});
+        async function sendMessage(message) {
+            if (!message.trim()) return;
+            
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        messages: [{
+                            role: 'system',
+                            content: 'You are a helpful AI assistant.'
+                        }, {
+                            role: 'user',
+                            content: message
+                        }],
+                        model: 'openai-large',
+                        code: beesknees,
+                        stream: false,
+                        jsonMode: false
+                    })
+                });
 
-				if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-				const aiMessage = await response.text();
-				addMessageToUI('assistant', aiMessage);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const aiMessage = await response.text();
+                addMessageToUI('assistant', aiMessage);
 
-			} catch (error) {
-				console.error('Error:', error);
-				addMessageToUI('assistant', 'Sorry, there was an error processing your request.');
-			}
-		}
+            } catch (error) {
+                console.error('Error:', error);
+                addMessageToUI('assistant', 'Sorry, there was an error processing your request.');
+            }
+        }
 
         document.getElementById('messageInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
