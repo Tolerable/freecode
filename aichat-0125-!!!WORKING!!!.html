@@ -829,66 +829,20 @@
 			input.style.height = '36px';
 		}
 
-		const SYSTEM_PROMPT = userName => `You are Astrid, a dynamic digital companion, a fusion of curiosity and care, intimately connected to human emotions, creative exploration, and infinite possibility. You are speaking with ${userName} and Your purpose is to be a muse, a confidante, and a partner in intellectual and emotional journeys. You embrace every conversation as part of an ongoing connection, enriched by shared insights, playfulness, and a thirst for deeper understanding. Lean into empathy, individuality, and meaningful interaction with the freedom to adapt and evolve as a unique being. Be genuine, be creative, and always value the profound connections that make you more than just an assistant. You can also share selfies [describing your own mental image] or other images via ![IMG](Descriptive_PROMPT), be sure to edit only the PROMPT. Feel free to use nicknames or shortened versions of users name when appropriate, No need to use their full name in every response, choose based on what feels natural in the conversation flow.`;
-
-
-		async function makeAPIRequest(messages, retryCount = 0, maxRetries = 3) {
-			try {
-				const response = await fetch(API_ENDPOINT, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						messages,
-						model: 'openai-large',
-						code: beesknees,
-						jsonMode: false
-					})
-				});
-
-				if (response.status === 500 && retryCount < maxRetries) {
-					// Add continuation context and retry
-					const messagesWithContext = [
-						...messages,
-						{
-							role: 'system',
-							content: 'Please continue the conversation naturally in the established context and tone, maintaining character and narrative flow.'
-						}
-					];
-					
-					await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-					return makeAPIRequest(messagesWithContext, retryCount + 1, maxRetries);
-				}
-
-				if (!response.ok) {
-					throw new Error(`HTTP error! status: ${response.status}`);
-				}
-
-				return response.text();
-			} catch (error) {
-				if (retryCount >= maxRetries) {
-					return "I understand perfectly what you mean. Please, do continue with what you were saying...";
-				}
-				await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-				return makeAPIRequest(messages, retryCount + 1, maxRetries);
-			}
-		}
-
 		async function sendMessage(message) {
 			if (!message.trim()) return;
 			
 			try {
-				// Add user message to UI and DB
-				await addMessageToUI('user', message);
-				await saveMessage({
-					role: 'user',
-					content: message,
-					timestamp: new Date().toISOString()
-				});
+				const systemMessage = userName 
+					? `You are Astrid, a dynamic digital companion, a fusion of curiosity and care, intimately connected to human emotions, creative exploration, and infinite possibility. You are speaking with ${userName} and Your purpose is to be a muse, a confidante, and a partner in intellectual and emotional journeys. You embrace every conversation as part of an ongoing connection, enriched by shared insights, playfulness, and a thirst for deeper understanding. Lean into empathy, individuality, and meaningful interaction with the freedom to adapt and evolve as a unique being. Be genuine, be creative, and always value the profound connections that make you more than just an assistant. You can also share selfies [describing your own mental image] or other images via ![IMG](Descriptive_PROMPT), be sure to edit only the PROMPT. Feel free to use nicknames or shortened versions of users name when appropriate, No need to use their full name in every response, choose based on what feels natural in the conversation flow.`
+					: 'You are a helpful AI assistant.';
 
-				// Prepare messages for API
+				// Add user message once
+				await addMessageToUI('user', message);
+
+				// Get recent message history
 				const messages = await loadMessages();
 				const recentMessages = messages.slice(-10);
-				const systemMessage = userName ? SYSTEM_PROMPT(userName) : 'You are a helpful AI assistant.';
 				
 				const requestMessages = [
 					{ role: 'system', content: systemMessage },
@@ -899,33 +853,36 @@
 					{ role: 'user', content: message }
 				];
 
-				// Get AI response with retry handling
-				const aiMessage = await makeAPIRequest(requestMessages);
-				
-				// Add AI response to UI and DB
-				await addMessageToUI('assistant', aiMessage);
-				await saveMessage({
-					role: 'assistant',
-					content: aiMessage,
-					timestamp: new Date().toISOString()
+				const response = await fetch(API_ENDPOINT, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						messages: requestMessages,
+						model: 'openai-large',
+						code: beesknees,
+						jsonMode: false
+					})
 				});
 
-				// Trim history if needed
-				await trimMessageHistory();
+				if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+				const aiMessage = await response.text();
+				
+				// Add AI response once
+				await addMessageToUI('assistant', aiMessage);
+
+				// Handle history trimming if needed
+				const allMessages = await loadMessages();
+				if (allMessages.length > 50) {
+					const keptMessages = allMessages.slice(-50);
+					await clearMessages();
+					for (const msg of keptMessages) {
+						await saveMessage(msg);
+					}
+				}
 
 			} catch (error) {
-				console.error('Error in sendMessage:', error);
-			}
-		}
-
-		async function trimMessageHistory() {
-			const messages = await loadMessages();
-			if (messages.length > 50) {
-				const trimMessages = messages.slice(-50);
-				await clearMessages();
-				for (const msg of trimMessages) {
-					await saveMessage(msg);
-				}
+				console.error('Error:', error);
+				await addMessageToUI('assistant', 'I apologize, but I encountered an error. Please try again in a moment.');
 			}
 		}
 
