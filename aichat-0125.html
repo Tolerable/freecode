@@ -650,6 +650,10 @@
 						);
 					} catch (error) {
 						console.error('Error processing image:', error);
+						processedContent = processedContent.replace(
+							match[0],
+							`<div>[Failed to load image: ${description}]</div>`
+						);
 					}
 				}
 			}
@@ -663,9 +667,23 @@
 			}
 			
 			contentDiv.innerHTML = processedContent;
+
+			if (role === 'assistant') {
+				const playButton = document.createElement('button');
+				playButton.className = 'play-button';
+				playButton.innerHTML = '▶';
+				playButton.onclick = () => speakText(content.replace(imageRegex, '[Generated Image]'));
+				contentDiv.appendChild(playButton);
+			}
+			
 			messageDiv.appendChild(contentDiv);
 			container.appendChild(messageDiv);
 			container.scrollTop = container.scrollHeight;
+
+			// Don't auto-speak if we're just loading saved messages
+			if (role === 'assistant' && !skipSave) {
+				speakText(content.replace(imageRegex, '[Generated Image]'));
+			}
 		}
 
 		function generateImageUrl(description) {
