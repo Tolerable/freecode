@@ -1106,92 +1106,96 @@
 
 			// Handle clicks outside sidebar to close it on mobile
 			document.addEventListener('click', function(e) {
-				if (window.innerWidth <= 768) {
-					if (sidebar.style.transform === 'translateX(0px)' && 
-						!sidebar.contains(e.target) && 
-						e.target !== mobileBtn) {
-						sidebar.style.transform = 'translateX(-300px)';
-						main.style.filter = 'none';
-					}
+				// If sidebar is visible and click is outside sidebar and not on menu button
+				if (sidebar.classList.contains('sidebar-visible') && 
+					!sidebar.contains(e.target) && 
+					e.target !== mobileBtn) {
+					sidebar.classList.remove('sidebar-visible');
+					main.style.filter = 'none';
 				}
 			});
 
-			// Fix Android-specific issues
-			if (navigator.userAgent.indexOf('Android') !== -1) {
-				// 1. Fix sign-in visibility
-				const notSignedIn = document.getElementById('not-signed-in');
-				const sidebarBottom = document.querySelector('.sidebar-bottom');
-				sidebarBottom.style.paddingBottom = '60px';
-				sidebarBottom.style.overflowY = 'auto';
+			// Modified Android touch handling to allow pull-to-refresh
+			let lastY = 0;
+			let pullStarted = false;
+			let pullDistance = 0;
+			const PULL_THRESHOLD = 70; // Distance in pixels needed to trigger refresh
+
+			document.addEventListener('touchstart', function(e) {
+				lastY = e.touches[0].clientY;
+				pullStarted = false;
+				pullDistance = 0;
+			});
+
+			document.addEventListener('touchmove', function(e) {
+				const currentY = e.touches[0].clientY;
+				const chatContainer = document.getElementById('chatContainer');
+				const isAtTop = chatContainer.scrollTop <= 0;
 				
-				// 2. Fix input area visibility with keyboard
+				// If we're at the top and pulling down, handle pull-to-refresh
+				if (isAtTop && currentY > lastY) {
+					if (!pullStarted) {
+						pullStarted = true;
+					}
+					
+					pullDistance = currentY - lastY;
+					
+					// If pulling past threshold, don't prevent default to allow browser refresh
+					if (pullDistance < PULL_THRESHOLD) {
+						e.preventDefault();
+					}
+				} 
+				// Still prevent bounce at the bottom
+				else if (chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight && currentY < lastY) {
+					e.preventDefault();
+				}
+				
+				lastY = currentY;
+			}, { passive: false });
+
+			document.addEventListener('touchend', function() {
+				pullStarted = false;
+				pullDistance = 0;
+			});
+
+			// Android input visibility fix that handles ALL cases
+			if (navigator.userAgent.indexOf('Android') !== -1) {
+				// Get relevant elements
+				const main = document.getElementById('main');
 				const inputContainer = document.querySelector('.input-container');
 				const chatContainer = document.getElementById('chatContainer');
-				const messageInput = document.getElementById('messageInput');
 				
-				// Reset any problematic styles
-				document.body.style.height = 'auto';
-				document.body.style.overflow = 'auto';
+				// Use a more natural layout for Android
 				main.style.height = 'auto';
-				main.style.overflow = 'auto';
-				chatContainer.style.paddingBottom = '80px';
+				main.style.minHeight = '100vh';
+				main.style.overflow = 'visible';
 				
-				// Fix input container
-				inputContainer.style.position = 'fixed';
-				inputContainer.style.bottom = '0';
-				inputContainer.style.left = '0';
-				inputContainer.style.right = '0';
-				inputContainer.style.zIndex = '100';
-				inputContainer.style.background = '#1a1a1a';
+				// Ensure chat area can scroll and push input up
+				chatContainer.style.flex = '1';
+				chatContainer.style.overflow = 'auto';
+				chatContainer.style.paddingBottom = '60px';
 				
-				// Fix keyboard focus behavior
-				messageInput.addEventListener('focus', function() {
-					// Delay to let keyboard open
+				// Let input flow naturally at the bottom
+				inputContainer.style.position = 'relative';
+				inputContainer.style.width = '100%';
+				inputContainer.style.zIndex = '5';
+				
+				// When keyboard opens
+				document.getElementById('messageInput').addEventListener('focus', function() {
+					// Let browser adjust layout first
 					setTimeout(() => {
-						// Move input up above keyboard
-						const keyboardHeight = 300; // Estimate
-						inputContainer.style.bottom = keyboardHeight + 'px';
+						// Remove any conflicting scroll locks
+						document.body.style.overflow = 'auto';
+						document.documentElement.style.overflow = 'auto';
 						
-						// Force scroll to make input visible
-						window.scrollTo(0, 0);
-						setTimeout(() => {
-							messageInput.scrollIntoView(false);
-						}, 300);
-					}, 300);
-				});
-				
-				messageInput.addEventListener('blur', function() {
-					// Return to normal position
-					setTimeout(() => {
-						inputContainer.style.bottom = '0';
+						// Ensure we're scrolled to see input
+						this.scrollIntoView({behavior: 'smooth', block: 'end'});
 					}, 100);
 				});
 				
-				// 3. Fix pull-to-refresh
-				// Remove any existing touch handlers
-				const oldHandlers = {};
-				['touchstart', 'touchmove', 'touchend'].forEach(event => {
-					const handlers = getEventListeners(document, event);
-					if (handlers) {
-						oldHandlers[event] = handlers;
-						handlers.forEach(h => document.removeEventListener(event, h.listener));
-					}
-				});
-				
-				// Allow native pull-to-refresh
-				document.addEventListener('touchmove', function(e) {
-					// Only prevent overscroll at bottom
-					const isAtBottom = chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight;
-					if (isAtBottom && e.touches[0].clientY < lastTouchY) {
-						e.preventDefault();
-					}
-					lastTouchY = e.touches[0].clientY;
-				}, { passive: false });
-				
-				let lastTouchY = 0;
-				document.addEventListener('touchstart', function(e) {
-					lastTouchY = e.touches[0].clientY;
-				}, { passive: true });
+				// Enable pull-to-refresh
+				const originalTouchMove = document.ontouchmove;
+				document.ontouchmove = null;
 			}
 
 		};
