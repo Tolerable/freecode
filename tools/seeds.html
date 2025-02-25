@@ -846,45 +846,6 @@ function importData(jsonFile) {
     });
 }
 
-async function loadStrainData() {
-    try {
-        const data = await initializeStorage();
-        const activeProfile = data.profiles[data.activeProfile];
-        
-        if (data.activeProfile === 'default' && (!activeProfile.strains || !activeProfile.strains.length)) {
-            const response = await fetch('./strains/strainInfo.json');
-            const strainInfoData = await response.json();
-            strainInfo = strainInfoData.info;
-
-            const strainsResponse = await fetch('./strains/strains.json');
-            const strainsData = await strainsResponse.json();
-            strains = strainsData.strains;
-
-            activeProfile.strains = strains;
-            activeProfile.customStrainInfo = strainInfo;
-            await saveData(data);
-        } else {
-            strains = activeProfile.strains;
-            strainInfo = activeProfile.customStrainInfo;
-        }
-
-        if (data.activeProfile === 'default') {
-            currentIndex = strains.findIndex(s => s.id === 'hwm-001');
-            if (currentIndex === -1) currentIndex = 0;
-        } else {
-            currentIndex = strains.length ? 0 : -1;
-        }
-        
-        if (strains.length) {
-            await loadStrain(strains[currentIndex].id);
-        } else {
-            updateDisplayForEmptyProfile();
-        }
-    } catch (err) {
-        console.error('Error loading data:', err);
-    }
-}
-
 function showNewProfileDialog() {
     document.getElementById('newProfileDialog').style.display = 'block';
 }
