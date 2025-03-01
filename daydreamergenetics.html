@@ -1,190 +1,11 @@
-</script>
-    
-    <!-- D3.js Visualization Functions -->
-    <script>
-        // Helper functions for the tree visualization
-        function collapse(d) {
-            if (d.children) {
-                d._children = d.children;
-                d._children.forEach(collapse);
-                d.children = null;
-            }
-        }
-        
-        function expand(d) {
-            if (d._children) {
-                d.children = d._children;
-                d._children = null;
-            }
-        }
-        
-        function update(source) {
-            // Assigns the x and y position for the nodes
-            const treeData = treemap(root);
-            
-            // Get the nodes and links from the hierarchy
-            const nodes = treeData.descendants();
-            const links = treeData.descendants().slice(1);
-            
-            // Normalize for fixed-depth
-            nodes.forEach(d => {
-                d.y = d.depth * 180;
-            });
-            
-            // ****************** Nodes section ***************************
-            
-            // Update the nodes...
-            const node = svg.selectAll('g.node')
-                .data(nodes, d => d.id || (d.id = ++i));
-            
-            // Enter any new nodes at the parent's previous position
-            const nodeEnter = node.enter().append('g')
-                .attr('class', 'node')
-                .attr('transform', d => `translate(${source.y0},${source.x0})`)
-                .on('click', click);
-            
-            // Add Circle for the nodes
-            nodeEnter.append('circle')
-                .attr('class', 'node')
-                .attr('r', 1e-6)
-                .style('fill', d => d._children ? '#6fb97a' : '#fff')
-                .style('stroke', '#3a7d44')
-                .style('stroke-width', 2);
-            
-            // Add labels for the nodes
-            nodeEnter.append('text')
-                .attr('dy', '.35em')
-                .attr('x', d => d.children || d._children ? -13 : 13)
-                .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
-                .text(d => d.data.name)
-                .style('font-size', '12px')
-                .style('fill', '#2b2d42');
-            
-            // UPDATE
-            const nodeUpdate = nodeEnter.merge(node);
-            
-            // Transition to the proper position for the node
-            nodeUpdate.transition()
-                .duration(750)
-                .attr('transform', d => `translate(${d.y},${d.x})`);
-            
-            // Update the node attributes and style
-            nodeUpdate.select('circle.node')
-                .attr('r', 10)
-                .style('fill', d => d._children ? '#6fb97a' : '#fff')
-                .style('stroke', '#3a7d44')
-                .attr('cursor', 'pointer');
-            
-            // Remove any exiting nodes
-            const nodeExit = node.exit().transition()
-                .duration(750)
-                .attr('transform', d => `translate(${source.y},${source.x})`)
-                .remove();
-            
-            // On exit reduce the node circles size to 0
-            nodeExit.select('circle')
-                .attr('r', 1e-6);
-            
-            // On exit reduce the opacity of text labels
-            nodeExit.select('text')
-                .style('fill-opacity', 1e-6);
-            
-            // ****************** links section ***************************
-            
-            // Update the links...
-            const link = svg.selectAll('path.link')
-                .data(links, d => d.id);
-            
-            // Enter any new links at the parent's previous position
-            const linkEnter = link.enter().insert('path', 'g')
-                .attr('class', 'link')
-                .attr('d', d => {
-                    const o = {x: source.x0, y: source.y0};
-                    return diagonal(o, o);
-                })
-                .style('fill', 'none')
-                .style('stroke', '#ccc')
-                .style('stroke-width', 2);
-            
-            // UPDATE
-            const linkUpdate = linkEnter.merge(link);
-            
-            // Transition back to the parent element position
-            linkUpdate.transition()
-                .duration(750)
-                .attr('d', d => diagonal(d, d.parent));
-            
-            // Remove any exiting links
-            link.exit().transition()
-                .duration(750)
-                .attr('d', d => {
-                    const o = {x: source.x, y: source.y};
-                    return diagonal(o, o);
-                })
-                .remove();
-            
-            // Store the old positions for transition
-            nodes.forEach(d => {
-                d.x0 = d.x;
-                d.y0 = d.y;
-            });
-            
-            // Show strain description when clicking on a node
-            document.getElementById('strain-description').innerText = strainDescriptions[source.data.name] || "No information available for this strain.";
-        }
-        
-        // Creates a curved (diagonal) path from parent to the child nodes
-        function diagonal(s, d) {
-            return `M ${s.y} ${s.x}
-                    C ${(s.y + d.y) / 2} ${s.x},
-                      ${(s.y + d.y) / 2} ${d.x},
-                      ${d.y} ${d.x}`;
-        }
-        
-        // Toggle children on click
-        function click(event, d) {
-            if (d.children) {
-                d._children = d.children;
-                d.children = null;
-            } else {
-                d.children = d._children;
-                d._children = null;
-            }
-            
-            // Update the tree
-            update(d);
-            
-            // Update strain information display
-            document.getElementById('strain-description').innerText = 
-                strainDescriptions[d.data.name] || "No information available for this strain.";
-        }
-        
-        // Setup expand/collapse buttons after DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Handle expand/collapse all buttons
-            document.getElementById('expand-all').addEventListener('click', function(e) {
-                e.preventDefault();
-                if (root) {
-                    root.descendants().forEach(expand);
-                    update(root);
-                }
-            });
-            
-            document.getElementById('collapse-all').addEventListener('click', function(e) {
-                e.preventDefault();
-                if (root && root.children) {
-                    root.children.forEach(collapse);
-                    update(root);
-                }
-            });
-        });
-    </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daydreamer Genetics - Seed Bank</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
     <style>
         :root {
             --primary: #3a7d44;
@@ -863,443 +684,439 @@
         </div>
     </footer>
 
-    <script>
-            // Sample strain data for the visualization
-            fetchStrainData().then(data => {
-                strainData = data.strainTree;
-                strainDescriptions = data.descriptions;
-                initializeVisualization();
-            }).catch(error => {
-                console.error("Failed to load strain data:", error);
-            });
-            
-            async function fetchStrainData() {
-                try {
-                    // In a real implementation, this would be:
-                    // const response = await fetch('/data/strains.json');
-                    // const data = await response.json();
-                    
-                    // For demonstration, using sample data
-                    return {
-                        strainTree: {
-                            name: "Sample Strain",
-                            children: [
-                                {
-                                    name: "Parent A (Female)",
-                                    children: [
-                                        {
-                                            name: "Grandparent 1",
-                                            children: []
-                                        },
-                                        {
-                                            name: "Grandparent 2",
-                                            children: []
-                                        }
-                                    ]
-                                },
-                                {
-                                    name: "Parent B (Male)",
-                                    children: [
-                                        {
-                                            name: "Grandparent 3",
-                                            children: []
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        descriptions: {
-                            "Sample Strain": "An F1 hybrid with balanced effects. This photoperiod strain has been bred for potency and flavor profile with citrus and earthy notes.",
-                            "Parent A (Female)": "Indica-dominant (80/20) photoperiod strain. Known for its relaxing effects and resin production.",
-                            "Parent B (Male)": "Sativa-dominant (70/30) photoperiod strain selected for its terpene profile and vigor.",
-                            "Grandparent 1": "Landrace indica from the Hindu Kush region. Used for its dense structure and hardiness.",
-                            "Grandparent 2": "Hybrid with afghani genetics. Selected for trichome production.",
-                            "Grandparent 3": "Thai sativa landrace known for energetic effects and citrus aroma."
-                        }
-                    };
-                } catch (error) {
-                    console.error("Error loading strain data:", error);
-                    return {
-                        strainTree: { name: "Error loading data", children: [] },
-                        descriptions: {}
-                    };
-                }
-            }
+	<script>
+		// Global variables
+		let i = 0; // Counter for ID generation
+		let root; // Root of the tree data
+		let svg; // SVG element for the tree
+		let treemap; // D3 tree layout
+		let strainData = {};
+		let strainDescriptions = {};
+			
 
-        // D3.js tree visualization
-        document.addEventListener('DOMContentLoaded', function() {
-            // Variables for D3.js
-            let i = 0; // Counter for ID generation
-            let root; // Root of the tree data
-            let svg; // SVG element for the tree
-            let treemap; // D3 tree layout
-            
-            // Chat widget functionality
-            const chatToggle = document.getElementById('chat-toggle');
-            const chatPopup = document.getElementById('chat-popup');
-            const closeChat = document.getElementById('close-chat');
-            const userInput = document.getElementById('user-input');
-            const sendMessage = document.getElementById('send-message');
-            const chatMessages = document.getElementById('chat-messages');
-            
-            // Toggle chat popup
-            chatToggle.addEventListener('click', function() {
-                chatPopup.style.display = chatPopup.style.display === 'block' ? 'none' : 'block';
-            });
-            
-            closeChat.addEventListener('click', function() {
-                chatPopup.style.display = 'none';
-            });
-            
-            // Send message functionality
-            async function sendUserMessage() {
-                const message = userInput.value.trim();
-                if (message) {
-                    // Add user message
-                    const userMsg = document.createElement('div');
-                    userMsg.className = 'message user-message';
-                    userMsg.textContent = message;
-                    chatMessages.appendChild(userMsg);
-                    
-                    // Clear input
-                    userInput.value = '';
-                    
-                    // Scroll to bottom
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                    
-                    // Add typing indicator
-                    const typingIndicator = document.createElement('div');
-                    typingIndicator.className = 'message bot-message typing-indicator';
-                    typingIndicator.innerHTML = '<span></span><span></span><span></span>';
-                    chatMessages.appendChild(typingIndicator);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                    
-                    try {
-                        // Get response from Pollinations AI
-                        const botResponse = await getBotResponse(message);
-                        
-                        // Remove typing indicator
-                        chatMessages.removeChild(typingIndicator);
-                        
-                        // Add bot response
-                        const botMsg = document.createElement('div');
-                        botMsg.className = 'message bot-message';
-                        botMsg.textContent = botResponse;
-                        chatMessages.appendChild(botMsg);
-                        
-                        // Scroll to bottom again
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    } catch (error) {
-                        // Remove typing indicator
-                        chatMessages.removeChild(typingIndicator);
-                        
-                        // Show error message
-                        const errorMsg = document.createElement('div');
-                        errorMsg.className = 'message bot-message error';
-                        errorMsg.textContent = "Sorry, I'm having trouble connecting right now. Please try again later.";
-                        chatMessages.appendChild(errorMsg);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    }
-                }
-            }
-            
-            sendMessage.addEventListener('click', sendUserMessage);
-            
-            userInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    sendUserMessage();
-                }
-            });
-            
-            async function getBotResponse(message) {
-                try {
-                    // Connect to text.pollinations.ai API
-                    const response = await fetch('https://text.pollinations.ai/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            messages: [
-                                { 
-                                    role: 'system', 
-                                    content: 'You are a helpful seed bank assistant for Daydreamer Genetics. You provide concise, helpful information about cannabis strains, growing techniques, and seed preservation. Keep responses under 3 sentences when possible.' 
-                                },
-                                { role: 'user', content: message }
-                            ],
-                            model: 'openai',
-                            private: true // Prevent appearing in public feed
-                        }),
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('API request failed');
-                    }
-                    
-                    const data = await response.json();
-                    return data.response || data.choices[0].message.content;
-                } catch (error) {
-                    console.error('Error fetching from Pollinations API:', error);
-                    
-                    // Fallback responses if API call fails
-                    message = message.toLowerCase();
-                    
-                    if (message.includes('hello') || message.includes('hi')) {
-                        return "Hello! How can I help you today?";
-                    } else if (message.includes('indica') || message.includes('sativa')) {
-                        return "Our collection includes many unique varieties. I'd be happy to tell you more about our specific strains.";
-                    } else if (message.includes('strain')) {
-                        return "I can provide information about our strains. Would you like to know about specific characteristics or effects?";
-                    } else {
-                        return "That's an interesting question about our seed bank. Can you tell me more about what specific information you're looking for?";
-                    }
-                }
-            }
-            
-            // Initialize the visualization after loading data
-            async function initializeVisualization() {
-                const data = await fetchStrainData();
-                strainData = data.strainTree;
-                strainDescriptions = data.descriptions;
-                
-                // D3.js Strain Tree Visualization
-                const width = document.getElementById('strain-tree').clientWidth;
-                const height = 350;
-                const margin = {top: 20, right: 90, bottom: 20, left: 90};
-                
-                // Create SVG
-                const svg = d3.select('#strain-tree')
-                    .append('svg')
-                    .attr('width', width)
-                    .attr('height', height)
-                    .append('g')
-                    .attr('transform', `translate(${margin.left},${margin.top})`);
-                
-                // Create tree layout
-                const treemap = d3.tree().size([height - margin.top - margin.bottom, width - margin.left - margin.right]);
-                
-                // Prepare data
-                const root = d3.hierarchy(strainData);
-                root.x0 = height / 2;
-                root.y0 = 0;
-                
-                // Initialize the visualization
-            initializeVisualization();
-            
-            // Helper functions for the tree visualization
-            function collapse(d) {
-                if (d.children) {
-                    d._children = d.children;
-                    d._children.forEach(collapse);
-                    d.children = null;
-                }
-            }
-            
-            function expand(d) {
-                if (d._children) {
-                    d.children = d._children;
-                    d._children = null;
-                }
-            }
-            
-            function update(source) {
-                // Assigns the x and y position for the nodes
-                const treeData = treemap(root);
-                
-                // Get the nodes and links from the hierarchy
-                const nodes = treeData.descendants();
-                const links = treeData.descendants().slice(1);
-                
-                // Normalize for fixed-depth
-                nodes.forEach(d => {
-                    d.y = d.depth * 180;
-                });
-                
-                // ****************** Nodes section ***************************
-                
-                // Update the nodes...
-                const node = svg.selectAll('g.node')
-                    .data(nodes, d => d.id || (d.id = ++i));
-                
-                // Enter any new nodes at the parent's previous position
-                const nodeEnter = node.enter().append('g')
-                    .attr('class', 'node')
-                    .attr('transform', d => `translate(${source.y0},${source.x0})`)
-                    .on('click', click);
-                
-                // Add Circle for the nodes
-                nodeEnter.append('circle')
-                    .attr('class', 'node')
-                    .attr('r', 1e-6)
-                    .style('fill', d => d._children ? '#6fb97a' : '#fff')
-                    .style('stroke', '#3a7d44')
-                    .style('stroke-width', 2);
-                
-                // Add labels for the nodes
-                nodeEnter.append('text')
-                    .attr('dy', '.35em')
-                    .attr('x', d => d.children || d._children ? -13 : 13)
-                    .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
-                    .text(d => d.data.name)
-                    .style('font-size', '12px')
-                    .style('fill', '#2b2d42');
-                
-                // UPDATE
-                const nodeUpdate = nodeEnter.merge(node);
-                
-                // Transition to the proper position for the node
-                nodeUpdate.transition()
-                    .duration(750)
-                    .attr('transform', d => `translate(${d.y},${d.x})`);
-                
-                // Update the node attributes and style
-                nodeUpdate.select('circle.node')
-                    .attr('r', 10)
-                    .style('fill', d => d._children ? '#6fb97a' : '#fff')
-                    .style('stroke', '#3a7d44')
-                    .attr('cursor', 'pointer');
-                
-                // Remove any exiting nodes
-                const nodeExit = node.exit().transition()
-                    .duration(750)
-                    .attr('transform', d => `translate(${source.y},${source.x})`)
-                    .remove();
-                
-                // On exit reduce the node circles size to 0
-                nodeExit.select('circle')
-                    .attr('r', 1e-6);
-                
-                // On exit reduce the opacity of text labels
-                nodeExit.select('text')
-                    .style('fill-opacity', 1e-6);
-                
-                // ****************** links section ***************************
-                
-                // Update the links...
-                const link = svg.selectAll('path.link')
-                    .data(links, d => d.id);
-                
-                // Enter any new links at the parent's previous position
-                const linkEnter = link.enter().insert('path', 'g')
-                    .attr('class', 'link')
-                    .attr('d', d => {
-                        const o = {x: source.x0, y: source.y0};
-                        return diagonal(o, o);
-                    })
-                    .style('fill', 'none')
-                    .style('stroke', '#ccc')
-                    .style('stroke-width', 2);
-                
-                // UPDATE
-                const linkUpdate = linkEnter.merge(link);
-                
-                // Transition back to the parent element position
-                linkUpdate.transition()
-                    .duration(750)
-                    .attr('d', d => diagonal(d, d.parent));
-                
-                // Remove any exiting links
-                link.exit().transition()
-                    .duration(750)
-                    .attr('d', d => {
-                        const o = {x: source.x, y: source.y};
-                        return diagonal(o, o);
-                    })
-                    .remove();
-                
-                // Store the old positions for transition
-                nodes.forEach(d => {
-                    d.x0 = d.x;
-                    d.y0 = d.y;
-                });
-                
-                // Show strain description when clicking on a node
-                document.getElementById('strain-description').innerText = strainDescriptions[source.data.name] || "No information available for this strain.";
-            }
-            
-            // Creates a curved (diagonal) path from parent to the child nodes
-            function diagonal(s, d) {
-                return `M ${s.y} ${s.x}
-                        C ${(s.y + d.y) / 2} ${s.x},
-                          ${(s.y + d.y) / 2} ${d.x},
-                          ${d.y} ${d.x}`;
-            }
-            
-            // Toggle children on click
-            function click(event, d) {
-                if (d.children) {
-                    d._children = d.children;
-                    d.children = null;
-                } else {
-                    d.children = d._children;
-                    d._children = null;
-                }
-                
-                // Update the tree
-                update(d);
-                
-                // Update strain information display
-                document.getElementById('strain-description').innerText = 
-                    strainDescriptions[d.data.name] || "No information available for this strain.";
-            }
-
-			// Function to safely load strain images with fallbacks
-			function loadStrainImage(strain, imageType = 'main') {
-			  return new Promise((resolve) => {
+			
+		// Handle sending messages
+		async function sendUserMessage() {
+			const userInput = document.getElementById('user-input');
+			const chatMessages = document.getElementById('chat-messages');
+			const message = userInput.value.trim();
+			if (!message) return;
+			
+			// Add user message to chat
+			const userMsg = document.createElement('div');
+			userMsg.className = 'message user-message';
+			userMsg.textContent = message;
+			chatMessages.appendChild(userMsg);
+			userInput.value = '';
+			chatMessages.scrollTop = chatMessages.scrollHeight;
+			
+			// Show typing indicator
+			const typingIndicator = document.createElement('div');
+			typingIndicator.className = 'message bot-message typing-indicator';
+			typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+			chatMessages.appendChild(typingIndicator);
+			chatMessages.scrollTop = chatMessages.scrollHeight;
+			
+			try {
+				// Call Pollinations API
+				const response = await fetch('https://text.pollinations.ai/', {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify({
+						messages: [
+							{
+								role: 'system',
+								content: 'You are a helpful seed bank assistant for Daydreamer Genetics. You help users find cannabis genetics from our collection which focuses on preservation of rare and unique strains rather than commercialization. Our catalog includes Rare Landraces, Unique Crosses, and Legacy Strains. Keep responses friendly but concise.'
+							},
+							{ role: 'user', content: message }
+						],
+						model: 'openai',
+						private: true
+					})
+				});
+				
+				// Remove typing indicator
+				chatMessages.removeChild(typingIndicator);
+				
+				if (!response.ok) throw new Error('API request failed');
+				
+				const data = await response.json();
+				const botResponse = data.response || "Sorry, I couldn't process that.";
+				
+				// Add bot response to chat
+				const botMsg = document.createElement('div');
+				botMsg.className = 'message bot-message';
+				botMsg.textContent = botResponse;
+				chatMessages.appendChild(botMsg);
+				chatMessages.scrollTop = chatMessages.scrollHeight;
+			} catch (error) {
+				console.error('Chat error:', error);
+				// Remove typing indicator if it exists
+				if (chatMessages.contains(typingIndicator)) {
+					chatMessages.removeChild(typingIndicator);
+				}
+				
+				// Add fallback response
+				const errorMsg = document.createElement('div');
+				errorMsg.className = 'message bot-message error';
+				errorMsg.textContent = "Sorry, I'm having trouble connecting right now. Please try again later.";
+				chatMessages.appendChild(errorMsg);
+				chatMessages.scrollTop = chatMessages.scrollHeight;
+			}
+		}
+		
+		function navigateToSection(sectionId) {
+			// Hide all sections
+			document.querySelectorAll('section').forEach(section => {
+				section.style.display = 'none';
+			});
+			
+			// Show the targeted section
+			document.getElementById(sectionId).style.display = 'block';
+		}
+			
+		// Load strain data
+		async function fetchStrainData() {
+			try {
+				// In a real implementation, this would load from a JSON file:
+				const response = await fetch('daydreamer_strains.json');
+				const data = await response.json();
+				return {
+					strainTree: data.strainTree,
+					descriptions: data.strains.reduce((obj, strain) => {
+						obj[strain.name] = strain.description;
+						return obj;
+					}, {})
+				};
+				
+				// For demonstration, using sample data
+				return {
+					strainTree: {
+						name: "Gary's Canna",
+						children: [
+							{
+								name: "Gary's Canna Cherries",
+								children: []
+							},
+							{
+								name: "Gary's Vanilla Cream",
+								children: []
+							}
+						]
+					},
+					descriptions: {
+						"Gary's Canna": "A perfectly balanced hybrid with equal parts relaxation and cerebral effects. A house favorite with beautiful resin production.",
+						"Gary's Canna Cherries": "A delicious cross of Gary's Canna with distinct cherry flavors. This strain produces buds with a sweet, fruity aroma and a pleasant balanced high.",
+						"Gary's Vanilla Cream": "A creamy, smooth variant of Gary's Canna with distinct vanilla undertones. This indica-dominant hybrid provides deep relaxation with a pleasant, sweet flavor profile.",
+						"Frankenstrain": "A powerful indica-dominant hybrid with monstrous effects. Frankenstrain combines unknown genetics to create a beast of a strain with deep relaxation properties.",
+						"Tangerine Truffle": "Tangerine Truffle combines citrus notes with deep chocolate undertones. This sativa-dominant hybrid provides an uplifting, creative high perfect for daytime use.",
+						"Grandpa's Cake": "Grandpa's Cake offers sweet, cake-like flavors with a powerful indica punch. This strain is ideal for evening use, providing deep body relaxation and peaceful sleep."
+					}
+				};
+			} catch (error) {
+				console.error("Error loading strain data:", error);
+				return {
+					strainTree: { name: "Error loading data", children: [] },
+					descriptions: {}
+				};
+			}
+		}
+		
+		// Initialize the visualization
+		async function initializeVisualization() {
+			const data = await fetchStrainData();
+			strainData = data.strainTree;
+			strainDescriptions = data.descriptions;
+			
+			// D3.js Strain Tree Visualization
+			const width = document.getElementById('strain-tree').clientWidth;
+			const height = 350;
+			const margin = {top: 20, right: 90, bottom: 20, left: 90};
+			
+			// Create SVG
+			svg = d3.select('#strain-tree')
+				.append('svg')
+				.attr('width', width)
+				.attr('height', height)
+				.append('g')
+				.attr('transform', `translate(${margin.left},${margin.top})`);
+			
+			// Create tree layout
+			treemap = d3.tree().size([height - margin.top - margin.bottom, width - margin.left - margin.right]);
+			
+			// Prepare data
+			root = d3.hierarchy(strainData);
+			root.x0 = height / 2;
+			root.y0 = 0;
+			
+			// Collapse all nodes initially except the first level
+			if (root.children) {
+				root.children.forEach(collapse);
+			}
+			
+			// Start the visualization
+			update(root);
+		}
+		
+		// Helper functions for the tree visualization
+		function collapse(d) {
+			if (d.children) {
+				d._children = d.children;
+				d._children.forEach(collapse);
+				d.children = null;
+			}
+		}
+		
+		function expand(d) {
+			if (d._children) {
+				d.children = d._children;
+				d._children = null;
+			}
+		}
+		
+		function update(source) {
+			// Assigns the x and y position for the nodes
+			const treeData = treemap(root);
+			
+			// Get the nodes and links from the hierarchy
+			const nodes = treeData.descendants();
+			const links = treeData.descendants().slice(1);
+			
+			// Normalize for fixed-depth
+			nodes.forEach(d => {
+				d.y = d.depth * 180;
+			});
+			
+			// Update the nodes...
+			const node = svg.selectAll('g.node')
+				.data(nodes, d => d.id || (d.id = ++i));
+			
+			// Enter any new nodes at the parent's previous position
+			const nodeEnter = node.enter().append('g')
+				.attr('class', 'node')
+				.attr('transform', d => `translate(${source.y0},${source.x0})`)
+				.on('click', click);
+			
+			// Add Circle for the nodes
+			nodeEnter.append('circle')
+				.attr('class', 'node')
+				.attr('r', 1e-6)
+				.style('fill', d => d._children ? '#6fb97a' : '#fff')
+				.style('stroke', '#3a7d44')
+				.style('stroke-width', 2);
+			
+			// Add labels for the nodes
+			nodeEnter.append('text')
+				.attr('dy', '.35em')
+				.attr('x', d => d.children || d._children ? -13 : 13)
+				.attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
+				.text(d => d.data.name)
+				.style('font-size', '12px')
+				.style('fill', '#2b2d42');
+			
+			// UPDATE
+			const nodeUpdate = nodeEnter.merge(node);
+			
+			// Transition to the proper position for the node
+			nodeUpdate.transition()
+				.duration(750)
+				.attr('transform', d => `translate(${d.y},${d.x})`);
+			
+			// Update the node attributes and style
+			nodeUpdate.select('circle.node')
+				.attr('r', 10)
+				.style('fill', d => d._children ? '#6fb97a' : '#fff')
+				.style('stroke', '#3a7d44')
+				.attr('cursor', 'pointer');
+			
+			// Remove any exiting nodes
+			const nodeExit = node.exit().transition()
+				.duration(750)
+				.attr('transform', d => `translate(${source.y},${source.x})`)
+				.remove();
+			
+			// On exit reduce the node circles size to 0
+			nodeExit.select('circle')
+				.attr('r', 1e-6);
+			
+			// On exit reduce the opacity of text labels
+			nodeExit.select('text')
+				.style('fill-opacity', 1e-6);
+			
+			// Update the links...
+			const link = svg.selectAll('path.link')
+				.data(links, d => d.id);
+			
+			// Enter any new links at the parent's previous position
+			const linkEnter = link.enter().insert('path', 'g')
+				.attr('class', 'link')
+				.attr('d', d => {
+					const o = {x: source.x0, y: source.y0};
+					return diagonal(o, o);
+				})
+				.style('fill', 'none')
+				.style('stroke', '#ccc')
+				.style('stroke-width', 2);
+			
+			// UPDATE
+			const linkUpdate = linkEnter.merge(link);
+			
+			// Transition back to the parent element position
+			linkUpdate.transition()
+				.duration(750)
+				.attr('d', d => diagonal(d, d.parent));
+			
+			// Remove any exiting links
+			link.exit().transition()
+				.duration(750)
+				.attr('d', d => {
+					const o = {x: source.x, y: source.y};
+					return diagonal(o, o);
+				})
+				.remove();
+			
+			// Store the old positions for transition
+			nodes.forEach(d => {
+				d.x0 = d.x;
+				d.y0 = d.y;
+			});
+			
+			// Show strain description when clicking on a node
+			document.getElementById('strain-description').innerText = 
+				strainDescriptions[source.data.name] || "No information available for this strain.";
+		}
+		
+		// Creates a curved (diagonal) path from parent to the child nodes
+		function diagonal(s, d) {
+			return `M ${s.y} ${s.x}
+					C ${(s.y + d.y) / 2} ${s.x},
+					  ${(s.y + d.y) / 2} ${d.x},
+					  ${d.y} ${d.x}`;
+		}
+		
+		// Toggle children on click
+		function click(event, d) {
+			if (d.children) {
+				d._children = d.children;
+				d.children = null;
+			} else {
+				d.children = d._children;
+				d._children = null;
+			}
+			
+			// Update the tree
+			update(d);
+			
+			// Update strain information display
+			document.getElementById('strain-description').innerText = 
+				strainDescriptions[d.data.name] || "No information available for this strain.";
+		}
+		
+		// Function to safely load strain images with fallbacks
+		function loadStrainImage(strain, imageType = 'main') {
+			return new Promise((resolve) => {
 				// Get the image path from strain data
 				const imagePath = strain.images && strain.images[imageType] 
-				  ? `images/strains/${strain.images[imageType]}` 
-				  : null;
+				? `images/strains/${strain.images[imageType]}` 
+				: null;
 				
 				if (!imagePath) {
-				  // No image specified, resolve with default placeholder
-				  resolve(`images/placeholder-strain.jpg`);
-				  return;
+					// No image specified, resolve with default placeholder
+					resolve(`images/placeholder-strain.jpg`);
+					return;
 				}
 				
 				// Try to load the image
 				const img = new Image();
 				img.onload = () => resolve(imagePath);
 				img.onerror = () => {
-				  // Image failed to load, use placeholder instead
-				  resolve(`images/placeholder-strain.jpg`);
+					// Image failed to load, use placeholder instead
+					resolve(`images/placeholder-strain.jpg`);
 				};
 				img.src = imagePath;
-			  });
-			}
-
-			// Usage example:
-			async function displayStrainCard(strain, containerElement) {
-			  const imageSrc = await loadStrainImage(strain, 'thumbnail');
-			  
-			  const strainCard = document.createElement('div');
-			  strainCard.className = 'strain-card';
-			  strainCard.innerHTML = `
+			});
+		}
+		
+		// Usage example for strain cards
+		async function displayStrainCard(strain, containerElement) {
+			const imageSrc = await loadStrainImage(strain, 'thumbnail');
+			
+			const strainCard = document.createElement('div');
+			strainCard.className = 'strain-card';
+			strainCard.innerHTML = `
 				<div class="strain-image">
-				  <img src="${imageSrc}" alt="${strain.name}">
+					<img src="${imageSrc}" alt="${strain.name}">
 				</div>
 				<div class="strain-info">
-				  <h3>${strain.name}</h3>
-				  <p>${strain.description}</p>
+					<h3>${strain.name}</h3>
+					<p>${strain.description}</p>
 				</div>
-			  `;
-			  
-			  containerElement.appendChild(strainCard);
+			`;
+			
+			containerElement.appendChild(strainCard);
+		}
+		
+		// Handle expand/collapse all buttons
+		document.getElementById('expand-all').addEventListener('click', function(e) {
+			e.preventDefault();
+			if (root) {
+				root.descendants().forEach(expand);
+				update(root);
 			}
-            
-            // Handle expand/collapse all buttons
-            document.getElementById('expand-all').addEventListener('click', function(e) {
-                e.preventDefault();
-                root.descendants().forEach(expand);
-                update(root);
-            });
-            
-            document.getElementById('collapse-all').addEventListener('click', function(e) {
-                e.preventDefault();
-                root.children.forEach(collapse);
-                update(root);
-            }); except the first level
-                root.children.forEach(collapse);
-                
-                // Start the visualization
-                update(root);
+		});
+		
+		document.getElementById('collapse-all').addEventListener('click', function(e) {
+			e.preventDefault();
+			if (root && root.children) {
+				root.children.forEach(collapse);
+				update(root);
+			}
+		});
+		
+		// Event listener setups
+		document.addEventListener('DOMContentLoaded', function() {
+			// Chat widget functionality
+			const chatToggle = document.getElementById('chat-toggle');
+			const chatPopup = document.getElementById('chat-popup');
+			const closeChat = document.getElementById('close-chat');
+			const userInput = document.getElementById('user-input');
+			const sendMessage = document.getElementById('send-message');
+			
+			// Set initial state
+			chatPopup.style.display = 'none';
+			
+			// Hide all sections except home initially
+			document.querySelectorAll('section:not(.hero)').forEach(section => {
+				section.style.display = 'none';
+			});
+			
+			// Event listeners
+			chatToggle.addEventListener('click', function() {
+				chatPopup.style.display = chatPopup.style.display === 'block' ? 'none' : 'block';
+			});
+			
+			closeChat.addEventListener('click', function() {
+				chatPopup.style.display = 'none';
+			});
+			
+			sendMessage.addEventListener('click', sendUserMessage);
+			
+			userInput.addEventListener('keypress', function(e) {
+				if (e.key === 'Enter') sendUserMessage();
+			});
+			
+			// Navigation links
+			document.querySelectorAll('nav ul li a').forEach(link => {
+				link.addEventListener('click', function(e) {
+					e.preventDefault();
+					const targetId = this.getAttribute('href').substring(1);
+					navigateToSection(targetId);
+				});
+			});
+			
+			// Initialize the visualization
+			initializeVisualization();
+		});
+	</script>
+</body>
+</html>
