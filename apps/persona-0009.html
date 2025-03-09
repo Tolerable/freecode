@@ -1106,59 +1106,33 @@
         };
 
         // -------------------- Dynamic Test Content Generation --------------------
-		// Generate test questions using the concept pools to create varied prompts
+        // Generate a unique set of questions for a test category
 		async function generateTestQuestions(category, count = 10) {
 			showLoading("Generating your unique test questions...");
 			
-			// Properly use the concept pools to build a dynamic prompt
-			const relevantDimensions = conceptPools.dimensions[category] || conceptPools.dimensions.personality;
-			const questionThemes = [];
+			// Create a system message tailored to the test category
+			const systemPrompt = `You are an expert at creating insightful personality test questions specifically about ${category}. 
+			Create unique questions that reveal key aspects of a person's ${category} traits and tendencies.
+			The questions must be specific to ${category} and not general personality questions.
+			Each question should have 4 answer options that represent different positions on a spectrum.`;
 			
-			// Generate random combinations from concept pools for each question
-			for (let i = 0; i < count; i++) {
-				const trait = getRandomItem(conceptPools.traits);
-				const context = getRandomItem(conceptPools.contexts);
-				const behavior = getRandomItem(conceptPools.behaviors);
-				const dimension = getRandomItem(relevantDimensions);
-				
-				questionThemes.push({
-					trait,
-					context,
-					behavior,
-					dimension
-				});
-			}
-			
-			// Create a dynamic system prompt using concept pool elements
-			const systemPrompt = `You are an expert at creating insightful personality test questions about ${category}.
-			Create questions that reveal key aspects of a person's ${getRandomItem(conceptPools.traits)} and ${getRandomItem(relevantDimensions)} in relation to ${getRandomItem(conceptPools.contexts)}.
-			Each question should have 4 answer options that represent different positions on a spectrum of ${getRandomItem(conceptPools.behaviors)}.`;
-			
-			// Create a dynamic user prompt incorporating the question themes
-			const prompt = `Create ${count} unique personality test questions about ${category}.
+			// Create the AI prompt to generate all questions at once
+			const prompt = `Create ${count} unique personality test questions specifically about ${category}.
 			
 			For each question:
-			1. Create a thoughtful question about how people approach situations
+			1. Create a thoughtful question that specifically addresses ${category}
 			2. Provide exactly 4 answer options that represent different styles or approaches
 			3. Each answer should be distinct but none should feel obviously "right" or "wrong"
 			4. Avoid stereotypes or judgmental language
-			
-			Here are the specific themes to incorporate into your questions:
-			${questionThemes.map((theme, i) => 
-				`Question ${i+1}: Focus on ${theme.trait} in relation to ${theme.context}, specifically addressing ${theme.behavior} and ${theme.dimension}`
-			).join('\n')}
 			
 			Format your response as a valid JSON array of question objects with this structure:
 			[
 				{
 					"question": "The question text goes here?",
 					"options": ["Option A", "Option B", "Option C", "Option D"],
-					"category": "specific_aspect_name"
+					"category": "${category}_aspect"
 				}
 			]`;
-			
-			// Generate a unique session ID that includes randomness
-			const sessionId = Date.now() + Math.random().toString(36).substring(2);
 			
 			// Call Pollinations API to generate questions
 			try {
@@ -1167,10 +1141,11 @@
 					{ role: "user", content: prompt }
 				];
 				
+				// Use unique seed for each request
 				const response = await pollinationsAPI.generateText(messages, { 
 					model: 'openai',
 					jsonMode: true,
-					seed: sessionId
+					seed: Date.now() + Math.random() * 10000
 				});
 				
 				hideLoading();
@@ -1185,8 +1160,183 @@
 				hideLoading();
 				alert("Failed to generate test questions. Please try again.");
 				navigateTo('welcome-screen');
-				throw error;
+				throw error; // Force the app to handle the error rather than using fallbacks
 			}
+		}
+
+        // Fallback questions if AI generation fails
+        function getFallbackQuestions(category) {
+            const genericQuestions = [
+                {
+                    question: "How do you typically respond to unexpected changes in your plans?",
+                    options: [
+                        "I easily adapt and find new opportunities in the change",
+                        "I adjust after taking some time to process the change",
+                        "I prefer to get back to my original plan as soon as possible",
+                        "I find it quite stressful and prefer stability"
+                    ],
+                    category: "adaptability"
+                },
+                {
+                    question: "When working on a project with others, you usually:",
+                    options: [
+                        "Take charge and organize the group's efforts",
+                        "Contribute actively with ideas while respecting the group structure",
+                        "Support others' ideas and help implement them",
+                        "Observe first and contribute where you see the most value"
+                    ],
+                    category: "collaboration"
+                },
+                {
+                    question: "How do you approach learning something new and challenging?",
+                    options: [
+                        "Jump right in and learn through trial and error",
+                        "Research thoroughly before taking action",
+                        "Find a mentor or guide to help you through the process",
+                        "Break it down into smaller, manageable steps"
+                    ],
+                    category: "learning_style"
+                }
+            ];
+            
+            // Generate variations of the generic questions to reach desired count
+            const questions = [...genericQuestions];
+            while (questions.length < 10) {
+                const baseQuestion = genericQuestions[questions.length % genericQuestions.length];
+                const variation = {
+                    question: modifyQuestion(baseQuestion.question),
+                    options: baseQuestion.options.map(option => modifyOption(option)),
+                    category: baseQuestion.category
+                };
+                questions.push(variation);
+            }
+            
+            return questions;
+        }
+
+		function getEnhancedFallbackQuestions(category, count) {
+			// Create a larger pool of base questions specific to each category
+			const questionPools = {
+				personality: [
+					{
+						question: "When facing a difficult decision, how do you typically approach it?",
+						options: [
+							"I analyze all available data and make a logical choice",
+							"I consider how it will affect people involved and choose accordingly",
+							"I trust my intuition and gut feeling to guide me",
+							"I look at what worked in similar past situations"
+						],
+						category: "decision_making"
+					},
+					// Add 10+ more personality questions
+				],
+				relationship: [
+					{
+						question: "In conflicts with someone close to you, what's your typical response?",
+						options: [
+							"I try to find a compromise that satisfies both of us",
+							"I focus on understanding their perspective before responding",
+							"I express my feelings directly and expect the same",
+							"I prefer to take time alone to process before discussing"
+						],
+						category: "conflict_resolution"
+					},
+					// Add 10+ more relationship questions
+				],
+				// Add pools for all other categories
+			};
+			
+			// Get the relevant question pool or use a generic pool if category not found
+			const relevantPool = questionPools[category] || questionPools.personality;
+			
+			// If pool is too small, generate variations to reach desired count
+			const questions = [];
+			
+			// First add questions from the relevant pool (randomly selected)
+			while (questions.length < count && relevantPool.length > 0) {
+				const randomIndex = Math.floor(Math.random() * relevantPool.length);
+				questions.push({...relevantPool[randomIndex]});
+				
+				// Remove this question to avoid duplicates
+				relevantPool.splice(randomIndex, 1);
+			}
+			
+			// If we still need more questions, create variations
+			if (questions.length < count) {
+				// Implement more sophisticated question variations
+				// For example, you could have templates with placeholders and fill them with random elements
+			}
+			
+			// Shuffle the questions array for additional randomness
+			return shuffleArray(questions);
+		}
+
+		// Create category-specific fallback questions
+		function getCategorySpecificFallbackQuestions(category, count) {
+			// Create a map of category-specific questions
+			const categoryQuestions = {
+				personality: [
+					{
+						question: "How do you typically respond to unexpected changes in your plans?",
+						options: [
+							"I easily adapt and find new opportunities in the change",
+							"I adjust after taking some time to process the change",
+							"I prefer to get back to my original plan as soon as possible",
+							"I find it quite stressful and prefer stability"
+						],
+						category: "personality_adaptability"
+					},
+					// Add more personality questions
+				],
+				relationship: [
+					{
+						question: "When there's a disagreement with a partner, how do you typically respond?",
+						options: [
+							"I try to find a compromise that works for both of us",
+							"I focus on understanding their perspective fully first",
+							"I express my needs clearly and directly",
+							"I need time alone to process before discussing further"
+						],
+						category: "relationship_conflict"
+					},
+					// Add more relationship questions
+				],
+				communication: [
+					{
+						question: "When explaining a complex topic to someone, you prefer to:",
+						options: [
+							"Use visual aids and diagrams to illustrate concepts",
+							"Break it down into step-by-step explanations",
+							"Share relevant stories or metaphors to make it relatable",
+							"Focus on the big picture first, then fill in details as needed"
+						],
+						category: "communication_style"
+					},
+					// Add more communication questions
+				],
+				// Add entries for all other categories
+			};
+			
+			// Get questions for the specific category or use personality as fallback
+			let questions = categoryQuestions[category] || categoryQuestions.personality;
+			
+			// If we don't have enough questions, generate variations to reach desired count
+			if (questions.length < count) {
+				const baseQuestions = [...questions]; // Make a copy
+				while (questions.length < count) {
+					const baseQuestion = baseQuestions[questions.length % baseQuestions.length];
+					// Create a variation
+					const variation = {
+						question: modifyQuestion(baseQuestion.question),
+						options: baseQuestion.options.map(option => modifyOption(option)),
+						category: baseQuestion.category
+					};
+					questions.push(variation);
+				}
+			}
+			
+			// Return only the requested number of questions (shuffled)
+			return shuffleArray(questions).slice(0, count);
 		}
 
 		// Add a shuffle function if you don't already have one
@@ -1480,45 +1630,57 @@
 				.join(' ');
 		}
 
-		// Dynamically generate category descriptions using the API
-		async function getCategoryDescription(category, score) {
-			try {
-				// Determine level based on score
-				let level;
-				if (score >= 75) level = "high";
-				else if (score >= 50) level = "moderate";
-				else if (score >= 25) level = "balanced";
-				else level = "low";
-				
-				// Generate a unique request ID
-				const requestId = Date.now() + Math.random().toString(36).substring(2);
-				
-				// Create messages for API call
-				const messages = [
-					{ 
-						role: "system", 
-						content: `You are an expert at analyzing personality test results. 
-						Provide insightful, personalized descriptions for ${category} scores.
-						Keep descriptions concise (1-2 sentences) but meaningful.`
-					},
-					{ 
-						role: "user", 
-						content: `Generate a brief description for someone who scored ${score}% (${level} level) on the ${formatCategoryName(category)} dimension of a personality test. Reference ID: ${requestId}`
-					}
-				];
-				
-				// Make API call
-				const description = await pollinationsAPI.generateText(messages, { 
-					model: 'openai',
-					seed: requestId
-				});
-				
-				return description;
-			} catch (error) {
-				console.error("Error generating category description:", error);
-				// Minimal fallback that doesn't use hardcoded descriptions - just returns the score
-				return `Your ${formatCategoryName(category)} score is ${score}%.`;
+		// Get description based on category and score
+		function getCategoryDescription(category, score) {
+			// Categorize the score
+			let level;
+			if (score >= 75) level = "high";
+			else if (score >= 50) level = "moderate";
+			else if (score >= 25) level = "balanced";
+			else level = "low";
+			
+			// Generic descriptions for common categories
+			const descriptions = {
+				adaptability: {
+					high: "You readily embrace change and thrive in dynamic environments.",
+					moderate: "You can adapt to change with some flexibility, though you appreciate some stability.",
+					balanced: "You balance adaptability with a preference for some predictability.",
+					low: "You prefer stable, predictable environments and established routines."
+				},
+				collaboration: {
+					high: "You excel in team settings and naturally foster cooperation.",
+					moderate: "You work well with others while maintaining your independent perspective.",
+					balanced: "You balance collaborative work with independent contributions.",
+					low: "You tend to be most effective when working independently."
+				},
+				learning_style: {
+					high: "You learn quickly through direct experience and practical application.",
+					moderate: "You absorb new information effectively through structured learning approaches.",
+					balanced: "You utilize multiple learning approaches depending on the context.",
+					low: "You prefer thorough research and systematic approaches to learning."
+				},
+				communication: {
+					high: "You express yourself clearly and engage actively in exchanges of ideas.",
+					moderate: "You communicate effectively in most situations with a balanced approach.",
+					balanced: "You adapt your communication style to the needs of the situation.",
+					low: "You tend to be more selective and thoughtful in your communications."
+				}
+			};
+			
+			// Return specific description if available, otherwise generic
+			if (descriptions[category] && descriptions[category][level]) {
+				return descriptions[category][level];
 			}
+			
+			// Generic fallbacks based on score level
+			const genericDescriptions = {
+				high: "You show a strong tendency in this area, which significantly influences your approach.",
+				moderate: "You display a moderate tendency in this area that shapes your typical responses.",
+				balanced: "You maintain a balanced approach in this area, adapting to different situations.",
+				low: "You show less emphasis in this area compared to other aspects of your profile."
+			};
+			
+			return genericDescriptions[level];
 		}
 
 		// Find patterns in responses for AI analysis
@@ -1706,53 +1868,58 @@
                 .join(' ');
         }
 
-		// Dynamic category description generator that uses concept pools
-		async function getCategoryDescription(category, score) {
-			try {
-				// Determine level
-				let level;
-				if (score >= 75) level = "high";
-				else if (score >= 50) level = "moderate";
-				else if (score >= 25) level = "balanced";
-				else level = "low";
-				
-				// Use concept pools to create a dynamic prompt
-				const trait = getRandomItem(conceptPools.traits);
-				const context = getRandomItem(conceptPools.contexts);
-				const behavior = getRandomItem(conceptPools.behaviors);
-				
-				const relevantDimensions = conceptPools.dimensions[category] || conceptPools.dimensions.personality;
-				const dimension = getRandomItem(relevantDimensions);
-				
-				// Create messages for API call with randomized elements from concept pools
-				const messages = [
-					{ 
-						role: "system", 
-						content: `You are an expert at analyzing personality test results with insight into ${trait} and ${dimension}.
-						Provide personalized descriptions focusing on how ${formatCategoryName(category)} manifests in ${context}.`
-					},
-					{ 
-						role: "user", 
-						content: `Generate a brief description (1-2 sentences) for someone who scored ${score}% (${level} level) on ${formatCategoryName(category)}, 
-						particularly regarding their ${behavior} in ${context} situations.`
-					}
-				];
-				
-				// Generate a unique request ID
-				const requestId = Date.now() + Math.random().toString(36).substring(2);
-				
-				// Make API call
-				const description = await pollinationsAPI.generateText(messages, { 
-					model: 'openai',
-					seed: requestId
-				});
-				
-				return description;
-			} catch (error) {
-				console.error("Error generating category description:", error);
-				return `Your ${formatCategoryName(category)} score is ${score}%.`;
-			}
-		}
+        // Get description based on category and score
+        function getCategoryDescription(category, score) {
+            // Categorize the score
+            let level;
+            if (score >= 75) level = "high";
+            else if (score >= 50) level = "moderate";
+            else if (score >= 25) level = "balanced";
+            else level = "low";
+            
+            // Generic descriptions for common categories
+            const descriptions = {
+                adaptability: {
+                    high: "You readily embrace change and thrive in dynamic environments.",
+                    moderate: "You can adapt to change with some flexibility, though you appreciate some stability.",
+                    balanced: "You balance adaptability with a preference for some predictability.",
+                    low: "You prefer stable, predictable environments and established routines."
+                },
+                collaboration: {
+                    high: "You excel in team settings and naturally foster cooperation.",
+                    moderate: "You work well with others while maintaining your independent perspective.",
+                    balanced: "You balance collaborative work with independent contributions.",
+                    low: "You tend to be most effective when working independently."
+                },
+                learning_style: {
+                    high: "You learn quickly through direct experience and practical application.",
+                    moderate: "You absorb new information effectively through structured learning approaches.",
+                    balanced: "You utilize multiple learning approaches depending on the context.",
+                    low: "You prefer thorough research and systematic approaches to learning."
+                },
+                communication: {
+                    high: "You express yourself clearly and engage actively in exchanges of ideas.",
+                    moderate: "You communicate effectively in most situations with a balanced approach.",
+                    balanced: "You adapt your communication style to the needs of the situation.",
+                    low: "You tend to be more selective and thoughtful in your communications."
+                }
+            };
+            
+            // Return specific description if available, otherwise generic
+            if (descriptions[category] && descriptions[category][level]) {
+                return descriptions[category][level];
+            }
+            
+            // Generic fallbacks based on score level
+            const genericDescriptions = {
+                high: "You show a strong tendency in this area, which significantly influences your approach.",
+                moderate: "You display a moderate tendency in this area that shapes your typical responses.",
+                balanced: "You maintain a balanced approach in this area, adapting to different situations.",
+                low: "You show less emphasis in this area compared to other aspects of your profile."
+            };
+            
+            return genericDescriptions[level];
+        }
 
         // -------------------- Chat Functionality --------------------
         // Add a message to the chat interface
