@@ -1260,6 +1260,9 @@
 			</div>
 			
 			<div class="results-content-section">
+			  <div class="results-chart">
+			    <canvas id="resultsChart"></canvas>
+			  </div>
 			  <div class="analysis-audio">
 				<audio controls id="analysis-audio" class="audio-player">
 				  <source src="" type="audio/mpeg" id="audio-source">
@@ -1801,36 +1804,40 @@
 				`;
 
 				// Add a radar chart using Chart.js (add this to your calculateResults function)
-				const ctx = document.getElementById('resultsChart').getContext('2d');
-				new Chart(ctx, {
-				  type: 'radar',
-				  data: {
-					labels: Object.keys(scores).map(category => formatCategoryName(category)),
-					datasets: [{
-					  label: 'Your Profile',
-					  data: Object.values(scores),
-					  backgroundColor: 'rgba(99, 102, 241, 0.2)',
-					  borderColor: 'rgba(99, 102, 241, 1)',
-					  pointBackgroundColor: 'rgba(99, 102, 241, 1)',
-					  pointHoverBackgroundColor: '#fff',
-					  pointHoverBorderColor: 'rgba(99, 102, 241, 1)',
-					  pointRadius: 5,
-					  pointHoverRadius: 7
-					}]
-				  },
-				  options: {
-					scales: {
-					  r: {
-						angleLines: {
-						  display: true
-						},
-						suggestedMin: 0,
-						suggestedMax: 100
+				const chartElement = document.getElementById('resultsChart');
+				if (chartElement) {
+				  const ctx = chartElement.getContext('2d');
+				  new Chart(ctx, {
+					type: 'radar',
+					data: {
+					  labels: Object.keys(scores).map(category => formatCategoryName(category)),
+					  datasets: [{
+						label: 'Your Profile',
+						data: Object.values(scores),
+						backgroundColor: 'rgba(99, 102, 241, 0.2)',
+						borderColor: 'rgba(99, 102, 241, 1)',
+						pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+						pointHoverBackgroundColor: '#fff',
+						pointHoverBorderColor: 'rgba(99, 102, 241, 1)',
+						pointRadius: 5,
+						pointHoverRadius: 7
+					  }]
+					},
+					options: {
+					  scales: {
+						r: {
+						  angleLines: {
+							display: true
+						  },
+						  suggestedMin: 0,
+						  suggestedMax: 100
+						}
 					  }
 					}
-				  }
-				});
-                
+				  });
+				} else {
+				  console.log("Chart element not found, skipping chart creation");
+				}                
                 // Get category descriptions
                 for (const [category, score] of Object.entries(scores)) {
                     try {
