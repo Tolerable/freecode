@@ -1783,7 +1783,7 @@
 					document.getElementById('analysis-audio').load();
 				}
 				
-				// Display category scores with a visual representation
+				// Display category scores
 				const resultsContainer = document.getElementById('results-container');
 				resultsContainer.innerHTML = `
 				  <div class="score-summary">
@@ -1798,27 +1798,62 @@
 					  </div>
 					`).join('')}
 				  </div>
-				  
-				  <div class="results-content-section">
-					<h3>Your ${appState.selectedCategory.charAt(0).toUpperCase() + appState.selectedCategory.slice(1)} Profile</h3>
-					<div class="results-grid">
-					  ${Object.entries(scores).map(([category, score]) => {
-						// Generate different colors for each category
-						const hue = Math.floor(Math.random() * 360);
-						return `
-						  <div class="result-bar-item">
-							<div class="result-bar-label">${formatCategoryName(category)}</div>
-							<div class="result-bar-track">
-							  <div class="result-bar-fill" style="width: ${score}%; background: linear-gradient(to right, hsl(${hue}, 80%, 50%), hsl(${hue + 30}, 80%, 60%))">
-								<span class="result-bar-value">${score}%</span>
-							  </div>
-							</div>
-						  </div>
-						`;
-					  }).join('')}
-					</div>
-				  </div>
 				`;
+				
+				// Get the canvas element and create the chart
+				const chartCanvas = document.getElementById('resultsChart');
+				if (chartCanvas) {
+					// Make category names and scores arrays for the chart
+					const categoryNames = Object.keys(scores).map(category => formatCategoryName(category));
+					const scoreValues = Object.values(scores);
+					
+					// Create a radar chart
+					new Chart(chartCanvas, {
+						type: 'radar',
+						data: {
+							labels: categoryNames,
+							datasets: [{
+								label: 'Your Profile',
+								data: scoreValues,
+								backgroundColor: 'rgba(99, 102, 241, 0.2)',
+								borderColor: 'rgba(99, 102, 241, 1)',
+								pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+								pointHoverBackgroundColor: '#fff',
+								pointHoverBorderColor: 'rgba(99, 102, 241, 1)',
+								pointRadius: 5,
+								pointHoverRadius: 7
+							}]
+						},
+						options: {
+							plugins: {
+								legend: {
+									labels: {
+										color: '#f8fafc'  // Match the text-light color
+									}
+								}
+							},
+							scales: {
+								r: {
+									angleLines: {
+										color: 'rgba(255, 255, 255, 0.1)'
+									},
+									grid: {
+										color: 'rgba(255, 255, 255, 0.1)'
+									},
+									pointLabels: {
+										color: '#f8fafc'  // Match the text-light color
+									},
+									ticks: {
+										backdropColor: 'transparent',
+										color: '#94a3b8'  // Match the text-muted color
+									},
+									suggestedMin: 0,
+									suggestedMax: 100
+								}
+							}
+						}
+					});
+				}
 				
 				// Set analysis text
 				document.getElementById('analysis-text').textContent = aiAnalysis;
