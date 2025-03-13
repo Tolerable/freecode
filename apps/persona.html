@@ -1676,44 +1676,44 @@
 
         // -------------------- Results Generation --------------------
         // Calculate and display test results
-        async function calculateResults() {
-            showLoading("Analyzing your responses and generating insights...");
-            
-            try {
-                // Prepare a summary of responses for the AI
-                const responseSummary = Object.entries(appState.responses).map(([category, responses]) => {
-                    return {
-                        category,
-                        responses: responses.map(r => ({ 
-                            question: r.question, 
-                            answer: r.answer 
-                        }))
-                    };
-                });
-                
-                // Calculate category scores
-                const scores = {};
-                Object.keys(appState.responses).forEach(category => {
-                    const responses = appState.responses[category];
-                    
-                    // Simple scoring algorithm - can be made more sophisticated
-                    // Scores are normalized to 0-100 range
-                    const score = Math.round(
-                        (responses.reduce((sum, r) => sum + (3 - Math.abs(r.index - 1.5)), 0) / 
-                        (responses.length * 3)) * 100
-                    );
-                    scores[category] = score;
-                });
-                
-                // Create test summary for AI analysis
-                const testSummary = {
-                    category: appState.selectedCategory,
-                    scores: scores,
-                    responses: responseSummary,
-                    patterns: findResponsePatterns()
-                };
-                
-                // Generate personalized analysis
+		async function calculateResults() {
+			showLoading("Analyzing your responses and generating insights...");
+			
+			try {
+				// Prepare a summary of responses for the AI
+				const responseSummary = Object.entries(appState.responses).map(([category, responses]) => {
+					return {
+						category,
+						responses: responses.map(r => ({ 
+							question: r.question, 
+							answer: r.answer 
+						}))
+					};
+				});
+				
+				// Calculate category scores
+				const scores = {};
+				Object.keys(appState.responses).forEach(category => {
+					const responses = appState.responses[category];
+					
+					// Simple scoring algorithm - can be made more sophisticated
+					// Scores are normalized to 0-100 range
+					const score = Math.round(
+						(responses.reduce((sum, r) => sum + (3 - Math.abs(r.index - 1.5)), 0) / 
+						(responses.length * 3)) * 100
+					);
+					scores[category] = score;
+				});
+				
+				// Create test summary for AI analysis
+				const testSummary = {
+					category: appState.selectedCategory,
+					scores: scores,
+					responses: responseSummary,
+					patterns: findResponsePatterns()
+				};
+				
+				// Generate personalized analysis
 				const analysisResponse = await API.generateText([
 				  { 
 					role: "system", 
@@ -1729,17 +1729,17 @@
 					  Please provide a concise analysis of what these results reveal about me.`
 				  }
 				]);
-                
-                if (!analysisResponse.choices || 
-                    !analysisResponse.choices[0] || 
-                    !analysisResponse.choices[0].message || 
-                    !analysisResponse.choices[0].message.content) {
-                    throw new Error("Invalid analysis response format");
-                }
-                
-                const aiAnalysis = analysisResponse.choices[0].message.content;
-                
-                // Generate a visual representation image
+				
+				if (!analysisResponse.choices || 
+					!analysisResponse.choices[0] || 
+					!analysisResponse.choices[0].message || 
+					!analysisResponse.choices[0].message.content) {
+					throw new Error("Invalid analysis response format");
+				}
+				
+				const aiAnalysis = analysisResponse.choices[0].message.content;
+				
+				// Generate a visual representation image
 				const imagePrompt = `Abstract visualization of personality traits for ${appState.selectedCategory} profile: ${
 					Object.entries(scores)
 						.map(([category, score]) => `${formatCategoryName(category)} (${score}%)`)
@@ -1753,40 +1753,37 @@
 				  enhance: true,
 				  seed: Math.floor(Math.random() * 1000000)
 				});
-                
-                // Generate audio summary
-                const audioSummaryText = `Here's a summary of your ${appState.selectedCategory} test results. ${
-                    Object.entries(scores)
-                        .map(([category, score]) => `Your ${formatCategoryName(category)} score is ${score}%.`)
-                        .join(' ')
-                } ${aiAnalysis.split('.')[0]}.`;
-                
-                const audioUrl = await API.generateAudio(audioSummaryText, { 
-                    voice: 'nova'
-                });
-                
-                // Update conversation history for follow-up discussion
-                updateAIConversationHistory("user", `I've just completed the ${appState.selectedCategory} test. Here are my results: ${JSON.stringify(testSummary)}`);
-                updateAIConversationHistory("assistant", aiAnalysis);
-                
-                // Display results
-                hideLoading();
-                
-                // Set image
+				
+				// Generate audio summary
+				const audioSummaryText = `Here's a summary of your ${appState.selectedCategory} test results. ${
+					Object.entries(scores)
+						.map(([category, score]) => `Your ${formatCategoryName(category)} score is ${score}%.`)
+						.join(' ')
+				} ${aiAnalysis.split('.')[0]}.`;
+				
+				const audioUrl = await API.generateAudio(audioSummaryText, { 
+					voice: 'nova'
+				});
+				
+				// Update conversation history for follow-up discussion
+				updateAIConversationHistory("user", `I've just completed the ${appState.selectedCategory} test. Here are my results: ${JSON.stringify(testSummary)}`);
+				updateAIConversationHistory("assistant", aiAnalysis);
+				
+				// Display results
+				hideLoading();
+				
+				// Set image
 				document.getElementById('result-image').innerHTML = `
 				  <img src="${imageUrl}" alt="Personality Visualization">
 				`;
-                
-                // Set audio
-                if (audioUrl) {
-                    document.getElementById('audio-source').src = audioUrl;
-                    document.getElementById('analysis-audio').load();
-                    document.getElementById('result-audio').style.display = 'block';
-                } else {
-                    document.getElementById('result-audio').style.display = 'none';
-                }
-                
-                // Display category scores
+				
+				// Set audio
+				if (audioUrl) {
+					document.getElementById('audio-source').src = audioUrl;
+					document.getElementById('analysis-audio').load();
+				}
+				
+				// Display category scores
 				const resultsContainer = document.getElementById('results-container');
 				resultsContainer.innerHTML = `
 				  <div class="score-summary">
@@ -1802,113 +1799,19 @@
 					`).join('')}
 				  </div>
 				`;
-
-				// Add a radar chart using Chart.js (add this to your calculateResults function)
-				const chartElement = document.getElementById('resultsChart');
-				if (chartElement) {
-				  const ctx = chartElement.getContext('2d');
-				  new Chart(ctx, {
-					type: 'radar',
-					data: {
-					  labels: Object.keys(scores).map(category => formatCategoryName(category)),
-					  datasets: [{
-						label: 'Your Profile',
-						data: Object.values(scores),
-						backgroundColor: 'rgba(99, 102, 241, 0.2)',
-						borderColor: 'rgba(99, 102, 241, 1)',
-						pointBackgroundColor: 'rgba(99, 102, 241, 1)',
-						pointHoverBackgroundColor: '#fff',
-						pointHoverBorderColor: 'rgba(99, 102, 241, 1)',
-						pointRadius: 5,
-						pointHoverRadius: 7
-					  }]
-					},
-					options: {
-					  scales: {
-						r: {
-						  angleLines: {
-							display: true
-						  },
-						  suggestedMin: 0,
-						  suggestedMax: 100
-						}
-					  }
-					}
-				  });
-				} else {
-				  console.log("Chart element not found, skipping chart creation");
-				}                
-                // Get category descriptions
-                for (const [category, score] of Object.entries(scores)) {
-                    try {
-                        // Get a description for this category and score
-                        const descResponse = await API.generateText([
-                            { 
-                                role: "system", 
-                                content: `You are an expert at analyzing personality test results.
-                                Provide insightful, personalized descriptions for ${category} scores.
-                                Keep descriptions concise (1-2 sentences) but meaningful.`
-                            },
-                            { 
-                                role: "user", 
-                                content: `Generate a brief description for someone who scored ${score}% on the ${formatCategoryName(category)} dimension of a personality test.`
-                            }
-                        ]);
-                        
-                        const description = descResponse.choices[0].message.content;
-                        
-                        // Add to the results container
-                        const resultItem = document.createElement('div');
-                        resultItem.className = 'result-item';
-                        
-                        const title = document.createElement('h3');
-                        title.textContent = formatCategoryName(category);
-                        
-                        const scoreElement = document.createElement('div');
-                        scoreElement.className = 'score';
-                        scoreElement.textContent = score;
-                        
-                        const descriptionElement = document.createElement('p');
-                        descriptionElement.textContent = description;
-                        
-                        resultItem.appendChild(title);
-                        resultItem.appendChild(scoreElement);
-                        resultItem.appendChild(descriptionElement);
-                        
-                        resultsContainer.appendChild(resultItem);
-                    } catch (error) {
-                        console.error(`Error getting description for ${category}:`, error);
-                        
-                        // Fallback - just show the score without a description
-                        const resultItem = document.createElement('div');
-                        resultItem.className = 'result-item';
-                        
-                        const title = document.createElement('h3');
-                        title.textContent = formatCategoryName(category);
-                        
-                        const scoreElement = document.createElement('div');
-                        scoreElement.className = 'score';
-                        scoreElement.textContent = score;
-                        
-                        resultItem.appendChild(title);
-                        resultItem.appendChild(scoreElement);
-                        
-                        resultsContainer.appendChild(resultItem);
-                    }
-                }
-                
-                // Set analysis text
-                document.getElementById('analysis-text').textContent = aiAnalysis;
-                
-                // Navigate to results screen
-                navigateTo('test-results');
-            } catch (error) {
-                console.error("Error calculating results:", error);
-                hideLoading();
-                alert("Error generating results. Please try again.");
-                navigateTo('welcome-screen');
-            }
-        }
+				
+				// Set analysis text
+				document.getElementById('analysis-text').textContent = aiAnalysis;
+				
+				// Navigate to results screen
+				navigateTo('test-results');
+			} catch (error) {
+				console.error("Error calculating results:", error);
+				hideLoading();
+				alert("Error generating results. Please try again.");
+				navigateTo('welcome-screen');
+			}
+		}
 
         // Format category name for display
         function formatCategoryName(category) {
