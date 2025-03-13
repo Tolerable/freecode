@@ -1425,21 +1425,25 @@
             },
             
             // Generate audio from text
-            async generateAudio(text, options = {}) {
-                try {
-                    const encodedText = encodeURIComponent(text);
-                    const voice = options.voice || 'nova';
-                    const url = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=${voice}`;
-                    
-                    console.log("Generating audio with URL:", url);
-                    return url;
-                } catch (error) {
-                    console.error("Audio generation error:", error);
-                    return null;
-                }
-            }
+			async function generateAudio(text, options = {}) {
+			  try {
+				// First, we need to create a prompt that instructs the AI to read verbatim
+				const instructionPrefix = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE: ";
+				const textToRead = instructionPrefix + text;
+				const encodedText = encodeURIComponent(textToRead);
+				const voice = options.voice || 'nova';
+				
+				const url = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=${voice}`;
+				
+				console.log("Generating audio with URL:", url);
+				return url;
+			  } catch (error) {
+				console.error("Audio generation error:", error);
+				return null;
+			  }
+			}
         };
-
+		
 // -------------------- Test Selection & Generation --------------------
         function selectTestCategory(category) {
             appState.selectedCategory = category;
