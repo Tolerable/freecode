@@ -751,6 +751,56 @@
             white-space: pre-line;
         }
 
+		.score-summary {
+		  display: flex;
+		  flex-direction: column;
+		  gap: 1rem;
+		  max-width: 800px;
+		  margin: 0 auto 2rem auto;
+		  background-color: rgba(255, 255, 255, 0.05);
+		  border-radius: 12px;
+		  padding: 1.5rem;
+		}
+
+		.score-bar-item {
+		  display: flex;
+		  align-items: center;
+		  gap: 1rem;
+		}
+
+		.score-bar-label {
+		  width: 180px;
+		  text-align: right;
+		  font-weight: 600;
+		  color: var(--text-light);
+		  font-size: 0.95rem;
+		}
+
+		.score-bar-track {
+		  flex-grow: 1;
+		  height: 24px;
+		  background-color: rgba(255, 255, 255, 0.1);
+		  border-radius: 12px;
+		  overflow: hidden;
+		}
+
+		.score-bar-fill {
+		  height: 100%;
+		  background: linear-gradient(to right, var(--primary), var(--secondary));
+		  border-radius: 12px;
+		  display: flex;
+		  align-items: center;
+		  justify-content: flex-end;
+		  padding-right: 10px;
+		  transition: width 1s ease-out;
+		}
+
+		.score-bar-value {
+		  color: white;
+		  font-weight: 700;
+		  font-size: 0.9rem;
+		}
+
         /* Chat interface */
 		.chat-overlay {
 		  display: none;
@@ -1260,9 +1310,6 @@
 			</div>
 			
 			<div class="results-content-section">
-			  <div class="results-chart">
-			    <canvas id="resultsChart"></canvas>
-			  </div>
 			  <div class="analysis-audio">
 				<audio controls id="analysis-audio" class="audio-player">
 				  <source src="" type="audio/mpeg" id="audio-source">
@@ -1792,68 +1839,13 @@
 						<div class="score-bar-label">${formatCategoryName(category)}</div>
 						<div class="score-bar-track">
 						  <div class="score-bar-fill" style="width: ${score}%">
-							<span class="score-bar-value">${score}</span>
+							<span class="score-bar-value">${score}%</span>
 						  </div>
 						</div>
 					  </div>
 					`).join('')}
 				  </div>
 				`;
-				
-				// Get the canvas element and create the chart
-				const chartCanvas = document.getElementById('resultsChart');
-				if (chartCanvas) {
-					// Make category names and scores arrays for the chart
-					const categoryNames = Object.keys(scores).map(category => formatCategoryName(category));
-					const scoreValues = Object.values(scores);
-					
-					// Create a radar chart
-					new Chart(chartCanvas, {
-						type: 'radar',
-						data: {
-							labels: categoryNames,
-							datasets: [{
-								label: 'Your Profile',
-								data: scoreValues,
-								backgroundColor: 'rgba(99, 102, 241, 0.2)',
-								borderColor: 'rgba(99, 102, 241, 1)',
-								pointBackgroundColor: 'rgba(99, 102, 241, 1)',
-								pointHoverBackgroundColor: '#fff',
-								pointHoverBorderColor: 'rgba(99, 102, 241, 1)',
-								pointRadius: 5,
-								pointHoverRadius: 7
-							}]
-						},
-						options: {
-							plugins: {
-								legend: {
-									labels: {
-										color: '#f8fafc'  // Match the text-light color
-									}
-								}
-							},
-							scales: {
-								r: {
-									angleLines: {
-										color: 'rgba(255, 255, 255, 0.1)'
-									},
-									grid: {
-										color: 'rgba(255, 255, 255, 0.1)'
-									},
-									pointLabels: {
-										color: '#f8fafc'  // Match the text-light color
-									},
-									ticks: {
-										backdropColor: 'transparent',
-										color: '#94a3b8'  // Match the text-muted color
-									},
-									suggestedMin: 0,
-									suggestedMax: 100
-								}
-							}
-						}
-					});
-				}
 				
 				// Set analysis text
 				document.getElementById('analysis-text').textContent = aiAnalysis;
