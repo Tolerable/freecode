@@ -1412,17 +1412,22 @@
 				if (customRatioInput && customRatioInput.value && customRatioInput.value.includes(':')) {
 					const [w, h] = customRatioInput.value.split(':').map(Number);
 					if (w && h) {
-						const MAX_DIM = 1280;
-						let width, height;
+						// For custom ratios, use empirically tested maximum dimensions as a guide
+						// and ensure divisibility by 8 (which guarantees divisibility by 4)
+						const MAX_PIXELS = 1472 * 1104; // Based on tested 4:3 dimensions
 						
+						let width, height;
 						if (w > h) {
-							width = MAX_DIM;
-							height = Math.floor((h * width) / w);
+							// For landscape orientation
+							height = Math.floor(Math.sqrt(MAX_PIXELS * (h/w)));
+							width = Math.floor(height * (w/h));
 						} else {
-							height = MAX_DIM;
-							width = Math.floor((w * height) / h);
+							// For portrait or square orientation
+							width = Math.floor(Math.sqrt(MAX_PIXELS * (w/h)));
+							height = Math.floor(width * (h/w));
 						}
 						
+						// Ensure dimensions are divisible by 8
 						return {
 							width: Math.floor(width / 8) * 8,
 							height: Math.floor(height / 8) * 8
@@ -1439,11 +1444,13 @@
 				};
 			}
 
+			// Empirically tested values from ֆօʊʟ ֆʟǟʏɛʀ ֆօʀʏռ
 			switch(ratio) {
 				case '1:1': return { width: 1280, height: 1280 }; // Perfect square
-				case '3:4': return { width: 960, height: 1280 };  // Tested 3:4 ratio
-				case '4:3': return { width: 1472, height: 1104 }; // Tested 4:3 ratio
-				case '16:9': return { width: 1728, height: 972 }; // 16:9 ratio
+				case '3:4': return { width: 1104, height: 1472 }; // Reverse of tested 4:3
+				case '4:3': return { width: 1472, height: 1104 }; // Tested perfect 4:3
+				case '16:9': return { width: 1664, height: 936 }; // Tested perfect 16:9
+				case '2:3': return { width: 1040, height: 1560 }; // Additional ratio for character images
 				default: return { width: 1280, height: 1280 };
 			}
 		}
