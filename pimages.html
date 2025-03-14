@@ -620,34 +620,26 @@
                     </div>
                 </div>
 
-				<div class="control-section">
-					<div class="control-group">
-						<label>Aspect Ratio:</label>
-						<div class="ratio-group">
-							<button class="ratio-button active" data-ratio="1:1">1:1</button>
-							<button class="ratio-button" data-ratio="3:4">3:4</button>
-							<button class="ratio-button" data-ratio="4:3">4:3</button>
-							<button class="ratio-button" data-ratio="16:9">16:9</button>
-							<button class="ratio-button" data-ratio="2:3">2:3</button>
-							<button class="ratio-button" data-ratio="custom">Custom</button>
-						</div>
-						
-						<div id="customDimensions" style="display: none; margin-top: 10px;">
-							<div style="display: flex; gap: 10px;">
-								<input type="number" id="customWidth" placeholder="Width" min="64" max="2048" step="64" 
-									   style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-								<span style="display: flex; align-items: center;">×</span>
-								<input type="number" id="customHeight" placeholder="Height" min="64" max="2048" step="64"
-									   style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-							</div>
-							<!-- Custom ratio input field -->
-							<div style="margin-top: 10px;">
-								<input type="text" id="customRatio" placeholder="Or enter ratio (e.g. 23:1)" 
-									   style="width: 100%; padding: 8px; border: 1px solid #333; border-radius: 4px; background: #2a2a2a; color: #fff;">
-							</div>
-						</div>
-					</div>
-				</div>
+                <div class="control-section">
+                    <div class="control-group">
+                        <label>Aspect Ratio:</label>
+                        <div class="ratio-group">
+                            <button class="ratio-button active" data-ratio="1:1">1:1</button>
+                            <button class="ratio-button" data-ratio="3:4">3:4</button>
+                            <button class="ratio-button" data-ratio="4:3">4:3</button>
+                            <button class="ratio-button" data-ratio="16:9">16:9</button>
+                            <button class="ratio-button" data-ratio="custom">Custom</button>
+                        </div>
+                        <div id="customDimensions" style="display: none; margin-top: 10px;">
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" id="customWidth" placeholder="Width" min="64" max="2048" step="64" 
+                                       style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <span style="display: flex; align-items: center;">×</span>
+                                <input type="number" id="customHeight" placeholder="Height" min="64" max="2048" step="64"
+                                       style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="control-group">
                         <label>Image Editing:</label>
@@ -1168,19 +1160,14 @@
                         seed = document.getElementById('seed').value;
                     }
 
-					let dimensions;
-					if (activeRatio.dataset.ratio === 'custom-ratio' && activeRatio.dataset.customRatio) {
-						dimensions = getAspectRatioDimensions(activeRatio.dataset.customRatio);
-					} else {
-						dimensions = getAspectRatioDimensions(activeRatio.dataset.ratio);
-					}
+                    const dimensions = getAspectRatioDimensions(activeRatio.dataset.ratio);
 
-					const params = new URLSearchParams({
-						model: imageModel,
-						seed: seed,
-						width: dimensions.width,
-						height: dimensions.height,
-						enhance: document.getElementById('enhance').checked,
+                    const params = new URLSearchParams({
+                        model: imageModel,
+                        seed: seed,
+                        width: dimensions.width,
+                        height: dimensions.height,
+                        enhance: document.getElementById('enhance').checked,  
                         refine: false,
                         nologo: true,
                         private: document.getElementById('private').checked,  
@@ -1408,50 +1395,69 @@
 
         // Get dimensions based on aspect ratio
 		function getAspectRatioDimensions(ratio) {
-			// Check for custom ratio input first, regardless of selected radio button
-			const customRatioInput = document.getElementById('customRatio');
-			if (customRatioInput && customRatioInput.value && customRatioInput.value.includes(':')) {
-				const [w, h] = customRatioInput.value.split(':').map(Number);
-				if (w && h) {
-					// For custom ratios, use empirically tested maximum dimensions as a guide
-					const MAX_PIXELS = 1472 * 1104; // Based on tested 4:3 dimensions
-					
-					let width, height;
-					if (w > h) {
-						// For landscape orientation
-						height = Math.floor(Math.sqrt(MAX_PIXELS * (h/w)));
-						width = Math.floor(height * (w/h));
-					} else {
-						// For portrait or square orientation
-						width = Math.floor(Math.sqrt(MAX_PIXELS * (w/h)));
-						height = Math.floor(width * (h/w));
-					}
-					
-					// Ensure dimensions are divisible by 8
-					return {
-						width: Math.floor(width / 8) * 8,
-						height: Math.floor(height / 8) * 8
-					};
-				}
+			if (ratio === 'custom') {
+				const width = parseInt(document.getElementById('customWidth')?.value) || 1024;
+				const height = parseInt(document.getElementById('customHeight')?.value) || 1024;
+				return {
+					width: Math.min(Math.max(Math.round(width / 64) * 64, 64), 2048),
+					height: Math.min(Math.max(Math.round(height / 64) * 64, 64), 2048)
+				};
 			}
+
+			// Assuming roughly 1.6M pixel budget (1280x1280)
+			const MAX_PIXELS = 1280 * 1280;
 			
-			// If no valid custom ratio, use preset ratios
 			switch(ratio) {
-				case '1:1': return { width: 1280, height: 1280 }; // Perfect square
-				case '3:4': return { width: 1104, height: 1472 }; // Reverse of tested 4:3
-				case '4:3': return { width: 1472, height: 1104 }; // Tested perfect 4:3
-				case '16:9': return { width: 1664, height: 936 }; // Tested perfect 16:9
-				case '2:3': return { width: 1040, height: 1560 }; // Additional ratio
-				case 'custom': {
-					// For existing custom dimensions functionality
-					const width = parseInt(document.getElementById('customWidth')?.value) || 1024;
-					const height = parseInt(document.getElementById('customHeight')?.value) || 1024;
-					return {
-						width: Math.min(Math.max(Math.floor(width / 8) * 8, 64), 2048),
-						height: Math.min(Math.max(Math.floor(height / 8) * 8, 64), 2048)
+				case '1:1': 
+					return { width: 1280, height: 1280 }; // Perfect square at max allowed
+					
+				case '3:4': {
+					// For 3:4, calculate optimal width based on height
+					// If w:h = 3:4, then w = (3/4)h
+					// And w*h = MAX_PIXELS
+					// So (3/4)h * h = MAX_PIXELS
+					// h² = MAX_PIXELS * (4/3)
+					const height = Math.floor(Math.sqrt(MAX_PIXELS * (4/3)));
+					const width = Math.floor(height * (3/4));
+					// Ensure both dimensions are multiples of 16
+					return { 
+						width: Math.floor(width / 16) * 16, 
+						height: Math.floor(height / 16) * 16 
 					};
 				}
-				default: return { width: 1280, height: 1280 };
+					
+				case '4:3': {
+					// For 4:3, calculate optimal height based on width
+					// If w:h = 4:3, then h = (3/4)w
+					// And w*h = MAX_PIXELS
+					// So w * (3/4)w = MAX_PIXELS
+					// w² = MAX_PIXELS * (4/3)
+					const width = Math.floor(Math.sqrt(MAX_PIXELS * (4/3)));
+					const height = Math.floor(width * (3/4));
+					// Ensure both dimensions are multiples of 16
+					return { 
+						width: Math.floor(width / 16) * 16, 
+						height: Math.floor(height / 16) * 16 
+					};
+				}
+					
+				case '16:9': {
+					// For 16:9, calculate optimal height based on width
+					// If w:h = 16:9, then h = (9/16)w
+					// And w*h = MAX_PIXELS
+					// So w * (9/16)w = MAX_PIXELS
+					// w² = MAX_PIXELS * (16/9)
+					const width = Math.floor(Math.sqrt(MAX_PIXELS * (16/9)));
+					const height = Math.floor(width * (9/16));
+					// Ensure both dimensions are multiples of 16
+					return { 
+						width: Math.floor(width / 16) * 16, 
+						height: Math.floor(height / 16) * 16 
+					};
+				}
+					
+				default: 
+					return { width: 1280, height: 1280 };
 			}
 		}
 
