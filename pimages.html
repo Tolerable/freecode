@@ -1201,10 +1201,14 @@
                     const blob = await response.blob();
                     const imageUrl = URL.createObjectURL(blob);
 
-                    imageOutput.innerHTML = `
-                        <img src="${imageUrl}" alt="Generated Image" class="blur-transition loaded">
-                        <div class="seed-label">Seed: ${seed}</div>
-                    `;
+					imageOutput.innerHTML = `
+						<div style="position: relative; width: 100%; height: 100%;">
+							<img src="${imageUrl}" alt="Generated Image" class="blur-transition loaded">
+							<div style="position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.6); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.8em;">
+								Seed: ${seed}
+							</div>
+						</div>
+					`;
                     addThumbnail(imageUrl);
 
                     try {
@@ -1400,15 +1404,62 @@
 				};
 			}
 
+			// Assuming roughly 1.6M pixel budget (1280x1280)
+			const MAX_PIXELS = 1280 * 1280;
+			
 			switch(ratio) {
-				case '1:1': return { width: 1384, height: 1384 };
-				case '3:4': return { width: 1152, height: 1536 };
-				case '4:3': return { width: 1536, height: 1152 };
-				case '16:9': return { width: 1832, height: 1040 };
-				default: return { width: 1384, height: 1384 };
+				case '1:1': 
+					return { width: 1280, height: 1280 }; // Perfect square at max allowed
+					
+				case '3:4': {
+					// For 3:4, calculate optimal width based on height
+					// If w:h = 3:4, then w = (3/4)h
+					// And w*h = MAX_PIXELS
+					// So (3/4)h * h = MAX_PIXELS
+					// h² = MAX_PIXELS * (4/3)
+					const height = Math.floor(Math.sqrt(MAX_PIXELS * (4/3)));
+					const width = Math.floor(height * (3/4));
+					// Ensure both dimensions are multiples of 16
+					return { 
+						width: Math.floor(width / 16) * 16, 
+						height: Math.floor(height / 16) * 16 
+					};
+				}
+					
+				case '4:3': {
+					// For 4:3, calculate optimal height based on width
+					// If w:h = 4:3, then h = (3/4)w
+					// And w*h = MAX_PIXELS
+					// So w * (3/4)w = MAX_PIXELS
+					// w² = MAX_PIXELS * (4/3)
+					const width = Math.floor(Math.sqrt(MAX_PIXELS * (4/3)));
+					const height = Math.floor(width * (3/4));
+					// Ensure both dimensions are multiples of 16
+					return { 
+						width: Math.floor(width / 16) * 16, 
+						height: Math.floor(height / 16) * 16 
+					};
+				}
+					
+				case '16:9': {
+					// For 16:9, calculate optimal height based on width
+					// If w:h = 16:9, then h = (9/16)w
+					// And w*h = MAX_PIXELS
+					// So w * (9/16)w = MAX_PIXELS
+					// w² = MAX_PIXELS * (16/9)
+					const width = Math.floor(Math.sqrt(MAX_PIXELS * (16/9)));
+					const height = Math.floor(width * (9/16));
+					// Ensure both dimensions are multiples of 16
+					return { 
+						width: Math.floor(width / 16) * 16, 
+						height: Math.floor(height / 16) * 16 
+					};
+				}
+					
+				default: 
+					return { width: 1280, height: 1280 };
 			}
 		}
-
 
 		function loadImage(src) {
 			const img = new Image();
