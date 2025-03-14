@@ -630,22 +630,21 @@
                             <button class="ratio-button" data-ratio="16:9">16:9</button>
                             <button class="ratio-button" data-ratio="custom">Custom</button>
                         </div>
-
-						<div id="customRatioDiv" style="display: none; margin-top: 10px;">
-							<input type="text" id="customRatioInput" placeholder="e.g. 16:9" 
-								   style="width: 100px; padding: 8px; border: 1px solid #333; border-radius: 4px; background: #2a2a2a; color: #fff;">
-							<button onclick="applyCustomRatio()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer;">Apply</button>
-						</div>
 						
-                        <div id="customDimensions" style="display: none; margin-top: 10px;">
-                            <div style="display: flex; gap: 10px;">
-                                <input type="number" id="customWidth" placeholder="Width" min="64" max="2048" step="64" 
-                                       style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                                <span style="display: flex; align-items: center;">×</span>
-                                <input type="number" id="customHeight" placeholder="Height" min="64" max="2048" step="64"
-                                       style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                            </div>
-                        </div>
+						<div id="customDimensions" style="display: none; margin-top: 10px;">
+							<div style="display: flex; gap: 10px;">
+								<input type="number" id="customWidth" placeholder="Width" min="64" max="2048" step="64" 
+									   style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<span style="display: flex; align-items: center;">×</span>
+								<input type="number" id="customHeight" placeholder="Height" min="64" max="2048" step="64"
+									   style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+							</div>
+							<!-- Add this new input for custom ratio -->
+							<div style="margin-top: 10px;">
+								<input type="text" id="customRatio" placeholder="Or enter ratio (e.g. 23:1)" 
+									   style="width: 100%; padding: 8px; border: 1px solid #333; border-radius: 4px; background: #2a2a2a; color: #fff;">
+							</div>
+						</div>
                     </div>
 
                     <div class="control-group">
@@ -1407,87 +1406,45 @@
 
         // Get dimensions based on aspect ratio
 		function getAspectRatioDimensions(ratio) {
-			// For custom dimensions
 			if (ratio === 'custom') {
+				// Check for custom ratio input first
+				const customRatioInput = document.getElementById('customRatio');
+				if (customRatioInput && customRatioInput.value && customRatioInput.value.includes(':')) {
+					const [w, h] = customRatioInput.value.split(':').map(Number);
+					if (w && h) {
+						const MAX_DIM = 1280;
+						let width, height;
+						
+						if (w > h) {
+							width = MAX_DIM;
+							height = Math.floor((h * width) / w);
+						} else {
+							height = MAX_DIM;
+							width = Math.floor((w * height) / h);
+						}
+						
+						return {
+							width: Math.floor(width / 8) * 8,
+							height: Math.floor(height / 8) * 8
+						};
+					}
+				}
+				
+				// If no valid custom ratio, use the width/height inputs
 				const width = parseInt(document.getElementById('customWidth')?.value) || 1024;
 				const height = parseInt(document.getElementById('customHeight')?.value) || 1024;
-				
-				// Ensure dimensions are divisible by 8 (which also makes them divisible by 4)
 				return {
 					width: Math.min(Math.max(Math.floor(width / 8) * 8, 64), 2048),
 					height: Math.min(Math.max(Math.floor(height / 8) * 8, 64), 2048)
 				};
 			}
-			
-			// For custom ratio input (e.g., "3:6", "8:3", etc.)
-			if (ratio.includes(':')) {
-				const [w, h] = ratio.split(':').map(Number);
-				if (w && h) { // Ensure both parts are valid numbers
-					// Start with the max square dimension
-					const MAX_DIM = 1280;
-					let width, height;
-					
-					if (w > h) { // Landscape orientation
-						width = MAX_DIM;
-						height = Math.floor((h * width) / w);
-					} else { // Portrait or square orientation
-						height = MAX_DIM;
-						width = Math.floor((w * height) / h);
-					}
-					
-					// Ensure dimensions are divisible by 8
-					return {
-						width: Math.floor(width / 8) * 8,
-						height: Math.floor(height / 8) * 8
-					};
-				}
-			}
-			
-			// For preset ratios - using empirically tested values
+
 			switch(ratio) {
 				case '1:1': return { width: 1280, height: 1280 }; // Perfect square
 				case '3:4': return { width: 960, height: 1280 };  // Tested 3:4 ratio
 				case '4:3': return { width: 1472, height: 1104 }; // Tested 4:3 ratio
 				case '16:9': return { width: 1728, height: 972 }; // 16:9 ratio
 				default: return { width: 1280, height: 1280 };
-			}
-		}
-
-		function applyCustomRatio() {
-			const ratioInput = document.getElementById('customRatioInput').value;
-			if (ratioInput && ratioInput.includes(':')) {
-				// Create a new ratio button or update an existing one
-				let customRatioBtn = document.querySelector('.ratio-button[data-ratio="custom-ratio"]');
-				
-				if (!customRatioBtn) {
-					customRatioBtn = document.createElement('button');
-					customRatioBtn.className = 'ratio-button';
-					customRatioBtn.dataset.ratio = 'custom-ratio';
-					
-					// Add the button to the ratio group
-					document.querySelector('.ratio-group').appendChild(customRatioBtn);
-					
-					// Add event listener
-					customRatioBtn.addEventListener('click', function() {
-						document.querySelectorAll('.ratio-button').forEach(btn => 
-							btn.classList.remove('active'));
-						this.classList.add('active');
-						document.getElementById('customDimensions').style.display = 'none';
-						document.getElementById('customRatioDiv').style.display = 'none';
-					});
-				}
-				
-				// Update the button text and active state
-				customRatioBtn.textContent = ratioInput;
-				customRatioBtn.dataset.customRatio = ratioInput;
-				
-				// Activate the button
-				document.querySelectorAll('.ratio-button').forEach(btn => 
-					btn.classList.remove('active'));
-				customRatioBtn.classList.add('active');
-				
-				// Hide custom dimensions div
-				document.getElementById('customDimensions').style.display = 'none';
 			}
 		}
 
@@ -2004,10 +1961,19 @@
 			});
 
 			// Fix for ratio buttons
-			const customBtn = document.querySelector('.ratio-button[data-ratio="custom"]');
-			customBtn.addEventListener('click', function() {
-				document.getElementById('customDimensions').style.display = 'block';
-				document.getElementById('customRatioDiv').style.display = 'block';
+			document.querySelectorAll('.ratio-button').forEach(button => {
+				button.addEventListener('click', function() {
+					document.querySelectorAll('.ratio-button').forEach(btn => 
+						btn.classList.remove('active'));
+					this.classList.add('active');
+					
+					const customDimensions = document.getElementById('customDimensions');
+					if (this.dataset.ratio === 'custom') {
+						customDimensions.style.display = 'block';
+					} else {
+						customDimensions.style.display = 'none';
+					}
+				});
 			});
 
 			// Connect all the event listeners
