@@ -1283,11 +1283,11 @@
 			function animateRace() {
 				const ctx = canvas.getContext('2d');
 				
-				// Create stages for the race
+				// Create stages for the race with some adjustments for timing and visuals
 				const stages = [
 					{
 						name: "Drop",
-						duration: 3000,
+						duration: 4000, // Longer duration
 						setup: () => {
 							return gameState.raceResults.map((racer, i) => {
 								return {
@@ -1311,12 +1311,12 @@
 								// Release marbles at their designated time
 								if (!racer.released && elapsed > racer.releaseTime) {
 									racer.released = true;
-									racer.vy = 1 + Math.random() * 1;
+									racer.vy = 0.5 + Math.random() * 0.8; // Slower initial velocity
 								}
 								
 								if (racer.released) {
 									racer.y += racer.vy;
-									racer.vy += 0.1; // Gravity
+									racer.vy += 0.05; // Reduced gravity for slower fall
 									
 									// Stop at bottom
 									if (racer.y > canvas.height - 50) {
@@ -1326,7 +1326,8 @@
 								}
 							});
 							
-							return racers.every(r => r.completed);
+							// Only complete when all marbles are at the bottom AND we've used at least 75% of the time
+							return racers.every(r => r.completed) && elapsed > stageDuration * 0.75;
 						},
 						draw: (ctx, racers) => {
 							// Draw funnel
@@ -1341,7 +1342,7 @@
 					},
 					{
 						name: "Slide",
-						duration: 5000,
+						duration: 6000, // Longer duration
 						setup: (prevRacers) => {
 							// Sort by completion time from previous stage
 							const sorted = [...prevRacers].sort((a, b) => {
@@ -1363,7 +1364,7 @@
 									position: i,
 									pathProgress: 0,
 									completed: false,
-									speed: 0.002 + Math.random() * 0.002 // Random speed
+									speed: 0.001 + Math.random() * 0.001 // Slower speed
 								};
 							});
 						},
@@ -1396,7 +1397,8 @@
 								racer.y = 50 + (progress * (canvas.height - 100));
 							});
 							
-							return racers.every(r => r.completed);
+							// Only complete when all marbles have completed AND we've used at least 75% of the time
+							return racers.every(r => r.completed) && elapsed > stageDuration * 0.75;
 						},
 						draw: (ctx, racers) => {
 							// Draw zigzag path
@@ -1424,13 +1426,13 @@
 					},
 					{
 						name: "Funnel",
-						duration: 4000,
+						duration: 6000, // Longer duration to ensure marbles fall through
 						setup: (prevRacers) => {
 							// Sort by completion order from previous stage
 							const sorted = [...prevRacers].sort((a, b) => {
 								if (a.completed && !b.completed) return -1;
 								if (!a.completed && b.completed) return 1;
-								return a.y - b.y;
+								return a.pathProgress - b.pathProgress;
 							});
 							
 							return sorted.map((racer, i) => {
@@ -1445,6 +1447,8 @@
 									angle: Math.random() * Math.PI * 2,
 									angularVel: (Math.random() - 0.5) * 0.05,
 									spinRadius: 100,
+									inTube: false,
+									tubeProgress: 0,
 									index: racer.index,
 									position: i,
 									completed: false
@@ -1452,78 +1456,227 @@
 							});
 						},
 						update: (racers, elapsed, stageDuration) => {
+							// Calculate overall stage progress
+							const stageProgress = Math.min(1, elapsed / stageDuration);
+							
+							// Funnel phase ends at 70% of the stage
+							const funnelEndProgress = 0.7;
+							const inFunnelPhase = stageProgress < funnelEndProgress;
+							
 							racers.forEach(racer => {
-								// Spiral motion in funnel
-								racer.angle += racer.angularVel;
-								
-								// Calculate spiral radius that decreases over time
-								const progress = Math.min(1, elapsed / stageDuration);
-								racer.spinRadius = 100 * (1 - progress);
-								
-								// Calculate position in spiral
-								racer.x = canvas.width / 2 + Math.cos(racer.angle) * racer.spinRadius;
-								racer.y = canvas.height / 2 - 50 + Math.sin(racer.angle) * racer.spinRadius;
-								
-								// Complete when reach bottom of funnel
-								if (progress >= 0.9) {
-									racer.completed = true;
+								if (!racer.inTube) {
+									if (inFunnelPhase) {
+										// Spiral motion in funnel
+										racer.angle += racer.angularVel;
+										
+										// Calculate spiral radius that decreases over time
+										const funnelProgress = stageProgress / funnelEndProgress;
+										racer.spinRadius = 100 * (1 - funnelProgress);
+										
+										// Calculate position in spiral
+										racer.x = canvas.width / 2 + Math.cos(racer.angle) * racer.spinRadius;
+										racer.y = canvas.height / 2 - 50 + Math.sin(racer.angle) * racer.spinRadius;
+										
+										// Check if marble should enter tube
+										if (funnelProgress >= 0.95 && Math.random() < 0.05) {
+											racer.inTube = true;
+											racer.tubeProgress = 0;
+											// Slightly randomize entry time for visual effect
+											racer.releaseDelay = Math.random() * 20;
+										}
+									} else {
+										// Force into tube if funnel phase is over
+										racer.inTube = true;
+										racer.tubeProgress = 0;
+									}
+								} else {
+									// Move through tube
+									if (racer.releaseDelay > 0) {
+										racer.releaseDelay--;
+									} else {
+										racer.tubeProgress += 0.02;
+										
+										// Position in tube
+										racer.x = canvas.width / 2;
+										racer.y = (canvas.height / 2 + 50) + racer.tubeProgress * (canvas.height / 2);
+										
+										// Complete when exit tube
+										if (racer.tubeProgress >= 1) {
+											racer.completed = true;
+										}
+									}
 								}
 							});
 							
+							// Complete stage when all marbles have completed OR time is up
 							return racers.every(r => r.completed) || elapsed >= stageDuration;
 						},
 						draw: (ctx, racers) => {
 							// Draw funnel
 							ctx.fillStyle = '#555';
 							ctx.beginPath();
-							ctx.arc(canvas.width / 2, canvas.height / 2 - 50, 150, 0, Math.PI * 2);
+							ctx.arc(canvas.width / 2, canvas.height / 2 - 50, 120, 0, Math.PI * 2);
 							ctx.fill();
 							
 							ctx.fillStyle = '#222';
 							ctx.beginPath();
-							ctx.arc(canvas.width / 2, canvas.height / 2 - 50, 130, 0, Math.PI * 2);
+							ctx.arc(canvas.width / 2, canvas.height / 2 - 50, 100, 0, Math.PI * 2);
 							ctx.fill();
 							
 							// Draw exit tube
 							ctx.fillStyle = '#555';
 							ctx.beginPath();
-							ctx.rect(canvas.width / 2 - 30, canvas.height / 2 + 80, 60, canvas.height / 2);
+							ctx.rect(canvas.width / 2 - 30, canvas.height / 2 + 50, 60, canvas.height / 2);
 							ctx.fill();
 							
 							ctx.fillStyle = '#222';
 							ctx.beginPath();
-							ctx.rect(canvas.width / 2 - 20, canvas.height / 2 + 80, 40, canvas.height / 2);
+							ctx.rect(canvas.width / 2 - 20, canvas.height / 2 + 50, 40, canvas.height / 2);
 							ctx.fill();
 						}
 					},
 					{
-						name: "Final",
+						name: "Bumpers",
+						duration: 6000, // New stage
+						setup: (prevRacers) => {
+							// Sort by completion order from previous stage
+							const sorted = [...prevRacers].sort((a, b) => {
+								if (a.completed && !b.completed) return -1;
+								if (!a.completed && b.completed) return 1;
+								return a.tubeProgress - b.tubeProgress;
+							});
+							
+							return sorted.map((racer, i) => {
+								return {
+									name: racer.name,
+									color: racer.color,
+									x: 50,
+									y: 50 + Math.random() * 200,
+									vx: 1 + Math.random() * 1.5,
+									vy: Math.random() * 0.5 - 0.25,
+									radius: 15,
+									index: racer.index,
+									position: i,
+									completed: false,
+									bumperHits: 0
+								};
+							});
+						},
+						update: (racers, elapsed, stageDuration) => {
+							// Define bumpers
+							const bumpers = [
+								{ x: canvas.width * 0.3, y: canvas.height * 0.3, radius: 25 },
+								{ x: canvas.width * 0.5, y: canvas.height * 0.5, radius: 25 },
+								{ x: canvas.width * 0.7, y: canvas.height * 0.7, radius: 25 },
+								{ x: canvas.width * 0.3, y: canvas.height * 0.7, radius: 25 },
+								{ x: canvas.width * 0.7, y: canvas.height * 0.3, radius: 25 }
+							];
+							
+							racers.forEach(racer => {
+								// Update position
+								racer.x += racer.vx;
+								racer.y += racer.vy;
+								
+								// Bounce off walls
+								if (racer.y < racer.radius || racer.y > canvas.height - racer.radius) {
+									racer.vy *= -1;
+									// Add a little x speed when bouncing
+									racer.vx += Math.random() * 0.2;
+								}
+								
+								// Check for bumper collisions
+								bumpers.forEach(bumper => {
+									const dx = racer.x - bumper.x;
+									const dy = racer.y - bumper.y;
+									const distance = Math.sqrt(dx * dx + dy * dy);
+									
+									if (distance < racer.radius + bumper.radius) {
+										// Collision response - reflect velocity
+										const nx = dx / distance;
+										const ny = dy / distance;
+										const dot = racer.vx * nx + racer.vy * ny;
+										
+										racer.vx = racer.vx - 2 * dot * nx;
+										racer.vy = racer.vy - 2 * dot * ny;
+										
+										// Add some randomization
+										racer.vx += (Math.random() - 0.5) * 0.5;
+										racer.vy += (Math.random() - 0.5) * 0.5;
+										
+										// Ensure minimum speed
+										const speed = Math.sqrt(racer.vx * racer.vx + racer.vy * racer.vy);
+										if (speed < 1) {
+											const scale = 1 / speed;
+											racer.vx *= scale;
+											racer.vy *= scale;
+										}
+										
+										racer.bumperHits++;
+									}
+								});
+								
+								// Check for finishing (right edge)
+								if (racer.x > canvas.width - racer.radius) {
+									racer.completed = true;
+								}
+							});
+							
+							// Complete stage when all marbles have completed or time is up
+							return racers.every(r => r.completed) || elapsed >= stageDuration;
+						},
+						draw: (ctx, racers) => {
+							// Draw bumpers
+							const bumpers = [
+								{ x: canvas.width * 0.3, y: canvas.height * 0.3, radius: 25 },
+								{ x: canvas.width * 0.5, y: canvas.height * 0.5, radius: 25 },
+								{ x: canvas.width * 0.7, y: canvas.height * 0.7, radius: 25 },
+								{ x: canvas.width * 0.3, y: canvas.height * 0.7, radius: 25 },
+								{ x: canvas.width * 0.7, y: canvas.height * 0.3, radius: 25 }
+							];
+							
+							bumpers.forEach(bumper => {
+								ctx.fillStyle = '#777';
+								ctx.beginPath();
+								ctx.arc(bumper.x, bumper.y, bumper.radius, 0, Math.PI * 2);
+								ctx.fill();
+								
+								ctx.fillStyle = '#aaa';
+								ctx.beginPath();
+								ctx.arc(bumper.x, bumper.y, bumper.radius - 5, 0, Math.PI * 2);
+								ctx.fill();
+							});
+							
+							// Draw finish line
+							ctx.strokeStyle = '#fff';
+							ctx.setLineDash([10, 10]);
+							ctx.beginPath();
+							ctx.moveTo(canvas.width - 30, 0);
+							ctx.lineTo(canvas.width - 30, canvas.height);
+							ctx.stroke();
+							ctx.setLineDash([]);
+						}
+					},
+					{
+						name: "Finish",
 						duration: 4000,
 						setup: (prevRacers) => {
-							// Randomly determine final positions, but with some influence from previous stages
-							let racers = [...prevRacers];
-							
-							// Shuffle with some bias toward previous positions
-							for (let i = racers.length - 1; i > 0; i--) {
-								// More likely to swap racers that are further back
-								const bias = i / racers.length;
-								if (Math.random() < bias * 0.8) {
-									const j = Math.floor(Math.random() * (i + 1));
-									[racers[i], racers[j]] = [racers[j], racers[i]];
-								}
-							}
+							// Sort based on previous stage completion (who hit the finish line first)
+							let racers = [...prevRacers].sort((a, b) => {
+								if (a.completed && !b.completed) return -1;
+								if (!a.completed && b.completed) return 1;
+								return 0; // If both have same completion status, maintain order
+							});
 							
 							// Set up final positions
 							return racers.map((racer, i) => {
 								return {
 									name: racer.name,
 									color: racer.color,
-									x: canvas.width / 2,
-									y: 50 + (canvas.height - 100) * (i / (racers.length)),
+									x: canvas.width / 2 - 200,
+									y: 100 + i * 30,
 									targetX: canvas.width / 2 + 200,
 									targetY: 100 + i * 30,
-									vx: 0,
-									vy: 0,
+									vx: 5 + Math.random() * 2,
 									radius: 15,
 									index: racer.index,
 									position: i,
@@ -1535,35 +1688,52 @@
 							const progress = Math.min(1, elapsed / stageDuration);
 							
 							racers.forEach((racer, i) => {
-								// Move to final positions
-								racer.x = canvas.width / 2 + progress * 200;
-								racer.y = 100 + i * 30;
-								
-								if (progress >= 1) {
-									racer.completed = true;
+								// Final sprint to finish
+								if (!racer.completed) {
+									racer.x += racer.vx;
+									
+									// Slow down near the finish to create drama
+									if (racer.x > canvas.width / 2) {
+										racer.vx *= 0.98;
+									}
+									
+									// Check for finish
+									if (racer.x >= racer.targetX) {
+										racer.x = racer.targetX;
+										racer.completed = true;
+									}
 								}
 							});
 							
-							return racers.every(r => r.completed);
+							return racers.every(r => r.completed) || elapsed >= stageDuration;
 						},
 						draw: (ctx, racers) => {
-							// Draw podium
-							ctx.fillStyle = 'gold';
-							ctx.fillRect(canvas.width / 2 + 220, 150, 80, 30);
+							// Draw finish line
+							ctx.strokeStyle = '#fff';
+							ctx.setLineDash([10, 10]);
+							ctx.beginPath();
+							ctx.moveTo(canvas.width / 2 + 200, 50);
+							ctx.lineTo(canvas.width / 2 + 200, canvas.height - 50);
+							ctx.stroke();
+							ctx.setLineDash([]);
 							
-							ctx.fillStyle = 'silver';
-							ctx.fillRect(canvas.width / 2 + 220, 180, 80, 30);
-							
-							ctx.fillStyle = '#cd7f32'; // bronze
-							ctx.fillRect(canvas.width / 2 + 220, 210, 80, 30);
+							// Draw lane lines
+							ctx.strokeStyle = '#555';
+							ctx.lineWidth = 1;
+							for (let i = 0; i < racers.length; i++) {
+								ctx.beginPath();
+								ctx.moveTo(canvas.width / 2 - 200, 85 + i * 30);
+								ctx.lineTo(canvas.width / 2 + 200, 85 + i * 30);
+								ctx.stroke();
+							}
 							
 							// Draw position labels
 							ctx.fillStyle = 'white';
 							ctx.font = '12px Arial';
-							ctx.textAlign = 'left';
+							ctx.textAlign = 'right';
 							
 							racers.forEach((racer, i) => {
-								ctx.fillText(`${i+1}.`, canvas.width / 2 + 170, 105 + i * 30);
+								ctx.fillText(`${i+1}.`, canvas.width / 2 - 210, 105 + i * 30);
 							});
 						}
 					}
