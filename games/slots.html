@@ -555,10 +555,15 @@
 		
 		.racer-management {
 			background-color: #2d2d2d;
-			padding: 1rem;
+			padding: 0.75rem;
 			border-radius: 5px;
-			margin: 1rem 0;
+			margin-bottom: 1rem;
 			border: 1px solid var(--primary);
+		}
+
+		.management-controls {
+			display: flex;
+			gap: 0.5rem;
 		}
 
 		.racer-management h3 {
@@ -600,13 +605,19 @@
 		}
 
 		.race-track {
-			max-height: 500px; /* Adjust as needed for more racers */
+			max-height: 500px;
 			overflow-y: auto;
+			position: relative;
+			background-color: #2a6e00;
+			border: 5px solid #483101;
+			border-radius: 10px;
+			margin: 1rem 0;
+			overflow-x: hidden;
 		}
 
 		.horse-lane {
 			position: relative;
-			height: 40px; /* Adjust height for more compact display */
+			height: 40px;
 			border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
 			display: flex;
 			align-items: center;
@@ -616,7 +627,7 @@
 		.horse {
 			position: absolute;
 			left: 50px;
-			font-size: 1.5rem; /* Slightly smaller horses */
+			font-size: 1.5rem;
 			transition: left 0.5s ease-in-out;
 			display: flex;
 			align-items: center;
@@ -643,9 +654,28 @@
 			padding: 2px 5px;
 			border-radius: 3px;
 			white-space: nowrap;
-			max-width: 100px;
+			max-width: 120px;
 			overflow: hidden;
 			text-overflow: ellipsis;
+		}
+
+		.remove-racer {
+			margin-left: 5px;
+			cursor: pointer;
+			color: var(--lose);
+			background-color: rgba(0, 0, 0, 0.5);
+			border-radius: 50%;
+			width: 18px;
+			height: 18px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 0.7rem;
+		}
+
+		.remove-racer:hover {
+			background-color: var(--lose);
+			color: white;
 		}
 		
     </style>
@@ -706,7 +736,7 @@
             </div>
         </div>
 
-        <!-- Horse Racing Game -->
+		<!-- Updated Horse Racing tab structure -->
 		<div id="horse-racing" class="content">
 			<h2>Horse Racing</h2>
 			
@@ -733,17 +763,16 @@
 				</div>
 			</div>
 			
-			<!-- Racer management section -->
+			<!-- Racer management section - now above the race track -->
 			<div class="racer-management">
-				<h3>Manage Racers</h3>
-				<div class="control-group">
-					<input type="text" id="racer-name" class="bet-input" placeholder="Enter racer name">
-					<button id="add-racer-button" class="race-button">Add Racer</button>
-					<button id="remove-racer-button" class="race-button">Remove Selected</button>
-					<button id="shuffle-racers-button" class="race-button">Shuffle Racers</button>
-				</div>
-				<div class="racer-list" id="racer-list">
-					<!-- Racer list items will be added here -->
+				<div class="management-controls">
+					<div class="control-group">
+						<input type="text" id="racer-name" class="bet-input" placeholder="Enter racer name">
+						<button id="add-racer-button" class="race-button">Add Racer</button>
+						<button id="random-race-button" class="race-button">Random Race</button>
+						<button id="clear-racers-button" class="race-button">Clear All</button>
+						<button id="shuffle-racers-button" class="race-button">Shuffle</button>
+					</div>
 				</div>
 			</div>
 			
@@ -798,14 +827,7 @@
                 slotItems: ["🍒", "🍋", "💎", "💰", "🔔", "🍌"],
                 winningItems: ["🍒", "🍋", "💎", "💰", "🍌"],
 				horseEmojis: ["🐴", "🐎", "🏇", "🦄", "🐕", "🦓", "🦮", "🐎", "🐩", "🦝", "🐂", "🦬", "🐃", "🐄", "🐖", "🐏", "🐑", "🐐", "🦙", "🦒"],
-				racers: [
-					{ name: "Racer 1", emoji: "🐴" },
-					{ name: "Racer 2", emoji: "🐎" },
-					{ name: "Racer 3", emoji: "🏇" },
-					{ name: "Racer 4", emoji: "🦄" },
-					{ name: "Racer 5", emoji: "🐕" }
-				],
-				selectedRacerIndex: -1,
+				racers: [], // Start with empty racers list
 				betPlaced: false,
 				currentBet: {
 					wager: 0,
@@ -858,9 +880,9 @@
 			const raceTrack = document.getElementById('race-track');
 			const racerNameInput = document.getElementById('racer-name');
 			const addRacerButton = document.getElementById('add-racer-button');
-			const removeRacerButton = document.getElementById('remove-racer-button');
+			const randomRaceButton = document.getElementById('random-race-button');
+			const clearRacersButton = document.getElementById('clear-racers-button');
 			const shuffleRacersButton = document.getElementById('shuffle-racers-button');
-			const racerList = document.getElementById('racer-list');
 
             // Initialize the game
             initGame();
@@ -1119,7 +1141,6 @@
 
 			// Horse Racing
 			function setupHorseRacing() {
-				updateRacerList();
 				updateRaceTrack();
 				updateHorseSelect();
 				
@@ -1128,6 +1149,11 @@
 				});
 				
 				startRaceButton.addEventListener('click', () => {
+					if (gameState.racers.length === 0) {
+						showNotification('Add racers first!', 'error');
+						return;
+					}
+					
 					if (gameState.betPlaced) {
 						startRace();
 					} else {
@@ -1140,19 +1166,30 @@
 					addRacer();
 				});
 				
-				removeRacerButton.addEventListener('click', () => {
-					removeSelectedRacer();
+				// Enter key to add racer
+				racerNameInput.addEventListener('keyup', (e) => {
+					if (e.key === 'Enter') {
+						addRacer();
+					}
+				});
+				
+				randomRaceButton.addEventListener('click', () => {
+					createRandomRace();
+				});
+				
+				clearRacersButton.addEventListener('click', () => {
+					clearAllRacers();
 				});
 				
 				shuffleRacersButton.addEventListener('click', () => {
 					shuffleRacers();
 				});
 				
-				// Handle selection of racers
-				racerList.addEventListener('click', (e) => {
-					const racerItem = e.target.closest('.racer-item');
-					if (racerItem) {
-						selectRacer(parseInt(racerItem.dataset.index));
+				// Remove racer when clicking the X
+				raceTrack.addEventListener('click', (e) => {
+					if (e.target.classList.contains('remove-racer')) {
+						const horseNumber = parseInt(e.target.dataset.horseNumber);
+						removeRacer(horseNumber - 1); // Convert to 0-based index
 					}
 				});
 			}
@@ -1183,6 +1220,15 @@
 					<div class="finish-flag">🏁</div>
 				`;
 				
+				if (gameState.racers.length === 0) {
+					const emptyMessage = document.createElement('div');
+					emptyMessage.style.textAlign = 'center';
+					emptyMessage.style.padding = '20px';
+					emptyMessage.textContent = 'Add racers to start the race!';
+					raceTrack.appendChild(emptyMessage);
+					return;
+				}
+				
 				gameState.racers.forEach((racer, index) => {
 					const horseLane = document.createElement('div');
 					horseLane.className = 'horse-lane';
@@ -1192,6 +1238,7 @@
 						<div class="horse" id="horse-${index + 1}">
 							${racer.emoji}
 							<span class="racer-label">${racer.name}</span>
+							<span class="remove-racer" data-horse-number="${index + 1}">✕</span>
 						</div>
 					`;
 					
@@ -1202,10 +1249,20 @@
 			function updateHorseSelect() {
 				horseSelect.innerHTML = '';
 				
+				if (gameState.racers.length === 0) {
+					const option = document.createElement('option');
+					option.value = '';
+					option.textContent = 'No racers yet';
+					option.disabled = true;
+					option.selected = true;
+					horseSelect.appendChild(option);
+					return;
+				}
+				
 				gameState.racers.forEach((racer, index) => {
 					const option = document.createElement('option');
 					option.value = index + 1;
-					option.textContent = `${racer.emoji} ${racer.name}`;
+					option.textContent = `${index + 1}. ${racer.emoji} ${racer.name}`;
 					horseSelect.appendChild(option);
 				});
 			}
@@ -1215,6 +1272,12 @@
 				
 				if (!name) {
 					showNotification('Please enter a racer name', 'error');
+					return;
+				}
+				
+				// Limit the number of racers to 20
+				if (gameState.racers.length >= 20) {
+					showNotification('Maximum 20 racers allowed', 'error');
 					return;
 				}
 				
@@ -1237,11 +1300,62 @@
 				
 				racerNameInput.value = '';
 				
-				updateRacerList();
 				updateRaceTrack();
 				updateHorseSelect();
 				
 				showNotification(`Added racer: ${name}`, 'success');
+			}
+
+			function removeRacer(index) {
+				if (gameState.raceInProgress) {
+					showNotification('Cannot remove racers during a race', 'error');
+					return;
+				}
+				
+				gameState.racers.splice(index, 1);
+				
+				updateRaceTrack();
+				updateHorseSelect();
+				
+				showNotification('Racer removed', 'info');
+			}
+
+			function clearAllRacers() {
+				if (gameState.raceInProgress) {
+					showNotification('Cannot clear racers during a race', 'error');
+					return;
+				}
+				
+				gameState.racers = [];
+				
+				updateRaceTrack();
+				updateHorseSelect();
+				
+				showNotification('All racers cleared', 'info');
+			}
+
+			function createRandomRace() {
+				if (gameState.raceInProgress) {
+					showNotification('Cannot create a race during a race', 'error');
+					return;
+				}
+				
+				const numberOfRacers = Math.floor(Math.random() * 6) + 5; // 5-10 random racers
+				
+				gameState.racers = [];
+				
+				for (let i = 1; i <= numberOfRacers; i++) {
+					const emoji = gameState.horseEmojis[Math.floor(Math.random() * gameState.horseEmojis.length)];
+					gameState.racers.push({
+						name: `Racer ${i}`,
+						emoji: emoji
+					});
+				}
+				
+				updateRaceTrack();
+				updateHorseSelect();
+				
+				showNotification(`Created random race with ${numberOfRacers} racers`, 'success');
 			}
 
 			function removeSelectedRacer() {
@@ -1271,15 +1385,22 @@
 			}
 
 			function shuffleRacers() {
+				if (gameState.racers.length <= 1) {
+					showNotification('Need at least 2 racers to shuffle', 'error');
+					return;
+				}
+				
+				if (gameState.raceInProgress) {
+					showNotification('Cannot shuffle during a race', 'error');
+					return;
+				}
+				
 				// Fisher-Yates shuffle algorithm
 				for (let i = gameState.racers.length - 1; i > 0; i--) {
 					const j = Math.floor(Math.random() * (i + 1));
 					[gameState.racers[i], gameState.racers[j]] = [gameState.racers[j], gameState.racers[i]];
 				}
 				
-				gameState.selectedRacerIndex = -1;
-				
-				updateRacerList();
 				updateRaceTrack();
 				updateHorseSelect();
 				
@@ -1297,6 +1418,11 @@
 			}
 
 			function placeBet() {
+				if (gameState.racers.length === 0) {
+					showNotification('Add racers first!', 'error');
+					return;
+				}
+				
 				const wager = parseInt(raceWagerInput.value);
 				
 				if (isNaN(wager) || wager < 1 || wager > 10000) {
@@ -1322,7 +1448,8 @@
 					betType
 				};
 				
-				showNotification(`Bet placed on Horse ${horseNumber} to ${betType.toUpperCase()}`, 'info');
+				const selectedRacer = gameState.racers[horseNumber - 1];
+				showNotification(`Bet placed on ${selectedRacer.emoji} ${selectedRacer.name} to ${betType.toUpperCase()}`, 'info');
 				
 				// Disable bet placing during race
 				placeBetButton.disabled = true;
@@ -1337,6 +1464,18 @@
 				gameState.raceInProgress = true;
 				startRaceButton.disabled = true;
 				raceResult.style.display = 'none';
+				
+				// Disable racer management during race
+				addRacerButton.disabled = true;
+				racerNameInput.disabled = true;
+				randomRaceButton.disabled = true;
+				clearRacersButton.disabled = true;
+				shuffleRacersButton.disabled = true;
+				
+				// Hide remove buttons during race
+				document.querySelectorAll('.remove-racer').forEach(btn => {
+					btn.style.display = 'none';
+				});
 				
 				// Reset horse positions
 				resetHorsePositions();
@@ -1370,8 +1509,11 @@
 			}
 
 			function resetHorsePositions() {
-				horses.forEach(horse => {
-					horse.style.left = '50px';
+				gameState.racers.forEach((_, index) => {
+					const horse = document.getElementById(`horse-${index + 1}`);
+					if (horse) {
+						horse.style.left = '50px';
+					}
 				});
 			}
 
@@ -1394,17 +1536,18 @@
 					.map(item => item.horse);
 				
 				const winner = finishOrder[0];
-				const second = finishOrder[1];
-				const third = finishOrder[2];
+				const second = finishOrder.length > 1 ? finishOrder[1] : null;
+				const third = finishOrder.length > 2 ? finishOrder[2] : null;
 				
-				let resultText = `Race Results:\n1st: ${gameState.racers[winner-1].name} ${gameState.racers[winner-1].emoji}\n`;
+				let resultText = `Race Results:\n`;
+				resultText += `🥇 1st: ${gameState.racers[winner-1].emoji} ${gameState.racers[winner-1].name}\n`;
 				
-				if (finishOrder.length > 1) {
-					resultText += `2nd: ${gameState.racers[second-1].name} ${gameState.racers[second-1].emoji}\n`;
+				if (second) {
+					resultText += `🥈 2nd: ${gameState.racers[second-1].emoji} ${gameState.racers[second-1].name}\n`;
 				}
 				
-				if (finishOrder.length > 2) {
-					resultText += `3rd: ${gameState.racers[third-1].name} ${gameState.racers[third-1].emoji}\n`;
+				if (third) {
+					resultText += `🥉 3rd: ${gameState.racers[third-1].emoji} ${gameState.racers[third-1].name}\n`;
 				}
 				
 				// Calculate result based on bet
@@ -1414,21 +1557,21 @@
 				
 				if (bet.betType === 'win' && bet.horseNumber === winner) {
 					profit = bet.wager * 4;
-					resultText += `You Won! 🏆\nHorse ${bet.horseNumber} finished FIRST`;
+					resultText += `\nYou Won! 🏆\n${gameState.racers[bet.horseNumber-1].emoji} ${gameState.racers[bet.horseNumber-1].name} finished FIRST`;
 					resultClass = 'win';
 					gameState.wins++;
 				} else if (bet.betType === 'place' && (bet.horseNumber === winner || bet.horseNumber === second)) {
 					profit = bet.wager * 2;
-					resultText += `You Place! 🥈\nHorse ${bet.horseNumber} finished in the top 2`;
+					resultText += `\nYou Place! 🥈\n${gameState.racers[bet.horseNumber-1].emoji} ${gameState.racers[bet.horseNumber-1].name} finished in the top 2`;
 					resultClass = 'win';
 					gameState.wins++;
 				} else if (bet.betType === 'show' && (bet.horseNumber === winner || bet.horseNumber === second || bet.horseNumber === third)) {
 					profit = Math.floor(bet.wager * 1.5);
-					resultText += `You Show! 🥉\nHorse ${bet.horseNumber} finished in the top 3`;
+					resultText += `\nYou Show! 🥉\n${gameState.racers[bet.horseNumber-1].emoji} ${gameState.racers[bet.horseNumber-1].name} finished in the top 3`;
 					resultClass = 'win';
 					gameState.wins++;
 				} else {
-					resultText += `You Lost 🚫\nHorse ${bet.horseNumber} didn't place as expected`;
+					resultText += `\nYou Lost 🚫\n${gameState.racers[bet.horseNumber-1].emoji} ${gameState.racers[bet.horseNumber-1].name} didn't place as expected`;
 					gameState.losses++;
 				}
 				
@@ -1459,6 +1602,18 @@
 				horseSelect.disabled = false;
 				betTypeSelect.disabled = false;
 				startRaceButton.disabled = false;
+				
+				// Re-enable racer management
+				addRacerButton.disabled = false;
+				racerNameInput.disabled = false;
+				randomRaceButton.disabled = false;
+				clearRacersButton.disabled = false;
+				shuffleRacersButton.disabled = false;
+				
+				// Show remove buttons again
+				document.querySelectorAll('.remove-racer').forEach(btn => {
+					btn.style.display = 'block';
+				});
 				
 				// Update UI
 				updateUI();
