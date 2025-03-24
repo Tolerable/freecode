@@ -467,7 +467,6 @@
 
     <div id="notification" class="notification">Notification message</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Game state
@@ -513,10 +512,6 @@
             // Canvas and physics
             const canvas = document.getElementById('race-canvas');
             const ctx = canvas.getContext('2d');
-            let engine, render, runner, world;
-            let marbleBodies = [];
-            let raceTrackSegments = [];
-            let currentSequenceIndex = 0;
 
             // DOM Elements
             const playerNameElem = document.getElementById('player-name');
@@ -989,69 +984,47 @@
             }
 
             // Setup Matter.js for marble race
-            function setupMarbleRace() {
-                // Initialize Matter.js engine
-                engine = Matter.Engine.create({
-                    enableSleeping: false
-                });
-                
-                world = engine.world;
-                world.gravity.y = 1;  // Softer gravity for better visuals
-                
-                // Setup canvas
-                resizeCanvas();
-                
-                // Create renderer
-                render = Matter.Render.create({
-                    canvas: canvas,
-                    engine: engine,
-                    options: {
-                        width: canvas.width,
-                        height: canvas.height,
-                        wireframes: false,
-                        background: 'transparent',
-                        showAngleIndicator: false
-                    }
-                });
-                
-                Matter.Render.run(render);
-                
-                // Create runner
-                runner = Matter.Runner.create();
-                Matter.Runner.stop(runner);
-            }
+			function setupMarbleRace() {
+				// Initialize with a simple canvas setup instead of Matter.js
+				resizeCanvas();
+				
+				// Draw the empty race track
+				const ctx = canvas.getContext('2d');
+				ctx.fillStyle = '#222';
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+			}
 
             // Add a new racer
-            function addRacer() {
-                const name = racerNameInput.value.trim();
-                
-                if (!name) {
-                    showNotification('Please enter a racer name', 'error');
-                    return;
-                }
-                
-                // Limit the number of racers
-                if (gameState.racers.length >= 20) {
-                    showNotification('Maximum 20 racers allowed', 'error');
-                    return;
-                }
-                
-                // Get next color
-                const colorIndex = gameState.racers.length % gameState.marbleColors.length;
-                const color = gameState.marbleColors[colorIndex];
-                
-                gameState.racers.push({
-                    name: name,
-                    color: color
-                });
-                
-                racerNameInput.value = '';
-                
-                updateRacerList();
-                updateMarbleSelect();
-                
-                showNotification(`Added marble: ${name}`, 'success');
-            }
+			function addRacer() {
+				const name = racerNameInput.value.trim();
+				
+				if (!name) {
+					showNotification('Please enter a racer name', 'error');
+					return;
+				}
+				
+				// Limit the number of racers
+				if (gameState.racers.length >= 20) {
+					showNotification('Maximum 20 racers allowed', 'error');
+					return;
+				}
+				
+				// Get next color
+				const colorIndex = gameState.racers.length % gameState.marbleColors.length;
+				const color = gameState.marbleColors[colorIndex];
+				
+				gameState.racers.push({
+					name: name,
+					color: color
+				});
+				
+				racerNameInput.value = '';
+				
+				updateRacerList();
+				updateMarbleSelect();
+				
+				showNotification(`Added marble: ${name}`, 'success');
+			}
 
             // Remove a racer
             function removeRacer(index) {
@@ -1251,314 +1224,202 @@
             }
 
             // Start the race
-            function startRace() {
-                if (gameState.raceInProgress) return;
-                
-                if (gameState.racers.length < 3) {
-                    showNotification('Need at least 3 marbles to race', 'error');
-                    return;
-                }
-                
-                gameState.raceInProgress = true;
-                resultsContainer.classList.remove('show');
-                loadingIndicator.style.display = 'block';
-                
-                // Disable controls
-                startRaceButton.disabled = true;
-                addRacerButton.disabled = true;
-                racerNameInput.disabled = true;
-                randomRaceButton.disabled = true;
-                clearRacersButton.disabled = true;
-                shuffleRacersButton.disabled = true;
-                
-                // Disable racer removal
-                document.querySelectorAll('.remove-racer').forEach(btn => {
-                    btn.style.pointerEvents = 'none';
-                    btn.style.opacity = '0.5';
-                });
-                
-                // Generate race sequence - 3 to 5 random segments
-                generateRaceSequence();
-                
-                // Give a little delay to show loading
-                setTimeout(() => {
-                    loadingIndicator.style.display = 'none';
-                    startRaceSequence();
-                }, 1500);
-            }
+			function startRace() {
+				if (gameState.raceInProgress) return;
+				
+				if (gameState.racers.length < 3) {
+					showNotification('Need at least 3 marbles to race', 'error');
+					return;
+				}
+				
+				gameState.raceInProgress = true;
+				resultsContainer.classList.remove('show');
+				loadingIndicator.style.display = 'block';
+				
+				// Disable controls
+				startRaceButton.disabled = true;
+				addRacerButton.disabled = true;
+				racerNameInput.disabled = true;
+				randomRaceButton.disabled = true;
+				clearRacersButton.disabled = true;
+				shuffleRacersButton.disabled = true;
+				
+				// Disable racer removal
+				document.querySelectorAll('.remove-racer').forEach(btn => {
+					btn.style.pointerEvents = 'none';
+					btn.style.opacity = '0.5';
+				});
+				
+				// Simulate race with random ordering instead of physics
+				setTimeout(() => {
+					loadingIndicator.style.display = 'none';
+					simulateRace();
+				}, 1500);
+			}
 
-            // Generate a sequence of race track segments
-            function generateRaceSequence() {
-                gameState.raceSequence = [];
-                
-                // Randomly select 3-5 segments (excluding podium)
-                const availableTemplates = [...trackSegmentTemplates.filter(t => t.name !== 'podium-finish')];
-                const sequenceLength = Math.floor(Math.random() * 3) + 3; // 3-5 segments
-                
-                for (let i = 0; i < sequenceLength; i++) {
-                    // Randomly remove a template to avoid duplicates
-                    const randomIndex = Math.floor(Math.random() * availableTemplates.length);
-                    const selectedTemplate = availableTemplates.splice(randomIndex, 1)[0];
-                    
-                    gameState.raceSequence.push(selectedTemplate);
-                    
-                    // If we've used all templates, refill the array
-                    if (availableTemplates.length === 0) {
-                        availableTemplates.push(...trackSegmentTemplates.filter(t => t.name !== 'podium-finish'));
-                    }
-                }
-                
-                // Always end with podium
-                const podiumTemplate = trackSegmentTemplates.find(t => t.name === 'podium-finish');
-                gameState.raceSequence.push(podiumTemplate);
-            }
+			function simulateRace() {
+				// Create a copy of the racers array to shuffle
+				const racers = [...gameState.racers];
+				
+				// Randomize the finish order
+				for (let i = racers.length - 1; i > 0; i--) {
+					const j = Math.floor(Math.random() * (i + 1));
+					[racers[i], racers[j]] = [racers[j], racers[i]];
+				}
+				
+				// Set race results
+				gameState.raceResults = racers.map(racer => {
+					return {
+						index: gameState.racers.findIndex(r => r.name === racer.name),
+						name: racer.name,
+						color: racer.color
+					};
+				});
+				
+				// Show a simulation on the canvas
+				animateRace();
+			}
 
-            // Start the race sequence
-            function startRaceSequence() {
-                currentSequenceIndex = 0;
-                setupRaceSegment(currentSequenceIndex);
-            }
+			function animateRace() {
+				const ctx = canvas.getContext('2d');
+				const racers = gameState.raceResults.map((racer, i) => {
+					return {
+						name: racer.name,
+						color: racer.color,
+						x: canvas.width / 2,
+						y: 20,
+						vx: (Math.random() - 0.5) * 1,
+						vy: 1 + Math.random() * 0.5,
+						radius: 15,
+						index: racer.index,
+						position: i, // Final position
+						completed: false
+					};
+				});
+				
+				let frameId;
+				const animate = () => {
+					ctx.fillStyle = '#222';
+					ctx.fillRect(0, 0, canvas.width, canvas.height);
+					
+					// Draw track
+					ctx.strokeStyle = '#555';
+					ctx.lineWidth = 5;
+					ctx.beginPath();
+					ctx.moveTo(20, 0);
+					ctx.lineTo(20, canvas.height);
+					ctx.stroke();
+					
+					ctx.beginPath();
+					ctx.moveTo(canvas.width - 20, 0);
+					ctx.lineTo(canvas.width - 20, canvas.height);
+					ctx.stroke();
+					
+					// Draw finish line
+					ctx.strokeStyle = '#fff';
+					ctx.setLineDash([10, 10]);
+					ctx.beginPath();
+					ctx.moveTo(30, canvas.height - 50);
+					ctx.lineTo(canvas.width - 30, canvas.height - 50);
+					ctx.stroke();
+					ctx.setLineDash([]);
+					
+					// Update and draw marbles
+					let allCompleted = true;
+					racers.forEach(racer => {
+						if (!racer.completed) {
+							racer.x += racer.vx;
+							racer.y += racer.vy;
+							
+							// Bounce off walls
+							if (racer.x < 30 + racer.radius || racer.x > canvas.width - 30 - racer.radius) {
+								racer.vx *= -1;
+							}
+							
+							// Check if reached finish line
+							if (racer.y >= canvas.height - 50) {
+								racer.completed = true;
+								racer.y = canvas.height - 50;
+							} else {
+								allCompleted = false;
+							}
+						}
+						
+						// Draw marble
+						ctx.fillStyle = racer.color;
+						ctx.beginPath();
+						ctx.arc(racer.x, racer.y, racer.radius, 0, Math.PI * 2);
+						ctx.fill();
+						
+						// Draw name
+						ctx.fillStyle = '#fff';
+						ctx.font = '10px Arial';
+						ctx.textAlign = 'center';
+						ctx.fillText(racer.name, racer.x, racer.y - racer.radius - 5);
+					});
+					
+					if (allCompleted) {
+						cancelAnimationFrame(frameId);
+						setTimeout(finishRace, 1000);
+					} else {
+						frameId = requestAnimationFrame(animate);
+					}
+				};
+				
+				frameId = requestAnimationFrame(animate);
+			}
 
-            // Setup a race segment
-            function setupRaceSegment(segmentIndex) {
-                // Clear previous segment
-                resetWorld();
-                
-                const template = gameState.raceSequence[segmentIndex];
-                
-                // Create new segment
-                raceTrackSegments = template.create(canvas.width, canvas.height, 0, 0);
-                
-                // Add segments to world
-                raceTrackSegments.forEach(segment => {
-                    let body;
-                    
-                    if (segment.type === 'line') {
-                        body = Matter.Bodies.rectangle(
-                            (segment.points[0].x + segment.points[1].x) / 2,
-                            (segment.points[0].y + segment.points[1].y) / 2,
-                            Matter.Vector.magnitude(Matter.Vector.sub(
-                                Matter.Vector.create(segment.points[1].x, segment.points[1].y),
-                                Matter.Vector.create(segment.points[0].x, segment.points[0].y)
-                            )),
-                            segment.thickness,
-                            {
-                                angle: Math.atan2(
-                                    segment.points[1].y - segment.points[0].y,
-                                    segment.points[1].x - segment.points[0].x
-                                ),
-                                isStatic: true,
-                                render: {
-                                    fillStyle: '#555'
-                                }
-                            }
-                        );
-                    } else if (segment.type === 'circle') {
-                        body = Matter.Bodies.circle(
-                            segment.position.x,
-                            segment.position.y,
-                            segment.radius,
-                            {
-                                isStatic: true,
-                                render: {
-                                    fillStyle: '#555'
-                                }
-                            }
-                        );
-                    }
-                    
-                    if (body) {
-                        Matter.Composite.add(world, body);
-                    }
-                });
-                
-                // Create marbles at start position (either starting)
-                if (segmentIndex === 0) {
-                    createMarbles();
-                } else {
-                    // Continue with marbles from previous segment
-                    repositionMarbles();
-                }
-                
-                // Start the physics
-                Matter.Runner.run(runner, engine);
-                
-                // Check for segment completion
-                startSegmentCompletionCheck();
-            }
+			function resetWorld() {
+				// Just reset the race results
+				gameState.raceResults = [];
+				
+				// Clear the canvas if needed
+				const ctx = canvas.getContext('2d');
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+			}
 
-            // Create marble bodies
-            function createMarbles() {
-                marbleBodies = [];
-                
-                // Create starting position distribution
-                const startX = canvas.width / 2;
-                const startY = 20;
-                const radius = 15;
-                
-                gameState.racers.forEach((racer, index) => {
-                    // Distribute marbles in a line at the top
-                    const offsetX = (index - (gameState.racers.length - 1) / 2) * (radius * 2.2);
-                    
-                    const marble = Matter.Bodies.circle(
-                        startX + offsetX,
-                        startY,
-                        radius,
-                        {
-                            restitution: 0.7, // Bounciness
-                            friction: 0.05,
-                            frictionAir: 0.01,
-                            render: {
-                                fillStyle: racer.color
-                            },
-                            racerIndex: index
-                        }
-                    );
-                    
-                    Matter.Composite.add(world, marble);
-                    marbleBodies.push(marble);
-                });
-            }
-
-            // Reposition marbles for next segment
-            function repositionMarbles() {
-                // Get the order of marbles from previous segment
-                const sortedMarbles = [...marbleBodies].sort((a, b) => {
-                    return a.position.y - b.position.y;
-                });
-                
-                marbleBodies = [];
-                
-                // Create starting position distribution for next segment
-                const startX = canvas.width / 2;
-                const startY = 20;
-                const radius = 15;
-                
-                sortedMarbles.forEach((prevMarble, index) => {
-                    const racerIndex = prevMarble.racerIndex;
-                    const racer = gameState.racers[racerIndex];
-                    
-                    // Distribute marbles in a line at the top
-                    const offsetX = (index - (gameState.racers.length - 1) / 2) * (radius * 2.2);
-                    
-                    const marble = Matter.Bodies.circle(
-                        startX + offsetX,
-                        startY,
-                        radius,
-                        {
-                            restitution: 0.7, // Bounciness
-                            friction: 0.05,
-                            frictionAir: 0.01,
-                            render: {
-                                fillStyle: racer.color
-                            },
-                            racerIndex: racerIndex
-                        }
-                    );
-                    
-                    Matter.Composite.add(world, marble);
-                    marbleBodies.push(marble);
-                });
-            }
-
-            // Check for segment completion
-            function startSegmentCompletionCheck() {
-                const checkInterval = setInterval(() => {
-                    // Check if all marbles have crossed a certain threshold
-                    const allBelow = marbleBodies.every(marble => {
-                        return marble.position.y > canvas.height - 40;
-                    });
-                    
-                    if (allBelow) {
-                        clearInterval(checkInterval);
-                        Matter.Runner.stop(runner);
-                        
-                        // Move to next segment or finish
-                        currentSequenceIndex++;
-                        
-                        if (currentSequenceIndex < gameState.raceSequence.length) {
-                            // Show a brief loading between segments
-                            loadingIndicator.style.display = 'block';
-                            setTimeout(() => {
-                                loadingIndicator.style.display = 'none';
-                                setupRaceSegment(currentSequenceIndex);
-                            }, 1000);
-                        } else {
-                            finishRace();
-                        }
-                    }
-                    
-                    // If this is the final segment (podium), check for finish order
-                    if (currentSequenceIndex === gameState.raceSequence.length - 1) {
-                        checkRaceResults();
-                    }
-                }, 500);
-            }
-
-            // Track race results during final segment
-            function checkRaceResults() {
-                // Check for marbles that have reached the podium
-                const podiumY = canvas.height - 100;
-                
-                marbleBodies.forEach(marble => {
-                    const index = marble.racerIndex;
-                    
-                    // If marble has reached a podium and not already in results
-                    if (marble.position.y > podiumY && !gameState.raceResults.some(r => r.index === index)) {
-                        gameState.raceResults.push({
-                            index: index,
-                            name: gameState.racers[index].name,
-                            color: gameState.racers[index].color
-                        });
-                    }
-                });
-            }
-
-            // Reset world
-            function resetWorld() {
-                Matter.World.clear(world);
-                Matter.Engine.clear(engine);
-                gameState.raceResults = [];
-            }
-
-            // Reset race
-            function resetRace() {
-                Matter.Runner.stop(runner);
-                resetWorld();
-                gameState.raceInProgress = false;
-            }
+			// Replace this function
+			function resetRace() {
+				// Cancel any ongoing animation frame if it exists
+				if (window.raceAnimationId) {
+					cancelAnimationFrame(window.raceAnimationId);
+				}
+				
+				resetWorld();
+				gameState.raceInProgress = false;
+			}
 
             // Finish the race and display results
-            function finishRace() {
-                gameState.raceInProgress = false;
-                
-                // Process bet
-                processBet();
-                
-                // Display results
-                displayResults();
-                
-                // Re-enable controls
-                startRaceButton.disabled = false;
-                placeBetButton.disabled = false;
-                raceWagerInput.disabled = false;
-                marbleSelect.disabled = false;
-                betTypeSelect.disabled = false;
-                addRacerButton.disabled = false;
-                racerNameInput.disabled = false;
-                randomRaceButton.disabled = false;
-                clearRacersButton.disabled = false;
-                shuffleRacersButton.disabled = false;
-                
-                // Re-enable racer removal
-                document.querySelectorAll('.remove-racer').forEach(btn => {
-                    btn.style.pointerEvents = 'auto';
-                    btn.style.opacity = '1';
-                });
-                
-                gameState.betPlaced = false;
-                saveGameState();
-            }
+			function finishRace() {
+				gameState.raceInProgress = false;
+				
+				// Process bet
+				processBet();
+				
+				// Display results
+				displayResults();
+				
+				// Re-enable controls
+				startRaceButton.disabled = false;
+				placeBetButton.disabled = false;
+				raceWagerInput.disabled = false;
+				marbleSelect.disabled = false;
+				betTypeSelect.disabled = false;
+				addRacerButton.disabled = false;
+				racerNameInput.disabled = false;
+				randomRaceButton.disabled = false;
+				clearRacersButton.disabled = false;
+				shuffleRacersButton.disabled = false;
+				
+				// Re-enable racer removal
+				document.querySelectorAll('.remove-racer').forEach(btn => {
+					btn.style.pointerEvents = 'auto';
+					btn.style.opacity = '1';
+				});
+				
+				gameState.betPlaced = false;
+				saveGameState();
+			}
 
             // Process bet result
             function processBet() {
