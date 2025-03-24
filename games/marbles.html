@@ -4,422 +4,439 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Marble Race Simulator</title>
-	<style>
-	:root {
-		--primary: #3f51b5;
-		--primary-light: #757de8;
-		--secondary: #ff9800;
-		--dark: #212121;
-		--light: #f5f5f5;
-		--win: #4caf50;
-		--lose: #f44336;
-		--text: #333;
-	}
-
-	* {
-		margin: 0;
-		padding: 0;
-		box-sizing: border-box;
-		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-	}
-
-	body {
-		background-color: var(--dark);
-		color: var(--light);
-		line-height: 1.6;
-	}
-
-	.container {
-		max-width: 1000px;
-		margin: 0 auto;
-		padding: 0.5rem 1rem;
-	}
-
-	/* Header and user info */
-	header {
-		background-color: var(--primary);
-		color: white;
-		padding: 0.5rem 0;
-		border-bottom: 3px solid var(--secondary);
-	}
-
-	.header-content {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		max-width: 1000px;
-		margin: 0 auto;
-		padding: 0 1rem;
-	}
-
-	.game-title {
-		font-size: 1.5rem;
-		margin: 0;
-	}
-
-	.subtitle {
-		margin: 0;
-		font-size: 0.9rem;
-	}
-
-	.user-info {
-		background-color: var(--primary-light);
-		padding: 0.4rem 0;
-	}
-
-	.user-info-content {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		max-width: 1000px;
-		margin: 0 auto;
-		padding: 0 1rem;
-	}
-
-	.user-info h3 {
-		margin: 0;
-		color: white;
-		font-size: 1rem;
-	}
-
-	.credit-display {
-		font-size: 1rem;
-		font-weight: bold;
-		color: var(--secondary);
-	}
-
-	/* Controls */
-	.control-row {
-		display: flex;
-		gap: 0.5rem;
-		align-items: center;
-		flex-wrap: wrap;
-		margin-bottom: 0.5rem;
-	}
-
-	.control-input {
-		padding: 0.4rem 0.5rem;
-		border-radius: 4px;
-		border: 1px solid #444;
-		background-color: #333;
-		color: white;
-	}
-
-	input.control-input {
-		width: 200px;
-	}
-
-	select.control-input {
-		min-width: 120px;
-	}
-
-	.btn {
-		padding: 0.4rem 0.75rem;
-		border-radius: 4px;
-		cursor: pointer;
-		font-weight: 600;
-		transition: all 0.2s;
-		border: none;
-	}
-
-	.btn-primary {
-		background-color: var(--primary);
-		color: white;
-	}
-
-	.btn-primary:hover {
-		background-color: var(--primary-light);
-	}
-
-	.btn-secondary {
-		background-color: var(--secondary);
-		color: var(--dark);
-	}
-
-	.btn-action {
-		background-color: #555;
-		color: white;
-	}
-
-	.btn-action:hover {
-		background-color: #666;
-	}
-
-	.btn:disabled {
-		background-color: #777;
-		cursor: not-allowed;
-		opacity: 0.7;
-	}
-
-	/* Racer list */
-	.racer-list {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		margin: 0.5rem 0 1rem 0;
-		min-height: 24px;
-	}
-
-	.racer-item {
-		background-color: var(--primary-light);
-		color: white;
-		padding: 0.4rem 0.6rem;
-		border-radius: 5px;
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.marble {
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		flex-shrink: 0;
-	}
-
-	.racer-name {
-		max-width: 120px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.remove-racer {
-		margin-left: 0.25rem;
-		cursor: pointer;
-		font-size: 0.8rem;
-		opacity: 0.7;
-		transition: opacity 0.2s;
-	}
-
-	.remove-racer:hover {
-		opacity: 1;
-	}
-
-	/* Betting controls */
-	.bet-group {
-		display: flex;
-		gap: 0.5rem;
-		align-items: center;
-	}
-
-	.bet-label {
-		white-space: nowrap;
-	}
-
-	/* Race canvas container */
-	.race-container {
-		position: relative;
-		width: 100%;
-		height: 500px;
-		overflow: hidden;
-		border-radius: 10px;
-		border: 3px solid var(--primary);
-		background-color: #222;
-		margin-bottom: 1rem;
-	}
-
-	#race-canvas {
-		width: 100%;
-		height: 100%;
-		background-color: transparent;
-	}
-
-	/* Results display */
-	.results {
-		display: none;
-		padding: 1rem;
-		background-color: #2d2d2d;
-		border-radius: 5px;
-		margin-top: 1rem;
-		border: 1px solid var(--primary);
-	}
-
-	.results.show {
-		display: block;
-	}
-
-	.results-title {
-		text-align: center;
-		margin-bottom: 1rem;
-		color: var(--secondary);
-	}
-
-	.results-list {
-		list-style: none;
-	}
-
-	.result-item {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		padding: 0.75rem;
-		border-bottom: 1px solid #444;
-	}
-
-	.result-item:last-child {
-		border-bottom: none;
-	}
-
-	.position {
-		font-size: 1.25rem;
-		font-weight: bold;
-		min-width: 30px;
-	}
-
-	.position-1 {
-		color: gold;
-	}
-
-	.position-2 {
-		color: silver;
-	}
-
-	.position-3 {
-		color: #cd7f32; /* Bronze */
-	}
-
-	.bet-result {
-		border-top: 1px solid #555;
-		margin-top: 1rem;
-		padding-top: 1rem;
-		text-align: center;
-		font-size: 1.25rem;
-	}
-
-	.win {
-		color: var(--win);
-	}
-
-	.lose {
-		color: var(--lose);
-	}
-
-	/* Notification */
-	.notification {
-		position: fixed;
-		top: 20px;
-		right: 20px;
-		padding: 1rem;
-		border-radius: 5px;
-		color: white;
-		font-weight: 600;
-		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-		transform: translateX(150%);
-		transition: transform 0.3s ease-out;
-		z-index: 1000;
-	}
-
-	.notification.show {
-		transform: translateX(0);
-	}
-
-	.notification.success {
-		background-color: var(--win);
-	}
-
-	.notification.error {
-		background-color: var(--lose);
-	}
-
-	.notification.info {
-		background-color: var(--primary);
-	}
-
-	/* Loading indicator */
-	.loading {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		background-color: rgba(0,0,0,0.8);
-		padding: 1rem 2rem;
-		border-radius: 5px;
-		font-weight: bold;
-		color: white;
-	}
-
-	/* Empty state message */
-	.empty-message {
-		color: #888;
-		text-align: center;
-		padding: 0.5rem;
-	}
-
-	/* Responsive design */
-	@media (max-width: 768px) {
-		.control-row {
-			flex-direction: column;
-			align-items: stretch;
+    <style>
+        :root {
+            --primary: #3f51b5;
+            --primary-light: #757de8;
+            --secondary: #ff9800;
+            --dark: #212121;
+            --light: #f5f5f5;
+            --win: #4caf50;
+            --lose: #f44336;
+            --text: #333;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--dark);
+            color: var(--light);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+		header {
+			background-color: var(--primary);
+			color: white;
+			padding: 0.75rem 0;
+			border-bottom: 4px solid var(--secondary);
+			margin-bottom: 0;
 		}
-		
-		.race-container {
-			height: 400px;
+
+		.header-content {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
 		}
-		
-		input.control-input, select.control-input {
-			width: 100%;
+
+		.game-title {
+			font-size: 1.75rem;
+			margin: 0;
 		}
-	}
-	</style>
+
+		.subtitle {
+			margin: 0;
+			font-size: 1rem;
+		}
+
+		.user-info {
+			background-color: var(--primary-light);
+			padding: 0.5rem 0;
+			margin-bottom: 1rem;
+		}
+
+		.user-info-content {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.user-info h3 {
+			margin: 0;
+			color: white;
+			font-size: 1rem;
+		}
+
+		.credit-display {
+			font-size: 1rem;
+			font-weight: bold;
+			color: var(--secondary);
+		}
+
+        /* Racer management panel */
+        .racer-management-panel {
+            background-color: #2d2d2d;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--primary);
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background-color: var(--primary);
+            cursor: pointer;
+        }
+        
+        .panel-header h3 {
+            margin: 0;
+            color: white;
+        }
+        
+        .panel-content {
+            padding: 1rem;
+        }
+        
+        .racer-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .racer-input-group {
+            display: flex;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .racer-input {
+            flex: 1;
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background-color: #444;
+            color: white;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: none;
+            min-width: 90px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-light);
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: var(--dark);
+        }
+        
+        .btn-action {
+            background-color: #555;
+            color: white;
+        }
+        
+        .btn-action:hover {
+            background-color: #666;
+        }
+        
+        .btn:disabled {
+            background-color: #777;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .racer-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .racer-item {
+            background-color: var(--primary-light);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+        }
+        
+        .marble {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .racer-name {
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .remove-racer {
+            margin-left: 0.25rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .remove-racer:hover {
+            opacity: 1;
+        }
+        
+        /* Betting controls */
+        .betting-controls {
+            background-color: #2d2d2d;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--primary);
+            padding: 1rem;
+        }
+        
+        .bet-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .bet-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .bet-input {
+            width: 100px;
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background-color: #444;
+            color: white;
+        }
+        
+        select.bet-input {
+            min-width: 150px;
+        }
+        
+        /* Race canvas container */
+        .race-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            overflow: hidden;
+            border-radius: 10px;
+            border: 3px solid var(--primary);
+            background-color: #222;
+            margin-bottom: 1rem;
+        }
+        
+        #race-canvas {
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+        }
+        
+        /* Results display */
+        .results {
+            display: none;
+            padding: 1rem;
+            background-color: #2d2d2d;
+            border-radius: 5px;
+            margin-top: 1rem;
+            border: 1px solid var(--primary);
+        }
+        
+        .results.show {
+            display: block;
+        }
+        
+        .results-title {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: var(--secondary);
+        }
+        
+        .results-list {
+            list-style: none;
+        }
+        
+        .result-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            border-bottom: 1px solid #444;
+        }
+        
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .position {
+            font-size: 1.25rem;
+            font-weight: bold;
+            min-width: 30px;
+        }
+        
+        .position-1 {
+            color: gold;
+        }
+        
+        .position-2 {
+            color: silver;
+        }
+        
+        .position-3 {
+            color: #cd7f32; /* Bronze */
+        }
+        
+        .bet-result {
+            border-top: 1px solid #555;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            text-align: center;
+            font-size: 1.25rem;
+        }
+        
+        .win {
+            color: var(--win);
+        }
+        
+        .lose {
+            color: var(--lose);
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem;
+            border-radius: 5px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transform: translateX(150%);
+            transition: transform 0.3s ease-out;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background-color: var(--win);
+        }
+        
+        .notification.error {
+            background-color: var(--lose);
+        }
+        
+        .notification.info {
+            background-color: var(--primary);
+        }
+
+        /* Loading indicator */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0,0,0,0.8);
+            padding: 1rem 2rem;
+            border-radius: 5px;
+            font-weight: bold;
+            color: white;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .racer-controls {
+                flex-direction: column;
+            }
+            
+            .race-container {
+                height: 400px;
+            }
+        }
+    </style>
 </head>
 <body>
 	<header>
-		<div class="header-content">
-			<h1 class="game-title">🔴 Marble Race Simulator 🔵</h1>
-			<div class="subtitle">Add marbles, place bets, and watch them race!</div>
+		<div class="container">
+			<div class="header-content">
+				<h1 class="game-title">🔴 Marble Race Simulator 🔵</h1>
+				<p class="subtitle">Add marbles, place bets, and watch them race!</p>
+			</div>
 		</div>
 	</header>
 
-	<div class="user-info">
-		<div class="user-info-content">
-			<h3>Player: <span id="player-name">Guest</span></h3>
-			<div class="credit-display">💸 Credits: <span id="credit-balance">1000</span></div>
-		</div>
-	</div>
-
-	<div class="control-panel">
-		<div class="marble-controls">
-			<input type="text" id="racer-name" class="control-input" placeholder="Enter racer name">
-			<button id="add-racer-button" class="btn btn-primary">Add Marble</button>
-			<button id="random-race-button" class="btn btn-action">Random Race</button>
-			<button id="clear-racers-button" class="btn btn-action">Clear All</button>
-			<button id="shuffle-racers-button" class="btn btn-action">Shuffle</button>
-		</div>
-		
-		<div class="betting-controls">
-			<div class="bet-group">
-				<label for="race-wager">Wager:</label>
-				<input type="number" id="race-wager" class="control-input" min="1" max="10000" value="100">
+    <main class="container">
+		<div class="user-info">
+			<div class="container">
+				<div class="user-info-content">
+					<h3>Player: <span id="player-name">Guest</span></h3>
+					<div class="credit-display">💸 Credits: <span id="credit-balance">1000</span></div>
+				</div>
 			</div>
-			<div class="bet-group">
-				<label for="marble-select">Marble:</label>
-				<select id="marble-select" class="control-input">
-					<option value="" disabled selected>Select marble</option>
-				</select>
-			</div>
-			<div class="bet-group">
-				<label for="bet-type">Bet Type:</label>
-				<select id="bet-type" class="control-input">
-					<option value="win">WIN (4x)</option>
-					<option value="place">PLACE (2x)</option>
-					<option value="show">SHOW (1.5x)</option>
-				</select>
-			</div>
-			<button id="place-bet-button" class="btn btn-primary">Place Bet</button>
-			<button id="start-race-button" class="btn btn-secondary">Start Race</button>
 		</div>
-	</div>
 
-	<div id="racer-list" class="racer-list">
-		<!-- Racer items will be added here -->
-	</div>
-
-	<div class="race-container">
-		<canvas id="race-canvas"></canvas>
-		<div id="loading" class="loading" style="display: none;">Loading Race...</div>
-	</div>
-
+        <!-- Racer Management Panel -->
+        <div class="racer-management-panel">
+            <div class="panel-header">
+                <h3>Manage Marbles</h3>
+            </div>
+            <div class="panel-content">
+                <div class="racer-controls">
+                    <div class="racer-input-group">
+                        <input type="text" id="racer-name" class="racer-input" placeholder="Enter racer name">
+                        <button id="add-racer-button" class="btn btn-primary">Add Marble</button>
+                    </div>
+                    <div class="racer-action-buttons">
+                        <button id="random-race-button" class="btn btn-action">Random Race</button>
+                        <button id="clear-racers-button" class="btn btn-action">Clear All</button>
+                        <button id="shuffle-racers-button" class="btn btn-action">Shuffle</button>
+                    </div>
+                </div>
+                <div id="racer-list" class="racer-list">
+                    <!-- Racer items will be added here -->
+                </div>
+            </div>
+        </div>
 
         <!-- Betting Controls -->
         <div class="betting-controls">
