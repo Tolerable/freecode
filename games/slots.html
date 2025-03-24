@@ -605,42 +605,39 @@
 		}
 
 		.race-track {
-			max-height: 500px;
-			overflow-y: auto;
 			position: relative;
 			background-color: #2a6e00;
 			border: 5px solid #483101;
 			border-radius: 10px;
 			margin: 1rem 0;
-			overflow-x: hidden;
+			overflow: hidden; /* Hide scrollbars */
+			min-height: 200px; /* Minimum height for empty track */
+			transition: height 0.3s ease; /* Smooth transition when height changes */
 		}
 
 		.horse-lane {
 			position: relative;
-			height: 40px;
 			border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
 			display: flex;
 			align-items: center;
 			padding-left: 10px;
+			transition: height 0.3s ease;
 		}
 
 		.horse {
 			position: absolute;
 			left: 50px;
-			font-size: 1.5rem;
 			transition: left 0.5s ease-in-out;
 			display: flex;
 			align-items: center;
+			height: 100%;
 		}
 
 		.horse-number {
 			position: absolute;
 			left: 10px;
-			font-size: 1rem;
 			z-index: 2;
 			background-color: rgba(0, 0, 0, 0.5);
-			width: 25px;
-			height: 25px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -676,6 +673,17 @@
 		.remove-racer:hover {
 			background-color: var(--lose);
 			color: white;
+		}
+
+		@media (min-height: 600px) {
+			.race-track.many-racers {
+				perspective: 500px;
+			}
+			
+			.race-track.many-racers .horse-lane {
+				transform: rotateX(10deg);
+				transform-origin: center top;
+			}
 		}
 		
     </style>
@@ -1036,6 +1044,15 @@
                 });
             }
 
+			function applyRaceTrackEffects() {
+				// Apply 3D perspective effect if we have more than 10 racers
+				if (gameState.racers.length > 10) {
+					raceTrack.classList.add('many-racers');
+				} else {
+					raceTrack.classList.remove('many-racers');
+				}
+			}
+
 			function spinSlots() {
 				// Deduct credits
 				updateCredits(-gameState.spinCost);
@@ -1229,13 +1246,38 @@
 					return;
 				}
 				
+				// Calculate lane height based on number of racers
+				// For 8 or fewer racers, use standard height
+				// For more than 8, gradually reduce height to fit them all
+				const maxStandardRacers = 8;
+				const standardLaneHeight = 40; // px
+				const minLaneHeight = 25; // px
+				
+				let laneHeight = standardLaneHeight;
+				if (gameState.racers.length > maxStandardRacers) {
+					// Calculate reduced height, but never below minLaneHeight
+					const reductionFactor = Math.min(1, maxStandardRacers / gameState.racers.length);
+					laneHeight = Math.max(minLaneHeight, Math.floor(standardLaneHeight * reductionFactor));
+				}
+				
+				// Set the track height to accommodate all racers without scrolling
+				// Add some padding at the bottom
+				const trackHeight = (laneHeight * gameState.racers.length) + 20;
+				raceTrack.style.height = `${trackHeight}px`;
+				
+				// Create lanes with dynamic height
 				gameState.racers.forEach((racer, index) => {
 					const horseLane = document.createElement('div');
 					horseLane.className = 'horse-lane';
+					horseLane.style.height = `${laneHeight}px`;
+					
+					// Adjust font size for horse number and emoji based on lane height
+					const numberSize = Math.max(0.8, laneHeight / 40); // Scale font size
+					const emojiSize = Math.max(1.2, laneHeight / 30);
 					
 					horseLane.innerHTML = `
-						<div class="horse-number">${index + 1}</div>
-						<div class="horse" id="horse-${index + 1}">
+						<div class="horse-number" style="font-size: ${numberSize}rem; width: ${laneHeight * 0.6}px; height: ${laneHeight * 0.6}px;">${index + 1}</div>
+						<div class="horse" id="horse-${index + 1}" style="font-size: ${emojiSize}rem;">
 							${racer.emoji}
 							<span class="racer-label">${racer.name}</span>
 							<span class="remove-racer" data-horse-number="${index + 1}">✕</span>
@@ -1244,6 +1286,13 @@
 					
 					raceTrack.appendChild(horseLane);
 				});
+				
+				// Adjust finish line height
+				const finishLine = raceTrack.querySelector('.finish-line');
+				if (finishLine) {
+					finishLine.style.height = '100%';
+				}
+				applyRaceTrackEffects();
 			}
 
 			function updateHorseSelect() {
@@ -1275,7 +1324,7 @@
 					return;
 				}
 				
-				// Limit the number of racers to 20
+				// Increase limit to 20 racers
 				if (gameState.racers.length >= 20) {
 					showNotification('Maximum 20 racers allowed', 'error');
 					return;
