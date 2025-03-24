@@ -580,17 +580,110 @@
 			overflow-y: auto;
 		}
 
+		.racer-management-panel {
+			background-color: #2d2d2d;
+			border-radius: 5px;
+			margin-bottom: 1rem;
+			border: 1px solid var(--primary);
+			overflow: hidden;
+		}
+
+		.panel-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 0.75rem;
+			background-color: var(--primary);
+			cursor: pointer;
+		}
+
+		.panel-header h3 {
+			margin: 0;
+			color: white;
+		}
+
+		.toggle-button {
+			background: none;
+			border: none;
+			color: white;
+			font-size: 1rem;
+			cursor: pointer;
+			transition: transform 0.3s;
+		}
+
+		.toggle-button.collapsed {
+			transform: rotate(180deg);
+		}
+
+		.panel-content {
+			max-height: 300px;
+			overflow-y: auto;
+			transition: max-height 0.3s ease;
+		}
+
+		.panel-content.collapsed {
+			max-height: 0;
+		}
+
+		.racer-controls {
+			display: flex;
+			justify-content: space-between;
+			padding: 0.75rem;
+			border-bottom: 1px solid #444;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+		}
+
+		.racer-input-group {
+			display: flex;
+			gap: 0.5rem;
+			flex: 1;
+			min-width: 200px;
+		}
+
+		.racer-action-buttons {
+			display: flex;
+			gap: 0.5rem;
+		}
+
+		.racer-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+			padding: 0.75rem;
+		}
+
 		.racer-item {
 			background-color: var(--primary-light);
 			color: white;
-			padding: 0.5rem 1rem;
+			padding: 0.5rem;
 			border-radius: 5px;
-			cursor: pointer;
 			display: flex;
 			align-items: center;
 			gap: 0.5rem;
 		}
 
+		.racer-item-emoji {
+			font-size: 1.25rem;
+		}
+
+		.racer-item-name {
+			max-width: 120px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		.racer-item-remove {
+			cursor: pointer;
+			color: rgba(255, 255, 255, 0.7);
+			transition: color 0.2s;
+			margin-left: 0.25rem;
+		}
+
+		.racer-item-remove:hover {
+			color: var(--lose);
+		}
 		.racer-item.selected {
 			background-color: var(--primary);
 			border: 2px solid var(--secondary);
@@ -771,15 +864,29 @@
 				</div>
 			</div>
 			
-			<!-- Racer management section - now above the race track -->
-			<div class="racer-management">
-				<div class="management-controls">
-					<div class="control-group">
-						<input type="text" id="racer-name" class="bet-input" placeholder="Enter racer name">
-						<button id="add-racer-button" class="race-button">Add Racer</button>
-						<button id="random-race-button" class="race-button">Random Race</button>
-						<button id="clear-racers-button" class="race-button">Clear All</button>
-						<button id="shuffle-racers-button" class="race-button">Shuffle</button>
+			<!-- Racer management panel -->
+			<div class="racer-management-panel">
+				<div class="panel-header">
+					<h3>Manage Racers</h3>
+					<button id="toggle-racer-panel" class="toggle-button">▲</button>
+				</div>
+				
+				<div class="panel-content" id="racer-panel-content">
+					<div class="racer-controls">
+						<div class="racer-input-group">
+							<input type="text" id="racer-name" class="bet-input" placeholder="Enter racer name">
+							<button id="add-racer-button" class="race-button">Add</button>
+						</div>
+						
+						<div class="racer-action-buttons">
+							<button id="random-race-button" class="race-button">Random Race</button>
+							<button id="clear-racers-button" class="race-button">Clear All</button>
+							<button id="shuffle-racers-button" class="race-button">Shuffle</button>
+						</div>
+					</div>
+					
+					<div class="racer-list" id="racer-list">
+						<!-- Racer items will be added here -->
 					</div>
 				</div>
 			</div>
@@ -891,6 +998,11 @@
 			const randomRaceButton = document.getElementById('random-race-button');
 			const clearRacersButton = document.getElementById('clear-racers-button');
 			const shuffleRacersButton = document.getElementById('shuffle-racers-button');
+
+			const racerPanelHeader = document.querySelector('.panel-header');
+			const toggleRacerPanelBtn = document.getElementById('toggle-racer-panel');
+			const racerPanelContent = document.getElementById('racer-panel-content');
+			const racerList = document.getElementById('racer-list');
 
             // Initialize the game
             initGame();
@@ -1158,6 +1270,7 @@
 
 			// Horse Racing
 			function setupHorseRacing() {
+				updateRacerList();
 				updateRaceTrack();
 				updateHorseSelect();
 				
@@ -1202,7 +1315,20 @@
 					shuffleRacers();
 				});
 				
-				// Remove racer when clicking the X
+				// Toggle racer panel visibility
+				racerPanelHeader.addEventListener('click', () => {
+					toggleRacerPanel();
+				});
+				
+				// Handle racer removal from panel
+				racerList.addEventListener('click', (e) => {
+					if (e.target.classList.contains('racer-item-remove')) {
+						const index = parseInt(e.target.closest('.racer-item').dataset.index);
+						removeRacer(index);
+					}
+				});
+				
+				// Remove racer when clicking the X on the track
 				raceTrack.addEventListener('click', (e) => {
 					if (e.target.classList.contains('remove-racer')) {
 						const horseNumber = parseInt(e.target.dataset.horseNumber);
@@ -1211,23 +1337,70 @@
 				});
 			}
 
+			function toggleRacerPanel() {
+				racerPanelContent.classList.toggle('collapsed');
+				toggleRacerPanelBtn.classList.toggle('collapsed');
+				toggleRacerPanelBtn.textContent = racerPanelContent.classList.contains('collapsed') ? '▼' : '▲';
+			}
+
 			function updateRacerList() {
 				racerList.innerHTML = '';
+				
+				if (gameState.racers.length === 0) {
+					const emptyMessage = document.createElement('div');
+					emptyMessage.style.padding = '0.5rem';
+					emptyMessage.style.color = '#888';
+					emptyMessage.textContent = 'No racers added yet. Add racers above or create a random race.';
+					racerList.appendChild(emptyMessage);
+					return;
+				}
 				
 				gameState.racers.forEach((racer, index) => {
 					const racerItem = document.createElement('div');
 					racerItem.className = 'racer-item';
-					if (index === gameState.selectedRacerIndex) {
-						racerItem.classList.add('selected');
-					}
 					racerItem.dataset.index = index;
 					
 					racerItem.innerHTML = `
-						<span class="racer-emoji">${racer.emoji}</span>
-						<span class="racer-name">${racer.name}</span>
+						<span class="racer-item-emoji">${racer.emoji}</span>
+						<span class="racer-item-name">${racer.name}</span>
+						<span class="racer-item-remove">✕</span>
 					`;
 					
 					racerList.appendChild(racerItem);
+				});
+			}
+
+			function disableRacerManagement() {
+				addRacerButton.disabled = true;
+				racerNameInput.disabled = true;
+				randomRaceButton.disabled = true;
+				clearRacersButton.disabled = true;
+				shuffleRacersButton.disabled = true;
+				
+				document.querySelectorAll('.racer-item-remove').forEach(btn => {
+					btn.style.pointerEvents = 'none';
+					btn.style.opacity = '0.5';
+				});
+				
+				document.querySelectorAll('.remove-racer').forEach(btn => {
+					btn.style.display = 'none';
+				});
+			}
+
+			function enableRacerManagement() {
+				addRacerButton.disabled = false;
+				racerNameInput.disabled = false;
+				randomRaceButton.disabled = false;
+				clearRacersButton.disabled = false;
+				shuffleRacersButton.disabled = false;
+				
+				document.querySelectorAll('.racer-item-remove').forEach(btn => {
+					btn.style.pointerEvents = 'auto';
+					btn.style.opacity = '1';
+				});
+				
+				document.querySelectorAll('.remove-racer').forEach(btn => {
+					btn.style.display = 'block';
 				});
 			}
 
@@ -1521,6 +1694,12 @@
 				clearRacersButton.disabled = true;
 				shuffleRacersButton.disabled = true;
 				
+				// Disable racer removal from panel
+				document.querySelectorAll('.racer-item-remove').forEach(btn => {
+					btn.style.pointerEvents = 'none';
+					btn.style.opacity = '0.5';
+				});
+				
 				// Hide remove buttons during race
 				document.querySelectorAll('.remove-racer').forEach(btn => {
 					btn.style.display = 'none';
@@ -1658,6 +1837,12 @@
 				randomRaceButton.disabled = false;
 				clearRacersButton.disabled = false;
 				shuffleRacersButton.disabled = false;
+				
+				// Re-enable racer removal from panel
+				document.querySelectorAll('.racer-item-remove').forEach(btn => {
+					btn.style.pointerEvents = 'auto';
+					btn.style.opacity = '1';
+				});
 				
 				// Show remove buttons again
 				document.querySelectorAll('.remove-racer').forEach(btn => {
