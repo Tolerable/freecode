@@ -978,24 +978,9 @@
 	  
 	  if (!text) return;
 
-	  // Clean previous messages to remove thinking sections
-	  let cleanedHistory = chatHistory[currentModel.name].map(msg => {
-		if (msg.role === "assistant") {
-		  const thinkEndIndex = msg.content.indexOf('</think>');
-		  if (thinkEndIndex !== -1) {
-			return {
-			  ...msg,
-			  content: msg.content.substring(thinkEndIndex + '</think>'.length).trim()
-			};
-		  }
-		}
-		return msg;
-	  });
-
-	  // Get managed history based on cleaned messages
-	  const managedHistory = await manageHistory(currentModel.name, cleanedHistory);
-	  
 	  let messages = [];
+	  const managedHistory = await manageHistory(currentModel.name, chatHistory[currentModel.name]);
+	  
 	  if (personaMessage) {
 		if (useWrappedPersona) {
 		  messages.push({
@@ -1019,66 +1004,64 @@
 		userMsg.textContent = text;
 		chatArea.appendChild(userMsg);
 
-		// Add instruction to use think tags
-		const messagesWithCoT = [
-		  ...messages,
-		  {
-			role: 'system',
-			content: 'When responding, first wrap your step-by-step thinking in <think>...</think> tags, then provide your final answer after the closing </think> tag.'
-		  }
-		];
-
-		const response = await callAPI(messagesWithCoT, currentModel.name, {
+		// Don't add our own thinking instructions - rely on the model's native ability
+		// or add an instruction that won't conflict with its built-in process
+		const messagesWithoutCoT = [...messages]; // No special CoT instruction
+		
+		const response = await callAPI(messagesWithoutCoT, currentModel.name, {
 		  seed: Math.floor(Math.random() * 2147483647)
 		});
 
 		if (response.ok) {
 		  let responseText = response.result;
 		  
-		  // Split out thinking and answer for display purposes
-		  const thinkMatch = responseText.match(/<think>([\s\S]*?)<\/think>([\s\S]*)/);
+		  // Look for the various thinking markers that might exist
+		  const thinkMatches = responseText.match(/<think>([\s\S]*?)<\/think>/);
+		  const toolCallMatch = responseText.match(/<tool_call>([\s\S]*?)<\/tool_call>/);
 		  
-		  if (thinkMatch) {
-			const thinking = thinkMatch[1].trim();
-			const answer = thinkMatch[2].trim();
-			
-			// Display thinking part with special styling
-			if (thinking) {
-			  const thinkMsg = document.createElement('div');
-			  thinkMsg.className = 'chat-message think-message';
-			  thinkMsg.style.backgroundColor = '#fffbe6'; // Light yellow background
-			  thinkMsg.style.border = '1px dashed #e6b400'; // Dashed border
-			  thinkMsg.style.color = '#5c4b00'; // Darker text
-			  thinkMsg.textContent = thinking;
-			  chatArea.appendChild(thinkMsg);
-			}
-			
-			// Display final answer
-			const botMsg = document.createElement('div');
-			botMsg.className = 'chat-message bot-message';
-			botMsg.textContent = answer;
-			addReplayButton(botMsg, answer);
-			chatArea.appendChild(botMsg);
-			
-			if (voiceEnabled) {
-			  speak(answer); // Only speak the answer part, not the thinking
-			}
-		  } else {
-			// If no think tags found, just display the whole response
-			const botMsg = document.createElement('div');
-			botMsg.className = 'chat-message bot-message';
-			botMsg.textContent = responseText;
-			addReplayButton(botMsg, responseText);
-			chatArea.appendChild(botMsg);
-			
-			if (voiceEnabled) {
-			  speak(responseText);
-			}
+		  // Extract thinking content from whichever format we find
+		  let thinking = '';
+		  let answer = responseText;
+		  
+		  if (thinkMatches && thinkMatches[1]) {
+			thinking = thinkMatches[1].trim();
+			// Remove the thinking section from the answer
+			answer = responseText.replace(/<think>[\s\S]*?<\/think>/, '').trim();
+		  } else if (toolCallMatch && toolCallMatch[1]) {
+			thinking = toolCallMatch[1].trim();
+			// Remove the tool call section from the answer
+			answer = responseText.replace(/<tool_call>[\s\S]*?<\/tool_call>/, '').trim();
+		  }
+		  
+		  // Further clean up any stray tags
+		  answer = answer.replace(/<\/think>/g, '')
+						.replace(/<think>/g, '')
+						.replace(/<\/tool_call>/g, '')
+						.replace(/<tool_call>/g, '')
+						.trim();
+		  
+		  // Display thinking part if found
+		  if (thinking) {
+			const thinkMsg = document.createElement('div');
+			thinkMsg.className = 'chat-message think-message';
+			thinkMsg.textContent = thinking;
+			chatArea.appendChild(thinkMsg);
+		  }
+		  
+		  // Display the answer
+		  const botMsg = document.createElement('div');
+		  botMsg.className = 'chat-message bot-message';
+		  botMsg.textContent = answer;
+		  addReplayButton(botMsg, answer);
+		  chatArea.appendChild(botMsg);
+		  
+		  if (voiceEnabled) {
+			speak(answer);
 		  }
 
-		  // Store the complete response including tags
+		  // Store only the clean answer in the history
 		  chatHistory[currentModel.name].push({ role: 'user', content: text });
-		  chatHistory[currentModel.name].push({ role: 'assistant', content: responseText });
+		  chatHistory[currentModel.name].push({ role: 'assistant', content: answer });
 		  saveHistory();
 		}
 	  } catch (error) {
