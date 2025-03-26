@@ -738,9 +738,10 @@
 
 	// Add an event handler to cancel speech when modal closes
 	function closeTestModal() {
-		document.getElementById('test-modal').style.display = 'none';
-		currentModel = null;
-		speechSynthesis.cancel();  // Stop any ongoing speech
+	  document.getElementById('test-modal').style.display = 'none';
+	  currentModel = null;
+	  currentSessionId = null;
+	  speechSynthesis.cancel();  // Stop any ongoing speech
 	}
 
 	// Handle window blur/focus
@@ -825,8 +826,15 @@
 	}
 
 	function toggleVoiceGender(useZira) {
-		useZiraVoice = useZira;
-		localStorage.setItem('useZiraVoice', useZira);
+	  useZiraVoice = useZira;
+	  localStorage.setItem('useZiraVoice', useZira);
+	  
+	  // If currently speaking, restart with new voice
+	  if (voiceEnabled && currentUtterance) {
+		const currentText = currentUtterance.text;
+		speechSynthesis.cancel();
+		speak(currentText);
+	  }
 	}
 
 	function switchModalTab(tab) {
@@ -1089,30 +1097,47 @@
 	}
 	
 	function toggleVoice() {
-		voiceEnabled = !voiceEnabled;
-		const voiceBtn = document.getElementById('voice-btn');
-		voiceBtn.textContent = voiceEnabled ? '🔊' : '🔇';
+	  voiceEnabled = !voiceEnabled;
+	  const voiceBtn = document.getElementById('voice-btn');
+	  voiceBtn.textContent = voiceEnabled ? '🔊' : '🔇';
+	  
+	  // If turning off, cancel any ongoing speech
+	  if (!voiceEnabled) {
+		speechSynthesis.cancel();
+	  }
+	  
+	  // Save the preference
+	  localStorage.setItem('voiceEnabled', voiceEnabled);
 	}
 
 	function speak(text) {
-		if (!voiceEnabled || !text) return;
-		
-		speechSynthesis.cancel();
-		text = text.replace(/\*[^*]*\*/g, '');
-		
-		const utterance = new SpeechSynthesisUtterance(text);
-		const voices = speechSynthesis.getVoices();
-		
-		// Fix the voice selection logic
-		if (!useZiraVoice) {  // Changed condition from useZiraVoice to !useZiraVoice for David
-			const zira = voices.find(v => v.name.includes('Zira'));
-			if (zira) utterance.voice = zira;
-		} else {
-			const david = voices.find(v => v.name.includes('David'));
-			if (david) utterance.voice = david;
-		}
-		
-		speechSynthesis.speak(utterance);
+	  if (!voiceEnabled || !text) return;
+	  
+	  // Cancel any ongoing speech first
+	  speechSynthesis.cancel();
+	  
+	  // Remove formatting markers
+	  text = text.replace(/\*[^*]*\*/g, '');
+	  
+	  const utterance = new SpeechSynthesisUtterance(text);
+	  
+	  // Get available voices
+	  const voices = speechSynthesis.getVoices();
+	  
+	  // Select the right voice based on preference
+	  if (useZiraVoice) {  // Female voice (Zira)
+		const zira = voices.find(v => v.name.includes('Zira'));
+		if (zira) utterance.voice = zira;
+	  } else {  // Male voice (David)
+		const david = voices.find(v => v.name.includes('David'));
+		if (david) utterance.voice = david;
+	  }
+	  
+	  // Store reference to current utterance
+	  currentUtterance = utterance;
+	  
+	  // Speak the text
+	  speechSynthesis.speak(utterance);
 	}
 
 	function addReplayButton(botMsg, text) {
