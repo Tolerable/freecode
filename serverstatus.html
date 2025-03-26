@@ -636,9 +636,13 @@
 	let currentUtterance = null;
 	let useZiraVoice = localStorage.getItem('useZiraVoice') !== 'false'; // defaults to true
 	let jsonModeEnabled = {};
-
+	let currentSessionId = null;
+	
 	function openTestModal(model) {
-		currentModel = model;
+	  currentModel = model;
+	  // Generate a unique session ID for this chat session
+	  currentSessionId = Date.now() + "-" + Math.random().toString(36).substring(2, 9);
+	  
 		const modal = document.getElementById('test-modal');
 		const title = document.getElementById('modal-title');
 		const chatArea = document.getElementById('chat-area');
@@ -845,33 +849,39 @@
 	}
 
 	function logToModal(data) {
-		const logsArea = document.getElementById('logs-area');
-		let logEntry = '';
-		
-		switch(data.type) {
-			case 'REQUEST':
-				logEntry = `[${new Date(data.timestamp).toLocaleTimeString()}] REQUEST\n`;
-				logEntry += `URL: ${data.url}\n`;
-				logEntry += `Method: ${data.method}\n`;
-				logEntry += `Body:\n${JSON.stringify(data.body, null, 2)}\n\n`;
-				break;
-			case 'RESPONSE':
-				logEntry = `[${new Date(data.timestamp).toLocaleTimeString()}] RESPONSE\n`;
-				logEntry += `Status: ${data.status}\n`;
-				logEntry += `Body:\n${data.body}\n\n`;
-				break;
-			case 'ERROR':
-				logEntry = `[${new Date(data.timestamp).toLocaleTimeString()}] ERROR\n`;
-				logEntry += `Message: ${data.message}\n`;
-				if (data.stack) {
-					logEntry += `Stack:\n${data.stack}\n`;
-				}
-				logEntry += '\n';
-				break;
-		}
-		
-		logsArea.innerHTML += logEntry;
-		logsArea.scrollTop = logsArea.scrollHeight;
+	  const logsArea = document.getElementById('logs-area');
+	  
+	  // Skip logs that don't belong to current session
+	  if (data.sessionId && data.sessionId !== currentSessionId) {
+		return;
+	  }
+	  
+	  let logEntry = '';
+	  
+	  switch(data.type) {
+		case 'REQUEST':
+		  logEntry = `[${new Date(data.timestamp).toLocaleTimeString()}] REQUEST\n`;
+		  logEntry += `URL: ${data.url}\n`;
+		  logEntry += `Method: ${data.method}\n`;
+		  logEntry += `Body:\n${JSON.stringify(data.body, null, 2)}\n\n`;
+		  break;
+		case 'RESPONSE':
+		  logEntry = `[${new Date(data.timestamp).toLocaleTimeString()}] RESPONSE\n`;
+		  logEntry += `Status: ${data.status}\n`;
+		  logEntry += `Body:\n${data.body}\n\n`;
+		  break;
+		case 'ERROR':
+		  logEntry = `[${new Date(data.timestamp).toLocaleTimeString()}] ERROR\n`;
+		  logEntry += `Message: ${data.message}\n`;
+		  if (data.stack) {
+			logEntry += `Stack:\n${data.stack}\n`;
+		  }
+		  logEntry += '\n';
+		  break;
+	  }
+	  
+	  logsArea.innerHTML += logEntry;
+	  logsArea.scrollTop = logsArea.scrollHeight;
 	}
 
 	async function manageHistory(serviceName, messages, maxExchanges = 10) {
@@ -1203,7 +1213,8 @@
 		timestamp: Date.now(),
 		url,
 		method: 'POST',
-		body: requestData
+		body: requestData,
+		sessionId: currentSessionId // Add session ID
 	  });
 
 	  try {
@@ -1221,7 +1232,8 @@
 		  type: 'RESPONSE',
 		  timestamp: Date.now(),
 		  status: response.status,
-		  body: result
+		  body: result,
+		  sessionId: currentSessionId // Add session ID
 		});
 
 		// If we get a seed error, retry without the seed
@@ -1237,7 +1249,8 @@
 		  type: 'ERROR',
 		  timestamp: Date.now(),
 		  message: error.message,
-		  stack: error.stack
+		  stack: error.stack,
+		  sessionId: currentSessionId // Add session ID
 		});
 		throw error;
 	  }
