@@ -273,6 +273,13 @@
                 </svg>
                 Download Audio
             </button>
+            <button id="copy-button" disabled onclick="copyAudioUrl()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy URL
+            </button>
             <button id="clear-button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 6h18"></path>
@@ -335,6 +342,11 @@
         downloadButton.addEventListener('click', downloadAudio);
         clearButton.addEventListener('click', clearText);
         clearHistoryButton.addEventListener('click', clearHistory);
+        
+        // Also reset copy button when clearing
+        clearButton.addEventListener('click', function() {
+            document.getElementById('copy-button').disabled = true;
+        });
         
         // Allow play with Ctrl+Enter
         textInput.addEventListener('keydown', function(event) {
@@ -434,6 +446,9 @@
                 // Enable download button
                 downloadButton.disabled = false;
                 
+                // Add copy button to visible
+                document.getElementById('copy-button').disabled = false;
+                
                 // Play the audio
                 await audioPlayer.play();
                 
@@ -449,26 +464,51 @@
         }
 
         // Download the generated audio
-        function downloadAudio() {
+        async function downloadAudio() {
             if (!currentAudioUrl) return;
             
-            // Create a download link
-            const a = document.createElement('a');
-            a.href = currentAudioUrl;
+            statusMessage.textContent = "Preparing download...";
+            statusMessage.style.color = '#3b82f6';
             
-            // Create a filename based on the first few words of text
-            const words = textInput.value.trim().split(/\s+/).slice(0, 5).join('_');
-            const filename = `speech_${words}_${new Date().getTime()}.mp3`;
+            try {
+                // Fetch the audio file
+                const response = await fetch(currentAudioUrl);
+                if (!response.ok) throw new Error('Failed to download audio');
+                
+                // Get the audio data as a blob
+                const audioBlob = await response.blob();
+                
+                // Create a local URL for the blob
+                const blobUrl = URL.createObjectURL(audioBlob);
+                
+                // Create a download link
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                
+                // Create a filename based on the first few words of text
+                const words = textInput.value.trim().split(/\s+/).slice(0, 5).join('_');
+                const safeFileName = words.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+                const filename = `speech_${safeFileName}_${new Date().getTime()}.mp3`;
+                
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // Clean up the blob URL
+                URL.revokeObjectURL(blobUrl);
+                
+                statusMessage.textContent = "Audio downloaded successfully!";
+                statusMessage.style.color = '#10b981';
+            } catch (error) {
+                console.error('Download error:', error);
+                statusMessage.textContent = "Download failed. Please try again.";
+                statusMessage.style.color = '#ef4444';
+            }
             
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            statusMessage.textContent = "Audio downloaded!";
             setTimeout(() => {
                 statusMessage.textContent = "";
-            }, 2000);
+            }, 3000);
         }
 
         // Clear the text input
@@ -497,6 +537,25 @@
                 };
                 request.onerror = () => reject(request.error);
             });
+        }
+        
+        // Function to copy audio URL to clipboard
+        async function copyAudioUrl() {
+            if (!currentAudioUrl) return;
+            
+            try {
+                await navigator.clipboard.writeText(currentAudioUrl);
+                statusMessage.textContent = "Audio URL copied to clipboard!";
+                statusMessage.style.color = '#10b981';
+            } catch (error) {
+                console.error('Failed to copy URL:', error);
+                statusMessage.textContent = "Failed to copy URL to clipboard";
+                statusMessage.style.color = '#ef4444';
+            }
+            
+            setTimeout(() => {
+                statusMessage.textContent = "";
+            }, 2000);
         }
 
         // Load history items from IndexedDB
