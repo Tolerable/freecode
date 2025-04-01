@@ -220,6 +220,21 @@
             font-style: italic;
         }
 
+		.history-download {
+			background: transparent;
+			border: 1px solid #4b5563;
+			border-radius: 4px;
+			padding: 0.25rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.history-download:hover {
+			background: #3b82f6;
+			border-color: #3b82f6;
+		}
+
         /* Mobile optimization */
         @media (max-width: 600px) {
             .container {
@@ -471,40 +486,38 @@
 
         // Download the generated audio
 		async function downloadAudio() {
-			if (!currentAudioUrl) return;
+			if (!currentAudioUrl) {
+				statusMessage.textContent = "No audio to download. Generate audio first.";
+				statusMessage.style.color = '#ef4444';
+				return;
+			}
 			
 			statusMessage.textContent = "Preparing download...";
 			statusMessage.style.color = '#3b82f6';
 			
 			try {
-				// Fetch the audio file
-				const response = await fetch(currentAudioUrl);
-				if (!response.ok) throw new Error('Failed to download audio');
-				
-				// Get the audio data as a blob
-				const audioBlob = await response.blob();
-				
-				// Create a local URL for the blob
-				const blobUrl = URL.createObjectURL(audioBlob);
-				
-				// Create a download link
+				// Create a temporary link element
 				const a = document.createElement('a');
-				a.href = blobUrl;
+				
+				// Set the href to the current audio URL
+				a.href = currentAudioUrl;
 				
 				// Create a filename based on the first few words of text
 				const words = textInput.value.trim().split(/\s+/).slice(0, 5).join('_');
 				const safeFileName = words.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
 				const filename = `speech_${safeFileName}_${new Date().getTime()}.mp3`;
 				
+				// Set download attribute with filename
 				a.download = filename;
+				
+				// Temporarily append to document and trigger click
 				document.body.appendChild(a);
 				a.click();
+				
+				// Clean up
 				document.body.removeChild(a);
 				
-				// Clean up the blob URL
-				URL.revokeObjectURL(blobUrl);
-				
-				statusMessage.textContent = "Audio downloaded successfully!";
+				statusMessage.textContent = "Audio download started!";
 				statusMessage.style.color = '#10b981';
 			} catch (error) {
 				console.error('Download error:', error);
@@ -515,6 +528,33 @@
 			setTimeout(() => {
 				statusMessage.textContent = "";
 			}, 3000);
+		}
+
+		function downloadHistoryItem(index) {
+			if (index >= 0 && index < audioHistory.length) {
+				const item = audioHistory[index];
+				
+				// Create a temporary link element
+				const a = document.createElement('a');
+				a.href = item.audioUrl;
+				
+				// Create a filename
+				const words = item.text.trim().split(/\s+/).slice(0, 5).join('_');
+				const safeFileName = words.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+				const filename = `speech_${safeFileName}_${new Date().getTime()}.mp3`;
+				
+				a.download = filename;
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				
+				statusMessage.textContent = "Audio download started!";
+				statusMessage.style.color = '#10b981';
+				
+				setTimeout(() => {
+					statusMessage.textContent = "";
+				}, 3000);
+			}
 		}
 
         // Clear the text input
@@ -636,24 +676,31 @@
                     ? item.text.substring(0, 30) + '...' 
                     : item.text;
                 
-                historyItem.innerHTML = `
-                    <div class="history-text">${displayText}</div>
-                    <div class="history-voice">${item.voice}</div>
-                    <div class="history-controls">
-                        <button class="history-play" onclick="playHistoryItem(${index})">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                            </svg>
-                        </button>
-                        <button class="history-load" onclick="loadHistoryItem(${index})">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                        </button>
-                    </div>
-                `;
+				historyItem.innerHTML = `
+					<div class="history-text">${displayText}</div>
+					<div class="history-voice">${item.voice}</div>
+					<div class="history-controls">
+						<button class="history-play" onclick="playHistoryItem(${index})">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<polygon points="5 3 19 12 5 21 5 3"></polygon>
+							</svg>
+						</button>
+						<button class="history-load" onclick="loadHistoryItem(${index})">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4"></path>
+								<polyline points="17 8 12 3 7 8"></polyline>
+								<line x1="12" y1="3" x2="12" y2="15"></line>
+							</svg>
+						</button>
+						<button class="history-download" onclick="downloadHistoryItem(${index})">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+								<polyline points="7 10 12 15 17 10"></polyline>
+								<line x1="12" y1="15" x2="12" y2="3"></line>
+							</svg>
+						</button>
+					</div>
+				`;
                 
                 historyList.appendChild(historyItem);
             });
@@ -663,22 +710,11 @@
 		function playHistoryItem(index) {
 			if (index >= 0 && index < audioHistory.length) {
 				const item = audioHistory[index];
-				
-				// Create a new audio element first
-				const newAudio = new Audio(item.audioUrl);
-				
-				// Set up a listener for when it's ready
-				newAudio.addEventListener('canplaythrough', () => {
-					// Update the UI audio player only after loading
-					audioPlayer.src = item.audioUrl;
-					audioContainer.style.display = 'block';
-					audioPlayer.play();
-					currentAudioUrl = item.audioUrl;
-					downloadButton.disabled = false;
-				});
-				
-				// Start loading
-				newAudio.load();
+				audioPlayer.src = item.audioUrl;
+				audioContainer.style.display = 'block';
+				audioPlayer.play();
+				currentAudioUrl = item.audioUrl;
+				downloadButton.disabled = false;
 			}
 		}
 
