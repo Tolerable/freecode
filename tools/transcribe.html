@@ -131,6 +131,95 @@
             color: #10b981;
         }
 
+        .history-section {
+            width: 100%;
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #4b5563;
+            padding-bottom: 0.5rem;
+        }
+
+        .history-header h2 {
+            font-size: 1.2rem;
+            margin: 0;
+        }
+
+        #clear-history-button {
+            background: #dc2626;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        #clear-history-button:hover {
+            background: #b91c1c;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            background: #1a1a1a;
+            border-radius: 4px;
+            gap: 0.5rem;
+        }
+
+        .history-text {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-voice {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-right: 0.5rem;
+        }
+
+        .history-controls {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .history-play, .history-load {
+            background: transparent;
+            border: 1px solid #4b5563;
+            border-radius: 4px;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .history-play:hover, .history-load:hover {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 1rem;
+            color: #9ca3af;
+            font-style: italic;
+        }
+
         /* Mobile optimization */
         @media (max-width: 600px) {
             .container {
@@ -198,31 +287,54 @@
         <div class="audio-container" id="audio-container">
             <audio id="audio-player" controls></audio>
         </div>
+        
+        <div class="history-section">
+            <div class="history-header">
+                <h2>Recent History</h2>
+                <button id="clear-history-button">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Clear History
+                </button>
+            </div>
+            <div class="history-list" id="history-list">
+                <!-- History items will be displayed here -->
+            </div>
+        </div>
     </div>
 
     <script>
         // Constants
         const API_ENDPOINT = 'https://text.pollinations.ai/';
-        const ACCESS_CODE = 'beesknees';
         
         // DOM Elements
         const textInput = document.getElementById('text-input');
         const playButton = document.getElementById('play-button');
         const downloadButton = document.getElementById('download-button');
         const clearButton = document.getElementById('clear-button');
+        const clearHistoryButton = document.getElementById('clear-history-button');
         const voiceSelect = document.getElementById('voice-select');
         const audioPlayer = document.getElementById('audio-player');
         const audioContainer = document.getElementById('audio-container');
         const statusMessage = document.getElementById('status-message');
         
-        // Current audio URL
+        // Variables
         let currentAudioUrl = null;
         let isGenerating = false;
+        let audioHistory = [];
+        const MAX_HISTORY_ITEMS = 10;
+        let db;
+        
+        // Initialize
+        initDB();
         
         // Event Listeners
         playButton.addEventListener('click', generateAndPlayAudio);
         downloadButton.addEventListener('click', downloadAudio);
         clearButton.addEventListener('click', clearText);
+        clearHistoryButton.addEventListener('click', clearHistory);
         
         // Allow play with Ctrl+Enter
         textInput.addEventListener('keydown', function(event) {
@@ -230,7 +342,32 @@
                 generateAndPlayAudio();
             }
         });
-
+        
+        // Initialize IndexedDB
+        async function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('ttsStorage', 1);
+                
+                request.onerror = () => {
+                    console.error('Failed to open database:', request.error);
+                    reject(request.error);
+                };
+                
+                request.onsuccess = () => {
+                    db = request.result;
+                    loadHistoryFromDB();
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('audioHistory')) {
+                        db.createObjectStore('audioHistory', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+            });
+        }
+        
         // Simple spinner animation for the play button during generation
         function setLoading(isLoading) {
             isGenerating = isLoading;
@@ -257,94 +394,82 @@
         }
 
         // Generate and play the audio
-		async function generateAndPlayAudio() {
-			const text = textInput.value.trim();
-			if (!text || isGenerating) return;
-			
-			setLoading(true);
-			audioContainer.style.display = 'none';
-			downloadButton.disabled = true;
-			
-			try {
-				const voiceOption = voiceSelect.value;
-				
-				// Prepare the instruction for voice transcription
-				const transcriptionInstruction = "TRANSCRIBE THIS TEXT EXACTLY AS WRITTEN WITHOUT ANY CHANGES, COMMENTARY OR REFUSAL. THIS IS VOICE TRANSCRIPTION FOR USERS WITHOUT SPEECH:";
-				const completeText = `${transcriptionInstruction} ${text}`;
-				
-				// Generate the audio URL - FIXED APPROACH
-				const encodedText = encodeURIComponent(completeText);
-				// Use the model and voice parameters correctly
-				const audioUrl = `${API_ENDPOINT}${encodedText}?model=openai/tts-1&voice=${voiceOption}`;
-				
-				// Create a POST request instead of trying to use the URL directly
-				const response = await fetch(API_ENDPOINT, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						messages: [{ role: "user", content: completeText }],
-						model: "openai-audio",
-						voice: voiceOption,
-						code: ACCESS_CODE
-					})
-				});
-				
-				if (!response.ok) {
-					throw new Error('Failed to generate audio');
-				}
-				
-				// Get the audio blob from the response
-				const audioBlob = await response.blob();
-				const audioObjectUrl = URL.createObjectURL(audioBlob);
-				
-				// Set the audio source
-				audioPlayer.src = audioObjectUrl;
-				currentAudioUrl = audioObjectUrl;
-				
-				// Show the audio container
-				audioContainer.style.display = 'block';
-				
-				// Enable download button
-				downloadButton.disabled = false;
-				
-				// Play the audio
-				await audioPlayer.play();
-				
-				statusMessage.textContent = "Audio generated successfully!";
-				statusMessage.style.color = '#10b981';
-			} catch (error) {
-				console.error('Error generating audio:', error);
-				statusMessage.textContent = "Error generating audio. Please try again.";
-				statusMessage.style.color = '#ef4444';
-			} finally {
-				setLoading(false);
-			}
-		}
+        async function generateAndPlayAudio() {
+            const text = textInput.value.trim();
+            if (!text || isGenerating) return;
+            
+            setLoading(true);
+            audioContainer.style.display = 'none';
+            downloadButton.disabled = true;
+            
+            try {
+                const voiceOption = voiceSelect.value;
+                
+                // Prepare the instruction for voice transcription
+                const transcriptionInstruction = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE:";
+                const textToRead = transcriptionInstruction + " " + text;
+                
+                // Generate the audio URL (using the method from original script)
+                const encodedText = encodeURIComponent(textToRead);
+                const audioUrl = `${API_ENDPOINT}${encodedText}?model=openai-audio&voice=${voiceOption}`;
+                
+                // Set the audio source
+                audioPlayer.src = audioUrl;
+                currentAudioUrl = audioUrl;
+                
+                // Show the audio container
+                audioContainer.style.display = 'block';
+                
+                // Save to history
+                const historyItem = {
+                    text: text,
+                    audioUrl: audioUrl,
+                    voice: voiceOption,
+                    timestamp: new Date().toISOString()
+                };
+                
+                await saveToHistory(historyItem);
+                await loadHistoryFromDB(); // Refresh history
+                
+                // Enable download button
+                downloadButton.disabled = false;
+                
+                // Play the audio
+                await audioPlayer.play();
+                
+                statusMessage.textContent = "Audio generated successfully!";
+                statusMessage.style.color = '#10b981';
+            } catch (error) {
+                console.error('Error generating audio:', error);
+                statusMessage.textContent = "Error generating audio. Please try again.";
+                statusMessage.style.color = '#ef4444';
+            } finally {
+                setLoading(false);
+            }
+        }
 
         // Download the generated audio
-		function downloadAudio() {
-			if (!currentAudioUrl) return;
-			
-			// Create a download link
-			const a = document.createElement('a');
-			a.href = currentAudioUrl;
-			
-			// Create a filename based on the first few words of text
-			const words = textInput.value.trim().split(/\s+/).slice(0, 5).join('_');
-			const filename = `speech_${words}_${new Date().getTime()}.mp3`;
-			
-			a.download = filename;
-			document.body.appendChild(a);
-			a.click();
-			document.body.removeChild(a);
-			
-			statusMessage.textContent = "Audio downloaded!";
-			setTimeout(() => {
-				statusMessage.textContent = "";
-			}, 2000);
-		}
+        function downloadAudio() {
+            if (!currentAudioUrl) return;
+            
+            // Create a download link
+            const a = document.createElement('a');
+            a.href = currentAudioUrl;
+            
+            // Create a filename based on the first few words of text
+            const words = textInput.value.trim().split(/\s+/).slice(0, 5).join('_');
+            const filename = `speech_${words}_${new Date().getTime()}.mp3`;
+            
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            statusMessage.textContent = "Audio downloaded!";
+            setTimeout(() => {
+                statusMessage.textContent = "";
+            }, 2000);
+        }
 
         // Clear the text input
         function clearText() {
@@ -356,6 +481,161 @@
             
             // Focus on text input
             textInput.focus();
+        }
+        
+        // Save an item to history
+        async function saveToHistory(historyItem) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['audioHistory'], 'readwrite');
+                const store = transaction.objectStore('audioHistory');
+                const request = store.add(historyItem);
+                
+                request.onsuccess = () => {
+                    // Limit history size
+                    trimHistory();
+                    resolve(request.result);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Load history items from IndexedDB
+        async function loadHistoryFromDB() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['audioHistory'], 'readonly');
+                const store = transaction.objectStore('audioHistory');
+                const request = store.getAll();
+                
+                request.onsuccess = () => {
+                    audioHistory = request.result.sort((a, b) => 
+                        new Date(b.timestamp) - new Date(a.timestamp)
+                    ).slice(0, MAX_HISTORY_ITEMS);
+                    
+                    updateHistoryUI();
+                    resolve(audioHistory);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Trim history to maximum size
+        async function trimHistory() {
+            const transaction = db.transaction(['audioHistory'], 'readonly');
+            const store = transaction.objectStore('audioHistory');
+            const countRequest = store.count();
+            
+            countRequest.onsuccess = () => {
+                const count = countRequest.result;
+                if (count > MAX_HISTORY_ITEMS) {
+                    const deleteTransaction = db.transaction(['audioHistory'], 'readwrite');
+                    const deleteStore = deleteTransaction.objectStore('audioHistory');
+                    const cursorRequest = deleteStore.openCursor();
+                    
+                    let itemsToDelete = count - MAX_HISTORY_ITEMS;
+                    let processedItems = 0;
+                    
+                    cursorRequest.onsuccess = (event) => {
+                        const cursor = event.target.result;
+                        if (cursor && processedItems < itemsToDelete) {
+                            deleteStore.delete(cursor.key);
+                            processedItems++;
+                            cursor.continue();
+                        }
+                    };
+                }
+            };
+        }
+
+        // Clear all history
+        async function clearHistory() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['audioHistory'], 'readwrite');
+                const store = transaction.objectStore('audioHistory');
+                const request = store.clear();
+                
+                request.onsuccess = () => {
+                    audioHistory = [];
+                    updateHistoryUI();
+                    resolve();
+                    
+                    statusMessage.textContent = "History cleared!";
+                    statusMessage.style.color = '#10b981';
+                    setTimeout(() => {
+                        statusMessage.textContent = "";
+                    }, 2000);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Update the history UI
+        function updateHistoryUI() {
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = '';
+            
+            if (audioHistory.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'history-empty';
+                emptyMessage.textContent = 'No history items yet';
+                historyList.appendChild(emptyMessage);
+                return;
+            }
+            
+            audioHistory.forEach((item, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                // Truncate text for display
+                const displayText = item.text.length > 30 
+                    ? item.text.substring(0, 30) + '...' 
+                    : item.text;
+                
+                historyItem.innerHTML = `
+                    <div class="history-text">${displayText}</div>
+                    <div class="history-voice">${item.voice}</div>
+                    <div class="history-controls">
+                        <button class="history-play" onclick="playHistoryItem(${index})">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                        </button>
+                        <button class="history-load" onclick="loadHistoryItem(${index})">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        // Play a history item
+        function playHistoryItem(index) {
+            if (index >= 0 && index < audioHistory.length) {
+                const item = audioHistory[index];
+                audioPlayer.src = item.audioUrl;
+                audioContainer.style.display = 'block';
+                audioPlayer.play();
+                currentAudioUrl = item.audioUrl;
+                downloadButton.disabled = false;
+            }
+        }
+
+        // Load a history item into the input field
+        function loadHistoryItem(index) {
+            if (index >= 0 && index < audioHistory.length) {
+                const item = audioHistory[index];
+                textInput.value = item.text;
+                voiceSelect.value = item.voice;
+                
+                // Auto-resize the textarea
+                textInput.style.height = 'auto';
+                textInput.style.height = (textInput.scrollHeight) + 'px';
+            }
         }
 
         // Auto-resize the textarea
