@@ -534,26 +534,49 @@
 			if (index >= 0 && index < audioHistory.length) {
 				const item = audioHistory[index];
 				
-				// Create a temporary link element
-				const a = document.createElement('a');
-				a.href = item.audioUrl;
+				statusMessage.textContent = "Preparing download...";
+				statusMessage.style.color = '#3b82f6';
 				
-				// Create a filename
-				const words = item.text.trim().split(/\s+/).slice(0, 5).join('_');
-				const safeFileName = words.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
-				const filename = `speech_${safeFileName}_${new Date().getTime()}.mp3`;
-				
-				a.download = filename;
-				document.body.appendChild(a);
-				a.click();
-				document.body.removeChild(a);
-				
-				statusMessage.textContent = "Audio download started!";
-				statusMessage.style.color = '#10b981';
-				
-				setTimeout(() => {
-					statusMessage.textContent = "";
-				}, 3000);
+				// Use fetch to get the audio as a blob first
+				fetch(item.audioUrl)
+					.then(response => {
+						if (!response.ok) throw new Error('Network response was not ok');
+						return response.blob();
+					})
+					.then(blob => {
+						// Create a blob URL
+						const blobUrl = URL.createObjectURL(blob);
+						
+						// Create download link
+						const a = document.createElement('a');
+						a.href = blobUrl;
+						
+						// Set the filename
+						const words = item.text.trim().split(/\s+/).slice(0, 5).join('_');
+						const safeFileName = words.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+						const filename = `speech_${safeFileName}_${new Date().getTime()}.mp3`;
+						a.download = filename;
+						
+						// Trigger download
+						document.body.appendChild(a);
+						a.click();
+						document.body.removeChild(a);
+						
+						// Clean up
+						URL.revokeObjectURL(blobUrl);
+						
+						statusMessage.textContent = "Download complete!";
+						statusMessage.style.color = '#10b981';
+						
+						setTimeout(() => {
+							statusMessage.textContent = "";
+						}, 3000);
+					})
+					.catch(error => {
+						console.error('Download error:', error);
+						statusMessage.textContent = "Download failed. Please try again.";
+						statusMessage.style.color = '#ef4444';
+					});
 			}
 		}
 
