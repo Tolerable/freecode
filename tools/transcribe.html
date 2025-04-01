@@ -442,18 +442,15 @@
 				  .replace(/([.!?])\s+/g, '$1\n') // Add breaks after sentences
 				  .trim();
 				
-				// Prepend a small pause at the beginning (using a period and comma)
-				cleanText = ". , " + cleanText;
-				
-				// Prepare the instruction
+				// Prepare the instruction with EXACT same format as original
 				const transcriptionInstruction = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE:";
 				const textToRead = transcriptionInstruction + " " + cleanText;
 				
-				// Generate the audio URL
+				// Generate the audio URL (using the method from original script)
 				const encodedText = encodeURIComponent(textToRead);
 				const audioUrl = `${API_ENDPOINT}${encodedText}?model=openai-audio&voice=${voiceOption}`;
 				
-				// Create a new audio element
+				// Create a new audio element each time (like in original script)
 				const newAudio = new Audio(audioUrl);
 				
 				// Wait for the audio to be properly loaded before playing
@@ -483,7 +480,7 @@
 				// Start loading the audio
 				newAudio.load();
 				
-				// Save to history - use original text without the pause
+				// Save to history
 				const historyItem = {
 					text: text,
 					audioUrl: audioUrl,
@@ -791,11 +788,21 @@
 		function playHistoryItem(index) {
 			if (index >= 0 && index < audioHistory.length) {
 				const item = audioHistory[index];
-				audioPlayer.src = item.audioUrl;
-				audioContainer.style.display = 'block';
-				audioPlayer.play();
-				currentAudioUrl = item.audioUrl;
-				downloadButton.disabled = false;
+				
+				// Create a silent audio element to play first
+				const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+				
+				// When silent audio ends, play the actual audio
+				silentAudio.onended = function() {
+					audioPlayer.src = item.audioUrl;
+					audioContainer.style.display = 'block';
+					audioPlayer.play();
+					currentAudioUrl = item.audioUrl;
+					downloadButton.disabled = false;
+				};
+				
+				// Play silent audio first (creates a small pause)
+				silentAudio.play();
 			}
 		}
 
