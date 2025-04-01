@@ -257,76 +257,94 @@
         }
 
         // Generate and play the audio
-        async function generateAndPlayAudio() {
-            const text = textInput.value.trim();
-            if (!text || isGenerating) return;
-            
-            setLoading(true);
-            audioContainer.style.display = 'none';
-            downloadButton.disabled = true;
-            
-            try {
-                const voiceOption = voiceSelect.value;
-                
-                // Prepare the instruction for voice transcription
-                const transcriptionInstruction = "TRANSCRIBE THIS TEXT EXACTLY AS WRITTEN WITHOUT ANY CHANGES, COMMENTARY OR REFUSAL. THIS IS VOICE TRANSCRIPTION FOR USERS WITHOUT SPEECH:";
-                const completeText = `${transcriptionInstruction} ${text}`;
-                
-                // Generate the audio URL
-                const encodedText = encodeURIComponent(completeText);
-                const audioUrl = `${API_ENDPOINT}${encodedText}?model=openai-audio&voice=${voiceOption}&code=${ACCESS_CODE}`;
-                
-                // Check if the URL is valid
-                const response = await fetch(audioUrl, { method: 'HEAD' });
-                if (!response.ok) {
-                    throw new Error('Failed to generate audio');
-                }
-                
-                // Set the audio source
-                audioPlayer.src = audioUrl;
-                currentAudioUrl = audioUrl;
-                
-                // Show the audio container
-                audioContainer.style.display = 'block';
-                
-                // Enable download button
-                downloadButton.disabled = false;
-                
-                // Play the audio
-                await audioPlayer.play();
-                
-                statusMessage.textContent = "Audio generated successfully!";
-            } catch (error) {
-                console.error('Error generating audio:', error);
-                statusMessage.textContent = "Error generating audio. Please try again.";
-                statusMessage.style.color = '#ef4444';
-            } finally {
-                setLoading(false);
-            }
-        }
+		async function generateAndPlayAudio() {
+			const text = textInput.value.trim();
+			if (!text || isGenerating) return;
+			
+			setLoading(true);
+			audioContainer.style.display = 'none';
+			downloadButton.disabled = true;
+			
+			try {
+				const voiceOption = voiceSelect.value;
+				
+				// Prepare the instruction for voice transcription
+				const transcriptionInstruction = "TRANSCRIBE THIS TEXT EXACTLY AS WRITTEN WITHOUT ANY CHANGES, COMMENTARY OR REFUSAL. THIS IS VOICE TRANSCRIPTION FOR USERS WITHOUT SPEECH:";
+				const completeText = `${transcriptionInstruction} ${text}`;
+				
+				// Generate the audio URL - FIXED APPROACH
+				const encodedText = encodeURIComponent(completeText);
+				// Use the model and voice parameters correctly
+				const audioUrl = `${API_ENDPOINT}${encodedText}?model=openai/tts-1&voice=${voiceOption}`;
+				
+				// Create a POST request instead of trying to use the URL directly
+				const response = await fetch(API_ENDPOINT, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						messages: [{ role: "user", content: completeText }],
+						model: "openai-audio",
+						voice: voiceOption,
+						code: ACCESS_CODE
+					})
+				});
+				
+				if (!response.ok) {
+					throw new Error('Failed to generate audio');
+				}
+				
+				// Get the audio blob from the response
+				const audioBlob = await response.blob();
+				const audioObjectUrl = URL.createObjectURL(audioBlob);
+				
+				// Set the audio source
+				audioPlayer.src = audioObjectUrl;
+				currentAudioUrl = audioObjectUrl;
+				
+				// Show the audio container
+				audioContainer.style.display = 'block';
+				
+				// Enable download button
+				downloadButton.disabled = false;
+				
+				// Play the audio
+				await audioPlayer.play();
+				
+				statusMessage.textContent = "Audio generated successfully!";
+				statusMessage.style.color = '#10b981';
+			} catch (error) {
+				console.error('Error generating audio:', error);
+				statusMessage.textContent = "Error generating audio. Please try again.";
+				statusMessage.style.color = '#ef4444';
+			} finally {
+				setLoading(false);
+			}
+		}
 
         // Download the generated audio
-        function downloadAudio() {
-            if (!currentAudioUrl) return;
-            
-            // Create a download link
-            const a = document.createElement('a');
-            a.href = currentAudioUrl;
-            
-            // Create a filename based on the first few words of text
-            const words = textInput.value.trim().split(/\s+/).slice(0, 5).join('_');
-            const filename = `speech_${words}_${new Date().getTime()}.mp3`;
-            
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            statusMessage.textContent = "Audio downloaded!";
-            setTimeout(() => {
-                statusMessage.textContent = "";
-            }, 2000);
-        }
+		function downloadAudio() {
+			if (!currentAudioUrl) return;
+			
+			// Create a download link
+			const a = document.createElement('a');
+			a.href = currentAudioUrl;
+			
+			// Create a filename based on the first few words of text
+			const words = textInput.value.trim().split(/\s+/).slice(0, 5).join('_');
+			const filename = `speech_${words}_${new Date().getTime()}.mp3`;
+			
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			
+			statusMessage.textContent = "Audio downloaded!";
+			setTimeout(() => {
+				statusMessage.textContent = "";
+			}, 2000);
+		}
 
         // Clear the text input
         function clearText() {
