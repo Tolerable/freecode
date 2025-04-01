@@ -442,6 +442,9 @@
 				  .replace(/([.!?])\s+/g, '$1\n') // Add breaks after sentences
 				  .trim();
 				
+				// Add a small non-speaking pause character at the beginning
+				cleanText = "~ " + cleanText;
+				
 				// Prepare the instruction with EXACT same format as original
 				const transcriptionInstruction = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE:";
 				const textToRead = transcriptionInstruction + " " + cleanText;
@@ -450,39 +453,23 @@
 				const encodedText = encodeURIComponent(textToRead);
 				const audioUrl = `${API_ENDPOINT}${encodedText}?model=openai-audio&voice=${voiceOption}`;
 				
-				// Create a new audio element each time (like in original script)
-				const newAudio = new Audio(audioUrl);
+				// Set the source to the HTML audio element for controls
+				audioPlayer.src = audioUrl;
+				currentAudioUrl = audioUrl;
 				
-				// Wait for the audio to be properly loaded before playing
-				newAudio.addEventListener('canplaythrough', async () => {
-					// Set the source to the HTML audio element for controls
-					audioPlayer.src = audioUrl;
-					currentAudioUrl = audioUrl;
-					
-					// Show the audio container
-					audioContainer.style.display = 'block';
-					
-					// Enable download button
-					downloadButton.disabled = false;
-					
-					setLoading(false);
-					statusMessage.textContent = "Audio generated successfully!";
-					statusMessage.style.color = '#10b981';
-				});
+				// Show the audio container
+				audioContainer.style.display = 'block';
 				
-				// Handle loading errors
-				newAudio.addEventListener('error', () => {
-					setLoading(false);
-					statusMessage.textContent = "Error loading audio. Please try again.";
-					statusMessage.style.color = '#ef4444';
-				});
+				// Enable download button
+				downloadButton.disabled = false;
 				
-				// Start loading the audio
-				newAudio.load();
+				setLoading(false);
+				statusMessage.textContent = "Audio generated successfully!";
+				statusMessage.style.color = '#10b981';
 				
 				// Save to history
 				const historyItem = {
-					text: text,
+					text: text, // Save the original text without the pause
 					audioUrl: audioUrl,
 					voice: voiceOption,
 					timestamp: new Date().toISOString()
