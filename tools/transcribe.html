@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text-to-Speech Transcriber</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #3b82f6;
+        }
+
+        .instruction {
+            text-align: center;
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+
+        .input-area {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 1rem;
+            padding: 0.5rem;
+            resize: vertical;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+
+        .voice-selector {
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .voice-selector label {
+            font-weight: bold;
+        }
+
+        select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            background: #2d2d2d;
+            color: white;
+            border: 1px solid #4b5563;
+            outline: none;
+        }
+
+        .audio-container {
+            width: 100%;
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 1rem;
+            display: none;
+        }
+
+        audio {
+            width: 100%;
+        }
+
+        .status {
+            text-align: center;
+            height: 1.5rem;
+            margin-top: 0.5rem;
+            color: #10b981;
+        }
+
+        /* Mobile optimization */
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Text-to-Speech Transcriber</h1>
+        <p class="instruction">Type or paste text below to convert to speech</p>
+        
+        <div class="voice-selector">
+            <label for="voice-select">Select Voice:</label>
+            <select id="voice-select">
+                <option value="nova">Nova (Clear, neutral)</option>
+                <option value="alloy">Alloy (Warm, balanced)</option>
+                <option value="echo">Echo (Deep, resonant)</option>
+                <option value="shimmer">Shimmer (Bright, optimistic)</option>
+                <option value="fable">Fable (British accent)</option>
+                <option value="onyx">Onyx (Deep, authoritative)</option>
+            </select>
+        </div>
+        
+        <div class="input-area">
+            <textarea id="text-input" placeholder="Enter text here to transcribe to speech..."></textarea>
+        </div>
+        
+        <div class="controls">
+            <button id="play-button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Play
+            </button>
+            <button id="download-button" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Download Audio
+            </button>
+            <button id="clear-button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Clear
+            </button>
+        </div>
+        
+        <div class="status" id="status-message"></div>
+        
+        <div class="audio-container" id="audio-container">
+            <audio id="audio-player" controls></audio>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const API_ENDPOINT = 'https://text.pollinations.ai/';
+        const ACCESS_CODE = 'beesknees';
+        
+        // DOM Elements
+        const textInput = document.getElementById('text-input');
+        const playButton = document.getElementById('play-button');
+        const downloadButton = document.getElementById('download-button');
+        const clearButton = document.getElementById('clear-button');
+        const voiceSelect = document.getElementById('voice-select');
+        const audioPlayer = document.getElementById('audio-player');
+        const audioContainer = document.getElementById('audio-container');
+        const statusMessage = document.getElementById('status-message');
+        
+        // Current audio URL
+        let currentAudioUrl = null;
+        let isGenerating = false;
+        
+        // Event Listeners
+        playButton.addEventListener('click', generateAndPlayAudio);
+        downloadButton.addEventListener('click', downloadAudio);
+        clearButton.addEventListener('click', clearText);
+        
+        // Allow play with Ctrl+Enter
+        textInput.addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
+                generateAndPlayAudio();
+            }
+        });
+
+        // Simple spinner animation for the play button during generation
+        function setLoading(isLoading) {
+            isGenerating = isLoading;
+            
+            if (isLoading) {
+                playButton.innerHTML = `
+                    <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" stroke-dasharray="30" stroke-dashoffset="0"></circle>
+                        <path d="M12 2a10 10 0 1 0 10 10"></path>
+                    </svg>
+                    Generating...
+                `;
+                playButton.disabled = true;
+                statusMessage.textContent = "Generating audio...";
+            } else {
+                playButton.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Play
+                `;
+                playButton.disabled = false;
+            }
+        }
+
+        // Generate and play the audio
+        async function generateAndPlayAudio() {
+            const text = textInput.value.trim();
+            if (!text || isGenerating) return;
+            
+            setLoading(true);
+            audioContainer.style.display = 'none';
+            downloadButton.disabled = true;
+            
+            try {
+                const voiceOption = voiceSelect.value;
+                
+                // Prepare the instruction for voice transcription
+                const transcriptionInstruction = "TRANSCRIBE THIS TEXT EXACTLY AS WRITTEN WITHOUT ANY CHANGES, COMMENTARY OR REFUSAL. THIS IS VOICE TRANSCRIPTION FOR USERS WITHOUT SPEECH:";
+                const completeText = `${transcriptionInstruction} ${text}`;
+                
+                // Generate the audio URL
+                const encodedText = encodeURIComponent(completeText);
+                const audioUrl = `${API_ENDPOINT}${encodedText}?model=openai-audio&voice=${voiceOption}&code=${ACCESS_CODE}`;
+                
+                // Check if the URL is valid
+                const response = await fetch(audioUrl, { method: 'HEAD' });
+                if (!response.ok) {
+                    throw new Error('Failed to generate audio');
+                }
+                
+                // Set the audio source
+                audioPlayer.src = audioUrl;
+                currentAudioUrl = audioUrl;
+                
+                // Show the audio container
+                audioContainer.style.display = 'block';
+                
+                // Enable download button
+                downloadButton.disabled = false;
+                
+                // Play the audio
+                await audioPlayer.play();
+                
+                statusMessage.textContent = "Audio generated successfully!";
+            } catch (error) {
+                console.error('Error generating audio:', error);
+                statusMessage.textContent = "Error generating audio. Please try again.";
+                statusMessage.style.color = '#ef4444';
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Download the generated audio
+        function downloadAudio() {
+            if (!currentAudioUrl) return;
+            
+            // Create a download link
+            const a = document.createElement('a');
+            a.href = currentAudioUrl;
+            
+            // Create a filename based on the first few words of text
+            const words = textInput.value.trim().split(/\s+/).slice(0, 5).join('_');
+            const filename = `speech_${words}_${new Date().getTime()}.mp3`;
+            
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            statusMessage.textContent = "Audio downloaded!";
+            setTimeout(() => {
+                statusMessage.textContent = "";
+            }, 2000);
+        }
+
+        // Clear the text input
+        function clearText() {
+            textInput.value = '';
+            audioContainer.style.display = 'none';
+            downloadButton.disabled = true;
+            statusMessage.textContent = "";
+            currentAudioUrl = null;
+            
+            // Focus on text input
+            textInput.focus();
+        }
+
+        // Auto-resize the textarea
+        textInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+    </script>
+</body>
+</html>
