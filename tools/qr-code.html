@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>URL to SVG QR Code Generator</title>
+    <title>Professional QR Code Generator</title>
     <style>
         body {
             background-color: #1a1a1a;
@@ -35,14 +35,13 @@
         .qr-output {
             width: 290px;
             height: 290px;
-            background: transparent;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             padding: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Show the transparency with a checkered pattern background */
+            /* Transparent checkered background */
             background-image: linear-gradient(45deg, #333 25%, transparent 25%),
                 linear-gradient(-45deg, #333 25%, transparent 25%),
                 linear-gradient(45deg, transparent 75%, #333 75%),
@@ -51,24 +50,11 @@
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
         }
         
-        #qrContainer {
+        #qrCode {
             width: 250px;
             height: 250px;
             display: block;
         }
-
-        /* SVG QR Code styling */
-        .qr-module {
-            fill: #000; /* Default black color for QR code modules */
-        }
-
-        /* You can add custom styling for the QR code here */
-        /* For example:
-        .qr-module:hover {
-            fill: #00BFA5;
-            transition: fill 0.3s ease;
-        }
-        */
 
         .copy-button {
             position: absolute;
@@ -132,26 +118,35 @@
             background-color: #00A693;
         }
 
-        /* Style controls for QR customization */
+        /* Style controls */
         .style-controls {
             width: 100%;
             max-width: 600px;
             margin-top: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
         }
 
         .control-group {
-            flex: 1;
-            min-width: 150px;
+            margin-bottom: 15px;
         }
 
         .control-label {
-            display: block;
+            display: flex;
+            align-items: center;
             margin-bottom: 5px;
             color: #ccc;
             font-size: 14px;
+        }
+
+        .color-preview {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-left: 10px;
+            border: 1px solid #ccc;
         }
 
         .color-picker {
@@ -162,29 +157,60 @@
             background-color: #2d2d2d;
             cursor: pointer;
         }
-        
-        /* Show the current color next to the picker */
-        .color-preview {
-            display: inline-block;
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;  
+            background: #2d2d2d;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%; 
+            background: #00BFA5;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            margin-left: 10px;
-            vertical-align: middle;
-            border: 1px solid #ccc;
+            background: #00BFA5;
+            cursor: pointer;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background-color: #2d2d2d;
+            color: #fff;
         }
     </style>
 </head>
 <body>
     <div class="qr-container">
-        <h2>SVG QR Code Generator</h2>
+        <h2>Professional QR Code Generator</h2>
         
         <!-- QR Code Output Section -->
         <div class="qr-output-wrapper">
             <div class="qr-output">
-                <div id="qrContainer"></div>
+                <canvas id="qrCode"></canvas>
             </div>
-            <button class="copy-button" onclick="copySvg()">Copy QR</button>
+            <button class="copy-button" onclick="copyQRCode()">Copy QR</button>
             <div class="copy-success" id="copySuccess">Copied!</div>
         </div>
 
@@ -200,145 +226,196 @@
         <!-- Style Controls -->
         <div class="style-controls">
             <div class="control-group">
-                <label class="control-label" for="qrColor">QR Code Color <span id="colorPreview" class="color-preview" style="background-color: #000000;"></span></label>
-                <input type="color" id="qrColor" class="color-picker" value="#ff0000" onchange="updateQrStyle()">
+                <label class="control-label">Foreground Color <span id="fgColorPreview" class="color-preview"></span></label>
+                <input type="color" id="fgColor" class="color-picker" value="#0000ff" onchange="updateQR()">
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Corner Style</label>
+                <select id="cornerStyle" onchange="updateQR()">
+                    <option value="square">Square</option>
+                    <option value="round">Round</option>
+                    <option value="extra-rounded">Extra Rounded</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Dot Style</label>
+                <select id="dotStyle" onchange="updateQR()">
+                    <option value="square">Square</option>
+                    <option value="dots">Dots</option>
+                    <option value="rounded">Rounded</option>
+                    <option value="classy">Classy</option>
+                </select>
+            </div>
+            
+            <div class="control-group slider-container">
+                <label class="control-label">Corner Square Size</label>
+                <input type="range" min="0" max="1" step="0.1" value="1" class="slider" id="cornerSquareSize" onchange="updateQR()">
+            </div>
+            
+            <div class="control-group slider-container">
+                <label class="control-label">Corner Dot Size</label>
+                <input type="range" min="0" max="1" step="0.1" value="1" class="slider" id="cornerDotSize" onchange="updateQR()">
             </div>
         </div>
     </div>
 
-    <!-- Include QR code library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    
+    <!-- Include QR code libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.min.js"></script>
+
     <script>
-        let qrSvg = null;
-
-        function generateQR() {
-            const url = document.getElementById('urlInput').value;
-            if (!url) {
-                alert('Please enter a valid URL');
-                return;
-            }
-
-            const qrContainer = document.getElementById('qrContainer');
-            qrContainer.innerHTML = '';
-
-            // Create QR code as SVG
-            try {
-                // Fetch SVG QR code from API
-                fetch(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}&format=svg&margin=20`)
-                    .then(response => response.text())
-                    .then(svgText => {
-                        // Process SVG to ensure transparency
-                        let processedSvg = svgText;
-                        
-                        // Remove background rect if present
-                        processedSvg = processedSvg.replace(/<rect[^>]*fill="white"[^>]*>/g, '');
-                        
-                        // Add class to SVG paths/rects for styling
-                        processedSvg = processedSvg.replace(/fill="black"/g, 'class="qr-module"');
-                        
-                        // Add viewBox if missing to ensure proper scaling
-                        if (!processedSvg.includes('viewBox')) {
-                            processedSvg = processedSvg.replace(/<svg/, '<svg viewBox="0 0 250 250"');
-                        }
-                            
-                        // Store the processed SVG
-                        qrSvg = processedSvg;
-                        
-                        // Display the QR code
-                        qrContainer.innerHTML = processedSvg;
-                        
-                        // Apply current style
-                        updateQrStyle();
-                    })
-                    .catch(error => {
-                        console.error('Error generating QR code:', error);
-                        alert('Error generating QR code. Please try again.');
-                    });
-            } catch (error) {
-                console.error('Error generating QR code:', error);
-                alert('Error generating QR code. Please try again.');
-            }
-        }
-
-        function updateQrStyle() {
-            const qrColor = document.getElementById('qrColor').value;
+        let qrCodeInstance;
+        
+        function createQRCode() {
+            // Get all styling options
+            const fgColor = document.getElementById('fgColor').value;
+            const cornerStyle = document.getElementById('cornerStyle').value;
+            const dotStyle = document.getElementById('dotStyle').value;
+            const cornerSquareSize = parseFloat(document.getElementById('cornerSquareSize').value);
+            const cornerDotSize = parseFloat(document.getElementById('cornerDotSize').value);
             
             // Update color preview
-            document.getElementById('colorPreview').style.backgroundColor = qrColor;
+            document.getElementById('fgColorPreview').style.backgroundColor = fgColor;
             
-            // Apply styles to QR modules via CSS
-            const styleElement = document.getElementById('qrCustomStyles') || document.createElement('style');
-            styleElement.id = 'qrCustomStyles';
-            styleElement.textContent = `.qr-module { fill: ${qrColor} !important; }`;
-            
-            if (!document.getElementById('qrCustomStyles')) {
-                document.head.appendChild(styleElement);
-            }
-            
-            // Also update any existing QR modules directly
-            const qrModules = document.querySelectorAll('.qr-module');
-            qrModules.forEach(module => {
-                module.setAttribute('fill', qrColor);
+            // Create QR code instance
+            qrCodeInstance = new QRCodeStyling({
+                width: 250,
+                height: 250,
+                type: "svg", // Use SVG for better quality
+                data: document.getElementById('urlInput').value,
+                dotsOptions: {
+                    color: fgColor,
+                    type: dotStyle
+                },
+                cornersSquareOptions: {
+                    color: fgColor,
+                    type: cornerStyle,
+                    gradient: null
+                },
+                cornersDotOptions: {
+                    color: fgColor,
+                    type: cornerStyle,
+                    gradient: null
+                },
+                backgroundOptions: {
+                    color: "transparent" // Transparent background
+                },
+                imageOptions: {
+                    crossOrigin: "anonymous",
+                    margin: 0
+                },
+                qrOptions: {
+                    errorCorrectionLevel: "H" // Highest error correction for better appearance
+                }
             });
             
-            console.log(`Updated QR color to ${qrColor}, found ${qrModules.length} modules`);
+            // Apply size adjustments
+            if (cornerSquareSize !== 1) {
+                qrCodeInstance._options.cornersSquareOptions.size = cornerSquareSize;
+            }
+            
+            if (cornerDotSize !== 1) {
+                qrCodeInstance._options.cornersDotOptions.size = cornerDotSize;
+            }
+            
+            // Render QR code
+            qrCodeInstance.append(document.getElementById('qrCode'));
         }
-
-        async function copySvg() {
+        
+        function generateQR() {
+            const urlInput = document.getElementById('urlInput');
+            
+            if (!urlInput.value) {
+                alert("Please enter a valid URL");
+                return;
+            }
+            
+            // Clear previous QR Code
+            document.getElementById('qrCode').innerHTML = '';
+            
+            createQRCode();
+        }
+        
+        function updateQR() {
+            // Re-generate QR code with new options
+            generateQR();
+        }
+        
+        async function copyQRCode() {
             try {
-                if (!qrSvg) {
-                    alert('Please generate a QR code first');
+                // Get QR code as SVG with transparent background
+                const svgElement = document.querySelector('#qrCode svg');
+                if (!svgElement) {
+                    alert("Please generate a QR code first");
                     return;
                 }
                 
-                // Create an SVG Blob
-                const svgBlob = new Blob([qrSvg], {type: 'image/svg+xml'});
+                // Clone the SVG to keep original intact
+                const svgClone = svgElement.cloneNode(true);
                 
-                // Convert SVG to PNG for better clipboard compatibility
+                // Set background to transparent
+                svgClone.style.backgroundColor = 'transparent';
+                
+                // Create a canvas and draw the SVG
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 250;
+                canvas.height = 250;
+                
+                // Convert SVG to data URL
+                const svgData = new XMLSerializer().serializeToString(svgClone);
+                const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+                const url = URL.createObjectURL(svgBlob);
+                
+                // Create image from SVG
                 const img = new Image();
                 img.onload = async function() {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
+                    // Clear canvas with transparency
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
                     
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = 'transparent';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    // Draw image to canvas
                     ctx.drawImage(img, 0, 0);
                     
                     // Convert to blob
                     canvas.toBlob(async function(blob) {
-                        await navigator.clipboard.write([
-                            new ClipboardItem({
-                                [blob.type]: blob
-                            })
-                        ]);
-                        
-                        const successMsg = document.getElementById('copySuccess');
-                        successMsg.style.display = 'block';
-                        setTimeout(() => {
-                            successMsg.style.display = 'none';
-                        }, 2000);
+                        try {
+                            // Copy to clipboard
+                            await navigator.clipboard.write([
+                                new ClipboardItem({
+                                    [blob.type]: blob
+                                })
+                            ]);
+                            
+                            // Show success message
+                            const successMsg = document.getElementById('copySuccess');
+                            successMsg.style.display = 'block';
+                            setTimeout(() => {
+                                successMsg.style.display = 'none';
+                            }, 2000);
+                        } catch (err) {
+                            console.error("Clipboard error:", err);
+                            alert("Error copying to clipboard. You can right-click and copy the image instead.");
+                        }
                     }, 'image/png');
                 };
-                
-                const url = URL.createObjectURL(svgBlob);
                 img.src = url;
-            } catch (err) {
-                console.error('Failed to copy:', err);
-                alert('Could not copy image. You can right-click and copy it instead.');
+                
+            } catch (error) {
+                console.error("Copy error:", error);
+                alert("Could not copy QR code. You can right-click and copy it instead.");
             }
         }
 
-        // Generate initial QR code on page load
+        // Initialize QR code on page load
         window.onload = function() {
+            // Set default styles
+            document.getElementById('fgColor').value = '#0000ff';
+            document.getElementById('fgColorPreview').style.backgroundColor = '#0000ff';
+            
+            // Generate initial QR code
             generateQR();
-            // Initialize with red color as default
-            document.getElementById('qrColor').value = '#ff0000';
-            setTimeout(() => {
-                updateQrStyle();
-            }, 1000); // Delay slightly to ensure QR code is loaded
         }
 
         // Allow generating QR code when pressing Enter
