@@ -165,34 +165,58 @@
         }
 
 		async function copyImage() {
-			const img = document.getElementById('qrImage');
+			const url = document.getElementById('urlInput').value;
+			if (!url) {
+				alert('Please enter a valid URL');
+				return;
+			}
+
 			try {
-				// Create a canvas
+				// Create canvas element
 				const canvas = document.createElement('canvas');
-				canvas.width = img.naturalWidth;
-				canvas.height = img.naturalHeight;
-				
 				const ctx = canvas.getContext('2d');
-				// Draw image to canvas
-				ctx.drawImage(img, 0, 0);
+				const size = 250;
 				
-				// Get image data and modify it
-				const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+				// Set canvas size
+				canvas.width = size;
+				canvas.height = size;
+				
+				// First fill with transparent background
+				ctx.fillStyle = 'rgba(0,0,0,0)';
+				ctx.fillRect(0, 0, size, size);
+				
+				// Create a temporary image to load the QR code
+				const tempImg = new Image();
+				
+				// Set up a promise to wait for image loading
+				const imgLoaded = new Promise((resolve) => {
+					tempImg.onload = () => resolve();
+					tempImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&format=png&margin=20`;
+				});
+				
+				// Wait for image to load
+				await imgLoaded;
+				
+				// Draw the QR code to canvas and process it
+				ctx.drawImage(tempImg, 0, 0);
+				
+				// Get image data
+				const imageData = ctx.getImageData(0, 0, size, size);
 				const data = imageData.data;
 				
-				// Replace white background with transparency
+				// Make all white pixels transparent (preserving black)
 				for (let i = 0; i < data.length; i += 4) {
-					// Check if pixel is white or very light
-					if (data[i] > 240 && data[i+1] > 240 && data[i+2] > 240) {
-						// Make it transparent
+					// If it's white (or very close to white)
+					if (data[i] > 200 && data[i+1] > 200 && data[i+2] > 200) {
+						// Make it fully transparent
 						data[i+3] = 0;
 					}
 				}
 				
-				// Put modified data back on canvas
+				// Put the processed data back
 				ctx.putImageData(imageData, 0, 0);
 				
-				// Export as PNG with transparency
+				// Copy the transparent PNG to clipboard
 				canvas.toBlob(async (blob) => {
 					try {
 						await navigator.clipboard.write([
@@ -206,14 +230,19 @@
 						setTimeout(() => {
 							successMsg.style.display = 'none';
 						}, 2000);
-					} catch (err) {
-						console.error('Clipboard write failed:', err);
-						alert('Failed to copy to clipboard. Browser may not support this feature.');
+					} catch (error) {
+						console.error('Clipboard error:', error);
+						alert('Could not copy to clipboard. Try right-click and copy.');
 					}
-				}, 'image/png');
-			} catch (err) {
-				console.error('Failed to process image:', err);
-				alert('Could not copy image. Try right-clicking and copy it instead.');
+				}, 'image/png', 1.0);
+				
+				// Update the display image too (optional)
+				const qrImage = document.getElementById('qrImage');
+				qrImage.src = canvas.toDataURL('image/png');
+				
+			} catch (error) {
+				console.error('Error:', error);
+				alert('Error processing QR code. Please try again.');
 			}
 		}
 
