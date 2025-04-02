@@ -167,31 +167,23 @@
 		async function copyImage() {
 			const img = document.getElementById('qrImage');
 			try {
-				// Create a canvas to ensure transparency is preserved
-				const canvas = document.createElement('canvas');
-				canvas.width = img.naturalWidth;
-				canvas.height = img.naturalHeight;
+				// Load the original image from the API directly to ensure we get the raw PNG with transparency
+				const url = document.getElementById('urlInput').value;
+				const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}&format=png&margin=20&bgcolor=transparent`);
+				const blob = await response.blob();
 				
-				const ctx = canvas.getContext('2d', {alpha: true});
-				// Set composite operation to properly handle transparency
-				ctx.globalCompositeOperation = 'copy';
-				// Draw the image on the canvas
-				ctx.drawImage(img, 0, 0);
+				// Put the raw blob directly on the clipboard
+				await navigator.clipboard.write([
+					new ClipboardItem({
+						[blob.type]: blob
+					})
+				]);
 				
-				// Convert canvas to blob with transparency preserved
-				canvas.toBlob(async (blob) => {
-					await navigator.clipboard.write([
-						new ClipboardItem({
-							[blob.type]: blob
-						})
-					]);
-					
-					const successMsg = document.getElementById('copySuccess');
-					successMsg.style.display = 'block';
-					setTimeout(() => {
-						successMsg.style.display = 'none';
-					}, 2000);
-				}, 'image/png', 1.0);
+				const successMsg = document.getElementById('copySuccess');
+				successMsg.style.display = 'block';
+				setTimeout(() => {
+					successMsg.style.display = 'none';
+				}, 2000);
 			} catch (err) {
 				console.error('Failed to copy:', err);
 				alert('Could not copy image. You can right-click and copy it instead.');
