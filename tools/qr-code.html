@@ -161,27 +161,39 @@
             }
         }
 
-        async function copyImage() {
-            const img = document.getElementById('qrImage');
-            try {
-                const response = await fetch(img.src);
-                const blob = await response.blob();
-                await navigator.clipboard.write([
-                    new ClipboardItem({
-                        [blob.type]: blob
-                    })
-                ]);
-                
-                const successMsg = document.getElementById('copySuccess');
-                successMsg.style.display = 'block';
-                setTimeout(() => {
-                    successMsg.style.display = 'none';
-                }, 2000);
-            } catch (err) {
-                console.error('Failed to copy:', err);
-                alert('Could not copy image. You can right-click and copy it instead.');
-            }
-        }
+		async function copyImage() {
+			const img = document.getElementById('qrImage');
+			try {
+				// Create a canvas to ensure transparency is preserved
+				const canvas = document.createElement('canvas');
+				canvas.width = img.naturalWidth;
+				canvas.height = img.naturalHeight;
+				
+				const ctx = canvas.getContext('2d');
+				// Clear the canvas with transparent background
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				// Draw the image on the canvas
+				ctx.drawImage(img, 0, 0);
+				
+				// Convert canvas to blob with transparency preserved
+				canvas.toBlob(async (blob) => {
+					await navigator.clipboard.write([
+						new ClipboardItem({
+							[blob.type]: blob
+						})
+					]);
+					
+					const successMsg = document.getElementById('copySuccess');
+					successMsg.style.display = 'block';
+					setTimeout(() => {
+						successMsg.style.display = 'none';
+					}, 2000);
+				}, 'image/png');
+			} catch (err) {
+				console.error('Failed to copy:', err);
+				alert('Could not copy image. You can right-click and copy it instead.');
+			}
+		}
 
         // Generate initial QR code on page load
         window.onload = function() {
