@@ -167,47 +167,53 @@
 		async function copyImage() {
 			const img = document.getElementById('qrImage');
 			try {
-				// Create a canvas to process the image
+				// Create a canvas
 				const canvas = document.createElement('canvas');
 				canvas.width = img.naturalWidth;
 				canvas.height = img.naturalHeight;
 				
 				const ctx = canvas.getContext('2d');
+				// Draw image to canvas
 				ctx.drawImage(img, 0, 0);
 				
-				// Get the image data
+				// Get image data and modify it
 				const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 				const data = imageData.data;
 				
-				// Replace all white pixels with transparent pixels
+				// Replace white background with transparency
 				for (let i = 0; i < data.length; i += 4) {
-					// If pixel is white or near-white (allowing for some compression artifacts)
-					if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) {
-						// Set alpha channel to 0 (transparent)
-						data[i + 3] = 0;
+					// Check if pixel is white or very light
+					if (data[i] > 240 && data[i+1] > 240 && data[i+2] > 240) {
+						// Make it transparent
+						data[i+3] = 0;
 					}
 				}
 				
-				// Put the modified image data back on the canvas
+				// Put modified data back on canvas
 				ctx.putImageData(imageData, 0, 0);
 				
-				// Convert canvas to blob with transparency preserved
+				// Export as PNG with transparency
 				canvas.toBlob(async (blob) => {
-					await navigator.clipboard.write([
-						new ClipboardItem({
-							[blob.type]: blob
-						})
-					]);
-					
-					const successMsg = document.getElementById('copySuccess');
-					successMsg.style.display = 'block';
-					setTimeout(() => {
-						successMsg.style.display = 'none';
-					}, 2000);
+					try {
+						await navigator.clipboard.write([
+							new ClipboardItem({
+								'image/png': blob
+							})
+						]);
+						
+						const successMsg = document.getElementById('copySuccess');
+						successMsg.style.display = 'block';
+						setTimeout(() => {
+							successMsg.style.display = 'none';
+						}, 2000);
+					} catch (err) {
+						console.error('Clipboard write failed:', err);
+						alert('Failed to copy to clipboard. Browser may not support this feature.');
+					}
 				}, 'image/png');
 			} catch (err) {
-				console.error('Failed to copy:', err);
-				alert('Could not copy image. You can right-click and copy it instead.');
+				console.error('Failed to process image:', err);
+				alert('Could not copy image. Try right-clicking and copy it instead.');
 			}
 		}
 
