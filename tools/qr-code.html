@@ -42,6 +42,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            /* Show the transparency with a checkered pattern background */
+            background-image: linear-gradient(45deg, #333 25%, transparent 25%),
+                linear-gradient(-45deg, #333 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #333 75%),
+                linear-gradient(-45deg, transparent 75%, #333 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
         }
         
         #qrContainer {
@@ -155,6 +162,17 @@
             background-color: #2d2d2d;
             cursor: pointer;
         }
+        
+        /* Show the current color next to the picker */
+        .color-preview {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-left: 10px;
+            vertical-align: middle;
+            border: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
@@ -182,8 +200,8 @@
         <!-- Style Controls -->
         <div class="style-controls">
             <div class="control-group">
-                <label class="control-label" for="qrColor">QR Code Color</label>
-                <input type="color" id="qrColor" class="color-picker" value="#000000" onchange="updateQrStyle()">
+                <label class="control-label" for="qrColor">QR Code Color <span id="colorPreview" class="color-preview" style="background-color: #000000;"></span></label>
+                <input type="color" id="qrColor" class="color-picker" value="#ff0000" onchange="updateQrStyle()">
             </div>
         </div>
     </div>
@@ -217,10 +235,12 @@
                         processedSvg = processedSvg.replace(/<rect[^>]*fill="white"[^>]*>/g, '');
                         
                         // Add class to SVG paths/rects for styling
-                        processedSvg = processedSvg.replace(/<path[^>]*fill="black"[^>]*>/g, match => 
-                            match.replace('fill="black"', 'fill="black" class="qr-module"'));
-                        processedSvg = processedSvg.replace(/<rect[^>]*fill="black"[^>]*>/g, match => 
-                            match.replace('fill="black"', 'fill="black" class="qr-module"'));
+                        processedSvg = processedSvg.replace(/fill="black"/g, 'class="qr-module"');
+                        
+                        // Add viewBox if missing to ensure proper scaling
+                        if (!processedSvg.includes('viewBox')) {
+                            processedSvg = processedSvg.replace(/<svg/, '<svg viewBox="0 0 250 250"');
+                        }
                             
                         // Store the processed SVG
                         qrSvg = processedSvg;
@@ -244,11 +264,25 @@
         function updateQrStyle() {
             const qrColor = document.getElementById('qrColor').value;
             
-            // Apply styles to QR modules
+            // Update color preview
+            document.getElementById('colorPreview').style.backgroundColor = qrColor;
+            
+            // Apply styles to QR modules via CSS
+            const styleElement = document.getElementById('qrCustomStyles') || document.createElement('style');
+            styleElement.id = 'qrCustomStyles';
+            styleElement.textContent = `.qr-module { fill: ${qrColor} !important; }`;
+            
+            if (!document.getElementById('qrCustomStyles')) {
+                document.head.appendChild(styleElement);
+            }
+            
+            // Also update any existing QR modules directly
             const qrModules = document.querySelectorAll('.qr-module');
             qrModules.forEach(module => {
                 module.setAttribute('fill', qrColor);
             });
+            
+            console.log(`Updated QR color to ${qrColor}, found ${qrModules.length} modules`);
         }
 
         async function copySvg() {
@@ -300,6 +334,11 @@
         // Generate initial QR code on page load
         window.onload = function() {
             generateQR();
+            // Initialize with red color as default
+            document.getElementById('qrColor').value = '#ff0000';
+            setTimeout(() => {
+                updateQrStyle();
+            }, 1000); // Delay slightly to ensure QR code is loaded
         }
 
         // Allow generating QR code when pressing Enter
