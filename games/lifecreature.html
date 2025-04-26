@@ -373,12 +373,12 @@ function moveCreature(creature) {
     const currentColorCount = nutrients.filter(n => n.color === currentColor).length;
     
     // If no nutrients of current color, advance to next color
-	if (currentColorCount === 0) {
-		cycleIndex = (cycleIndex + 1) % colorCycle.length;
-		currentColor = nextColor;
-		nextColor = colorCycle[(cycleIndex + 1) % colorCycle.length];
-		level++;
-		score += 100;
+    if (currentColorCount === 0) {
+        cycleIndex = (cycleIndex + 1) % colorCycle.length;
+        currentColor = colorCycle[cycleIndex];
+        nextColor = colorCycle[(cycleIndex + 1) % colorCycle.length];
+        level++;
+        score += 100;
     }
     
     nutrients.forEach(nutrient => {
@@ -402,21 +402,22 @@ function moveCreature(creature) {
         creature.y = Math.max(margin, Math.min(HEIGHT - margin, newY));
         
         const distance = Math.hypot(creature.x - target.x, creature.y - target.y);
-		if (distance < creature.mainRadius / 2) {
-			nutrients.splice(nutrients.indexOf(target), 1);
-			
-			// Update global stats
-			score += 10;
-			totalEaten++;
-			
-			creature.power += 1;
-			creature.energy = Math.min(100, creature.energy + 15);
-			creature.size = Math.min(2, 0.6 + (creature.power * 0.02));
-			creature.mainRadius = 35 * creature.size;
-			creature.glowRadius = 45 * creature.size;
-			
-			nutrients.push(createNutrient(nextColor, 0.1));
-		}
+        if (distance < creature.mainRadius / 2) {
+            nutrients.splice(nutrients.indexOf(target), 1);
+            
+            // Update global stats
+            score += 10;
+            totalEaten++;
+            
+            creature.power += 1;
+            creature.energy = Math.min(100, creature.energy + 15);
+            creature.size = Math.min(2, 0.6 + (creature.power * 0.02));
+            creature.mainRadius = 35 * creature.size;
+            creature.glowRadius = 45 * creature.size;
+            
+            // Spawn new nutrient with nextColor
+            nutrients.push(createNutrient(nextColor, 0.1));
+        }
     }
 }
 
