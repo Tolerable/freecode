@@ -468,6 +468,9 @@ function gameLoop() {
                 continue;
             }
             
+            // Track how many creatures are attacking this one
+            let attackersCount = 0;
+            
             // Check creature collisions
             for (let j = 0; j < creatures.length; j++) {
                 if (i === j) continue;
@@ -484,6 +487,11 @@ function gameLoop() {
                 const minSeparation = predator.mainRadius + prey.mainRadius;
                 
                 if (distance < minSeparation) {
+                    // Count attackers
+                    if (predator.power <= prey.power) {
+                        attackersCount++;
+                    }
+                    
                     // Push apart
                     const angle = Math.atan2(prey.y - predator.y, prey.x - predator.x);
                     const pushForce = Math.min((minSeparation - distance) / 2, 5);
@@ -497,8 +505,8 @@ function gameLoop() {
                     prey.y = Math.max(prey.mainRadius, Math.min(HEIGHT - prey.mainRadius, 
                         prey.y + Math.sin(angle) * pushForce));
                     
-                    // Combat check - only if significantly stronger
-                    if (predator.power > prey.power * 1.2) {
+                    // Combat check - if stronger, eat immediately
+                    if (predator.power > prey.power * 1.05) { // Lower threshold
                         predator.power += prey.power * 0.5;
                         predator.size = 0.6 + (predator.power * 0.02);
                         predator.mainRadius = 35 * predator.size;
@@ -506,7 +514,7 @@ function gameLoop() {
                         
                         score += 50;
                         totalEaten++;
-						kills++;
+                        kills++;
                         
                         // Remove prey and spawn new creature
                         creatures.splice(j, 1);
@@ -528,8 +536,41 @@ function gameLoop() {
                             
                             creatures.push(newCreature);
                         }
+                    } else if (predator.power <= prey.power) {
+                        // If weaker, take damage
+                        predator.power -= 0.5; // Direct power drain on collision
                     }
                 }
+            }
+            
+            // If being attacked by multiple creatures, take massive damage
+            if (attackersCount > 1) {
+                predator.power -= attackersCount * 1; // Multiplied damage
+            }
+            
+            // Check if creature should die
+            if (predator.power < 5) {
+                // Remove dead creature
+                creatures.splice(i, 1);
+                i--;
+                
+                // Spawn replacement
+                if (creatures.length < INITIAL_CREATURES) {
+                    let attempts = 0;
+                    let newCreature;
+                    
+                    do {
+                        const newX = Math.random() * (WIDTH - 100) + 50;
+                        const newY = Math.random() * (HEIGHT - 100) + 50;
+                        newCreature = createCreature(newX, newY);
+                        newCreature.color = getNextAvailableColor();
+                        attempts++;
+                    } while (attempts < 10 && creatures.some(c => 
+                        Math.hypot(newCreature.x - c.x, newCreature.y - c.y) < c.mainRadius * 3));
+                    
+                    creatures.push(newCreature);
+                }
+                continue;
             }
             
             drawCreature(predator);
