@@ -369,18 +369,6 @@ function moveCreature(creature) {
     let target = null;
     let minDist = Infinity;
     
-    // Count current color nutrients
-    const currentColorCount = nutrients.filter(n => n.color === currentColor).length;
-    
-    // If no nutrients of current color, advance to next color
-    if (currentColorCount === 0) {
-        cycleIndex = (cycleIndex + 1) % colorCycle.length;
-        currentColor = colorCycle[cycleIndex];
-        nextColor = colorCycle[(cycleIndex + 1) % colorCycle.length];
-        level++;
-        score += 100;
-    }
-    
     nutrients.forEach(nutrient => {
         if (nutrient.color === currentColor) {
             const dist = Math.hypot(creature.x - nutrient.x, creature.y - nutrient.y);
@@ -415,9 +403,20 @@ function moveCreature(creature) {
             creature.mainRadius = 35 * creature.size;
             creature.glowRadius = 45 * creature.size;
             
-            // Spawn new nutrient with nextColor
             nutrients.push(createNutrient(nextColor, 0.1));
         }
+    }
+}
+
+function checkLevelAdvancement() {
+    const currentColorCount = nutrients.filter(n => n.color === currentColor).length;
+    
+    if (currentColorCount === 0) {
+        cycleIndex = (cycleIndex + 1) % colorCycle.length;
+        currentColor = colorCycle[cycleIndex];
+        nextColor = colorCycle[(cycleIndex + 1) % colorCycle.length];
+        level++;
+        score += 100;
     }
 }
 
@@ -454,6 +453,9 @@ function gameLoop() {
         
         updateNutrientTransitions();
         drawNutrients();
+
+        // Check for level advancement once per frame
+        checkLevelAdvancement();
         
         // Handle creature interactions
         for (let i = 0; i < creatures.length; i++) {
