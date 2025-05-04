@@ -96,11 +96,12 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        model: "openai-large",
+                        model: "openai",
+                        jsonMode: true,
                         messages: [
                             {
                                 role: 'system',
-                                content: "You are a Puppy Cuteness Meter. Rate puppies on a scale of 1-10. ALWAYS include 'Cuteness Score: X/10' in your response where X is the rating. Describe the puppy briefly. If image doesn't show a puppy, kindly say so and ask for a puppy photo instead."
+                                content: "You are a Puppy Cuteness Meter. Rate puppies on a scale of 1-10. Respond with JSON in this format: {\"score\": number, \"description\": string}. Score should be between 1-10. Description should be 1-3 sentences about the puppy. If image doesn't show a puppy, set score to 0 and ask for a puppy photo."
                             },
                             {
                                 role: 'user',
@@ -114,20 +115,19 @@
                 });
                 
                 const data = await response.json();
-                const result = data.choices?.[0]?.message?.content || "Error analyzing image";
-                
-                // Extract score
-                const scoreMatch = result.match(/Cuteness Score:\s*(\d+)/i);
-                const score = scoreMatch ? parseInt(scoreMatch[1]) : 0;
+                // Parse the AI response as JSON
+                const aiContent = data.choices?.[0]?.message?.content || "{}";
+                const result = JSON.parse(aiContent);
                 
                 // Create result HTML
                 const resultHTML = `
                     <img src="data:image/jpeg;base64,${base64Image}" id="preview">
-                    <div>${result}</div>
+                    <div><strong>Cuteness Rating: ${result.score}/10</strong></div>
+                    <p>${result.description}</p>
                     <div>
                         <strong>Cuteness Meter:</strong>
                         <div class="meter">
-                            <div class="meter-fill" style="width: ${score*10}%;"></div>
+                            <div class="meter-fill" style="width: ${result.score*10}%;"></div>
                         </div>
                     </div>
                 `;
