@@ -559,7 +559,7 @@
                 }
                 
                 // Generate audio for the limerick
-                const fullText = `${title}. ${limerick}`;
+                const fullText = `${title}. ${limerick.replace(/\n\n/g, '. ').replace(/\n/g, '. ')}`;
                 const audioUrl = await generateAudio(fullText);
                 
                 // Update the UI
@@ -596,19 +596,26 @@
         }
 
         // Function to generate audio for the limerick
-        async function generateAudio(text) {
-            try {
-                // Create a direct instruction to read verbatim
-                const instructionPrefix = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE: ";
-                const textToRead = instructionPrefix + text;
-                const encodedText = encodeURIComponent(textToRead);
-                const url = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=alloy`;
-                return url;
-            } catch (error) {
-                console.error("Audio generation error:", error);
-                return null;
-            }
-        }
+		async function generateAudio(text) {
+			try {
+				// Create a direct instruction to read verbatim
+				const instructionPrefix = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE: ";
+				
+				// Format the text with extra pauses between stanzas and clear line breaks
+				const formattedText = text
+					.replace(/\n\n/g, '\n. \n') // Add a pause between stanzas
+					.replace(/\n/g, '. \n') // Add a slight pause at the end of each line
+					.trim();
+					
+				const textToRead = instructionPrefix + formattedText;
+				const encodedText = encodeURIComponent(textToRead);
+				const url = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=alloy`;
+				return url;
+			} catch (error) {
+				console.error("Audio generation error:", error);
+				return null;
+			}
+		}
         
         // Download function that properly handles audio files
         async function downloadLimerickAudio(audioUrl, title) {
