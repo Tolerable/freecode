@@ -95,6 +95,34 @@
             border-color: #229954;
         }
 
+        .stanza-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .stanza-option {
+            background: #e8f5e9;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            padding: 8px 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            min-width: 40px;
+        }
+        
+        .stanza-option:hover {
+            background: #d7f2db;
+        }
+        
+        .stanza-option.active {
+            background: #27ae60;
+            color: white;
+            border-color: #229954;
+        }
+
         .custom-style {
             flex: 1;
             margin-top: 10px;
@@ -239,6 +267,13 @@
             color: #7f8c8d;
         }
 
+        .history-empty {
+            text-align: center;
+            padding: 1rem;
+            color: #9ca3af;
+            font-style: italic;
+        }
+
         /* Audio container */
         .audio-container {
             margin: 20px auto;
@@ -352,6 +387,16 @@
             </div>
         </div>
         
+        <div class="input-row">
+            <label>Stanzas:</label>
+            <div class="stanza-options">
+                <div class="stanza-option active" data-stanzas="1">1</div>
+                <div class="stanza-option" data-stanzas="2">2</div>
+                <div class="stanza-option" data-stanzas="3">3</div>
+                <div class="stanza-option" data-stanzas="4">4</div>
+            </div>
+        </div>
+        
         <button class="generate-button" id="generateLimerick">Generate Limerick</button>
     </div>
     
@@ -380,6 +425,7 @@
         // Initialize variables
         let limerickHistory = [];
         let currentStyle = 'classic';
+        let currentStanzaCount = 1;
         
         // Random subjects for the random button
         const randomSubjects = [
@@ -397,6 +443,7 @@
         const subjectInput = document.getElementById('subjectInput');
         const randomButton = document.getElementById('randomSubject');
         const styleOptions = document.querySelectorAll('.style-option');
+        const stanzaOptions = document.querySelectorAll('.stanza-option');
         const customStyleInput = document.getElementById('customStyleInput');
         const generateButton = document.getElementById('generateLimerick');
         const loadingIndicator = document.getElementById('loadingIndicator');
@@ -427,6 +474,14 @@
             });
         });
         
+        stanzaOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                stanzaOptions.forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                currentStanzaCount = parseInt(this.dataset.stanzas);
+            });
+        });
+        
         generateButton.addEventListener('click', generateLimerick);
         
         // Generate limerick function
@@ -443,6 +498,9 @@
             if (style === 'custom') {
                 style = customStyleInput.value.trim() || 'creative';
             }
+            
+            // Get stanza count
+            const stanzaCount = currentStanzaCount;
             
             // Generate a random seed
             const seed = Math.floor(Math.random() * 1000000);
@@ -465,7 +523,10 @@
                             {
                                 role: 'system',
                                 content: `You are Limerick Bot, a clever AI that creates original, witty limericks about any subject. 
-                                Create a limerick about "${subject}" in a ${style} style.
+                                Create ${stanzaCount > 1 ? stanzaCount + ' connected' : 'a'} limerick${stanzaCount > 1 ? 's' : ''} about "${subject}" in a ${style} style.
+                                
+                                ${stanzaCount > 1 ? 'Make sure all stanzas tell a cohesive story and flow well together.' : ''}
+                                ${stanzaCount > 1 ? 'Separate each stanza with a blank line.' : ''}
                                 
                                 Format your response EXACTLY like this:
                                 TITLE: [Your creative title here]
@@ -475,7 +536,7 @@
                             },
                             {
                                 role: 'user',
-                                content: `Write me a ${style} limerick about ${subject}.`
+                                content: `Write me ${stanzaCount > 1 ? stanzaCount + ' connected' : 'a'} ${style} limerick${stanzaCount > 1 ? 's' : ''} about ${subject}.`
                             }
                         ]
                     })
@@ -513,7 +574,7 @@
                                 <source src="${audioUrl}" type="audio/wav">
                                 Your browser does not support the audio element.
                             </audio>
-                            <button class="download-button" onclick="downloadLimerickAudio('${audioUrl}', '${title.replace(/'/g, "\\'")}')">Download Audio</button>
+                            <button class="download-button" onclick="downloadLimerickAudio(${JSON.stringify(audioUrl)}, ${JSON.stringify(title)})">Download Audio</button>
                         </div>
                     `;
                     document.getElementById('audioContainer').innerHTML = audioElement;
@@ -523,7 +584,7 @@
                 resultElement.style.display = 'block';
                 
                 // Add to history
-                addToHistory(subject, style, title, limerick, audioUrl);
+                addToHistory(subject, style, title, limerick, audioUrl, stanzaCount);
                 
             } catch (error) {
                 console.error('Error:', error);
@@ -595,9 +656,9 @@
         }
         
         // Add to history function
-        function addToHistory(subject, style, title, limerick, audioUrl) {
+        function addToHistory(subject, style, title, limerick, audioUrl, stanzaCount) {
             // Add to history array (limit to 10 items)
-            limerickHistory.unshift({ subject, style, title, limerick, audioUrl });
+            limerickHistory.unshift({ subject, style, title, limerick, audioUrl, stanzaCount });
             if (limerickHistory.length > 10) {
                 limerickHistory.pop();
             }
@@ -606,63 +667,63 @@
             updateHistoryUI();
         }
         
-		// Update history UI
-		function updateHistoryUI() {
-			historyContainer.innerHTML = '';
-			
-			if (limerickHistory.length === 0) {
-				const emptyMessage = document.createElement('div');
-				emptyMessage.className = 'history-empty';
-				emptyMessage.textContent = 'No history items yet';
-				historyContainer.appendChild(emptyMessage);
-				return;
-			}
-			
-			limerickHistory.forEach((item, index) => {
-				const historyItem = document.createElement('div');
-				historyItem.className = 'history-item';
-				historyItem.innerHTML = `
-					<div class="history-subject">${item.title}</div>
-					<div class="history-style">${item.style}</div>
-					${item.audioUrl ? '<div class="history-audio-icon">🔊</div>' : ''}
-				`;
-				
-				historyItem.addEventListener('click', function() {
-					resultTitle.textContent = item.title;
-					limerickText.textContent = item.limerick;
-					
-					// Update audio player if we have an audio URL
-					if (item.audioUrl) {
-						const audioElement = `
-							<div class="audio-container">
-								<audio controls class="limerick-audio">
-									<source src="${item.audioUrl}" type="audio/wav">
-									Your browser does not support the audio element.
-								</audio>
-								<button class="download-button" onclick="downloadLimerickAudio(${JSON.stringify(item.audioUrl)}, ${JSON.stringify(item.title)})">Download Audio</button>
-							</div>
-						`;
-						document.getElementById('audioContainer').innerHTML = audioElement;
-						document.getElementById('audioContainer').style.display = 'block';
-					} else {
-						document.getElementById('audioContainer').style.display = 'none';
-					}
-					
-					resultElement.style.display = 'block';
-					
-					// Scroll to result
-					resultElement.scrollIntoView({ behavior: 'smooth' });
-				});
-				
-				historyContainer.appendChild(historyItem);
-			});
-		}
-
-		// Clear history on page load
-		window.addEventListener('load', function() {
-			limerickHistory = [];
-			updateHistoryUI();
-		});
-	</script>
+        // Update history UI
+        function updateHistoryUI() {
+            historyContainer.innerHTML = '';
+            
+            if (limerickHistory.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'history-empty';
+                emptyMessage.textContent = 'No history items yet';
+                historyContainer.appendChild(emptyMessage);
+                return;
+            }
+            
+            limerickHistory.forEach((item, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="history-subject">${item.title}</div>
+                    <div class="history-style">${item.style}${item.stanzaCount > 1 ? ` (${item.stanzaCount} stanzas)` : ''}</div>
+                    ${item.audioUrl ? '<div class="history-audio-icon">🔊</div>' : ''}
+                `;
+                
+                historyItem.addEventListener('click', function() {
+                    resultTitle.textContent = item.title;
+                    limerickText.textContent = item.limerick;
+                    
+                    // Update audio player if we have an audio URL
+                    if (item.audioUrl) {
+                        const audioElement = `
+                            <div class="audio-container">
+                                <audio controls class="limerick-audio">
+                                    <source src="${item.audioUrl}" type="audio/wav">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                <button class="download-button" onclick="downloadLimerickAudio(${JSON.stringify(item.audioUrl)}, ${JSON.stringify(item.title)})">Download Audio</button>
+                            </div>
+                        `;
+                        document.getElementById('audioContainer').innerHTML = audioElement;
+                        document.getElementById('audioContainer').style.display = 'block';
+                    } else {
+                        document.getElementById('audioContainer').style.display = 'none';
+                    }
+                    
+                    resultElement.style.display = 'block';
+                    
+                    // Scroll to result
+                    resultElement.scrollIntoView({ behavior: 'smooth' });
+                });
+                
+                historyContainer.appendChild(historyItem);
+            });
+        }
+        
+        // Clear history on page load
+        window.addEventListener('load', function() {
+            limerickHistory = [];
+            updateHistoryUI();
+        });
+    </script>
 </body>
 </html>
