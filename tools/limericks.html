@@ -361,7 +361,7 @@
         
         generateButton.addEventListener('click', generateLimerick);
         
-        // Generate limerick function
+		// Generate limerick function
 		async function generateLimerick() {
 			// Get the subject (use random if empty)
 			let subject = subjectInput.value.trim();
@@ -387,17 +387,18 @@
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
 						model: "openai",
-						jsonMode: false,
+						jsonMode: false, // We want plain text
 						messages: [
 							{
 								role: 'system',
 								content: `You are Limerick Bot, a clever AI that creates original, witty limericks about any subject. 
-								Limericks should follow the classic AABBA rhyme scheme and proper limerick rhythm.
 								Create a limerick about "${subject}" in a ${style} style.
-								Your response should include TWO parts separated by a line with three dashes (---):
-								1. A creative title for the limerick (one line)
-								2. The limerick itself
-								Be creative, funny, and a bit saucy for adults if appropriate for the style.`
+								
+								Format your response EXACTLY like this:
+								TITLE: [Your creative title here]
+								LIMERICK: [Your limerick here]
+								
+								Be creative, funny, and a bit saucy if appropriate for the style.`
 							},
 							{
 								role: 'user',
@@ -407,25 +408,20 @@
 					})
 				});
 				
-				let responseData = await response.text();
+				const responseData = await response.text();
 				
-				try {
-					// Try to parse as JSON first
-					const data = JSON.parse(responseData);
-					responseData = data.choices?.[0]?.message?.content || responseData;
-				} catch (e) {
-					console.log("Not valid JSON, using as is:", e);
-				}
-				
-				// Clean up the response
+				// Extract title and limerick using regex
 				let title = subject;
 				let limerick = responseData.trim();
-
-				// Check if the response has the separator
-				if (responseData.includes('---')) {
-					const parts = responseData.split('---');
-					title = parts[0].trim();
-					limerick = parts.slice(1).join('---').trim();
+				
+				const titleMatch = responseData.match(/TITLE:\s*(.*?)(?=\s*LIMERICK:|$)/is);
+				if (titleMatch && titleMatch[1]) {
+					title = titleMatch[1].trim();
+				}
+				
+				const limerickMatch = responseData.match(/LIMERICK:\s*([\s\S]*?)$/i);
+				if (limerickMatch && limerickMatch[1]) {
+					limerick = limerickMatch[1].trim();
 				}
 				
 				// Update the UI
