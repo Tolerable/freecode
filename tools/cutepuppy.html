@@ -230,90 +230,117 @@
             });
         }
         
-        // Analyze image with AI
-        async function analyzeImage(base64Image) {
-            // Show loading state
-            document.getElementById('result').innerHTML = '<p>Analyzing puppy...</p>';
-            
-            try {
-                // Modified to use text mode instead of JSON mode to avoid parsing issues
-                const response = await fetch('https://text.pollinations.ai/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: "openai",
-                        jsonMode: false,
-                        messages: [
-                            {
-                                role: 'system',
-                                content: "You are a Puppy Cuteness Meter. Rate puppies on a scale of 1-10. Your response MUST include the exact phrase 'Cuteness Rating: X' (just the number, do not include '/10') where X is a number between 1 and 10. Then provide a brief 1-3 sentence description of the puppy. If image doesn't show a puppy, say so and ask for a puppy photo."
-                            },
-                            {
-                                role: 'user',
-                                content: [
-                                    { type: 'text', text: "Rate this puppy's cuteness from 1-10:" },
-                                    { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
-                                ]
-                            }
-                        ]
-                    })
-                });
-                
-                let responseData = await response.text(); // Get as text first
-                console.log("Raw response:", responseData);
-                
-                try {
-                    // Try to parse as JSON first
-                    const data = JSON.parse(responseData);
-                    responseData = data.choices?.[0]?.message?.content || responseData;
-                } catch (e) {
-                    console.log("Not valid JSON, using as is:", e);
-                    // If not valid JSON, use as is
-                }
-                
-                // Extract rating using regex - modified to just get the number
-                const ratingMatch = responseData.match(/Cuteness Rating:\s*(\d+)/i);
-                const rating = ratingMatch ? parseInt(ratingMatch[1]) : 7; // Default to 7 if not found
-                
-                // Extract description - everything after the rating line
-                let description = responseData;
-                if (ratingMatch) {
-                    const ratingIndex = responseData.indexOf(ratingMatch[0]);
-                    const endOfRating = ratingIndex + ratingMatch[0].length;
-                    
-                    // Skip any "/10" that might be in the response despite our instructions
-                    let startOfDescription = endOfRating;
-                    const slashTenMatch = responseData.substring(endOfRating, endOfRating + 5).match(/\/10/i);
-                    if (slashTenMatch) {
-                        startOfDescription = endOfRating + slashTenMatch[0].length;
-                    }
-                    
-                    description = responseData.substring(startOfDescription).trim();
-                }
-                
-                // Create result HTML - we add the /10 here
-                const resultHTML = `
-                    <img src="data:image/jpeg;base64,${base64Image}" id="preview">
-                    <h2>Cuteness Rating: ${rating}/10</h2>
-                    <p>${description}</p>
-                    <div>
-                        <strong>Cuteness Meter:</strong>
-                        <div class="meter">
-                            <div class="meter-fill" style="width: ${rating*10}%;"></div>
-                        </div>
-                    </div>
-                `;
-                
-                document.getElementById('result').innerHTML = resultHTML;
-                
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('result').innerHTML = `
-                    <p>Error analyzing image: ${error.message}</p>
-                    <img src="data:image/jpeg;base64,${base64Image}" id="preview">
-                `;
-            }
-        }
+		// Analyze image with AI
+		async function analyzeImage(base64Image) {
+			// Show loading state
+			document.getElementById('result').innerHTML = '<p>Analyzing puppy...</p>';
+			
+			try {
+				// Modified to use text mode instead of JSON mode to avoid parsing issues
+				const response = await fetch('https://text.pollinations.ai/', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						model: "openai",
+						jsonMode: false,
+						messages: [
+							{
+								role: 'system',
+								content: "You are a Puppy Cuteness Meter. Rate puppies on a scale of 1-10. Your response MUST include the exact phrase 'Cuteness Rating: X' (just the number, do not include '/10') where X is a number between 1 and 10. Then provide a brief 1-3 sentence description of the puppy. If image doesn't show a puppy, you MUST respond with 'Not a Puppy' followed by a brief explanation of what the image actually shows instead."
+							},
+							{
+								role: 'user',
+								content: [
+									{ type: 'text', text: "Rate this puppy's cuteness from 1-10:" },
+									{ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+								]
+							}
+						]
+					})
+				});
+				
+				let responseData = await response.text(); // Get as text first
+				console.log("Raw response:", responseData);
+				
+				try {
+					// Try to parse as JSON first
+					const data = JSON.parse(responseData);
+					responseData = data.choices?.[0]?.message?.content || responseData;
+				} catch (e) {
+					console.log("Not valid JSON, using as is:", e);
+					// If not valid JSON, use as is
+				}
+				
+				// Check if it's not a puppy
+				if (responseData.includes("Not a Puppy")) {
+					// Extract explanation
+					const explanation = responseData.replace("Not a Puppy", "").trim();
+					
+					// Create result HTML for non-puppy images
+					const resultHTML = `
+						<img src="data:image/jpeg;base64,${base64Image}" id="preview">
+						<h2>Not a Puppy! 🐶</h2>
+						<p>${explanation}</p>
+						<p>Please upload a photo of a puppy to get a cuteness rating.</p>
+					`;
+					
+					document.getElementById('result').innerHTML = resultHTML;
+					return;
+				}
+				
+				// Extract rating using regex - modified to just get the number
+				const ratingMatch = responseData.match(/Cuteness Rating:\s*(\d+)/i);
+				const rating = ratingMatch ? parseInt(ratingMatch[1]) : null; // No default value
+				
+				// If no rating was found, it might not be a puppy
+				if (rating === null) {
+					document.getElementById('result').innerHTML = `
+						<img src="data:image/jpeg;base64,${base64Image}" id="preview">
+						<h2>Unable to Rate</h2>
+						<p>I couldn't determine a cuteness rating. Please try uploading a clear photo of a puppy.</p>
+					`;
+					return;
+				}
+				
+				// Extract description - everything after the rating line
+				let description = responseData;
+				if (ratingMatch) {
+					const ratingIndex = responseData.indexOf(ratingMatch[0]);
+					const endOfRating = ratingIndex + ratingMatch[0].length;
+					
+					// Skip any "/10" that might be in the response despite our instructions
+					let startOfDescription = endOfRating;
+					const slashTenMatch = responseData.substring(endOfRating, endOfRating + 5).match(/\/10/i);
+					if (slashTenMatch) {
+						startOfDescription = endOfRating + slashTenMatch[0].length;
+					}
+					
+					description = responseData.substring(startOfDescription).trim();
+				}
+				
+				// Create result HTML - we add the /10 here
+				const resultHTML = `
+					<img src="data:image/jpeg;base64,${base64Image}" id="preview">
+					<h2>Cuteness Rating: ${rating}/10</h2>
+					<p>${description}</p>
+					<div>
+						<strong>Cuteness Meter:</strong>
+						<div class="meter">
+							<div class="meter-fill" style="width: ${rating*10}%;"></div>
+						</div>
+					</div>
+				`;
+				
+				document.getElementById('result').innerHTML = resultHTML;
+				
+			} catch (error) {
+				console.error('Error:', error);
+				document.getElementById('result').innerHTML = `
+					<p>Error analyzing image: ${error.message}</p>
+					<img src="data:image/jpeg;base64,${base64Image}" id="preview">
+				`;
+			}
+		}
 
 		// Function to resize image before processing
 		function resizeAndProcessImage(file) {
