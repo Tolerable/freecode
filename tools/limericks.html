@@ -239,6 +239,32 @@
             color: #7f8c8d;
         }
 
+		.audio-container {
+			margin: 20px auto;
+			text-align: center;
+		}
+
+		.audio-container audio {
+			width: 100%;
+			max-width: 350px;
+			margin-bottom: 10px;
+		}
+
+		.download-button {
+			display: inline-block;
+			background: #3498db;
+			color: white;
+			padding: 8px 15px;
+			border-radius: 5px;
+			text-decoration: none;
+			font-size: 14px;
+			transition: background 0.3s;
+		}
+
+		.download-button:hover {
+			background: #2980b9;
+		}
+
         /* Responsive adjustments */
         @media (max-width: 600px) {
             .input-row {
@@ -298,6 +324,7 @@
 	<div id="result">
 		<h2 id="resultTitle"></h2>
 		<div class="limerick" id="limerickText"></div>
+		<div id="audioContainer" style="display: none;"></div>
 	</div>
     
     <div class="history-section">
@@ -376,18 +403,22 @@
 				style = customStyleInput.value.trim() || 'creative';
 			}
 			
+			// Generate a random seed
+			const seed = Math.floor(Math.random() * 1000000);
+			
 			// Show loading
 			loadingIndicator.style.display = 'block';
 			resultElement.style.display = 'none';
 			
 			try {
-				// Call the API
+				// Call the API for the limerick text
 				const response = await fetch('https://text.pollinations.ai/', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
 						model: "openai",
-						jsonMode: false, // We want plain text
+						jsonMode: false,
+						seed: seed,
 						messages: [
 							{
 								role: 'system',
@@ -424,13 +455,33 @@
 					limerick = limerickMatch[1].trim();
 				}
 				
+				// Generate audio for the limerick
+				const fullText = `${title}. ${limerick}`;
+				const audioUrl = await generateAudio(fullText);
+				
 				// Update the UI
 				resultTitle.textContent = title;
 				limerickText.textContent = limerick;
+				
+				// Add audio player if we have an audio URL
+				if (audioUrl) {
+					const audioElement = `
+						<div class="audio-container">
+							<audio controls>
+								<source src="${audioUrl}" type="audio/wav">
+								Your browser does not support the audio element.
+							</audio>
+							<a href="${audioUrl}" download="limerick.wav" class="download-button">Download Audio</a>
+						</div>
+					`;
+					document.getElementById('audioContainer').innerHTML = audioElement;
+					document.getElementById('audioContainer').style.display = 'block';
+				}
+				
 				resultElement.style.display = 'block';
 				
 				// Add to history
-				addToHistory(subject, style, title, limerick);
+				addToHistory(subject, style, title, limerick, audioUrl);
 				
 			} catch (error) {
 				console.error('Error:', error);
@@ -440,11 +491,36 @@
 				loadingIndicator.style.display = 'none';
 			}
 		}
+
+		// Function to generate audio for the limerick
+		async function generateAudio(text) {
+			try {
+				const response = await fetch('https://text.pollinations.ai/speech', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						text: text,
+						voice: "alloy" // You can use other voices like "echo", "fable", "onyx", "nova", "shimmer"
+					})
+				});
+				
+				if (!response.ok) {
+					throw new Error(`Audio generation failed: ${response.status}`);
+				}
+				
+				// The response should be a blob containing the audio data
+				const audioBlob = await response.blob();
+				return URL.createObjectURL(audioBlob);
+			} catch (error) {
+				console.error('Error generating audio:', error);
+				return null;
+			}
+		}
         
-        // Add to history function
-		function addToHistory(subject, style, title, limerick) {
+		// Add to history function
+		function addToHistory(subject, style, title, limerick, audioUrl) {
 			// Add to history array (limit to 10 items)
-			limerickHistory.unshift({ subject, style, title, limerick });
+			limerickHistory.unshift({ subject, style, title, limerick, audioUrl });
 			if (limerickHistory.length > 10) {
 				limerickHistory.pop();
 			}
@@ -453,7 +529,7 @@
 			updateHistoryUI();
 		}
         
-        // Update history UI
+		// Update history UI
 		function updateHistoryUI() {
 			historyContainer.innerHTML = '';
 			
@@ -463,11 +539,30 @@
 				historyItem.innerHTML = `
 					<div class="history-subject">${item.title}</div>
 					<div class="history-style">${item.style}</div>
+					${item.audioUrl ? '<div class="history-audio-icon">🔊</div>' : ''}
 				`;
 				
 				historyItem.addEventListener('click', function() {
-					resultSubject.textContent = item.title;
+					resultTitle.textContent = item.title;
 					limerickText.textContent = item.limerick;
+					
+					// Update audio player if we have an audio URL
+					if (item.audioUrl) {
+						const audioElement = `
+							<div class="audio-container">
+								<audio controls>
+									<source src="${item.audioUrl}" type="audio/wav">
+									Your browser does not support the audio element.
+								</audio>
+								<a href="${item.audioUrl}" download="limerick.wav" class="download-button">Download Audio</a>
+							</div>
+						`;
+						document.getElementById('audioContainer').innerHTML = audioElement;
+						document.getElementById('audioContainer').style.display = 'block';
+					} else {
+						document.getElementById('audioContainer').style.display = 'none';
+					}
+					
 					resultElement.style.display = 'block';
 					
 					// Scroll to result
