@@ -565,15 +565,15 @@
                 
                 // Add audio player if we have an audio URL
                 if (audioUrl) {
-                    const audioElement = `
-                        <div class="audio-container">
-                            <audio controls class="limerick-audio">
-                                <source src="${audioUrl}" type="audio/wav">
-                                Your browser does not support the audio element.
-                            </audio>
-                            <button class="download-button" onclick="downloadLimerickAudio(${JSON.stringify(audioUrl)}, ${JSON.stringify(title)})">Download Audio</button>
-                        </div>
-                    `;
+					const audioElement = `
+						<div class="audio-container">
+							<audio controls class="limerick-audio">
+								<source src="${audioUrl}" type="audio/wav">
+								Your browser does not support the audio element.
+							</audio>
+							<button class="download-button" onclick="downloadLimerickAudio('${audioUrl.replace(/'/g, "\\'")}', '${title.replace(/'/g, "\\'")}')">Download Audio</button>
+						</div>
+					`;
                     document.getElementById('audioContainer').innerHTML = audioElement;
                     document.getElementById('audioContainer').style.display = 'block';
                 }
@@ -701,10 +701,10 @@
 						const audioElement = `
 							<div class="audio-container">
 								<audio controls class="limerick-audio">
-									<source src="${audioUrl}" type="audio/wav">
+									<source src="${item.audioUrl}" type="audio/wav">
 									Your browser does not support the audio element.
 								</audio>
-								<button class="download-button" data-url="${audioUrl}" data-title="${title}">Download Audio</button>
+								<button class="download-button" onclick="downloadLimerickAudio('${item.audioUrl.replace(/'/g, "\\'")}', '${item.title.replace(/'/g, "\\'")}')">Download Audio</button>
 							</div>
 						`;
                         document.getElementById('audioContainer').innerHTML = audioElement;
@@ -731,15 +731,6 @@
             limerickHistory = [];
             updateHistoryUI();
         });
-		
-		document.addEventListener('click', function(event) {
-			if (event.target.classList.contains('download-button')) {
-				const audioUrl = event.target.getAttribute('data-url');
-				const title = event.target.getAttribute('data-title');
-				downloadLimerickAudio(audioUrl, title);
-			}
-		});
-		
     </script>
 </body>
 </html>
