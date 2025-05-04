@@ -92,16 +92,17 @@
             document.getElementById('result').innerHTML = '<p>Analyzing puppy...</p>';
             
             try {
+                // Modified to use text mode instead of JSON mode to avoid parsing issues
                 const response = await fetch('https://text.pollinations.ai/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         model: "openai",
-                        jsonMode: true,
+                        jsonMode: false, // Changed to false for simplicity
                         messages: [
                             {
                                 role: 'system',
-                                content: "You are a Puppy Cuteness Meter. Rate puppies on a scale of 1-10. Respond with JSON in this format: {\"score\": number, \"description\": string}. Score should be between 1-10. Description should be 1-3 sentences about the puppy. If image doesn't show a puppy, set score to 0 and ask for a puppy photo."
+                                content: "You are a Puppy Cuteness Meter. Rate puppies on a scale of 1-10. Your response MUST include the exact phrase 'Cuteness Rating: X/10' where X is a number between 1 and 10. Then provide a brief 1-3 sentence description of the puppy. If image doesn't show a puppy, say so and ask for a puppy photo."
                             },
                             {
                                 role: 'user',
@@ -114,20 +115,38 @@
                     })
                 });
                 
-                const data = await response.json();
-                // Parse the AI response as JSON
-                const aiContent = data.choices?.[0]?.message?.content || "{}";
-                const result = JSON.parse(aiContent);
+                let responseData = await response.text(); // Get as text first
+                console.log("Raw response:", responseData);
+                
+                try {
+                    // Try to parse as JSON first
+                    const data = JSON.parse(responseData);
+                    responseData = data.choices?.[0]?.message?.content || responseData;
+                } catch (e) {
+                    console.log("Not valid JSON, using as is:", e);
+                    // If not valid JSON, use as is
+                }
+                
+                // Extract rating using regex
+                const ratingMatch = responseData.match(/Cuteness Rating:\s*(\d+)/i);
+                const rating = ratingMatch ? parseInt(ratingMatch[1]) : 7; // Default to 7 if not found
+                
+                // Extract description - everything after the rating line
+                let description = responseData;
+                if (ratingMatch) {
+                    const ratingIndex = responseData.indexOf(ratingMatch[0]);
+                    description = responseData.substring(ratingIndex + ratingMatch[0].length).trim();
+                }
                 
                 // Create result HTML
                 const resultHTML = `
                     <img src="data:image/jpeg;base64,${base64Image}" id="preview">
-                    <div><strong>Cuteness Rating: ${result.score}/10</strong></div>
-                    <p>${result.description}</p>
+                    <h2>Cuteness Rating: ${rating}/10</h2>
+                    <p>${description}</p>
                     <div>
                         <strong>Cuteness Meter:</strong>
                         <div class="meter">
-                            <div class="meter-fill" style="width: ${result.score*10}%;"></div>
+                            <div class="meter-fill" style="width: ${rating*10}%;"></div>
                         </div>
                     </div>
                 `;
@@ -136,7 +155,10 @@
                 
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('result').innerHTML = '<p>Error analyzing image. Please try again.</p>';
+                document.getElementById('result').innerHTML = `
+                    <p>Error analyzing image: ${error.message}</p>
+                    <img src="data:image/jpeg;base64,${base64Image}" id="preview">
+                `;
             }
         }
     </script>
