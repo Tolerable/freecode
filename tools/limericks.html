@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Limerick Bot</title>
+    <style>
+        body {
+            font-family: 'Georgia', serif;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f0e1;
+            color: #2c3e50;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        h1, h2 {
+            color: #27ae60;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            font-size: 1.4em;
+        }
+
+        .intro {
+            text-align: center;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+
+        .input-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .input-row {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        label {
+            width: 100px;
+            font-weight: bold;
+        }
+
+        #subjectInput {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        #subjectInput:focus {
+            border-color: #27ae60;
+            outline: none;
+        }
+
+        .style-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .style-option {
+            background: #e8f5e9;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            padding: 8px 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .style-option:hover {
+            background: #d7f2db;
+        }
+
+        .style-option.active {
+            background: #27ae60;
+            color: white;
+            border-color: #229954;
+        }
+
+        .custom-style {
+            flex: 1;
+            margin-top: 10px;
+            display: none;
+        }
+
+        #customStyleInput {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .generate-button {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 10px auto;
+            display: block;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+        }
+
+        .generate-button:hover {
+            background: #229954;
+        }
+
+        .generate-button:active {
+            transform: translateY(2px);
+        }
+
+        #result {
+            background-color: #fcf9f0;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-top: 30px;
+            border-left: 5px solid #27ae60;
+            display: none;
+        }
+
+        .limerick {
+            font-family: 'Georgia', serif;
+            font-size: 20px;
+            line-height: 1.6;
+            margin: 20px 0;
+            white-space: pre-line;
+        }
+
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            font-style: italic;
+            display: none;
+        }
+
+        .random-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .random-button:hover {
+            background: #2980b9;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 15px;
+            font-size: 14px;
+            color: #7f8c8d;
+            border-top: 1px solid #e4ddcb;
+        }
+
+        .footer a {
+            color: #27ae60;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* History section */
+        .history-section {
+            margin-top: 30px;
+        }
+
+        .history-title {
+            font-size: 1.2em;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .history-items {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+        }
+
+        .history-item {
+            background: #fcf9f0;
+            padding: 10px 15px;
+            border-radius: 8px;
+            min-width: 120px;
+            max-width: 200px;
+            cursor: pointer;
+            border-left: 3px solid #27ae60;
+            transition: transform 0.2s;
+        }
+
+        .history-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .history-subject {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .history-style {
+            font-style: italic;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .input-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            label {
+                margin-bottom: 5px;
+                width: auto;
+            }
+            
+            #subjectInput {
+                width: 100%;
+            }
+            
+            .style-options {
+                margin-top: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Limerick Bot</h1>
+    <p class="intro">Get a custom limerick about any subject in your chosen style!</p>
+    
+    <div class="input-section">
+        <div class="input-row">
+            <label for="subjectInput">Subject:</label>
+            <input type="text" id="subjectInput" placeholder="Enter a subject or leave blank for random...">
+            <button class="random-button" id="randomSubject">Random</button>
+        </div>
+        
+        <div class="input-row">
+            <label>Style:</label>
+            <div>
+                <div class="style-options">
+                    <div class="style-option active" data-style="classic">Classic</div>
+                    <div class="style-option" data-style="saucy">Saucy</div>
+                    <div class="style-option" data-style="nerdy">Nerdy</div>
+                    <div class="style-option" data-style="historical">Historical</div>
+                    <div class="style-option" data-style="custom">Custom...</div>
+                </div>
+                <div class="custom-style">
+                    <input type="text" id="customStyleInput" placeholder="Describe your custom style...">
+                </div>
+            </div>
+        </div>
+        
+        <button class="generate-button" id="generateLimerick">Generate Limerick</button>
+    </div>
+    
+    <div class="loading" id="loadingIndicator">
+        Crafting a clever limerick just for you...
+    </div>
+    
+    <div id="result">
+        <h2 id="resultTitle">Limerick about <span id="resultSubject">Subject</span></h2>
+        <div class="limerick" id="limerickText"></div>
+    </div>
+    
+    <div class="history-section">
+        <div class="history-title">Your Limerick History</div>
+        <div class="history-items" id="historyContainer"></div>
+    </div>
+
+    <div class="footer">
+        <p>Powered by <a href="https://pollinations.ai" target="_blank">Pollinations.ai</a></p>
+    </div>
+
+    <script>
+        // Initialize variables
+        let limerickHistory = [];
+        let currentStyle = 'classic';
+        
+        // Random subjects for the random button
+        const randomSubjects = [
+            "a cat", "a programmer", "space travel", "social media", 
+            "coffee addiction", "online dating", "artificial intelligence", 
+            "remote working", "pizza toppings", "video games", "conspiracy theories",
+            "superhero movies", "digital art", "cryptocurrency", "reality TV",
+            "internet memes", "smartphone addiction", "camping trips", "cooking disasters",
+            "home renovation", "fantasy novels", "karaoke nights", "traffic jams",
+            "beach vacations", "winter sports", "gardening", "fast food",
+            "online shopping", "theme parks", "board games", "pets"
+        ];
+        
+        // Setup DOM elements
+        const subjectInput = document.getElementById('subjectInput');
+        const randomButton = document.getElementById('randomSubject');
+        const styleOptions = document.querySelectorAll('.style-option');
+        const customStyleInput = document.getElementById('customStyleInput');
+        const generateButton = document.getElementById('generateLimerick');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultElement = document.getElementById('result');
+        const resultSubject = document.getElementById('resultSubject');
+        const limerickText = document.getElementById('limerickText');
+        const historyContainer = document.getElementById('historyContainer');
+        
+        // Set up event listeners
+        randomButton.addEventListener('click', function() {
+            const randomSubject = randomSubjects[Math.floor(Math.random() * randomSubjects.length)];
+            subjectInput.value = randomSubject;
+        });
+        
+        styleOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                styleOptions.forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                currentStyle = this.dataset.style;
+                
+                // Show/hide custom style input
+                if (currentStyle === 'custom') {
+                    document.querySelector('.custom-style').style.display = 'block';
+                } else {
+                    document.querySelector('.custom-style').style.display = 'none';
+                }
+            });
+        });
+        
+        generateButton.addEventListener('click', generateLimerick);
+        
+        // Generate limerick function
+        async function generateLimerick() {
+            // Get the subject (use random if empty)
+            let subject = subjectInput.value.trim();
+            if (!subject) {
+                subject = randomSubjects[Math.floor(Math.random() * randomSubjects.length)];
+                subjectInput.value = subject;
+            }
+            
+            // Get the style
+            let style = currentStyle;
+            if (style === 'custom') {
+                style = customStyleInput.value.trim() || 'creative';
+            }
+            
+            // Show loading
+            loadingIndicator.style.display = 'block';
+            resultElement.style.display = 'none';
+            
+            try {
+                // Call the API
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: "openai",
+                        jsonMode: false,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `You are Limerick Bot, a clever AI that creates original, witty limericks about any subject. 
+                                Limericks should follow the classic AABBA rhyme scheme and proper limerick rhythm.
+                                Create a limerick about "${subject}" in a ${style} style.
+                                Your response should ONLY include the limerick text. No title, no explanation, just the limerick itself.
+                                Be creative, funny, and a bit saucy if appropriate for the style.`
+                            },
+                            {
+                                role: 'user',
+                                content: `Write me a ${style} limerick about ${subject}.`
+                            }
+                        ]
+                    })
+                });
+                
+                let responseData = await response.text();
+                
+                try {
+                    // Try to parse as JSON first
+                    const data = JSON.parse(responseData);
+                    responseData = data.choices?.[0]?.message?.content || responseData;
+                } catch (e) {
+                    console.log("Not valid JSON, using as is:", e);
+                }
+                
+                // Clean up the response
+                const limerick = responseData.trim();
+                
+                // Update the UI
+                resultSubject.textContent = subject;
+                limerickText.textContent = limerick;
+                resultElement.style.display = 'block';
+                
+                // Add to history
+                addToHistory(subject, style, limerick);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                limerickText.textContent = `Error generating limerick: ${error.message}. Please try again.`;
+                resultElement.style.display = 'block';
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+        
+        // Add to history function
+        function addToHistory(subject, style, limerick) {
+            // Add to history array (limit to 10 items)
+            limerickHistory.unshift({ subject, style, limerick });
+            if (limerickHistory.length > 10) {
+                limerickHistory.pop();
+            }
+            
+            // Update history UI
+            updateHistoryUI();
+        }
+        
+        // Update history UI
+        function updateHistoryUI() {
+            historyContainer.innerHTML = '';
+            
+            limerickHistory.forEach((item, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="history-subject">${item.subject}</div>
+                    <div class="history-style">${item.style}</div>
+                `;
+                
+                historyItem.addEventListener('click', function() {
+                    resultSubject.textContent = item.subject;
+                    limerickText.textContent = item.limerick;
+                    resultElement.style.display = 'block';
+                    
+                    // Scroll to result
+                    resultElement.scrollIntoView({ behavior: 'smooth' });
+                });
+                
+                historyContainer.appendChild(historyItem);
+            });
+        }
+        
+        // Clear history on page load
+        window.addEventListener('load', function() {
+            limerickHistory = [];
+            updateHistoryUI();
+        });
+    </script>
+</body>
+</html>
