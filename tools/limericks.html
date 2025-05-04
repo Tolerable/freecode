@@ -494,27 +494,17 @@
 
 		// Function to generate audio for the limerick
 		async function generateAudio(text) {
-			try {
-				const response = await fetch('https://text.pollinations.ai/speech', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						text: text,
-						voice: "alloy" // You can use other voices like "echo", "fable", "onyx", "nova", "shimmer"
-					})
-				});
-				
-				if (!response.ok) {
-					throw new Error(`Audio generation failed: ${response.status}`);
-				}
-				
-				// The response should be a blob containing the audio data
-				const audioBlob = await response.blob();
-				return URL.createObjectURL(audioBlob);
-			} catch (error) {
-				console.error('Error generating audio:', error);
-				return null;
-			}
+		  try {
+			// Create a direct instruction to read verbatim
+			const instructionPrefix = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE: ";
+			const textToRead = instructionPrefix + text;
+			const encodedText = encodeURIComponent(textToRead);
+			const url = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=alloy`;
+			return url;
+		  } catch (error) {
+			console.error("Audio generation error:", error);
+			return null;
+		  }
 		}
         
 		// Add to history function
