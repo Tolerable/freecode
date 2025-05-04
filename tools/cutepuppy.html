@@ -147,21 +147,28 @@
             }
         });
         
-        // Process image
-        function handleImage(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imgData = e.target.result;
-                currentImage = imgData.split(',')[1]; // Just the base64 part
-                
-                // Add to thumbnails
-                addToThumbnails(imgData);
-                
-                // Process with AI
-                analyzeImage(currentImage);
-            };
-            reader.readAsDataURL(file);
-        }
+		// Process image
+		function handleImage(file) {
+			// If file size is large, show a message
+			if (file.size > 1 * 1024 * 1024) {
+				document.getElementById('result').innerHTML = 
+					`<p>Image is ${formatFileSize(file.size)} - resizing for better performance...</p>`;
+			}
+			
+			// If file is an image, resize and process it
+			if (file.type.match('image.*')) {
+				resizeAndProcessImage(file);
+			} else {
+				document.getElementById('result').innerHTML = '<p>Please select a valid image file.</p>';
+			}
+		}
+
+		// Function to format file size
+		function formatFileSize(bytes) {
+			if (bytes < 1024) return bytes + ' bytes';
+			else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
+			else return (bytes / 1048576).toFixed(2) + ' MB';
+		}
         
         // Add image to thumbnails bar
         function addToThumbnails(imgData) {
@@ -266,6 +273,50 @@
                 `;
             }
         }
+
+		// Function to resize image before processing
+		function resizeAndProcessImage(file) {
+			const reader = new FileReader();
+			reader.onload = function(e) {
+				const img = new Image();
+				img.onload = function() {
+					// Create a canvas to resize the image
+					const canvas = document.createElement('canvas');
+					let width = img.width;
+					let height = img.height;
+					
+					// Maximum file size in bytes (1MB)
+					const MAX_FILE_SIZE = 1 * 1024 * 1024;
+					
+					// If file is likely too large, scale it down
+					if (file.size > MAX_FILE_SIZE) {
+						// Calculate scale factor for proportional resizing
+						const scaleFactor = Math.sqrt(MAX_FILE_SIZE / file.size);
+						width = Math.floor(width * scaleFactor);
+						height = Math.floor(height * scaleFactor);
+					}
+					
+					// Set canvas dimensions
+					canvas.width = width;
+					canvas.height = height;
+					
+					// Draw resized image on canvas
+					const ctx = canvas.getContext('2d');
+					ctx.drawImage(img, 0, 0, width, height);
+					
+					// Convert to base64 with reduced quality
+					const quality = file.size > MAX_FILE_SIZE ? 0.7 : 0.9;
+					const imgData = canvas.toDataURL('image/jpeg', quality);
+					
+					// Now process the resized image
+					currentImage = imgData.split(',')[1];
+					addToThumbnails(imgData);
+					analyzeImage(currentImage);
+				};
+				img.src = e.target.result;
+			};
+			reader.readAsDataURL(file);
+		}
 		
 		// Clear file input on page load
 		window.addEventListener('load', function() {
