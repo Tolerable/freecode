@@ -172,6 +172,104 @@
             background-color: #ff8787;
         }
         
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .ai-insight {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.15) 0%, rgba(138, 43, 226, 0.05) 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-left: 4px solid var(--primary);
+            position: relative;
+        }
+        
+        .ai-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: var(--primary);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .share-options {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .share-link {
+            background-color: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .share-link:hover {
+            background-color: var(--primary-light);
+        }
+        
+        .share-image {
+            width: 100%;
+            margin-top: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+        }
+        
+        .copy-btn {
+            background-color: var(--surface);
+            border: 1px solid var(--primary);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        #shareUrl {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: var(--background);
+            color: var(--text);
+            border: 1px solid #333;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -325,6 +423,51 @@
                 <div id="summary"></div>
             </div>
             
+            <div id="aiInsightContainer" style="display: none;">
+                <div class="loading" id="aiLoading">
+                    <div class="spinner"></div>
+                    <p>Generating personalized insights...</p>
+                </div>
+                
+                <div class="ai-insight" id="aiInsight" style="display: none;">
+                    <div class="ai-badge">AI Insight</div>
+                    <div id="aiInsightContent"></div>
+                </div>
+            </div>
+            
+            <div id="shareContainer" style="display: none;">
+                <div class="share-options">
+                    <h3>Share Your Results</h3>
+                    
+                    <div style="width: 100%;">
+                        <input type="text" id="shareUrl" readonly />
+                        <button class="copy-btn" id="copyBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Copy Link
+                        </button>
+                    </div>
+                    
+                    <div class="loading" id="imageLoading">
+                        <div class="spinner"></div>
+                        <p>Generating shareable image...</p>
+                    </div>
+                    
+                    <img id="shareImage" class="share-image" style="display: none;" />
+                    
+                    <a id="downloadBtn" download="my-relationship-preferences.jpg" style="display: none;" class="share-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download Image
+                    </a>
+                </div>
+            </div>
+            
             <button class="restart-btn" id="restartBtn">Start Over</button>
         </div>
     </div>
@@ -339,10 +482,47 @@
             const quiz = document.getElementById('quiz');
             const results = document.getElementById('results');
             const progress = document.getElementById('progress');
+            const aiInsightContainer = document.getElementById('aiInsightContainer');
+            const aiInsight = document.getElementById('aiInsight');
+            const aiInsightContent = document.getElementById('aiInsightContent');
+            const aiLoading = document.getElementById('aiLoading');
+            const shareContainer = document.getElementById('shareContainer');
+            const shareUrl = document.getElementById('shareUrl');
+            const copyBtn = document.getElementById('copyBtn');
+            const shareImage = document.getElementById('shareImage');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const imageLoading = document.getElementById('imageLoading');
             
             let currentQuestion = 1;
             const totalQuestions = 8;
             const answers = {};
+            
+            // Check URL parameters for shared results
+            function loadFromParams() {
+                const params = new URLSearchParams(window.location.search);
+                let hasParams = false;
+                
+                for (const [key, value] of params.entries()) {
+                    if (key.startsWith('q') && !isNaN(key.substring(1))) {
+                        const questionNum = parseInt(key.substring(1));
+                        answers[questionNum] = value;
+                        hasParams = true;
+                    }
+                }
+                
+                if (hasParams) {
+                    // Skip the quiz and show results directly
+                    intro.style.display = 'none';
+                    quiz.style.display = 'none';
+                    results.style.display = 'block';
+                    analyzeResults();
+                    generateAIInsight();
+                    generateShareableContent();
+                }
+            }
+            
+            // Call on load
+            loadFromParams();
             
             // Start the quiz
             startBtn.addEventListener('click', function() {
@@ -440,6 +620,20 @@
                 // Reset buttons and progress
                 updateButtonsState();
                 updateProgressBar();
+                
+                // Hide AI insights and share container
+                aiInsightContainer.style.display = 'none';
+                shareContainer.style.display = 'none';
+            });
+            
+            // Copy share URL button handler
+            copyBtn.addEventListener('click', function() {
+                shareUrl.select();
+                document.execCommand('copy');
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy Link';
+                }, 2000);
             });
             
             function updateButtonsState() {
@@ -458,6 +652,12 @@
                 
                 // Analyze the answers and display results
                 analyzeResults();
+                
+                // Generate AI insights
+                generateAIInsight();
+                
+                // Generate shareable content
+                generateShareableContent();
             }
             
             function analyzeResults() {
@@ -603,6 +803,124 @@
                     return "physical chemistry plays a central role";
                 } else {
                     return "the balance of emotional and physical connection is flexible";
+                }
+            }
+            
+            // Generate shareable URL with parameters
+            function generateShareableLink() {
+                const params = new URLSearchParams();
+                Object.entries(answers).forEach(([question, answer]) => {
+                    params.set(`q${question}`, answer);
+                });
+                
+                const shareableUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+                return shareableUrl;
+            }
+            
+            // Generate AI insights using Pollinations.ai API
+            async function generateAIInsight() {
+                aiInsightContainer.style.display = 'block';
+                aiLoading.style.display = 'flex';
+                aiInsight.style.display = 'none';
+                
+                // Prepare the context for the AI
+                const relationshipType = determineRelationshipType();
+                const physicality = determinePhysicalityLevel();
+                const connectionPref = answers[1] || '';
+                const interactionPref = answers[2] || '';
+                const flirtingPref = answers[3] || '';
+                const locationPref = answers[4] || '';
+                const exclusivityPref = answers[5] || '';
+                const pacePref = answers[6] || '';
+                const physicalPref = answers[7] || '';
+                const integrationPref = answers[8] || '';
+                
+                const prompt = `Based on these relationship preferences:
+                - Connection priority: ${connectionPref}
+                - Interaction preference: ${interactionPref}
+                - Flirting style: ${flirtingPref}
+                - Location preference: ${locationPref}
+                - Exclusivity preference: ${exclusivityPref}
+                - Relationship pace: ${pacePref}
+                - Physical intimacy importance: ${physicalPref}
+                - Life integration: ${integrationPref}
+                - Overall relationship type: ${relationshipType}
+                - Physical intimacy level: ${physicality}
+                
+                Provide a personalized, thoughtful insight about this person's relationship preferences. Include strengths of this approach, potential challenges they might face, and 1-2 tips for finding compatible partners with these preferences. Make it positive, supportive, and insightful - about 3-4 paragraphs total.`;
+                
+                const system = "You are a compassionate, insightful relationship advisor. Provide nuanced, personalized advice based on relationship preferences. Be supportive, non-judgmental, and offer practical wisdom. Keep your response focused on helping the person understand their preferences better and find compatibility. Avoid generic advice.";
+                
+                try {
+                    // Use Pollinations.ai text generation API with OpenAI model
+                    const encodedPrompt = encodeURIComponent(prompt);
+                    const encodedSystem = encodeURIComponent(system);
+                    const url = `https://text.pollinations.ai/prompt?prompt=${encodedPrompt}&model=openai&system=${encodedSystem}`;
+                    
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('API request failed');
+                    }
+                    
+                    const insight = await response.text();
+                    
+                    // Display the insight
+                    aiInsightContent.innerHTML = insight.trim();
+                    aiLoading.style.display = 'none';
+                    aiInsight.style.display = 'block';
+                } catch (error) {
+                    console.error('Error generating AI insight:', error);
+                    aiInsightContent.innerHTML = "Sorry, we couldn't generate personalized insights at this time. Your relationship preferences are still valid and valuable for your self-understanding.";
+                    aiLoading.style.display = 'none';
+                    aiInsight.style.display = 'block';
+                }
+            }
+            
+            // Generate shareable content
+            async function generateShareableContent() {
+                shareContainer.style.display = 'block';
+                
+                // Generate and display shareable URL
+                const shareLink = generateShareableLink();
+                shareUrl.value = shareLink;
+                
+                // Show loading for image generation
+                imageLoading.style.display = 'flex';
+                shareImage.style.display = 'none';
+                downloadBtn.style.display = 'none';
+                
+                // Generate QR code for the shareable link
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareLink)}`;
+                
+                // Prepare prompt for image generation
+                const relationshipType = determineRelationshipType();
+                const physicalityLevel = determinePhysicalityLevel();
+                
+                // Create image prompt for Pollinations.ai
+                let imagePrompt = `A stylish, elegant visualization of relationship preferences. Showing "${relationshipType}" where "${physicalityLevel}". Dark purple background with modern design elements. Minimalist, elegant style. No text visible. No people in the image.`;
+                
+                // Use image.pollinations.ai to generate an image
+                const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=800&height=600&nologo=true`;
+                
+                try {
+                    // First check if the image is generated by making a HEAD request
+                    const response = await fetch(imageUrl, { method: 'HEAD' });
+                    if (!response.ok) {
+                        throw new Error('Image generation failed');
+                    }
+                    
+                    // Set image source and display it
+                    shareImage.src = imageUrl;
+                    shareImage.onload = function() {
+                        imageLoading.style.display = 'none';
+                        shareImage.style.display = 'block';
+                        downloadBtn.href = imageUrl;
+                        downloadBtn.style.display = 'block';
+                    };
+                } catch (error) {
+                    console.error('Error generating image:', error);
+                    imageLoading.style.display = 'none';
+                    // Optionally provide a fallback or error message
                 }
             }
         });
