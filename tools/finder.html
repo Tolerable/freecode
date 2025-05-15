@@ -992,18 +992,18 @@
 				const compatibilityAiContent = document.getElementById('compatibilityAiContent');
 				
 				try {
-					// Properly format request to the API
+					// Create a simplified prompt that asks for brevity and focus on differences
 					const url = 'https://text.pollinations.ai/openai';
 					const requestBody = {
 						model: "openai",
 						messages: [
 							{
 								role: "system",
-								content: "You are a compatibility analyst for relationship preferences. Analyze the specific compatibility between these two individuals."
+								content: "You are a compatibility analyst for relationship preferences. Be extremely concise and direct. Focus ONLY on meaningful differences or particularly strong matches. Keep your entire analysis under 150 words. Use casual, conversational language and avoid repetitive structure. Do not list every preference match - only highlight what's most important."
 							},
 							{
 								role: "user",
-								content: `Compare these two people's relationship preferences and analyze their compatibility.
+								content: `Give a brief, focused compatibility analysis between these two people.
 								
 								Person 1:
 								- Gender: ${answers1['0a'] || 'not specified'}
@@ -1029,9 +1029,10 @@
 								- Physical intimacy: ${answers2['7'] || 'not specified'}
 								- Life integration: ${answers2['8'] || 'not specified'}
 								
-								Provide: 1) Overall compatibility assessment, 2) Key strengths of this match, 3) Potential challenges, and 4) Whether this could be a good match and why.`
+								KEEP IT SHORT. Don't list every match - that's obvious from the compatibility table already shown. Just give a quick take on: 1) Overall match quality, 2) The 1-2 most important compatibilities, 3) The 1-2 most significant potential issues (if any), and 4) Brief conclusion on whether they'd work well together. MAXIMUM 150 WORDS TOTAL. Use casual language.`
 							}
-						]
+						],
+						max_tokens: 250  // Enforce brevity
 					};
 					
 					console.log("Sending compatibility analysis request");
@@ -1050,7 +1051,6 @@
 					
 					const responseData = await response.json();
 					
-					// Check response format
 					if (!responseData.choices || !responseData.choices[0] || !responseData.choices[0].message) {
 						throw new Error("Unexpected API response format");
 					}
