@@ -849,7 +849,7 @@
 
 				Provide a direct analysis of these relationship preferences. Include: 1) A brief summary of the overall preference pattern, 2) Two strengths of this approach to relationships, 3) Two potential challenges this person might face, and 4) One specific tip for finding compatible partners. Do not ask questions or use conversational phrases.`;
                 
-				const system = "You are a relationship preferences analyst. Provide a clear, direct analysis of the person's relationship preferences based on their quiz answers. Never ask questions, request information, or use phrases like 'It sounds like you might be' or similar conversational approaches. Simply analyze the preferences provided and give a straightforward assessment with: 1) A brief summary of their preferences, 2) Potential strengths of this approach, 3) Possible challenges, and 4) 1-2 specific compatibility tips. Keep your response concise (3-4 paragraphs), supportive, and focused on the data provided. Never address the user directly with questions.";
+				const system = "You are a relationship preferences analyst. Provide a clear, direct analysis of the relationship preferences based on the quiz answers. Focus on analyzing the preference pattern itself rather than referring to 'this person' or using 'you'. Simply describe: 1) The relationship pattern shown by these preferences, 2) Strengths of this approach, 3) Potential challenges that could arise, and 4) Compatibility factors worth considering. Keep your analysis objective, informative, and focused solely on the pattern of preferences shown in the data.";
                 
                 try {
                     // Use Pollinations.ai text generation API with OpenAI model
@@ -876,50 +876,101 @@
                 }
             }
             
-            // Generate shareable content
-            async function generateShareableContent() {
-                shareContainer.style.display = 'block';
-                
-                // Generate and display shareable URL
-                const shareLink = generateShareableLink();
-                shareUrl.value = shareLink;
-                
-                // Show loading for image generation
-                imageLoading.style.display = 'flex';
-                shareImage.style.display = 'none';
-                downloadBtn.style.display = 'none';
-                
-                // Generate QR code for the shareable link
-                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareLink)}`;
-                
-                // Prepare prompt for image generation
-                const relationshipType = determineRelationshipType();
-                const physicalityLevel = determinePhysicalityLevel();
-                
-                // Create image prompt for Pollinations.ai
-				let imagePrompt = `Clean, elegant visualization of relationship preferences. Abstract representation of ${relationshipType}. Dark purple gradient background. Minimalist design with geometric shapes. No people. No text.`;
+			// Generate dynamic image prompt using the text.pollinations.ai API first
+			async function generateImagePrompt() {
+				const relationshipType = determineRelationshipType();
+				const physicality = determinePhysicalityLevel();
+				const connectionPref = answers[1] || '';
+				const interactionPref = answers[2] || '';
+				const flirtingPref = answers[3] || '';
+				const locationPref = answers[4] || '';
+				const exclusivityPref = answers[5] || '';
+				
+				// Create a prompt for the text AI to generate a unique image prompt
+				const promptForImageGen = `Based on these relationship preferences:
+				- Connection priority: ${connectionPref}
+				- Interaction preference: ${interactionPref}
+				- Flirting style: ${flirtingPref}
+				- Location preference: ${locationPref}
+				- Exclusivity preference: ${exclusivityPref}
+				- Overall relationship type: ${relationshipType}
+				- Physical intimacy level: ${physicality}
+				
+				Create a detailed, unique image prompt (about 30-40 words) for an AI image generator that visually represents these specific relationship preferences. The image should be photographic in style, include a setting that matches the interaction preferences, and convey the emotional tone of this relationship type. Do NOT include any text elements in the image. Include some purple tones in the color palette. Make it highly specific to these exact preferences, not generic. Return ONLY the image prompt text with no explanations.`;
+				
+				const system = "You are an expert prompt engineer for AI image generation. Create highly specific, detailed prompts that will generate images perfectly matched to the relationship preferences provided. Never explain your prompts, just provide the image prompt text directly. Focus on visual elements, atmosphere, color, and composition that represent the emotional quality of the relationship type. Always make prompts unique and tailored to the specific details provided.";
+				
+				try {
+					// Use Pollinations.ai text generation API with OpenAI model
+					const encodedPrompt = encodeURIComponent(promptForImageGen);
+					const encodedSystem = encodeURIComponent(system);
+					const url = `https://text.pollinations.ai/prompt?prompt=${encodedPrompt}&model=openai&system=${encodedSystem}`;
+					
+					const response = await fetch(url);
+					if (!response.ok) {
+						throw new Error('API request failed');
+					}
+					
+					let imagePrompt = await response.text();
+					imagePrompt = imagePrompt.trim();
+					
+					// Ensure the prompt is appropriate length and add fallback if needed
+					if (imagePrompt.length < 10) {
+						imagePrompt = `A couple with ${relationshipType} dynamic, atmospheric lighting, purple tones, professional photography, emotional connection, high quality`;
+					}
+					
+					return imagePrompt;
+				} catch (error) {
+					console.error('Error generating image prompt:', error);
+					return `A couple representing ${relationshipType}, atmospheric lighting, purple tones, professional photography`;
+				}
+			}
 
-				// Use image.pollinations.ai to generate an image - simpler approach
-				const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=800&height=600&nologo=true&model=flux`;
+			// Update the generateShareableContent function to use this dynamic prompt
+			async function generateShareableContent() {
+				shareContainer.style.display = 'block';
+				
+				// Generate and display shareable URL
+				const shareLink = generateShareableLink();
+				shareUrl.value = shareLink;
+				
+				// Show loading for image generation
+				imageLoading.style.display = 'flex';
+				shareImage.style.display = 'none';
+				downloadBtn.style.display = 'none';
+				
+				try {
+					// First generate a custom image prompt using AI
+					const imagePrompt = await generateImagePrompt();
+					console.log("Generated image prompt:", imagePrompt);
+					
+					// Then use that prompt with the image API
+					const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=800&height=600&nologo=true&model=flux`;
+					
+					// Set image source
+					shareImage.src = imageUrl;
+					shareImage.onload = function() {
+						imageLoading.style.display = 'none';
+						shareImage.style.display = 'block';
+						downloadBtn.href = imageUrl;
+						downloadBtn.style.display = 'block';
+					};
+					shareImage.onerror = function() {
+						handleImageError();
+					};
+				} catch (error) {
+					console.error('Error in image generation process:', error);
+					handleImageError();
+				}
+			}
 
-				// Set image source without the HEAD request which might be causing issues
-				shareImage.src = imageUrl;
-				shareImage.onload = function() {
-					imageLoading.style.display = 'none';
-					shareImage.style.display = 'block';
-					downloadBtn.href = imageUrl;
-					downloadBtn.style.display = 'block';
-				};
-				shareImage.onerror = function() {
-					console.error('Error loading image');
-					imageLoading.style.display = 'none';
-					// Show error message
-					const errorMsg = document.createElement('p');
-					errorMsg.textContent = "Couldn't generate image. You can still share your results using the link above.";
-					errorMsg.style.color = "#ff6b6b";
-					imageLoading.parentNode.insertBefore(errorMsg, imageLoading.nextSibling);
-				};
-            }
+			function handleImageError() {
+				imageLoading.style.display = 'none';
+				const errorMsg = document.createElement('p');
+				errorMsg.textContent = "Couldn't generate image. You can still share your results using the link above.";
+				errorMsg.style.color = "#ff6b6b";
+				imageLoading.parentNode.insertBefore(errorMsg, imageLoading.nextSibling);
+			}
         });
     </script>
 </body>
