@@ -516,6 +516,14 @@
             let currentQuestion = 1;
             const totalQuestions = 8;
             const answers = {};
+
+			// Check if URL has parameters but they don't contain valid answers
+			const params = new URLSearchParams(window.location.search);
+			if (params.toString() && !params.has('q1') && !params.has('q0a')) {
+				// If we have parameters but no actual quiz answers, clear the URL
+				const baseUrl = window.location.href.split('?')[0];
+				window.location.href = baseUrl;
+			}
             
             // Check URL parameters for shared results
             function loadFromParams() {
@@ -645,8 +653,11 @@
 				aiInsightContainer.style.display = 'none';
 				shareContainer.style.display = 'none';
 				
-				// Clear URL parameters by replacing current URL with base URL
+				// SOLUTION 1: Clear URL parameters by actually redirecting to the base URL
 				const baseUrl = window.location.href.split('?')[0];
+				window.location.href = baseUrl;
+				
+				// If the above doesn't trigger immediately, we'll also try this:
 				window.history.replaceState({}, document.title, baseUrl);
 			});
             
