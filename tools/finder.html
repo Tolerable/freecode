@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relationship Preference Finder</title>
+    <style>
+        :root {
+            --primary: #8a2be2;
+            --primary-light: #9d44e6;
+            --background: #121212;
+            --surface: #1e1e1e;
+            --text: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent: #ff6b6b;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 2rem;
+        }
+        
+        .intro {
+            text-align: center;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .question-container {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+            margin-bottom: 2rem;
+        }
+        
+        .question-container.active {
+            display: block;
+        }
+        
+        .question {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .option {
+            background-color: var(--surface);
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text);
+            font-size: 1rem;
+        }
+        
+        .option:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-3px);
+        }
+        
+        .option.selected {
+            background-color: var(--primary);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(138, 43, 226, 0.3);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+        
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 0.8rem 1.8rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background-color: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #prevBtn {
+            visibility: hidden;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background-color: #333;
+            border-radius: 3px;
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background-color: var(--primary);
+            transition: width 0.3s ease;
+        }
+        
+        #results {
+            display: none;
+            animation: fadeIn 0.8s ease-in;
+        }
+        
+        .result-card {
+            background-color: rgba(138, 43, 226, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .result-title {
+            font-size: 1.3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        
+        .restart-btn {
+            display: block;
+            margin: 2rem auto;
+            background-color: var(--accent);
+        }
+        
+        .restart-btn:hover {
+            background-color: #ff8787;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .container {
+                padding: 1.5rem;
+                width: 95%;
+            }
+            
+            .options {
+                flex-direction: column;
+                gap: 0.7rem;
+            }
+            
+            .option {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Relationship Preference Finder</h1>
+        
+        <div id="intro" class="intro">
+            <p>Not sure what kind of relationship you're looking for? This quiz will help you clarify your preferences and understand what you really want.</p>
+            <p>Answer honestly - this is just for your own clarity!</p>
+            <button id="startBtn">Let's Get Started</button>
+        </div>
+        
+        <div id="quiz" style="display: none;">
+            <div class="progress-bar">
+                <div id="progress" class="progress" style="width: 0%;"></div>
+            </div>
+            
+            <div id="question1" class="question-container active">
+                <div class="question">When you think about connecting with someone, what's most important to you?</div>
+                <div class="options">
+                    <div class="option" data-value="friendship">Genuine friendship and connection</div>
+                    <div class="option" data-value="casual">Fun, light-hearted interactions</div>
+                    <div class="option" data-value="romantic">Deep emotional intimacy</div>
+                    <div class="option" data-value="physical">Physical chemistry and attraction</div>
+                </div>
+            </div>
+            
+            <div id="question2" class="question-container">
+                <div class="question">How do you prefer to spend time with someone you're interested in?</div>
+                <div class="options">
+                    <div class="option" data-value="virtual">Mostly virtual (texts, calls, video chats)</div>
+                    <div class="option" data-value="casual-meetups">Casual in-person hangouts</div>
+                    <div class="option" data-value="planned-dates">Planned, intentional dates</div>
+                    <div class="option" data-value="travel">Traveling and experiencing new places together</div>
+                </div>
+            </div>
+            
+            <div id="question3" class="question-container">
+                <div class="question">When it comes to flirting and romantic interaction, you prefer:</div>
+                <div class="options">
+                    <div class="option" data-value="none">Minimal to none - I value platonic connections</div>
+                    <div class="option" data-value="light">Light, playful flirting but nothing serious</div>
+                    <div class="option" data-value="moderate">Moderate flirting with some romantic gestures</div>
+                    <div class="option" data-value="intense">Intense romantic and passionate interactions</div>
+                </div>
+            </div>
+            
+            <div id="question4" class="question-container">
+                <div class="question">How important is geographic proximity in your relationships?</div>
+                <div class="options">
+                    <div class="option" data-value="local">Must be local - I want regular in-person interaction</div>
+                    <div class="option" data-value="driving">Within driving distance is fine</div>
+                    <div class="option" data-value="long-distance">Open to long-distance with occasional visits</div>
+                    <div class="option" data-value="anywhere">Location doesn't matter to me</div>
+                </div>
+            </div>
+            
+            <div id="question5" class="question-container">
+                <div class="question">When it comes to commitment and exclusivity, you're looking for:</div>
+                <div class="options">
+                    <div class="option" data-value="open">Complete openness to see others</div>
+                    <div class="option" data-value="casual">Casual but respectful - no labels needed</div>
+                    <div class="option" data-value="exclusive-casual">Exclusive but still keeping it light</div>
+                    <div class="option" data-value="committed">Dedicated, committed relationship</div>
+                </div>
+            </div>
+            
+            <div id="question6" class="question-container">
+                <div class="question">How fast do you typically want a relationship to progress?</div>
+                <div class="options">
+                    <div class="option" data-value="slow">Slowly - I need time to build trust</div>
+                    <div class="option" data-value="moderate">At a moderate, natural pace</div>
+                    <div class="option" data-value="fast">Relatively quickly if there's chemistry</div>
+                    <div class="option" data-value="varies">It varies depending on the connection</div>
+                </div>
+            </div>
+            
+            <div id="question7" class="question-container">
+                <div class="question">How important is physical intimacy in your ideal relationship?</div>
+                <div class="options">
+                    <div class="option" data-value="not-important">Not important or not a priority</div>
+                    <div class="option" data-value="somewhat">Somewhat important, but not central</div>
+                    <div class="option" data-value="important">Very important for compatibility</div>
+                    <div class="option" data-value="essential">Essential and a primary focus</div>
+                </div>
+            </div>
+            
+            <div id="question8" class="question-container">
+                <div class="question">How do you feel about integrating a new relationship into your life?</div>
+                <div class="options">
+                    <div class="option" data-value="separate">I prefer to keep it separate from my everyday life</div>
+                    <div class="option" data-value="casual-integration">Some casual integration is fine</div>
+                    <div class="option" data-value="significant">Significant integration into my social circle</div>
+                    <div class="option" data-value="complete">Complete integration into all aspects of life</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="prevBtn">Previous</button>
+                <button id="nextBtn">Next</button>
+            </div>
+        </div>
+        
+        <div id="results" style="display: none;">
+            <h2>Your Relationship Preference Profile</h2>
+            
+            <div class="result-card">
+                <div class="result-title">What You're Looking For</div>
+                <div id="connectionType"></div>
+            </div>
+            
+            <div class="result-card">
+                <div class="result-title">Your Interaction Style</div>
+                <div id="interactionStyle"></div>
+            </div>
+            
+            <div class="result-card">
+                <div class="result-title">Location & Logistics</div>
+                <div id="locationPreference"></div>
+            </div>
+            
+            <div class="result-card">
+                <div class="result-title">Commitment Level</div>
+                <div id="commitmentLevel"></div>
+            </div>
+            
+            <div class="result-card">
+                <div class="result-title">Relationship Summary</div>
+                <div id="summary"></div>
+            </div>
+            
+            <button class="restart-btn" id="restartBtn">Start Over</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const startBtn = document.getElementById('startBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            const intro = document.getElementById('intro');
+            const quiz = document.getElementById('quiz');
+            const results = document.getElementById('results');
+            const progress = document.getElementById('progress');
+            
+            let currentQuestion = 1;
+            const totalQuestions = 8;
+            const answers = {};
+            
+            // Start the quiz
+            startBtn.addEventListener('click', function() {
+                intro.style.display = 'none';
+                quiz.style.display = 'block';
+                updateProgressBar();
+            });
+            
+            // Handle option selection
+            document.querySelectorAll('.option').forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remove selected class from siblings
+                    const siblings = this.parentElement.querySelectorAll('.option');
+                    siblings.forEach(sib => sib.classList.remove('selected'));
+                    
+                    // Add selected class to clicked option
+                    this.classList.add('selected');
+                    
+                    // Store the answer
+                    answers[currentQuestion] = this.getAttribute('data-value');
+                    
+                    // Enable next button
+                    nextBtn.disabled = false;
+                });
+            });
+            
+            // Next button handler
+            nextBtn.addEventListener('click', function() {
+                // If option not selected, prevent going next
+                if (!answers[currentQuestion]) {
+                    return;
+                }
+                
+                // Hide current question
+                document.getElementById('question' + currentQuestion).classList.remove('active');
+                
+                // If last question, show results
+                if (currentQuestion === totalQuestions) {
+                    showResults();
+                    return;
+                }
+                
+                // Show next question
+                currentQuestion++;
+                document.getElementById('question' + currentQuestion).classList.add('active');
+                
+                // Update buttons and progress
+                updateButtonsState();
+                updateProgressBar();
+                
+                // Disable next button until selection
+                if (!answers[currentQuestion]) {
+                    nextBtn.disabled = true;
+                }
+            });
+            
+            // Previous button handler
+            prevBtn.addEventListener('click', function() {
+                // Hide current question
+                document.getElementById('question' + currentQuestion).classList.remove('active');
+                
+                // Show previous question
+                currentQuestion--;
+                document.getElementById('question' + currentQuestion).classList.add('active');
+                
+                // Update buttons and progress
+                updateButtonsState();
+                updateProgressBar();
+                
+                // Enable next button
+                nextBtn.disabled = false;
+            });
+            
+            // Restart button handler
+            restartBtn.addEventListener('click', function() {
+                // Reset everything
+                currentQuestion = 1;
+                Object.keys(answers).forEach(key => delete answers[key]);
+                
+                // Clear selected options
+                document.querySelectorAll('.option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                // Show first question
+                results.style.display = 'none';
+                intro.style.display = 'block';
+                quiz.style.display = 'none';
+                
+                document.querySelectorAll('.question-container').forEach(container => {
+                    container.classList.remove('active');
+                });
+                document.getElementById('question1').classList.add('active');
+                
+                // Reset buttons and progress
+                updateButtonsState();
+                updateProgressBar();
+            });
+            
+            function updateButtonsState() {
+                prevBtn.style.visibility = currentQuestion === 1 ? 'hidden' : 'visible';
+                nextBtn.textContent = currentQuestion === totalQuestions ? 'See Results' : 'Next';
+            }
+            
+            function updateProgressBar() {
+                const percentage = ((currentQuestion - 1) / totalQuestions) * 100;
+                progress.style.width = percentage + '%';
+            }
+            
+            function showResults() {
+                quiz.style.display = 'none';
+                results.style.display = 'block';
+                
+                // Analyze the answers and display results
+                analyzeResults();
+            }
+            
+            function analyzeResults() {
+                // Connection Type
+                const connectionEl = document.getElementById('connectionType');
+                switch(answers[1]) {
+                    case 'friendship':
+                        connectionEl.innerHTML = 'You value <strong>genuine friendship and connection</strong> above all. You're looking for someone you can trust and share meaningful experiences with, where the foundation is a strong friendship.';
+                        break;
+                    case 'casual':
+                        connectionEl.innerHTML = 'You're seeking <strong>fun, light-hearted interactions</strong> without too much pressure or intensity. You enjoy connecting with people who bring positive energy and enjoyment to your life.';
+                        break;
+                    case 'romantic':
+                        connectionEl.innerHTML = 'You prioritize <strong>deep emotional intimacy</strong> in your connections. You're looking for someone you can truly open up to and share your inner world with.';
+                        break;
+                    case 'physical':
+                        connectionEl.innerHTML = 'You place high importance on <strong>physical chemistry and attraction</strong>. While other aspects matter, you recognize that this spark is essential for your satisfaction in a relationship.';
+                        break;
+                }
+                
+                // Interaction Style
+                const interactionEl = document.getElementById('interactionStyle');
+                let interactionText = '';
+                
+                // Combine questions 2 (how to spend time) and 3 (flirting level)
+                if (answers[2] === 'virtual') {
+                    interactionText += 'You prefer primarily <strong>virtual interactions</strong> through texts, calls, and video chats. ';
+                } else if (answers[2] === 'casual-meetups') {
+                    interactionText += 'You enjoy <strong>casual hangouts</strong> without too much pressure or planning. ';
+                } else if (answers[2] === 'planned-dates') {
+                    interactionText += 'You value <strong>intentional, planned dates</strong> that show thought and care. ';
+                } else if (answers[2] === 'travel') {
+                    interactionText += 'You're drawn to <strong>traveling and experiencing new places</strong> with someone special. ';
+                }
+                
+                if (answers[3] === 'none') {
+                    interactionText += 'When it comes to romantic gestures, you <strong>prefer to keep things platonic</strong> with minimal to no flirting.';
+                } else if (answers[3] === 'light') {
+                    interactionText += 'Your flirting style tends to be <strong>light and playful</strong> without serious intentions.';
+                } else if (answers[3] === 'moderate') {
+                    interactionText += 'You enjoy <strong>moderate flirting</strong> with some romantic gestures that show interest and affection.';
+                } else if (answers[3] === 'intense') {
+                    interactionText += 'You thrive on <strong>intense romantic and passionate interactions</strong> with someone you're interested in.';
+                }
+                
+                interactionEl.innerHTML = interactionText;
+                
+                // Location Preference
+                const locationEl = document.getElementById('locationPreference');
+                let locationText = '';
+                
+                // Combine questions 4 (proximity) and 6 (pace)
+                if (answers[4] === 'local') {
+                    locationText += 'You strongly prefer <strong>local connections</strong> with regular in-person interaction. ';
+                } else if (answers[4] === 'driving') {
+                    locationText += 'You're comfortable with someone <strong>within driving distance</strong>, allowing for regular but not daily meetings. ';
+                } else if (answers[4] === 'long-distance') {
+                    locationText += 'You're <strong>open to long-distance relationships</strong> with occasional visits. ';
+                } else if (answers[4] === 'anywhere') {
+                    locationText += '<strong>Location isn't a significant factor</strong> for you when connecting with someone. ';
+                }
+                
+                if (answers[6] === 'slow') {
+                    locationText += 'You prefer relationships to develop <strong>slowly and gradually</strong>, giving you time to build trust.';
+                } else if (answers[6] === 'moderate') {
+                    locationText += 'You like relationships to progress at a <strong>moderate, natural pace</strong> without feeling rushed or stalled.';
+                } else if (answers[6] === 'fast') {
+                    locationText += 'When there's chemistry, you're comfortable with things moving <strong>relatively quickly</strong>.';
+                } else if (answers[6] === 'varies') {
+                    locationText += 'Your preferred pace <strong>varies depending on the connection</strong> and specific circumstances.';
+                }
+                
+                locationEl.innerHTML = locationText;
+                
+                // Commitment Level
+                const commitmentEl = document.getElementById('commitmentLevel');
+                let commitmentText = '';
+                
+                // Combine questions 5 (exclusivity) and 8 (integration)
+                if (answers[5] === 'open') {
+                    commitmentText += 'You prefer <strong>complete openness</strong> and the freedom to see other people. ';
+                } else if (answers[5] === 'casual') {
+                    commitmentText += 'You're looking for something <strong>casual but respectful</strong>, without the need for labels. ';
+                } else if (answers[5] === 'exclusive-casual') {
+                    commitmentText += 'You value <strong>exclusivity</strong> while still keeping the relationship relatively light. ';
+                } else if (answers[5] === 'committed') {
+                    commitmentText += 'You're seeking a <strong>dedicated, committed relationship</strong> with clear boundaries. ';
+                }
+                
+                if (answers[8] === 'separate') {
+                    commitmentText += 'You prefer to <strong>keep your relationship separate</strong> from other aspects of your life.';
+                } else if (answers[8] === 'casual-integration') {
+                    commitmentText += 'You're comfortable with <strong>some casual integration</strong> of your relationship into your regular life.';
+                } else if (answers[8] === 'significant') {
+                    commitmentText += 'You want <strong>significant integration</strong> of your partner into your social circle and daily life.';
+                } else if (answers[8] === 'complete') {
+                    commitmentText += 'You desire <strong>complete integration</strong> of your relationship into all aspects of your life.';
+                }
+                
+                commitmentEl.innerHTML = commitmentText;
+                
+                // Generate Overall Summary
+                const summaryEl = document.getElementById('summary');
+                let relationshipType = determineRelationshipType();
+                let physicalityLevel = determinePhysicalityLevel();
+                
+                summaryEl.innerHTML = `Based on your responses, you seem most aligned with a <strong>${relationshipType}</strong> where ${physicalityLevel}. When meeting someone new, being clear about these preferences can help you find a more compatible connection and avoid mismatched expectations.`;
+            }
+            
+            function determineRelationshipType() {
+                // This is a simplified analysis based on key questions
+                const connection = answers[1];
+                const exclusivity = answers[5];
+                const physicality = answers[7];
+                
+                if (connection === 'friendship' && physicality === 'not-important') {
+                    return "platonic friendship";
+                } else if (connection === 'friendship' && physicality === 'essential') {
+                    return "friends-with-benefits arrangement";
+                } else if (connection === 'casual' && exclusivity === 'open') {
+                    return "casual, no-strings-attached connection";
+                } else if (connection === 'physical' && (exclusivity === 'open' || exclusivity === 'casual')) {
+                    return "physical-focused casual relationship";
+                } else if (connection === 'romantic' && exclusivity === 'committed') {
+                    return "committed, emotionally intimate relationship";
+                } else if (exclusivity === 'committed' || exclusivity === 'exclusive-casual') {
+                    return "exclusive relationship";
+                } else {
+                    return "balanced relationship with elements of friendship and romance";
+                }
+            }
+            
+            function determinePhysicalityLevel() {
+                const physicality = answers[7];
+                
+                if (physicality === 'not-important') {
+                    return "physical intimacy is not a priority";
+                } else if (physicality === 'somewhat') {
+                    return "physical aspects are present but not central to the connection";
+                } else if (physicality === 'important') {
+                    return "physical and emotional compatibility are equally important";
+                } else if (physicality === 'essential') {
+                    return "physical chemistry plays a central role";
+                } else {
+                    return "the balance of emotional and physical connection is flexible";
+                }
+            }
+        });
+    </script>
+</body>
+</html>
