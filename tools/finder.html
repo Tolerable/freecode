@@ -329,7 +329,7 @@
 				</div>
 			</div>
             
-            <div id="question1" class="question-container active">
+            <div id="question1" class="question-container">
                 <div class="question">When you think about connecting with someone, what's most important to you?</div>
                 <div class="options">
                     <div class="option" data-value="friendship">Genuine friendship and connection</div>
@@ -578,6 +578,9 @@
             const totalQuestions = 8;
             const answers = {};
 
+			// Define the question order
+			const questionOrder = ['0a', '0b', '1', '2', '3', '4', '5', '6', '7', '8'];
+
 			// Check if URL has parameters but they don't contain valid answers
 			const params = new URLSearchParams(window.location.search);
 			if (params.toString() && !params.has('q1') && !params.has('q0a')) {
@@ -613,12 +616,22 @@
             // Call on load
             loadFromParams();
             
-            // Start the quiz
-            startBtn.addEventListener('click', function() {
-                intro.style.display = 'none';
-                quiz.style.display = 'block';
-                updateProgressBar();
-            });
+			// Start the quiz
+			startBtn.addEventListener('click', function() {
+				intro.style.display = 'none';
+				quiz.style.display = 'block';
+				
+				// Ensure only question0a is active when starting
+				document.querySelectorAll('.question-container').forEach(container => {
+					container.classList.remove('active');
+				});
+				document.getElementById('question0a').classList.add('active');
+				
+				// Reset currentQuestion
+				currentQuestion = '0a';
+				
+				updateProgressBar();
+			});
 
 			document.getElementById('takeOwnQuizBtn').addEventListener('click', function() {
 				window.location.href = 'finder.html';
@@ -973,52 +986,70 @@
 				}
 			}
             
-            // Next button handler
-            nextBtn.addEventListener('click', function() {
-                // If option not selected, prevent going next
-                if (!answers[currentQuestion]) {
-                    return;
-                }
-                
-                // Hide current question
-                document.getElementById('question' + currentQuestion).classList.remove('active');
-                
-                // If last question, show results
-                if (currentQuestion === totalQuestions) {
-                    showResults();
-                    return;
-                }
-                
-                // Show next question
-                currentQuestion++;
-                document.getElementById('question' + currentQuestion).classList.add('active');
-                
-                // Update buttons and progress
-                updateButtonsState();
-                updateProgressBar();
-                
-                // Disable next button until selection
-                if (!answers[currentQuestion]) {
-                    nextBtn.disabled = true;
-                }
-            });
-            
-            // Previous button handler
-            prevBtn.addEventListener('click', function() {
-                // Hide current question
-                document.getElementById('question' + currentQuestion).classList.remove('active');
-                
-                // Show previous question
-                currentQuestion--;
-                document.getElementById('question' + currentQuestion).classList.add('active');
-                
-                // Update buttons and progress
-                updateButtonsState();
-                updateProgressBar();
-                
-                // Enable next button
-                nextBtn.disabled = false;
-            });
+			// Next button handler
+			nextBtn.addEventListener('click', function() {
+				// If option not selected, prevent going next
+				if (!answers[currentQuestion]) {
+					return;
+				}
+				
+				// Hide current question
+				document.getElementById('question' + currentQuestion).classList.remove('active');
+				
+				// Find current index in question order
+				const currentIndex = questionOrder.indexOf(currentQuestion);
+				
+				// If last question, show results
+				if (currentIndex === questionOrder.length - 1) {
+					showResults();
+					return;
+				}
+				
+				// Show next question
+				currentQuestion = questionOrder[currentIndex + 1];
+				document.getElementById('question' + currentQuestion).classList.add('active');
+				
+				// Update buttons and progress
+				updateButtonsState();
+				updateProgressBar();
+				
+				// Disable next button until selection
+				if (!answers[currentQuestion]) {
+					nextBtn.disabled = true;
+				}
+			});
+
+			// Previous button handler
+			prevBtn.addEventListener('click', function() {
+				// Hide current question
+				document.getElementById('question' + currentQuestion).classList.remove('active');
+				
+				// Find current index in question order
+				const currentIndex = questionOrder.indexOf(currentQuestion);
+				
+				// Show previous question
+				currentQuestion = questionOrder[currentIndex - 1];
+				document.getElementById('question' + currentQuestion).classList.add('active');
+				
+				// Update buttons and progress
+				updateButtonsState();
+				updateProgressBar();
+				
+				// Enable next button
+				nextBtn.disabled = false;
+			});
+
+			function updateButtonsState() {
+				const currentIndex = questionOrder.indexOf(currentQuestion);
+				prevBtn.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
+				nextBtn.textContent = currentIndex === questionOrder.length - 1 ? 'See Results' : 'Next';
+			}
+
+			function updateProgressBar() {
+				const currentIndex = questionOrder.indexOf(currentQuestion);
+				const percentage = (currentIndex / (questionOrder.length - 1)) * 100;
+				progress.style.width = percentage + '%';
+			}
             
 			// Restart button handler
 			restartBtn.addEventListener('click', function() {
@@ -1031,7 +1062,7 @@
 				} else {
 					// Option 2: Keep URL in address bar but reset the quiz interface
 					// Reset quiz state
-					currentQuestionIndex = 0;
+					currentQuestion = 0; // Change from currentQuestionIndex to currentQuestion
 					Object.keys(answers).forEach(key => delete answers[key]);
 					
 					// Clear selected options
@@ -1047,7 +1078,7 @@
 					document.querySelectorAll('.question-container').forEach(container => {
 						container.classList.remove('active');
 					});
-					document.getElementById('question' + questionOrder[0]).classList.add('active');
+					document.getElementById('question0a').classList.add('active'); // Use question0a not questionOrder[0]
 					
 					// Reset buttons and progress
 					updateButtonsState();
@@ -1057,7 +1088,8 @@
 					aiInsightContainer.style.display = 'none';
 					shareContainer.style.display = 'none';
 				}
-			});            
+			});
+			
             // Copy share URL button handler
             copyBtn.addEventListener('click', function() {
                 shareUrl.select();
@@ -1067,16 +1099,6 @@
                     copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy Link';
                 }, 2000);
             });
-            
-            function updateButtonsState() {
-                prevBtn.style.visibility = currentQuestion === 1 ? 'hidden' : 'visible';
-                nextBtn.textContent = currentQuestion === totalQuestions ? 'See Results' : 'Next';
-            }
-            
-            function updateProgressBar() {
-                const percentage = ((currentQuestion - 1) / totalQuestions) * 100;
-                progress.style.width = percentage + '%';
-            }
             
             function showResults() {
                 quiz.style.display = 'none';
@@ -1264,25 +1286,29 @@
                 return shareableUrl;
             }
             
-            // Generate AI insights using Pollinations.ai API
-            async function generateAIInsight() {
-                aiInsightContainer.style.display = 'block';
-                aiLoading.style.display = 'flex';
-                aiInsight.style.display = 'none';
-                
-                // Prepare the context for the AI
-                const relationshipType = determineRelationshipType();
-                const physicality = determinePhysicalityLevel();
-                const connectionPref = answers[1] || '';
-                const interactionPref = answers[2] || '';
-                const flirtingPref = answers[3] || '';
-                const locationPref = answers[4] || '';
-                const exclusivityPref = answers[5] || '';
-                const pacePref = answers[6] || '';
-                const physicalPref = answers[7] || '';
-                const integrationPref = answers[8] || '';
-                
+			// Generate AI insights using Pollinations.ai API
+			async function generateAIInsight() {
+				aiInsightContainer.style.display = 'block';
+				aiLoading.style.display = 'flex';
+				aiInsight.style.display = 'none';
+				
+				// Prepare the context for the AI
+				const relationshipType = determineRelationshipType();
+				const physicality = determinePhysicalityLevel();
+				const genderIdentity = answers['0a'] || 'not specified';
+				const genderPreference = answers['0b'] || 'not specified';
+				const connectionPref = answers[1] || '';
+				const interactionPref = answers[2] || '';
+				const flirtingPref = answers[3] || '';
+				const locationPref = answers[4] || '';
+				const exclusivityPref = answers[5] || '';
+				const pacePref = answers[6] || '';
+				const physicalPref = answers[7] || '';
+				const integrationPref = answers[8] || '';
+				
 				const prompt = `Based on these relationship preferences:
+				- Gender identity: ${genderIdentity}
+				- Gender preference: ${genderPreference}
 				- Connection priority: ${connectionPref}
 				- Interaction preference: ${interactionPref}
 				- Flirting style: ${flirtingPref}
@@ -1295,33 +1321,33 @@
 				- Physical intimacy level: ${physicality}
 
 				Provide a direct analysis of these relationship preferences. Include: 1) A brief summary of the overall preference pattern, 2) Two strengths of this approach to relationships, 3) Two potential challenges this person might face, and 4) One specific tip for finding compatible partners. Do not ask questions or use conversational phrases.`;
-                
+				
 				const system = "You are a relationship preferences analyst. Provide a clear, direct analysis of the relationship preferences based on the quiz answers. Focus on analyzing the preference pattern itself rather than referring to 'this person' or using 'you'. Simply describe: 1) The relationship pattern shown by these preferences, 2) Strengths of this approach, 3) Potential challenges that could arise, and 4) Compatibility factors worth considering. Keep your analysis objective, informative, and focused solely on the pattern of preferences shown in the data.";
-                
-                try {
-                    // Use Pollinations.ai text generation API with OpenAI model
-                    const encodedPrompt = encodeURIComponent(prompt);
-                    const encodedSystem = encodeURIComponent(system);
-                    const url = `https://text.pollinations.ai/prompt?prompt=${encodedPrompt}&model=openai&system=${encodedSystem}`;
-                    
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error('API request failed');
-                    }
-                    
-                    const insight = await response.text();
-                    
-                    // Display the insight
-                    aiInsightContent.innerHTML = insight.trim();
-                    aiLoading.style.display = 'none';
-                    aiInsight.style.display = 'block';
-                } catch (error) {
-                    console.error('Error generating AI insight:', error);
-                    aiInsightContent.innerHTML = "Sorry, we couldn't generate personalized insights at this time. Your relationship preferences are still valid and valuable for your self-understanding.";
-                    aiLoading.style.display = 'none';
-                    aiInsight.style.display = 'block';
-                }
-            }
+				
+				try {
+					// Use Pollinations.ai text generation API with OpenAI model
+					const encodedPrompt = encodeURIComponent(prompt);
+					const encodedSystem = encodeURIComponent(system);
+					const url = `https://text.pollinations.ai/prompt?prompt=${encodedPrompt}&model=openai&system=${encodedSystem}`;
+					
+					const response = await fetch(url);
+					if (!response.ok) {
+						throw new Error('API request failed');
+					}
+					
+					const insight = await response.text();
+					
+					// Display the insight
+					aiInsightContent.innerHTML = insight.trim();
+					aiLoading.style.display = 'none';
+					aiInsight.style.display = 'block';
+				} catch (error) {
+					console.error('Error generating AI insight:', error);
+					aiInsightContent.innerHTML = "Sorry, we couldn't generate personalized insights at this time. Your relationship preferences are still valid and valuable for your self-understanding.";
+					aiLoading.style.display = 'none';
+					aiInsight.style.display = 'block';
+				}
+			}
             
 			// Generate dynamic image prompt using the text.pollinations.ai API first
 			async function generateImagePrompt() {
