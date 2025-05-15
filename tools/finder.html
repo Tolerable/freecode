@@ -308,6 +308,26 @@
             <div class="progress-bar">
                 <div id="progress" class="progress" style="width: 0%;"></div>
             </div>
+
+			<div id="question0a" class="question-container active">
+				<div class="question">What is your gender identity?</div>
+				<div class="options">
+					<div class="option" data-value="woman">Woman</div>
+					<div class="option" data-value="man">Man</div>
+					<div class="option" data-value="non-binary">Non-binary</div>
+					<div class="option" data-value="other">Other/Prefer not to say</div>
+				</div>
+			</div>
+
+			<div id="question0b" class="question-container">
+				<div class="question">What gender(s) are you interested in connecting with?</div>
+				<div class="options">
+					<div class="option" data-value="women">Women</div>
+					<div class="option" data-value="men">Men</div>
+					<div class="option" data-value="all-genders">People of all genders</div>
+					<div class="option" data-value="prefer-not-say">Prefer not to specify</div>
+				</div>
+			</div>
             
             <div id="question1" class="question-container active">
                 <div class="question">When you think about connecting with someone, what's most important to you?</div>
@@ -660,7 +680,11 @@
                 generateShareableContent();
             }
             
-            function analyzeResults() {
+			function analyzeResults() {
+				// Gender and Orientation
+				const genderIdentity = answers['0a'] || '';
+				const genderPreference = answers['0b'] || '';
+			
                 // Connection Type
                 const connectionEl = document.getElementById('connectionType');
                 switch(answers[1]) {
@@ -767,28 +791,39 @@
                 summaryEl.innerHTML = "Based on your responses, you seem most aligned with a <strong>" + relationshipType + "</strong> where " + physicalityLevel + ". When meeting someone new, being clear about these preferences can help you find a more compatible connection and avoid mismatched expectations.";
             }
             
-            function determineRelationshipType() {
-                // This is a simplified analysis based on key questions
-                const connection = answers[1];
-                const exclusivity = answers[5];
-                const physicality = answers[7];
-                
-                if (connection === 'friendship' && physicality === 'not-important') {
-                    return "platonic friendship";
-                } else if (connection === 'friendship' && physicality === 'essential') {
-                    return "friends-with-benefits arrangement";
-                } else if (connection === 'casual' && exclusivity === 'open') {
-                    return "casual, no-strings-attached connection";
-                } else if (connection === 'physical' && (exclusivity === 'open' || exclusivity === 'casual')) {
-                    return "physical-focused casual relationship";
-                } else if (connection === 'romantic' && exclusivity === 'committed') {
-                    return "committed, emotionally intimate relationship";
-                } else if (exclusivity === 'committed' || exclusivity === 'exclusive-casual') {
-                    return "exclusive relationship";
-                } else {
-                    return "balanced relationship with elements of friendship and romance";
-                }
-            }
+			function determineRelationshipType() {
+				// This is a simplified analysis based on key questions
+				const connection = answers[1];
+				const exclusivity = answers[5];
+				const physicality = answers[7];
+				const relationshipStructure = answers['5a'];
+				
+				// Include relationship structure in the analysis if provided
+				if (relationshipStructure === 'polyamorous') {
+					return "polyamorous relationship dynamic";
+				} else if (relationshipStructure === 'open') {
+					return "open relationship with a primary connection";
+				} else if (relationshipStructure === 'relationship-anarchy') {
+					return "relationship anarchy approach";
+				}
+				
+				// Original logic
+				if (connection === 'friendship' && physicality === 'not-important') {
+					return "platonic friendship";
+				} else if (connection === 'friendship' && physicality === 'essential') {
+					return "friends-with-benefits arrangement";
+				} else if (connection === 'casual' && exclusivity === 'open') {
+					return "casual, no-strings-attached connection";
+				} else if (connection === 'physical' && (exclusivity === 'open' || exclusivity === 'casual')) {
+					return "physical-focused casual relationship";
+				} else if (connection === 'romantic' && exclusivity === 'committed') {
+					return "committed, emotionally intimate relationship";
+				} else if (exclusivity === 'committed' || exclusivity === 'exclusive-casual') {
+					return "exclusive relationship";
+				} else {
+					return "balanced relationship with elements of friendship and romance";
+				}
+			}
             
             function determinePhysicalityLevel() {
                 const physicality = answers[7];
