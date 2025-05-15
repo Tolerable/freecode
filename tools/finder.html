@@ -992,173 +992,49 @@
 				const compatibilityAiContent = document.getElementById('compatibilityAiContent');
 				
 				try {
-					// Create more specific representations of each person's preferences
-					const person1 = {
-						gender: answers1['0a'] || 'not specified',
-						preference: answers1['0b'] || 'not specified',
-						connection: answers1['1'] || '',
-						interaction: answers1['2'] || '',
-						flirting: answers1['3'] || '',
-						location: answers1['4'] || '',
-						exclusivity: answers1['5'] || '',
-						pace: answers1['6'] || '',
-						physical: answers1['7'] || '',
-						integration: answers1['8'] || ''
-					};
-					
-					const person2 = {
-						gender: answers2['0a'] || 'not specified',
-						preference: answers2['0b'] || 'not specified',
-						connection: answers2['1'] || '',
-						interaction: answers2['2'] || '',
-						flirting: answers2['3'] || '',
-						location: answers2['4'] || '',
-						exclusivity: answers2['5'] || '',
-						pace: answers2['6'] || '',
-						physical: answers2['7'] || '',
-						integration: answers2['8'] || ''
-					};
-					
-					// Count matches and incompatibilities
-					let matchCount = 0;
-					let mismatchCount = 0;
-					let totalItems = 0;
-					
-					const compatibilityDetails = [];
-					
-					// Check compatibility for each preference
-					for (const key in answers1) {
-						if (answers1[key] && answers2[key]) {
-							totalItems++;
-							const isMatch = isCompatiblePreference(key, answers1[key], answers2[key], answers1, answers2);
-							if (isMatch) matchCount++;
-							else mismatchCount++;
-							
-							// Store details about each comparison
-							compatibilityDetails.push({
-								preference: key,
-								value1: answers1[key],
-								value2: answers2[key],
-								isMatch: isMatch
-							});
-						}
-					}
-					
-					// Calculate overall match percentage
-					const matchPercentage = totalItems > 0 ? Math.round((matchCount / totalItems) * 100) : 0;
-					
-					// Find key strengths (up to 3 matching areas)
-					const strengths = compatibilityDetails
-						.filter(item => item.isMatch)
-						.map(item => {
-							let label = '';
-							switch(item.preference) {
-								case '0a': label = 'Gender identities'; break;
-								case '0b': label = 'Gender preferences'; break;
-								case '1': label = 'Connection priorities'; break;
-								case '2': label = 'Interaction styles'; break;
-								case '3': label = 'Flirting levels'; break;
-								case '4': label = 'Location preferences'; break;
-								case '5': label = 'Exclusivity preferences'; break;
-								case '6': label = 'Relationship pace'; break;
-								case '7': label = 'Physical intimacy'; break;
-								case '8': label = 'Life integration'; break;
-								default: label = 'Preference ' + item.preference;
-							}
-							return {
-								label: label,
-								value1: humanReadableValue(item.preference, item.value1),
-								value2: humanReadableValue(item.preference, item.value2)
-							};
-						})
-						.slice(0, 3);
-					
-					// Find key challenges (up to 3 mismatching areas)
-					const challenges = compatibilityDetails
-						.filter(item => !item.isMatch)
-						.map(item => {
-							let label = '';
-							switch(item.preference) {
-								case '0a': label = 'Gender identities'; break;
-								case '0b': label = 'Gender preferences'; break;
-								case '1': label = 'Connection priorities'; break;
-								case '2': label = 'Interaction styles'; break;
-								case '3': label = 'Flirting levels'; break;
-								case '4': label = 'Location preferences'; break;
-								case '5': label = 'Exclusivity preferences'; break;
-								case '6': label = 'Relationship pace'; break;
-								case '7': label = 'Physical intimacy'; break;
-								case '8': label = 'Life integration'; break;
-								default: label = 'Preference ' + item.preference;
-							}
-							return {
-								label: label,
-								value1: humanReadableValue(item.preference, item.value1),
-								value2: humanReadableValue(item.preference, item.value2)
-							};
-						})
-						.slice(0, 3);
-					
-					// Create prompt that instructs the AI to analyze THESE SPECIFIC preferences
-					const prompt = `Analyze the compatibility between these two SPECIFIC individuals based on their relationship preferences:
-
-			Person 1 (${person1.gender} who is interested in ${person1.preference}):
-			- Connection: ${humanReadableValue('1', person1.connection)}
-			- Interaction: ${humanReadableValue('2', person1.interaction)}
-			- Flirting: ${humanReadableValue('3', person1.flirting)}
-			- Location: ${humanReadableValue('4', person1.location)}
-			- Exclusivity: ${humanReadableValue('5', person1.exclusivity)}
-			- Pace: ${humanReadableValue('6', person1.pace)}
-			- Physical Intimacy: ${humanReadableValue('7', person1.physical)}
-			- Life Integration: ${humanReadableValue('8', person1.integration)}
-
-			Person 2 (${person2.gender} who is interested in ${person2.preference}):
-			- Connection: ${humanReadableValue('1', person2.connection)}
-			- Interaction: ${humanReadableValue('2', person2.interaction)}
-			- Flirting: ${humanReadableValue('3', person2.flirting)}
-			- Location: ${humanReadableValue('4', person2.location)}
-			- Exclusivity: ${humanReadableValue('5', person2.exclusivity)}
-			- Pace: ${humanReadableValue('6', person2.pace)}
-			- Physical Intimacy: ${humanReadableValue('7', person2.physical)}
-			- Life Integration: ${humanReadableValue('8', person2.integration)}
-
-			These two people have a ${matchPercentage}% compatibility rating.
-
-			Key areas of agreement:
-			${strengths.map(s => `- ${s.label}: Person 1 prefers "${s.value1}" and Person 2 prefers "${s.value2}"`).join('\n')}
-
-			Key areas of potential conflict:
-			${challenges.map(c => `- ${c.label}: Person 1 prefers "${c.value1}" while Person 2 prefers "${c.value2}"`).join('\n')}
-
-			Analyze THESE SPECIFIC preferences only. I want an analysis that directly addresses the unique combination of preferences shown above, not general relationship advice. Please provide:
-
-			1. A brief assessment of their specific compatibility based on these exact preferences
-			2. Specific ways their matching preferences might strengthen their connection
-			3. Potential challenges from their mismatched preferences and how they might navigate them
-			4. A conclusion about their overall compatibility based solely on these data points
-
-			DO NOT give generic relationship advice. Refer directly to their specific preferences in your analysis.`;
-
-					// System message heavily emphasizes the need to analyze the specific data
-					const system = "You are a compatibility analyst. Your task is to analyze the SPECIFIC compatibility between two individuals based ONLY on their relationship preferences. Do NOT provide generic relationship advice. Focus exclusively on analyzing the unique combination of preferences provided, highlighting where they align and where they differ. Base your analysis solely on the data provided, referring to the specific preferences throughout. Make your analysis concrete, substantive, and tailored to these exact preferences. Avoid using generic phrases like 'the couple' - instead, refer to 'Person 1' and 'Person 2' and their specific preferences.";
-					
-					// Use Pollinations.ai text generation API with POST method
+					// Properly format request to the API
 					const url = 'https://text.pollinations.ai/openai';
 					const requestBody = {
 						model: "openai",
 						messages: [
 							{
 								role: "system",
-								content: system
+								content: "You are a compatibility analyst for relationship preferences. Analyze the specific compatibility between these two individuals."
 							},
 							{
 								role: "user",
-								content: prompt
+								content: `Compare these two people's relationship preferences and analyze their compatibility.
+								
+								Person 1:
+								- Gender: ${answers1['0a'] || 'not specified'}
+								- Seeks: ${answers1['0b'] || 'not specified'}
+								- Connection priority: ${answers1['1'] || 'not specified'}
+								- Preferred interaction: ${answers1['2'] || 'not specified'}
+								- Flirting level: ${answers1['3'] || 'not specified'}
+								- Location preference: ${answers1['4'] || 'not specified'}
+								- Commitment level: ${answers1['5'] || 'not specified'}
+								- Relationship pace: ${answers1['6'] || 'not specified'}
+								- Physical intimacy: ${answers1['7'] || 'not specified'}
+								- Life integration: ${answers1['8'] || 'not specified'}
+								
+								Person 2:
+								- Gender: ${answers2['0a'] || 'not specified'}
+								- Seeks: ${answers2['0b'] || 'not specified'}
+								- Connection priority: ${answers2['1'] || 'not specified'}
+								- Preferred interaction: ${answers2['2'] || 'not specified'}
+								- Flirting level: ${answers2['3'] || 'not specified'}
+								- Location preference: ${answers2['4'] || 'not specified'}
+								- Commitment level: ${answers2['5'] || 'not specified'}
+								- Relationship pace: ${answers2['6'] || 'not specified'}
+								- Physical intimacy: ${answers2['7'] || 'not specified'}
+								- Life integration: ${answers2['8'] || 'not specified'}
+								
+								Provide: 1) Overall compatibility assessment, 2) Key strengths of this match, 3) Potential challenges, and 4) Whether this could be a good match and why.`
 							}
 						]
 					};
 					
-					console.log("Sending compatibility analysis request to Pollinations API");
+					console.log("Sending compatibility analysis request");
 					
 					const response = await fetch(url, {
 						method: 'POST',
@@ -1173,10 +1049,21 @@
 					}
 					
 					const responseData = await response.json();
+					
+					// Check response format
+					if (!responseData.choices || !responseData.choices[0] || !responseData.choices[0].message) {
+						throw new Error("Unexpected API response format");
+					}
+					
 					const insight = responseData.choices[0].message.content;
 					
 					// Display the insight
 					compatibilityAiContent.innerHTML = insight.trim();
+					
+					// Generate a compatibility image
+					const person1 = { gender: answers1['0a'] || 'person' };
+					const person2 = { gender: answers2['0a'] || 'person' };
+					generateCompatibilityImage(person1, person2);
 					
 				} catch (error) {
 					console.error('Error generating AI compatibility insight:', error);
@@ -1189,12 +1076,18 @@
 				const compatibilityImage = document.getElementById('compatibilityImage');
 				
 				try {
-					// Determine genders explicitly
+					// Determine genders explicitly with fallbacks
 					const gender1 = person1.gender === 'man' ? 'man' : person1.gender === 'woman' ? 'woman' : 'person';
 					const gender2 = person2.gender === 'man' ? 'man' : person2.gender === 'woman' ? 'woman' : 'person';
 					
-					// Direct image URL with clear gender depiction
-					const imageUrl = `https://image.pollinations.ai/prompt/photo%20of%20a%20${gender1}%20and%20a%20${gender2}%20together,%20romantic%20setting,%20purple%20lighting,%20high%20quality%20professional%20photograph?width=800&height=400&nologo=true&model=flux`;
+					// Create a direct prompt without using AI
+					const imagePrompt = `photo of a ${gender1} and a ${gender2} together, romantic setting, purple lighting, high quality professional photograph`;
+					
+					// Properly encode the prompt
+					const encodedPrompt = encodeURIComponent(imagePrompt);
+					const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=400&nologo=true&model=flux`;
+					
+					console.log("Compatibility image URL:", imageUrl);
 					
 					// Set image source
 					compatibilityImage.src = imageUrl;
@@ -1203,6 +1096,7 @@
 						compatibilityImage.style.display = 'block';
 					};
 					compatibilityImage.onerror = function() {
+						console.error("Compatibility image failed to load");
 						compatibilityImageContainer.style.display = 'none';
 						const errorMsg = document.createElement('p');
 						errorMsg.textContent = "Couldn't generate compatibility image.";
@@ -1539,51 +1433,44 @@
 					return;
 				}
 				
-				// Continue with your existing code using currentAnswers
-				const relationshipType = determineRelationshipType();
-				const physicality = determinePhysicalityLevel();
-				const genderIdentity = currentAnswers['0a'] || 'not specified';
-				const genderPreference = currentAnswers['0b'] || 'not specified';
-				const connectionPref = currentAnswers[1] || '';
-				const interactionPref = currentAnswers[2] || '';
-				const flirtingPref = currentAnswers[3] || '';
-				const locationPref = currentAnswers[4] || '';
-				const exclusivityPref = currentAnswers[5] || '';
-				const pacePref = currentAnswers[6] || '';
-				const physicalPref = currentAnswers[7] || '';
-				const integrationPref = currentAnswers[8] || '';
-				
-				// Print debug info to console to verify data
-				console.log("Answers being sent to AI:", {
-					genderIdentity, genderPreference, connectionPref, interactionPref, 
-					flirtingPref, locationPref, exclusivityPref, pacePref, 
-					physicalPref, integrationPref, relationshipType, physicality
-				});
-				
-				const prompt = `Based on these relationship preferences:
-				- Gender identity: ${genderIdentity}
-				- Gender preference: ${genderPreference}
-				- Connection priority: ${connectionPref}
-				- Interaction preference: ${interactionPref}
-				- Flirting style: ${flirtingPref}
-				- Location preference: ${locationPref}
-				- Exclusivity preference: ${exclusivityPref}
-				- Relationship pace: ${pacePref}
-				- Physical intimacy importance: ${physicalPref}
-				- Life integration: ${integrationPref}
-				- Overall relationship type: ${relationshipType}
-				- Physical intimacy level: ${physicality}
-
-				Provide a direct analysis of these relationship preferences. Include: 1) A brief summary of the overall preference pattern, 2) Two strengths of this approach to relationships, 3) Two potential challenges this person might face, and 4) One specific tip for finding compatible partners. Do not ask questions or use conversational phrases.`;
-				
-				const system = "You are a relationship preferences analyst. Provide a clear, direct analysis of the relationship preferences based on the quiz answers. Focus on analyzing the preference pattern itself rather than referring to 'this person' or using 'you'. Simply describe: 1) The relationship pattern shown by these preferences, 2) Strengths of this approach, 3) Potential challenges that could arise, and 4) Compatibility factors worth considering. Keep your analysis objective, informative, and focused solely on the pattern of preferences shown in the data.";
-				
+				// Use try-catch to handle potential errors
 				try {
-					// Make sure we're correctly building and encoding the URL
-					const encodedPrompt = encodeURIComponent(prompt);
-					const encodedSystem = encodeURIComponent(system);
+					// Extract user preferences with fallbacks for missing data
+					const genderIdentity = currentAnswers['0a'] || 'not specified';
+					const genderPreference = currentAnswers['0b'] || 'not specified';
+					const connectionPref = currentAnswers[1] || 'not specified';
+					const interactionPref = currentAnswers[2] || 'not specified';
+					const flirtingPref = currentAnswers[3] || 'not specified';
+					const locationPref = currentAnswers[4] || 'not specified';
+					const exclusivityPref = currentAnswers[5] || 'not specified';
+					const pacePref = currentAnswers[6] || 'not specified';
+					const physicalPref = currentAnswers[7] || 'not specified';
+					const integrationPref = currentAnswers[8] || 'not specified';
 					
-					// Using the POST endpoint instead of GET for more reliable handling of longer prompts
+					// Determine relationship type and physicality level
+					const relationshipType = determineRelationshipType();
+					const physicality = determinePhysicalityLevel();
+					
+					// Create prompt for the AI
+					const prompt = `Based on these relationship preferences:
+					- Gender identity: ${genderIdentity}
+					- Gender preference: ${genderPreference}
+					- Connection priority: ${connectionPref}
+					- Interaction preference: ${interactionPref}
+					- Flirting style: ${flirtingPref}
+					- Location preference: ${locationPref}
+					- Exclusivity preference: ${exclusivityPref}
+					- Relationship pace: ${pacePref}
+					- Physical intimacy importance: ${physicalPref}
+					- Life integration: ${integrationPref}
+					- Overall relationship type: ${relationshipType}
+					- Physical intimacy level: ${physicality}
+
+					Provide a direct analysis of these relationship preferences. Include: 1) A brief summary of the overall preference pattern, 2) Two strengths of this approach to relationships, 3) Two potential challenges this person might face, and 4) One specific tip for finding compatible partners. Do not ask questions or use conversational phrases.`;
+					
+					const system = "You are a relationship preferences analyst. Provide a clear, direct analysis of the relationship preferences based on the quiz answers. Focus on analyzing the preference pattern itself rather than referring to 'this person' or using 'you'. Simply describe: 1) The relationship pattern shown by these preferences, 2) Strengths of this approach, 3) Potential challenges that could arise, and 4) Compatibility factors worth considering. Keep your analysis objective, informative, and focused solely on the pattern of preferences shown in the data.";
+					
+					// Using the POST endpoint with proper JSON structure
 					const url = 'https://text.pollinations.ai/openai';
 					const requestBody = {
 						model: "openai",
@@ -1614,6 +1501,12 @@
 					}
 					
 					const responseData = await response.json();
+					
+					// Check if we have the expected response format
+					if (!responseData.choices || !responseData.choices[0] || !responseData.choices[0].message || !responseData.choices[0].message.content) {
+						throw new Error("Unexpected API response format");
+					}
+					
 					const insight = responseData.choices[0].message.content;
 					
 					console.log("Received insight from API:", insight.substring(0, 100) + "...");
@@ -1641,77 +1534,24 @@
 					return `A couple representing relationship dynamics, atmospheric lighting, purple tones, professional photography`;
 				}
 				
-				const relationshipType = determineRelationshipType();
-				const physicality = determinePhysicalityLevel();
+				// Get gender information directly
 				const genderIdentity = currentAnswers['0a'] || 'not specified';
 				const genderPreference = currentAnswers['0b'] || 'not specified';
-				const connectionPref = currentAnswers[1] || '';
-				const interactionPref = currentAnswers[2] || '';
-				const flirtingPref = currentAnswers[3] || '';
-				const locationPref = currentAnswers[4] || '';
-				const exclusivityPref = currentAnswers[5] || '';
 				
-				// Create a prompt for the text AI to generate a unique image prompt - now with explicit gender emphasis
-				const promptForImageGen = `Based on these relationship preferences:
-				- Gender identity: ${genderIdentity} (${genderIdentity === 'man' ? 'male' : genderIdentity === 'woman' ? 'female' : 'person'})
-				- Gender preference: ${genderPreference} (interested in ${genderPreference === 'men' ? 'males' : genderPreference === 'women' ? 'females' : 'people'})
-				- Connection priority: ${connectionPref}
-				- Interaction preference: ${interactionPref}
-				- Flirting style: ${flirtingPref}
-				- Location preference: ${locationPref}
-				- Exclusivity preference: ${exclusivityPref}
-				- Overall relationship type: ${relationshipType}
-				- Physical intimacy level: ${physicality}
+				// Create explicit gender descriptors for the image
+				let personDesc = "person";
+				if (genderIdentity === 'man') personDesc = "man";
+				else if (genderIdentity === 'woman') personDesc = "woman";
 				
-				Create a detailed, unique image prompt (about 30-40 words) for an AI image generator that visually represents these specific relationship preferences. The image MUST show a ${genderIdentity === 'man' ? 'man' : genderIdentity === 'woman' ? 'woman' : 'person'} with a ${genderPreference === 'men' ? 'man' : genderPreference === 'women' ? 'woman' : 'person they are attracted to'}. The image should be photographic in style, include a setting that matches the interaction preferences, and convey the emotional tone of this relationship type. Do NOT include any text elements in the image. Include some purple tones in the color palette. Make it highly specific to these exact preferences, not generic. Return ONLY the image prompt text with no explanations.`;
+				let partnerDesc = "person";
+				if (genderPreference === 'men') partnerDesc = "man";
+				else if (genderPreference === 'women') partnerDesc = "woman";
 				
-				const system = "You are an expert prompt engineer for AI image generation. Create highly specific, detailed prompts that will generate images perfectly matched to the relationship preferences provided. Never explain your prompts, just provide the image prompt text directly. Focus on visual elements, atmosphere, color, and composition that represent the emotional quality of the relationship type. Always make prompts unique and tailored to the specific details provided.";
+				// Create a basic prompt without using the AI to generate it
+				const imagePrompt = `Photo of a ${personDesc} and a ${partnerDesc} together, romantic setting, purple lighting, high quality professional photograph`;
 				
-				try {
-					// Using the POST endpoint instead of GET for more reliable handling
-					const url = 'https://text.pollinations.ai/openai';
-					const requestBody = {
-						model: "openai",
-						messages: [
-							{
-								role: "system",
-								content: system
-							},
-							{
-								role: "user",
-								content: promptForImageGen
-							}
-						]
-					};
-					
-					console.log("Sending image prompt request to Pollinations API");
-					
-					const response = await fetch(url, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify(requestBody)
-					});
-					
-					if (!response.ok) {
-						throw new Error(`API request failed with status ${response.status}`);
-					}
-					
-					const responseData = await response.json();
-					let imagePrompt = responseData.choices[0].message.content.trim();
-					
-					// Ensure the prompt is appropriate length and add fallback if needed
-					if (imagePrompt.length < 10) {
-						imagePrompt = `A couple with ${relationshipType} dynamic, atmospheric lighting, purple tones, professional photography, emotional connection, high quality`;
-					}
-					
-					console.log("Generated image prompt:", imagePrompt);
-					return imagePrompt;
-				} catch (error) {
-					console.error('Error generating image prompt:', error);
-					return `A couple representing ${relationshipType}, atmospheric lighting, purple tones, professional photography`;
-				}
+				console.log("Generated direct image prompt:", imagePrompt);
+				return imagePrompt;
 			}
 
 
@@ -1735,12 +1575,15 @@
 						throw new Error("Missing answer data");
 					}
 					
-					// First generate a custom image prompt using AI
+					// Get image prompt directly without AI intermediary
 					const imagePrompt = await generateImagePrompt();
-					console.log("Generated image prompt:", imagePrompt);
+					console.log("Using image prompt:", imagePrompt);
 					
-					// Then use that prompt with the image API
-					const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=800&height=600&nologo=true&model=flux`;
+					// Use that prompt with the image API with proper URL encoding
+					const encodedPrompt = encodeURIComponent(imagePrompt);
+					const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=600&nologo=true&model=flux`;
+					
+					console.log("Final image URL:", imageUrl);
 					
 					// Set image source
 					shareImage.src = imageUrl;
@@ -1751,6 +1594,7 @@
 						downloadBtn.style.display = 'block';
 					};
 					shareImage.onerror = function() {
+						console.error("Image failed to load:", imageUrl);
 						handleImageError();
 					};
 				} catch (error) {
