@@ -477,6 +477,59 @@
 						</svg>
 						Take Your Own Quiz
 					</button>
+
+					<!-- Add a "Compare Results" button to the share section -->
+					<button id="compareBtn" class="share-link" style="background-color: #4a148c; margin-top: 1rem;">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l6 6"/>
+						</svg>
+						Compare With Another
+					</button>
+
+			<!-- Comparison modal -->
+			<div id="comparisonModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; overflow-y: auto;">
+				<div style="max-width: 800px; margin: 2rem auto; background: var(--surface); padding: 2rem; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.4);">
+					<div style="display: flex; justify-content: space-between; align-items: center;">
+						<h2>Compare Preferences</h2>
+						<button id="closeCompareBtn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text);">×</button>
+					</div>
+					
+					<div id="comparisonSteps">
+						<div id="step1" class="comparison-step">
+							<p>Paste the URL of the results you want to compare with:</p>
+							<input type="text" id="compareUrl" style="width: 100%; padding: 0.8rem; background-color: var(--background); color: var(--text); border: 1px solid #333; border-radius: 4px; font-size: 0.9rem; margin-bottom: 1rem;">
+							<p>Or paste the raw results data:</p>
+							<textarea id="compareData" style="width: 100%; height: 100px; padding: 0.8rem; background-color: var(--background); color: var(--text); border: 1px solid #333; border-radius: 4px; font-size: 0.9rem; margin-bottom: 1rem;"></textarea>
+							<button id="loadCompareBtn" class="share-link" style="margin: 0 auto; display: block;">Load Comparison Data</button>
+						</div>
+						
+						<div id="step2" class="comparison-step" style="display: none;">
+							<div class="loading" id="comparisonLoading">
+								<div class="spinner"></div>
+								<p>Analyzing compatibility...</p>
+							</div>
+							
+							<div id="compatibilityResults" style="display: none;">
+								<h3>Compatibility Analysis</h3>
+								<div id="compatibilityContent"></div>
+								
+								<div class="ai-insight" style="margin-top: 2rem;">
+									<div class="ai-badge">AI Compatibility Insight</div>
+									<div id="compatibilityAiContent"></div>
+								</div>
+								
+								<div id="compatibilityImageContainer" class="loading" style="margin-top: 2rem;">
+									<div class="spinner"></div>
+									<p>Generating compatibility visualization...</p>
+								</div>
+								
+								<img id="compatibilityImage" class="share-image" style="display: none;">
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
                     
                     <div class="loading" id="imageLoading">
                         <div class="spinner"></div>
@@ -588,6 +641,337 @@
                     nextBtn.disabled = false;
                 });
             });
+
+			// Comparison functionality
+			document.getElementById('compareBtn').addEventListener('click', function() {
+				document.getElementById('comparisonModal').style.display = 'block';
+				document.getElementById('step1').style.display = 'block';
+				document.getElementById('step2').style.display = 'none';
+				document.getElementById('compareUrl').value = '';
+				document.getElementById('compareData').value = '';
+			});
+
+			document.getElementById('closeCompareBtn').addEventListener('click', function() {
+				document.getElementById('comparisonModal').style.display = 'none';
+			});
+
+			document.getElementById('loadCompareBtn').addEventListener('click', function() {
+				const compareUrl = document.getElementById('compareUrl').value.trim();
+				const compareData = document.getElementById('compareData').value.trim();
+				
+				if (!compareUrl && !compareData) {
+					alert('Please provide either a URL or result data to compare with.');
+					return;
+				}
+				
+				// Show loading
+				document.getElementById('step1').style.display = 'none';
+				document.getElementById('step2').style.display = 'block';
+				document.getElementById('comparisonLoading').style.display = 'flex';
+				document.getElementById('compatibilityResults').style.display = 'none';
+				
+				if (compareUrl) {
+					// Extract parameters from URL
+					try {
+						const url = new URL(compareUrl);
+						const params = new URLSearchParams(url.search);
+						const otherAnswers = {};
+						
+						for (const [key, value] of params.entries()) {
+							if (key.startsWith('q')) {
+								otherAnswers[key.substring(1)] = value;
+							}
+						}
+						
+						if (Object.keys(otherAnswers).length === 0) {
+							alert('No valid result data found in the URL.');
+							document.getElementById('step1').style.display = 'block';
+							document.getElementById('step2').style.display = 'none';
+							return;
+						}
+						
+						generateCompatibilityAnalysis(otherAnswers);
+					} catch (error) {
+						alert('Invalid URL. Please provide a valid results URL.');
+						document.getElementById('step1').style.display = 'block';
+						document.getElementById('step2').style.display = 'none';
+					}
+				} else if (compareData) {
+					// Try to parse the data
+					try {
+						const otherAnswers = JSON.parse(compareData);
+						generateCompatibilityAnalysis(otherAnswers);
+					} catch (error) {
+						alert('Invalid data format. Please provide valid JSON data.');
+						document.getElementById('step1').style.display = 'block';
+						document.getElementById('step2').style.display = 'none';
+					}
+				}
+			});
+
+			async function generateCompatibilityAnalysis(otherAnswers) {
+				// Generate basic compatibility comparison
+				const compatibilityContent = document.getElementById('compatibilityContent');
+				const compatibilityHtml = generateCompatibilityHtml(answers, otherAnswers);
+				compatibilityContent.innerHTML = compatibilityHtml;
+				
+				// Generate AI compatibility insight
+				await generateAICompatibilityInsight(answers, otherAnswers);
+				
+				// Show results
+				document.getElementById('comparisonLoading').style.display = 'none';
+				document.getElementById('compatibilityResults').style.display = 'block';
+			}
+
+			function generateCompatibilityHtml(answers1, answers2) {
+				let html = '<div class="compatibility-table">';
+				html += '<h4>Preference Comparison</h4>';
+				html += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;">';
+				html += '<tr><th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #444;">Preference</th><th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #444;">Person 1</th><th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #444;">Person 2</th><th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #444;">Match</th></tr>';
+				
+				// Map preference names to human-readable labels
+				const prefLabels = {
+					'0a': 'Gender Identity',
+					'0b': 'Gender Preference',
+					'1': 'Connection Priority',
+					'2': 'Interaction Style',
+					'3': 'Flirting Level',
+					'4': 'Location Preference',
+					'5': 'Exclusivity',
+					'5a': 'Relationship Structure',
+					'6': 'Relationship Pace',
+					'7': 'Physical Intimacy',
+					'8': 'Life Integration'
+				};
+				
+				// Get all unique keys
+				const allKeys = new Set([...Object.keys(answers1), ...Object.keys(answers2)]);
+				
+				// Calculate match percentage
+				let matchCount = 0;
+				let totalCount = 0;
+				
+				for (const key of allKeys) {
+					if (prefLabels[key]) {
+						const val1 = answers1[key] || 'Not specified';
+						const val2 = answers2[key] || 'Not specified';
+						const isMatch = val1 === val2;
+						
+						if (val1 !== 'Not specified' && val2 !== 'Not specified') {
+							totalCount++;
+							if (isMatch) matchCount++;
+						}
+						
+						html += `<tr>
+							<td style="padding: 0.5rem; border-bottom: 1px solid #333;">${prefLabels[key]}</td>
+							<td style="padding: 0.5rem; border-bottom: 1px solid #333;">${humanReadableValue(key, val1)}</td>
+							<td style="padding: 0.5rem; border-bottom: 1px solid #333;">${humanReadableValue(key, val2)}</td>
+							<td style="padding: 0.5rem; border-bottom: 1px solid #333; color: ${isMatch ? '#4CAF50' : '#FF5252'};">
+								${isMatch ? '✓' : '✗'}
+							</td>
+						</tr>`;
+					}
+				}
+				
+				html += '</table>';
+				
+				// Calculate overall match percentage
+				const matchPercentage = totalCount > 0 ? Math.round((matchCount / totalCount) * 100) : 0;
+				
+				// Add match meter
+				html += `<div class="match-meter" style="margin-bottom: 2rem;">
+					<h4>Overall Match: ${matchPercentage}%</h4>
+					<div style="height: 8px; background-color: #333; border-radius: 4px; overflow: hidden;">
+						<div style="height: 100%; width: ${matchPercentage}%; background-color: ${getMatchColor(matchPercentage)};"></div>
+					</div>
+				</div>`;
+				
+				html += '</div>';
+				return html;
+			}
+
+			function humanReadableValue(key, value) {
+				// Map values to more readable formats
+				const valueMap = {
+					'woman': 'Woman',
+					'man': 'Man',
+					'non-binary': 'Non-binary',
+					'other': 'Other/Not specified',
+					'women': 'Women',
+					'men': 'Men',
+					'all-genders': 'All genders',
+					'prefer-not-say': 'Not specified',
+					'friendship': 'Friendship',
+					'casual': 'Casual connection',
+					'romantic': 'Emotional intimacy',
+					'physical': 'Physical chemistry',
+					'virtual': 'Virtual interaction',
+					'casual-meetups': 'Casual hangouts',
+					'planned-dates': 'Planned dates',
+					'travel': 'Travel together',
+					'none': 'Minimal/None',
+					'light': 'Light flirting',
+					'moderate': 'Moderate flirting',
+					'intense': 'Intense/Passionate',
+					'local': 'Local only',
+					'driving': 'Driving distance',
+					'long-distance': 'Long-distance OK',
+					'anywhere': 'Anywhere',
+					'open': 'Open/Non-exclusive',
+					'exclusive-casual': 'Exclusive but casual',
+					'committed': 'Committed',
+					'monogamous': 'Monogamous',
+					'polyamorous': 'Polyamorous',
+					'relationship-anarchy': 'Relationship anarchy',
+					'slow': 'Slow pace',
+					'moderate': 'Moderate pace',
+					'fast': 'Fast pace',
+					'varies': 'Varies by connection',
+					'not-important': 'Not important',
+					'somewhat': 'Somewhat important',
+					'important': 'Very important',
+					'essential': 'Essential',
+					'separate': 'Separate from life',
+					'casual-integration': 'Casual integration',
+					'significant': 'Significant integration',
+					'complete': 'Complete integration'
+				};
+				
+				return valueMap[value] || value;
+			}
+
+			function getMatchColor(percentage) {
+				// Return color based on match percentage
+				if (percentage >= 80) return 'var(--primary)'; // High match
+				if (percentage >= 60) return '#6b5b95'; // Good match
+				if (percentage >= 40) return '#878f99'; // Moderate match
+				return '#FF5252'; // Low match
+			}
+
+			async function generateAICompatibilityInsight(answers1, answers2) {
+				const compatibilityAiContent = document.getElementById('compatibilityAiContent');
+				
+				try {
+					// Prepare data for the AI
+					const person1 = {
+						gender: answers1['0a'] || 'not specified',
+						preference: answers1['0b'] || 'not specified',
+						structure: answers1['5a'] || 'not specified',
+						connection: answers1['1'] || '',
+						interaction: answers1['2'] || '',
+						flirting: answers1['3'] || '',
+						location: answers1['4'] || '',
+						exclusivity: answers1['5'] || '',
+						pace: answers1['6'] || '',
+						physical: answers1['7'] || '',
+						integration: answers1['8'] || ''
+					};
+					
+					const person2 = {
+						gender: answers2['0a'] || 'not specified',
+						preference: answers2['0b'] || 'not specified',
+						structure: answers2['5a'] || 'not specified',
+						connection: answers2['1'] || '',
+						interaction: answers2['2'] || '',
+						flirting: answers2['3'] || '',
+						location: answers2['4'] || '',
+						exclusivity: answers2['5'] || '',
+						pace: answers2['6'] || '',
+						physical: answers2['7'] || '',
+						integration: answers2['8'] || ''
+					};
+					
+					// Create prompt for AI
+					const prompt = `Analyze the compatibility between these two sets of relationship preferences:
+
+			Person 1:
+			- Gender: ${humanReadableValue('0a', person1.gender)}
+			- Gender Preference: ${humanReadableValue('0b', person1.preference)}
+			- Relationship Structure: ${humanReadableValue('5a', person1.structure)}
+			- Connection Priority: ${humanReadableValue('1', person1.connection)}
+			- Interaction Style: ${humanReadableValue('2', person1.interaction)}
+			- Flirting Level: ${humanReadableValue('3', person1.flirting)}
+			- Location Preference: ${humanReadableValue('4', person1.location)}
+			- Exclusivity: ${humanReadableValue('5', person1.exclusivity)}
+			- Relationship Pace: ${humanReadableValue('6', person1.pace)}
+			- Physical Intimacy: ${humanReadableValue('7', person1.physical)}
+			- Life Integration: ${humanReadableValue('8', person1.integration)}
+
+			Person 2:
+			- Gender: ${humanReadableValue('0a', person2.gender)}
+			- Gender Preference: ${humanReadableValue('0b', person2.preference)}
+			- Relationship Structure: ${humanReadableValue('5a', person2.structure)}
+			- Connection Priority: ${humanReadableValue('1', person2.connection)}
+			- Interaction Style: ${humanReadableValue('2', person2.interaction)}
+			- Flirting Level: ${humanReadableValue('3', person2.flirting)}
+			- Location Preference: ${humanReadableValue('4', person2.location)}
+			- Exclusivity: ${humanReadableValue('5', person2.exclusivity)}
+			- Relationship Pace: ${humanReadableValue('6', person2.pace)}
+			- Physical Intimacy: ${humanReadableValue('7', person2.physical)}
+			- Life Integration: ${humanReadableValue('8', person2.integration)}
+
+			Provide an analysis of their compatibility including:
+			1. Areas of strong alignment and compatibility
+			2. Potential areas of challenge or conflict
+			3. Specific suggestions for navigating differences
+			4. Overall compatibility assessment
+
+			Be direct, objective, and focused on the relationship dynamics that would emerge from these preference patterns.`;
+
+					const system = "You are an expert relationship compatibility analyst. Provide clear, objective analysis of how two sets of relationship preferences might interact. Focus on practical insights about compatibility strengths and challenges. Be honest about potential issues while maintaining a constructive tone. Never use phrases like 'this person' or 'these people' - simply analyze the pattern dynamics directly. Your analysis should help people understand their compatibility without making assumptions about them as individuals.";
+					
+					// Use Pollinations.ai text generation API
+					const encodedPrompt = encodeURIComponent(prompt);
+					const encodedSystem = encodeURIComponent(system);
+					const url = `https://text.pollinations.ai/prompt?prompt=${encodedPrompt}&model=openai&system=${encodedSystem}`;
+					
+					const response = await fetch(url);
+					if (!response.ok) {
+						throw new Error('API request failed');
+					}
+					
+					const insight = await response.text();
+					
+					// Display the insight
+					compatibilityAiContent.innerHTML = insight.trim();
+					
+					// Generate and display compatibility image
+					generateCompatibilityImage(person1, person2);
+				} catch (error) {
+					console.error('Error generating AI compatibility insight:', error);
+					compatibilityAiContent.innerHTML = "We couldn't generate a compatibility analysis at this time. Please try again later.";
+				}
+			}
+
+			async function generateCompatibilityImage(person1, person2) {
+				const compatibilityImageContainer = document.getElementById('compatibilityImageContainer');
+				const compatibilityImage = document.getElementById('compatibilityImage');
+				
+				try {
+					// Create prompt for image generation
+					const promptForImageGen = `Create a visualization representing the relationship compatibility between a ${person1.gender} interested in ${person1.preference} who values ${person1.connection} and a ${person2.gender} interested in ${person2.preference} who values ${person2.connection}. Show their relationship dynamics in an abstract, artistic way with purple tones. Professional photography style, high quality, cinematic, no text.`;
+					
+					// Use Pollinations.ai image generation API
+					const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptForImageGen)}?width=800&height=400&nologo=true&model=flux`;
+					
+					// Set image source
+					compatibilityImage.src = imageUrl;
+					compatibilityImage.onload = function() {
+						compatibilityImageContainer.style.display = 'none';
+						compatibilityImage.style.display = 'block';
+					};
+					compatibilityImage.onerror = function() {
+						compatibilityImageContainer.style.display = 'none';
+						const errorMsg = document.createElement('p');
+						errorMsg.textContent = "Couldn't generate compatibility image.";
+						errorMsg.style.color = "#ff6b6b";
+						compatibilityImageContainer.parentNode.insertBefore(errorMsg, compatibilityImageContainer.nextSibling);
+					};
+				} catch (error) {
+					console.error('Error generating compatibility image:', error);
+					compatibilityImageContainer.style.display = 'none';
+				}
+			}
             
             // Next button handler
             nextBtn.addEventListener('click', function() {
