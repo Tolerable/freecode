@@ -1189,46 +1189,12 @@
 				const compatibilityImage = document.getElementById('compatibilityImage');
 				
 				try {
-					// Create more specific prompt for image generation that respects gender identity and preferences
+					// Determine genders explicitly
 					const gender1 = person1.gender === 'man' ? 'man' : person1.gender === 'woman' ? 'woman' : 'person';
 					const gender2 = person2.gender === 'man' ? 'man' : person2.gender === 'woman' ? 'woman' : 'person';
 					
-					// Get preferred genders
-					const pref1 = person1.preference === 'men' ? 'men' : person1.preference === 'women' ? 'women' : 'people';
-					const pref2 = person2.preference === 'men' ? 'men' : person2.preference === 'women' ? 'women' : 'people';
-					
-					const promptForImageGen = `Create a visualization representing relationship compatibility between a ${gender1} who is interested in ${pref1} and a ${gender2} who is interested in ${pref2}. The first person values ${person1.connection} and the second values ${person2.connection}. Show their relationship dynamics in an abstract, artistic way with purple tones. Professional photography style, high quality, cinematic, no text. The image should clearly show a ${gender1} and a ${gender2} together in a scene that reflects their relationship preferences.`;
-					
-					// Use Pollinations.ai POST endpoint for image prompt generation
-					const response = await fetch('https://text.pollinations.ai/openai', {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify({
-							model: "openai",
-							messages: [
-								{
-									role: "system",
-									content: "You are an expert prompt engineer for AI image generation. Create detailed prompts tailored to the exact gender identities and preferences specified."
-								},
-								{
-									role: "user",
-									content: promptForImageGen
-								}
-							]
-						})
-					});
-					
-					if (!response.ok) {
-						throw new Error(`API request failed with status ${response.status}`);
-					}
-					
-					const responseData = await response.json();
-					const imagePrompt = responseData.choices[0].message.content.trim();
-					
-					// Use generated prompt for image creation
-					const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=800&height=400&nologo=true&model=flux`;
+					// Direct image URL with clear gender depiction
+					const imageUrl = `https://image.pollinations.ai/prompt/photo%20of%20a%20${gender1}%20and%20a%20${gender2}%20together,%20romantic%20setting,%20purple%20lighting,%20high%20quality%20professional%20photograph?width=800&height=400&nologo=true&model=flux`;
 					
 					// Set image source
 					compatibilityImage.src = imageUrl;
