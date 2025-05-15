@@ -824,13 +824,50 @@
 				return html;
 			}
 
-			// Now accepting the full answer sets as parameters
+			// Update the isCompatiblePreference function to properly handle gender preference matching
 			function isCompatiblePreference(key, val1, val2, answers1, answers2) {
 				// If values are exactly the same, they're compatible
 				if (val1 === val2) return true;
 				
 				// Special compatibility rules based on preference key
 				switch(key) {
+					// Gender preference (0b)
+					case '0b':
+						// "all-genders" is compatible with any gender preference
+						if (val1 === 'all-genders' || val2 === 'all-genders') return true;
+						
+						// If one prefers men and the other prefers women, not compatible
+						if ((val1 === 'men' && val2 === 'women') || 
+							(val1 === 'women' && val2 === 'men')) {
+							return false;
+						}
+						
+						// For prefer-not-say, consider compatible with all
+						if (val1 === 'prefer-not-say' || val2 === 'prefer-not-say') return true;
+						break;
+						
+					// Gender identity (0a) compatibility with other's preference
+					case '0a':
+						const person1Gender = answers1['0a'] || '';
+						const person2Gender = answers2['0a'] || '';
+						const person1Preference = answers1['0b'] || '';
+						const person2Preference = answers2['0b'] || '';
+						
+						// Check if person 1's gender matches person 2's preference
+						const person1MatchesPerson2Pref = 
+							(person1Gender === 'man' && (person2Preference === 'men' || person2Preference === 'all-genders')) ||
+							(person1Gender === 'woman' && (person2Preference === 'women' || person2Preference === 'all-genders')) ||
+							(person2Preference === 'all-genders' || person2Preference === 'prefer-not-say');
+						
+						// Check if person 2's gender matches person 1's preference
+						const person2MatchesPerson1Pref = 
+							(person2Gender === 'man' && (person1Preference === 'men' || person1Preference === 'all-genders')) ||
+							(person2Gender === 'woman' && (person1Preference === 'women' || person1Preference === 'all-genders')) ||
+							(person1Preference === 'all-genders' || person1Preference === 'prefer-not-say');
+						
+						// Both need to match each other's preferences for compatibility
+						return person1MatchesPerson2Pref && person2MatchesPerson1Pref;
+						
 					// Location preferences
 					case '4':
 						// "anywhere" is compatible with any location preference
@@ -889,25 +926,7 @@
 						break;
 				}
 				
-				// For gender identity and preference compatibility
-				if (key === '0a' || key === '0b') {
-					const person1Gender = answers1['0a'] || '';
-					const person2Gender = answers2['0a'] || '';
-					const person1Preference = answers1['0b'] || '';
-					const person2Preference = answers2['0b'] || '';
-					
-					// If we're checking gender identity
-					if (key === '0a') {
-						// Check if person 1's gender matches person 2's preference
-						if ((person1Gender === 'man' && (person2Preference === 'men' || person2Preference === 'all-genders')) ||
-							(person1Gender === 'woman' && (person2Preference === 'women' || person2Preference === 'all-genders')) ||
-							(person2Preference === 'all-genders' || person2Preference === 'prefer-not-say')) {
-							return true;
-						}
-					}
-				}
-				
-				// If no special rules matched, they're not compatible
+				// If no special rule matched and not exactly equal, they're not compatible
 				return false;
 			}
 
