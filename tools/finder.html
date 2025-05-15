@@ -787,7 +787,9 @@
 					if (prefLabels[key]) {
 						const val1 = answers1[key] || 'Not specified';
 						const val2 = answers2[key] || 'Not specified';
-						const isMatch = val1 === val2;
+						
+						// Determine if there's a match using smart compatibility logic
+						const isMatch = isCompatiblePreference(key, val1, val2);
 						
 						if (val1 !== 'Not specified' && val2 !== 'Not specified') {
 							totalCount++;
@@ -820,6 +822,119 @@
 				
 				html += '</div>';
 				return html;
+			}
+
+			// New function to determine compatibility between preferences
+			function isCompatiblePreference(key, val1, val2) {
+				// If values are exactly the same, they're compatible
+				if (val1 === val2) return true;
+				
+				// Special compatibility rules based on preference key
+				switch(key) {
+					// Location preferences
+					case '4':
+						// "anywhere" is compatible with any location preference
+						if (val1 === 'anywhere' || val2 === 'anywhere') return true;
+						
+						// "long-distance" is compatible with "anywhere" and "driving"
+						if ((val1 === 'long-distance' && (val2 === 'driving' || val2 === 'anywhere')) ||
+							(val2 === 'long-distance' && (val1 === 'driving' || val1 === 'anywhere'))) {
+							return true;
+						}
+						
+						// "driving" is compatible with "long-distance" and "anywhere" (already covered above)
+						// "local" is only compatible with exact match (handled by default equality check)
+						break;
+						
+					// Exclusivity preferences
+					case '5':
+						// "open" is compatible with "casual"
+						if ((val1 === 'open' && val2 === 'casual') || 
+							(val2 === 'open' && val1 === 'casual')) {
+							return true;
+						}
+						
+						// "exclusive-casual" is compatible with "committed"
+						if ((val1 === 'exclusive-casual' && val2 === 'committed') || 
+							(val2 === 'exclusive-casual' && val1 === 'committed')) {
+							return true;
+						}
+						break;
+						
+					// Relationship pace
+					case '6':
+						// "varies" is compatible with any pace preference
+						if (val1 === 'varies' || val2 === 'varies') return true;
+						
+						// Moderate is compatible with both slow and fast
+						if ((val1 === 'moderate' && (val2 === 'slow' || val2 === 'fast')) || 
+							(val2 === 'moderate' && (val1 === 'slow' || val1 === 'fast'))) {
+							return true;
+						}
+						break;
+						
+					// Gender preference
+					case '0b':
+						// "all-genders" is compatible with any gender preference
+						if (val1 === 'all-genders' || val2 === 'all-genders') return true;
+						
+						// Check if person's gender identity matches the other's gender preference
+						// This requires also checking the other person's gender identity (0a)
+						// This is a simple version; you might want to expand it based on your app logic
+						break;
+						
+					// Gender identity (compatibility depends on the other's preference, handled separately)
+					case '0a':
+						// For gender identity, we need to know the other person's preference
+						// This would usually be handled through a more complex compatibility check
+						break;
+						
+					// Physical intimacy
+					case '7':
+						// "somewhat" is compatible with both "not-important" and "important"
+						if ((val1 === 'somewhat' && (val2 === 'not-important' || val2 === 'important')) || 
+							(val2 === 'somewhat' && (val1 === 'not-important' || val1 === 'important'))) {
+							return true;
+						}
+						break;
+						
+					// Life integration
+					case '8':
+						// "casual-integration" is compatible with both "separate" and "significant"
+						if ((val1 === 'casual-integration' && (val2 === 'separate' || val2 === 'significant')) || 
+							(val2 === 'casual-integration' && (val1 === 'separate' || val1 === 'significant'))) {
+							return true;
+						}
+						break;
+				}
+				
+				// For gender identity and preference, we need to check if they are compatible
+				// based on the combination of both people's identities and preferences
+				if ((key === '0a' || key === '0b') && answers1 && answers2) {
+					const person1Gender = answers1['0a'] || '';
+					const person2Gender = answers2['0a'] || '';
+					const person1Preference = answers1['0b'] || '';
+					const person2Preference = answers2['0b'] || '';
+					
+					// If we're checking gender identity
+					if (key === '0a') {
+						// Check if person 1's gender matches person 2's preference
+						if ((person1Gender === 'man' && (person2Preference === 'men' || person2Preference === 'all-genders')) ||
+							(person1Gender === 'woman' && (person2Preference === 'women' || person2Preference === 'all-genders')) ||
+							(person2Preference === 'all-genders' || person2Preference === 'prefer-not-say')) {
+							return true;
+						}
+					}
+					
+					// If we're checking gender preference
+					if (key === '0b') {
+						// This is handled in the '0a' case above and by the default equality check
+						// Additional logic could be added here if needed
+					}
+				}
+				
+				// If no special rules matched, they're not compatible
+				return false;
 			}
 
 			function humanReadableValue(key, value) {
