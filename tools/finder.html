@@ -608,13 +608,27 @@
 					// Print debug info
 					console.log("Loaded answers from URL:", answers);
 					
+					// Verify the answers object is properly populated
+					if (Object.keys(answers).length === 0) {
+						console.error("Error: answers object is empty despite having URL parameters");
+					}
+					
 					// Skip the quiz and show results directly
 					intro.style.display = 'none';
 					quiz.style.display = 'none';
 					results.style.display = 'block';
-					analyzeResults();
-					generateAIInsight();
-					generateShareableContent();
+					
+					// Make sure answers are processed before generating AI insights
+					setTimeout(() => {
+						analyzeResults();
+						
+						// Make sure there's a small delay before calling AI functions
+						// This gives time for the answers object to be fully processed
+						setTimeout(() => {
+							generateAIInsight();
+							generateShareableContent();
+						}, 100);
+					}, 100);
 				}
 			}
             
@@ -1293,32 +1307,41 @@
 				console.log("Generated shareable URL:", shareableUrl);
 				return shareableUrl;
 			}
-            
+
+			// Modify the generateAIInsight function to better handle the answers object
 			async function generateAIInsight() {
 				aiInsightContainer.style.display = 'block';
 				aiLoading.style.display = 'flex';
 				aiInsight.style.display = 'none';
 				
-				// Prepare the context for the AI - CHECK IF ANSWERS EXIST
-				if (Object.keys(answers).length === 0) {
-					aiInsightContent.innerHTML = "To provide an accurate relationship preferences analysis, please share the quiz answers or the specific data points related to the relationship preferences in question.";
+				// Debug output to see what's in the answers object
+				console.log("Answers at start of generateAIInsight:", JSON.stringify(answers));
+				
+				// Make a copy of the answers to prevent any reference issues
+				const currentAnswers = {...answers};
+				
+				// Check that answers exists and has at least some essential properties
+				if (Object.keys(currentAnswers).length === 0) {
+					console.error("Error: answers object is empty in generateAIInsight");
+					aiInsightContent.innerHTML = "To provide an accurate relationship preferences analysis, please share the quiz answers or complete the quiz. If you refreshed the page, you may need to retake the quiz.";
 					aiLoading.style.display = 'none';
 					aiInsight.style.display = 'block';
 					return;
 				}
 				
+				// Continue with your existing code using currentAnswers
 				const relationshipType = determineRelationshipType();
 				const physicality = determinePhysicalityLevel();
-				const genderIdentity = answers['0a'] || 'not specified';
-				const genderPreference = answers['0b'] || 'not specified';
-				const connectionPref = answers[1] || '';
-				const interactionPref = answers[2] || '';
-				const flirtingPref = answers[3] || '';
-				const locationPref = answers[4] || '';
-				const exclusivityPref = answers[5] || '';
-				const pacePref = answers[6] || '';
-				const physicalPref = answers[7] || '';
-				const integrationPref = answers[8] || '';
+				const genderIdentity = currentAnswers['0a'] || 'not specified';
+				const genderPreference = currentAnswers['0b'] || 'not specified';
+				const connectionPref = currentAnswers[1] || '';
+				const interactionPref = currentAnswers[2] || '';
+				const flirtingPref = currentAnswers[3] || '';
+				const locationPref = currentAnswers[4] || '';
+				const exclusivityPref = currentAnswers[5] || '';
+				const pacePref = currentAnswers[6] || '';
+				const physicalPref = currentAnswers[7] || '';
+				const integrationPref = currentAnswers[8] || '';
 				
 				// Print debug info to console to verify data
 				console.log("Answers being sent to AI:", {
@@ -1346,20 +1369,44 @@
 				const system = "You are a relationship preferences analyst. Provide a clear, direct analysis of the relationship preferences based on the quiz answers. Focus on analyzing the preference pattern itself rather than referring to 'this person' or using 'you'. Simply describe: 1) The relationship pattern shown by these preferences, 2) Strengths of this approach, 3) Potential challenges that could arise, and 4) Compatibility factors worth considering. Keep your analysis objective, informative, and focused solely on the pattern of preferences shown in the data.";
 				
 				try {
-					// Use Pollinations.ai text generation API with OpenAI model
+					// Make sure we're correctly building and encoding the URL
 					const encodedPrompt = encodeURIComponent(prompt);
 					const encodedSystem = encodeURIComponent(system);
-					const url = `https://text.pollinations.ai/prompt?prompt=${encodedPrompt}&model=openai&system=${encodedSystem}`;
 					
-					console.log("Sending request to:", url.substring(0, 100) + "...");
+					// Using the POST endpoint instead of GET for more reliable handling of longer prompts
+					const url = 'https://text.pollinations.ai/openai';
+					const requestBody = {
+						model: "openai",
+						messages: [
+							{
+								role: "system",
+								content: system
+							},
+							{
+								role: "user",
+								content: prompt
+							}
+						]
+					};
 					
-					const response = await fetch(url);
+					console.log("Sending request to Pollinations API");
+					
+					const response = await fetch(url, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(requestBody)
+					});
+					
 					if (!response.ok) {
-						throw new Error('API request failed');
+						throw new Error(`API request failed with status ${response.status}`);
 					}
 					
-					const insight = await response.text();
-					console.log("Received insight:", insight.substring(0, 100) + "...");
+					const responseData = await response.json();
+					const insight = responseData.choices[0].message.content;
+					
+					console.log("Received insight from API:", insight.substring(0, 100) + "...");
 					
 					// Display the insight
 					aiInsightContent.innerHTML = insight.trim();
@@ -1375,13 +1422,22 @@
             
 			// Generate dynamic image prompt using the text.pollinations.ai API first
 			async function generateImagePrompt() {
+				// Make a copy of the answers to prevent any reference issues
+				const currentAnswers = {...answers};
+				
+				// Check if answers is empty
+				if (Object.keys(currentAnswers).length === 0) {
+					console.error("Error: answers object is empty in generateImagePrompt");
+					return `A couple representing relationship dynamics, atmospheric lighting, purple tones, professional photography`;
+				}
+				
 				const relationshipType = determineRelationshipType();
 				const physicality = determinePhysicalityLevel();
-				const connectionPref = answers[1] || '';
-				const interactionPref = answers[2] || '';
-				const flirtingPref = answers[3] || '';
-				const locationPref = answers[4] || '';
-				const exclusivityPref = answers[5] || '';
+				const connectionPref = currentAnswers[1] || '';
+				const interactionPref = currentAnswers[2] || '';
+				const flirtingPref = currentAnswers[3] || '';
+				const locationPref = currentAnswers[4] || '';
+				const exclusivityPref = currentAnswers[5] || '';
 				
 				// Create a prompt for the text AI to generate a unique image prompt
 				const promptForImageGen = `Based on these relationship preferences:
@@ -1398,24 +1454,45 @@
 				const system = "You are an expert prompt engineer for AI image generation. Create highly specific, detailed prompts that will generate images perfectly matched to the relationship preferences provided. Never explain your prompts, just provide the image prompt text directly. Focus on visual elements, atmosphere, color, and composition that represent the emotional quality of the relationship type. Always make prompts unique and tailored to the specific details provided.";
 				
 				try {
-					// Use Pollinations.ai text generation API with OpenAI model
-					const encodedPrompt = encodeURIComponent(promptForImageGen);
-					const encodedSystem = encodeURIComponent(system);
-					const url = `https://text.pollinations.ai/prompt?prompt=${encodedPrompt}&model=openai&system=${encodedSystem}`;
+					// Using the POST endpoint instead of GET for more reliable handling
+					const url = 'https://text.pollinations.ai/openai';
+					const requestBody = {
+						model: "openai",
+						messages: [
+							{
+								role: "system",
+								content: system
+							},
+							{
+								role: "user",
+								content: promptForImageGen
+							}
+						]
+					};
 					
-					const response = await fetch(url);
+					console.log("Sending image prompt request to Pollinations API");
+					
+					const response = await fetch(url, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(requestBody)
+					});
+					
 					if (!response.ok) {
-						throw new Error('API request failed');
+						throw new Error(`API request failed with status ${response.status}`);
 					}
 					
-					let imagePrompt = await response.text();
-					imagePrompt = imagePrompt.trim();
+					const responseData = await response.json();
+					let imagePrompt = responseData.choices[0].message.content.trim();
 					
 					// Ensure the prompt is appropriate length and add fallback if needed
 					if (imagePrompt.length < 10) {
 						imagePrompt = `A couple with ${relationshipType} dynamic, atmospheric lighting, purple tones, professional photography, emotional connection, high quality`;
 					}
 					
+					console.log("Generated image prompt:", imagePrompt);
 					return imagePrompt;
 				} catch (error) {
 					console.error('Error generating image prompt:', error);
@@ -1423,7 +1500,8 @@
 				}
 			}
 
-			// Update the generateShareableContent function to use this dynamic prompt
+
+			// Update generateShareableContent to handle potential error cases better
 			async function generateShareableContent() {
 				shareContainer.style.display = 'block';
 				
@@ -1437,6 +1515,12 @@
 				downloadBtn.style.display = 'none';
 				
 				try {
+					// Check if answers is empty
+					if (Object.keys(answers).length === 0) {
+						console.error("Error: answers object is empty in generateShareableContent");
+						throw new Error("Missing answer data");
+					}
+					
 					// First generate a custom image prompt using AI
 					const imagePrompt = await generateImagePrompt();
 					console.log("Generated image prompt:", imagePrompt);
