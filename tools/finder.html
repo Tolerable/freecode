@@ -789,7 +789,7 @@
 						const val2 = answers2[key] || 'Not specified';
 						
 						// Determine if there's a match using smart compatibility logic
-						const isMatch = isCompatiblePreference(key, val1, val2);
+						const isMatch = isCompatiblePreference(key, val1, val2, answers1, answers2);
 						
 						if (val1 !== 'Not specified' && val2 !== 'Not specified') {
 							totalCount++;
@@ -824,8 +824,8 @@
 				return html;
 			}
 
-			// New function to determine compatibility between preferences
-			function isCompatiblePreference(key, val1, val2) {
+			// Now accepting the full answer sets as parameters
+			function isCompatiblePreference(key, val1, val2, answers1, answers2) {
 				// If values are exactly the same, they're compatible
 				if (val1 === val2) return true;
 				
@@ -841,9 +841,6 @@
 							(val2 === 'long-distance' && (val1 === 'driving' || val1 === 'anywhere'))) {
 							return true;
 						}
-						
-						// "driving" is compatible with "long-distance" and "anywhere" (already covered above)
-						// "local" is only compatible with exact match (handled by default equality check)
 						break;
 						
 					// Exclusivity preferences
@@ -873,22 +870,6 @@
 						}
 						break;
 						
-					// Gender preference
-					case '0b':
-						// "all-genders" is compatible with any gender preference
-						if (val1 === 'all-genders' || val2 === 'all-genders') return true;
-						
-						// Check if person's gender identity matches the other's gender preference
-						// This requires also checking the other person's gender identity (0a)
-						// This is a simple version; you might want to expand it based on your app logic
-						break;
-						
-					// Gender identity (compatibility depends on the other's preference, handled separately)
-					case '0a':
-						// For gender identity, we need to know the other person's preference
-						// This would usually be handled through a more complex compatibility check
-						break;
-						
 					// Physical intimacy
 					case '7':
 						// "somewhat" is compatible with both "not-important" and "important"
@@ -907,6 +888,35 @@
 						}
 						break;
 				}
+				
+				// For gender identity and preference, we need to check if they are compatible
+				// based on the combination of both people's identities and preferences
+				if ((key === '0a' || key === '0b') && answers1 && answers2) {
+					const person1Gender = answers1['0a'] || '';
+					const person2Gender = answers2['0a'] || '';
+					const person1Preference = answers1['0b'] || '';
+					const person2Preference = answers2['0b'] || '';
+					
+					// If we're checking gender identity
+					if (key === '0a') {
+						// Check if person 1's gender matches person 2's preference
+						if ((person1Gender === 'man' && (person2Preference === 'men' || person2Preference === 'all-genders')) ||
+							(person1Gender === 'woman' && (person2Preference === 'women' || person2Preference === 'all-genders')) ||
+							(person2Preference === 'all-genders' || person2Preference === 'prefer-not-say')) {
+							return true;
+						}
+					}
+					
+					// If we're checking gender preference
+					if (key === '0b') {
+						// This is handled in the '0a' case above and by the default equality check
+						// Additional logic could be added here if needed
+					}
+				}
+				
+				// If no special rules matched, they're not compatible
+				return false;
+			}
 				
 				// For gender identity and preference, we need to check if they are compatible
 				// based on the combination of both people's identities and preferences
