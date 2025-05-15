@@ -589,29 +589,34 @@
 				window.location.href = baseUrl;
 			}
             
-            // Check URL parameters for shared results
-            function loadFromParams() {
-                const params = new URLSearchParams(window.location.search);
-                let hasParams = false;
-                
-                for (const [key, value] of params.entries()) {
-                    if (key.startsWith('q') && !isNaN(key.substring(1))) {
-                        const questionNum = parseInt(key.substring(1));
-                        answers[questionNum] = value;
-                        hasParams = true;
-                    }
-                }
-                
-                if (hasParams) {
-                    // Skip the quiz and show results directly
-                    intro.style.display = 'none';
-                    quiz.style.display = 'none';
-                    results.style.display = 'block';
-                    analyzeResults();
-                    generateAIInsight();
-                    generateShareableContent();
-                }
-            }
+			// Check URL parameters for shared results
+			function loadFromParams() {
+				const params = new URLSearchParams(window.location.search);
+				let hasParams = false;
+				
+				for (const [key, value] of params.entries()) {
+					if (key.startsWith('q')) {
+						// Extract the question ID (remove the 'q' prefix)
+						const questionId = key.substring(1);
+						answers[questionId] = value;
+						hasParams = true;
+						console.log(`Loaded answer for question ${questionId}: ${value}`);
+					}
+				}
+				
+				if (hasParams) {
+					// Print debug info
+					console.log("Loaded answers from URL:", answers);
+					
+					// Skip the quiz and show results directly
+					intro.style.display = 'none';
+					quiz.style.display = 'none';
+					results.style.display = 'block';
+					analyzeResults();
+					generateAIInsight();
+					generateShareableContent();
+				}
+			}
             
             // Call on load
             loadFromParams();
@@ -1275,24 +1280,33 @@
                 }
             }
             
-            // Generate shareable URL with parameters
-            function generateShareableLink() {
-                const params = new URLSearchParams();
-                Object.entries(answers).forEach(([question, answer]) => {
-                    params.set(`q${question}`, answer);
-                });
-                
-                const shareableUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-                return shareableUrl;
-            }
+			// Generate shareable URL with parameters
+			function generateShareableLink() {
+				const params = new URLSearchParams();
+				Object.entries(answers).forEach(([question, answer]) => {
+					// Ensure question has proper format
+					params.set(`q${question}`, answer);
+					console.log(`Adding to shareable link: q${question}=${answer}`);
+				});
+				
+				const shareableUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+				console.log("Generated shareable URL:", shareableUrl);
+				return shareableUrl;
+			}
             
-			// Generate AI insights using Pollinations.ai API
 			async function generateAIInsight() {
 				aiInsightContainer.style.display = 'block';
 				aiLoading.style.display = 'flex';
 				aiInsight.style.display = 'none';
 				
-				// Prepare the context for the AI
+				// Prepare the context for the AI - CHECK IF ANSWERS EXIST
+				if (Object.keys(answers).length === 0) {
+					aiInsightContent.innerHTML = "To provide an accurate relationship preferences analysis, please share the quiz answers or the specific data points related to the relationship preferences in question.";
+					aiLoading.style.display = 'none';
+					aiInsight.style.display = 'block';
+					return;
+				}
+				
 				const relationshipType = determineRelationshipType();
 				const physicality = determinePhysicalityLevel();
 				const genderIdentity = answers['0a'] || 'not specified';
@@ -1305,6 +1319,13 @@
 				const pacePref = answers[6] || '';
 				const physicalPref = answers[7] || '';
 				const integrationPref = answers[8] || '';
+				
+				// Print debug info to console to verify data
+				console.log("Answers being sent to AI:", {
+					genderIdentity, genderPreference, connectionPref, interactionPref, 
+					flirtingPref, locationPref, exclusivityPref, pacePref, 
+					physicalPref, integrationPref, relationshipType, physicality
+				});
 				
 				const prompt = `Based on these relationship preferences:
 				- Gender identity: ${genderIdentity}
@@ -1330,12 +1351,15 @@
 					const encodedSystem = encodeURIComponent(system);
 					const url = `https://text.pollinations.ai/prompt?prompt=${encodedPrompt}&model=openai&system=${encodedSystem}`;
 					
+					console.log("Sending request to:", url.substring(0, 100) + "...");
+					
 					const response = await fetch(url);
 					if (!response.ok) {
 						throw new Error('API request failed');
 					}
 					
 					const insight = await response.text();
+					console.log("Received insight:", insight.substring(0, 100) + "...");
 					
 					// Display the insight
 					aiInsightContent.innerHTML = insight.trim();
