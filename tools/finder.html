@@ -992,11 +992,10 @@
 				const compatibilityAiContent = document.getElementById('compatibilityAiContent');
 				
 				try {
-					// Prepare data for the AI
+					// Create more specific representations of each person's preferences
 					const person1 = {
 						gender: answers1['0a'] || 'not specified',
 						preference: answers1['0b'] || 'not specified',
-						structure: answers1['5a'] || 'not specified',
 						connection: answers1['1'] || '',
 						interaction: answers1['2'] || '',
 						flirting: answers1['3'] || '',
@@ -1010,7 +1009,6 @@
 					const person2 = {
 						gender: answers2['0a'] || 'not specified',
 						preference: answers2['0b'] || 'not specified',
-						structure: answers2['5a'] || 'not specified',
 						connection: answers2['1'] || '',
 						interaction: answers2['2'] || '',
 						flirting: answers2['3'] || '',
@@ -1021,62 +1019,165 @@
 						integration: answers2['8'] || ''
 					};
 					
-					// Create prompt for AI
-					const prompt = `Analyze the compatibility between these two sets of relationship preferences:
+					// Count matches and incompatibilities
+					let matchCount = 0;
+					let mismatchCount = 0;
+					let totalItems = 0;
+					
+					const compatibilityDetails = [];
+					
+					// Check compatibility for each preference
+					for (const key in answers1) {
+						if (answers1[key] && answers2[key]) {
+							totalItems++;
+							const isMatch = isCompatiblePreference(key, answers1[key], answers2[key], answers1, answers2);
+							if (isMatch) matchCount++;
+							else mismatchCount++;
+							
+							// Store details about each comparison
+							compatibilityDetails.push({
+								preference: key,
+								value1: answers1[key],
+								value2: answers2[key],
+								isMatch: isMatch
+							});
+						}
+					}
+					
+					// Calculate overall match percentage
+					const matchPercentage = totalItems > 0 ? Math.round((matchCount / totalItems) * 100) : 0;
+					
+					// Find key strengths (up to 3 matching areas)
+					const strengths = compatibilityDetails
+						.filter(item => item.isMatch)
+						.map(item => {
+							let label = '';
+							switch(item.preference) {
+								case '0a': label = 'Gender identities'; break;
+								case '0b': label = 'Gender preferences'; break;
+								case '1': label = 'Connection priorities'; break;
+								case '2': label = 'Interaction styles'; break;
+								case '3': label = 'Flirting levels'; break;
+								case '4': label = 'Location preferences'; break;
+								case '5': label = 'Exclusivity preferences'; break;
+								case '6': label = 'Relationship pace'; break;
+								case '7': label = 'Physical intimacy'; break;
+								case '8': label = 'Life integration'; break;
+								default: label = 'Preference ' + item.preference;
+							}
+							return {
+								label: label,
+								value1: humanReadableValue(item.preference, item.value1),
+								value2: humanReadableValue(item.preference, item.value2)
+							};
+						})
+						.slice(0, 3);
+					
+					// Find key challenges (up to 3 mismatching areas)
+					const challenges = compatibilityDetails
+						.filter(item => !item.isMatch)
+						.map(item => {
+							let label = '';
+							switch(item.preference) {
+								case '0a': label = 'Gender identities'; break;
+								case '0b': label = 'Gender preferences'; break;
+								case '1': label = 'Connection priorities'; break;
+								case '2': label = 'Interaction styles'; break;
+								case '3': label = 'Flirting levels'; break;
+								case '4': label = 'Location preferences'; break;
+								case '5': label = 'Exclusivity preferences'; break;
+								case '6': label = 'Relationship pace'; break;
+								case '7': label = 'Physical intimacy'; break;
+								case '8': label = 'Life integration'; break;
+								default: label = 'Preference ' + item.preference;
+							}
+							return {
+								label: label,
+								value1: humanReadableValue(item.preference, item.value1),
+								value2: humanReadableValue(item.preference, item.value2)
+							};
+						})
+						.slice(0, 3);
+					
+					// Create prompt that instructs the AI to analyze THESE SPECIFIC preferences
+					const prompt = `Analyze the compatibility between these two SPECIFIC individuals based on their relationship preferences:
 
-			Person 1:
-			- Gender: ${humanReadableValue('0a', person1.gender)}
-			- Gender Preference: ${humanReadableValue('0b', person1.preference)}
-			- Relationship Structure: ${humanReadableValue('5a', person1.structure)}
-			- Connection Priority: ${humanReadableValue('1', person1.connection)}
-			- Interaction Style: ${humanReadableValue('2', person1.interaction)}
-			- Flirting Level: ${humanReadableValue('3', person1.flirting)}
-			- Location Preference: ${humanReadableValue('4', person1.location)}
+			Person 1 (${person1.gender} who is interested in ${person1.preference}):
+			- Connection: ${humanReadableValue('1', person1.connection)}
+			- Interaction: ${humanReadableValue('2', person1.interaction)}
+			- Flirting: ${humanReadableValue('3', person1.flirting)}
+			- Location: ${humanReadableValue('4', person1.location)}
 			- Exclusivity: ${humanReadableValue('5', person1.exclusivity)}
-			- Relationship Pace: ${humanReadableValue('6', person1.pace)}
+			- Pace: ${humanReadableValue('6', person1.pace)}
 			- Physical Intimacy: ${humanReadableValue('7', person1.physical)}
 			- Life Integration: ${humanReadableValue('8', person1.integration)}
 
-			Person 2:
-			- Gender: ${humanReadableValue('0a', person2.gender)}
-			- Gender Preference: ${humanReadableValue('0b', person2.preference)}
-			- Relationship Structure: ${humanReadableValue('5a', person2.structure)}
-			- Connection Priority: ${humanReadableValue('1', person2.connection)}
-			- Interaction Style: ${humanReadableValue('2', person2.interaction)}
-			- Flirting Level: ${humanReadableValue('3', person2.flirting)}
-			- Location Preference: ${humanReadableValue('4', person2.location)}
+			Person 2 (${person2.gender} who is interested in ${person2.preference}):
+			- Connection: ${humanReadableValue('1', person2.connection)}
+			- Interaction: ${humanReadableValue('2', person2.interaction)}
+			- Flirting: ${humanReadableValue('3', person2.flirting)}
+			- Location: ${humanReadableValue('4', person2.location)}
 			- Exclusivity: ${humanReadableValue('5', person2.exclusivity)}
-			- Relationship Pace: ${humanReadableValue('6', person2.pace)}
+			- Pace: ${humanReadableValue('6', person2.pace)}
 			- Physical Intimacy: ${humanReadableValue('7', person2.physical)}
 			- Life Integration: ${humanReadableValue('8', person2.integration)}
 
-			Provide an analysis of their compatibility including:
-			1. Areas of strong alignment and compatibility
-			2. Potential areas of challenge or conflict
-			3. Specific suggestions for navigating differences
-			4. Overall compatibility assessment
+			These two people have a ${matchPercentage}% compatibility rating.
 
-			Be direct, objective, and focused on the relationship dynamics that would emerge from these preference patterns.`;
+			Key areas of agreement:
+			${strengths.map(s => `- ${s.label}: Person 1 prefers "${s.value1}" and Person 2 prefers "${s.value2}"`).join('\n')}
 
-					const system = "You are an expert relationship compatibility analyst. Provide clear, objective analysis of how two sets of relationship preferences might interact. Focus on practical insights about compatibility strengths and challenges. Be honest about potential issues while maintaining a constructive tone. Never use phrases like 'this person' or 'these people' - simply analyze the pattern dynamics directly. Your analysis should help people understand their compatibility without making assumptions about them as individuals.";
+			Key areas of potential conflict:
+			${challenges.map(c => `- ${c.label}: Person 1 prefers "${c.value1}" while Person 2 prefers "${c.value2}"`).join('\n')}
+
+			Analyze THESE SPECIFIC preferences only. I want an analysis that directly addresses the unique combination of preferences shown above, not general relationship advice. Please provide:
+
+			1. A brief assessment of their specific compatibility based on these exact preferences
+			2. Specific ways their matching preferences might strengthen their connection
+			3. Potential challenges from their mismatched preferences and how they might navigate them
+			4. A conclusion about their overall compatibility based solely on these data points
+
+			DO NOT give generic relationship advice. Refer directly to their specific preferences in your analysis.`;
+
+					// System message heavily emphasizes the need to analyze the specific data
+					const system = "You are a compatibility analyst. Your task is to analyze the SPECIFIC compatibility between two individuals based ONLY on their relationship preferences. Do NOT provide generic relationship advice. Focus exclusively on analyzing the unique combination of preferences provided, highlighting where they align and where they differ. Base your analysis solely on the data provided, referring to the specific preferences throughout. Make your analysis concrete, substantive, and tailored to these exact preferences. Avoid using generic phrases like 'the couple' - instead, refer to 'Person 1' and 'Person 2' and their specific preferences.";
 					
-					// Use Pollinations.ai text generation API
-					const encodedPrompt = encodeURIComponent(prompt);
-					const encodedSystem = encodeURIComponent(system);
-					const url = `https://text.pollinations.ai/prompt?prompt=${encodedPrompt}&model=openai&system=${encodedSystem}`;
+					// Use Pollinations.ai text generation API with POST method
+					const url = 'https://text.pollinations.ai/openai';
+					const requestBody = {
+						model: "openai",
+						messages: [
+							{
+								role: "system",
+								content: system
+							},
+							{
+								role: "user",
+								content: prompt
+							}
+						]
+					};
 					
-					const response = await fetch(url);
+					console.log("Sending compatibility analysis request to Pollinations API");
+					
+					const response = await fetch(url, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(requestBody)
+					});
+					
 					if (!response.ok) {
-						throw new Error('API request failed');
+						throw new Error(`API request failed with status ${response.status}`);
 					}
 					
-					const insight = await response.text();
+					const responseData = await response.json();
+					const insight = responseData.choices[0].message.content;
 					
 					// Display the insight
 					compatibilityAiContent.innerHTML = insight.trim();
 					
-					// Generate and display compatibility image
-					generateCompatibilityImage(person1, person2);
 				} catch (error) {
 					console.error('Error generating AI compatibility insight:', error);
 					compatibilityAiContent.innerHTML = "We couldn't generate a compatibility analysis at this time. Please try again later.";
