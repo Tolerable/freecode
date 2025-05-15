@@ -469,6 +469,14 @@
                             Copy Link
                         </button>
                     </div>
+
+					<!-- Add this button in the results section -->
+					<button id="takeOwnQuizBtn" class="share-link" style="margin-top: 1rem;">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+						</svg>
+						Take Your Own Quiz
+					</button>
                     
                     <div class="loading" id="imageLoading">
                         <div class="spinner"></div>
@@ -558,6 +566,10 @@
                 quiz.style.display = 'block';
                 updateProgressBar();
             });
+
+			document.getElementById('takeOwnQuizBtn').addEventListener('click', function() {
+				window.location.href = 'finder.html';
+			});
             
             // Handle option selection
             document.querySelectorAll('.option').forEach(option => {
@@ -626,12 +638,42 @@
             
 			// Restart button handler
 			restartBtn.addEventListener('click', function() {
-				// Simply redirect to the base URL directly
-				window.location.href = 'finder.html';
+				// Ask if user wants to clear URL and start completely fresh
+				const clearUrl = confirm("Would you like to clear the URL? Click OK to completely reset (recommended), or Cancel to keep the current URL in the address bar for reference.");
 				
-				// No need for other code here as the page will reload completely
-			});
-            
+				if (clearUrl) {
+					// Option 1: Clear URL completely and reload page
+					window.location.href = 'finder.html';
+				} else {
+					// Option 2: Keep URL in address bar but reset the quiz interface
+					// Reset quiz state
+					currentQuestionIndex = 0;
+					Object.keys(answers).forEach(key => delete answers[key]);
+					
+					// Clear selected options
+					document.querySelectorAll('.option').forEach(option => {
+						option.classList.remove('selected');
+					});
+					
+					// Show first question
+					results.style.display = 'none';
+					intro.style.display = 'block';
+					quiz.style.display = 'none';
+					
+					document.querySelectorAll('.question-container').forEach(container => {
+						container.classList.remove('active');
+					});
+					document.getElementById('question' + questionOrder[0]).classList.add('active');
+					
+					// Reset buttons and progress
+					updateButtonsState();
+					updateProgressBar();
+					
+					// Hide AI insights and share container
+					aiInsightContainer.style.display = 'none';
+					shareContainer.style.display = 'none';
+				}
+			});            
             // Copy share URL button handler
             copyBtn.addEventListener('click', function() {
                 shareUrl.select();
