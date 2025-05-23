@@ -122,6 +122,20 @@
 	background: rgba(0, 0, 0, 0.7);
 	}
 
+	.signature-required {
+		border-color: #ff6b6b !important;
+	}
+
+	.loading-message, .error-message {
+		text-align: center;
+		padding: 2rem;
+		opacity: 0.7;
+	}
+
+	.error-message {
+		color: #ff6b6b;
+	}
+
 	.thumbnail-strip {
 	display: flex;
 	gap: 0.5rem;
@@ -1665,6 +1679,123 @@
 		// Generate random selections immediately when DOM is ready
 		generateRandomSelections();
 	});
+
+	async function sendLetter() {
+		const userInput = document.getElementById('user-letter').value.trim();
+		const signature = document.getElementById('signature-input').value;
+
+		if (!state.currentPenpal) {
+			console.error("No penpal is active. Cannot send letter.");
+			return;
+		}
+		
+		if (!userInput || state.isWriting || !signature) {
+			if (!signature) {
+				document.getElementById('signature-input').classList.add('signature-required');
+				alert('Please sign your letter!');
+			}
+			if (!userInput) {
+				alert('Please write a letter before sending!');
+			}
+			return;
+		}
+		
+		// Update signature state when sending letter
+		updateSignature(signature);
+		
+		// Add signature to user's letter
+		const signedLetter = `${userInput}\n\nBest regards,\n${signature}`;
+		document.getElementById('user-letter').value = '';
+		const userSection = document.getElementById('userSection');
+		userSection.classList.remove('expanded');
+		
+		// Save user's letter to conversation
+		saveConversation({
+			content: signedLetter,
+			from: signature,
+			timestamp: Date.now()
+		}, false);
+
+		try {
+			// Show loading state
+			document.getElementById('ai-letter').innerHTML = '<div class="loading-message">Your penpal is writing back...</div>';
+			
+			const prompt = `You are ${state.currentPenpal.name}, a ${state.currentPenpal.traits.age} year old ${state.currentPenpal.traits.gender.toLowerCase()} 
+				from ${state.currentPenpal.location} who is ${state.currentPenpal.traits.personality.toLowerCase()}. 
+				Using your background: ${state.currentPenpal.bio} and writing style: ${state.currentPenpal.writingStyle},
+				write a personal letter responding to: "${signedLetter}".
+				Start with exactly "Dear ${signature}," and maintain consistent personality throughout.`;
+			
+			const response = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(prompt)}?json=false&private=true&seed=${Math.random()}`);
+			let aiResponse = await response.text();
+
+			let polaroid = null;
+
+			// Occasionally generate a new image to share (30% chance)
+			if (Math.random() > 0.7 && state.images.length < 5) { // Limit max images
+				const promptForImageIdea = `As ${state.currentPenpal.name} writing to ${signature}, 
+					what specific thing in your life or surroundings would you want to share a photo of right now? 
+					Consider pets, objects, places, or activities mentioned in your conversation.
+					Respond with only a brief, specific photo description.`;
+
+				const imageIdeaResponse = await fetch(`https://text.pollinations.ai/prompt/${encodeURIComponent(promptForImageIdea)}?json=false&private=true&seed=${Math.random()}`);
+				const imageIdea = await imageIdeaResponse.text();
+
+				const imagePrompt = `Clear, detailed photo of ${imageIdea}, photographic style`;
+				
+				let imageUrl = null;
+				
+				// Try up to 3 times to get a safe image
+				for(let attempt = 0; attempt < 3; attempt++) {
+					try {
+						const needsSafeFlag = state.currentPenpal.traits.age === '16-20';
+						const safetyParam = needsSafeFlag ? '&safe=true' : '';
+						const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?nologo=true&private=true&enhance=false${safetyParam}&seed=${Math.random()}`;
+						const imgResponse = await fetch(url);
+						const contentType = imgResponse.headers.get('content-type');
+						
+						if (!contentType.includes('text')) {
+							imageUrl = url;
+							break;
+						}
+					} catch (error) {
+						console.error('Error fetching image:', error);
+					}
+				}
+				
+				if (imageUrl) {
+					addImage(imageUrl, state.currentPenpal.name + "'s photo");
+					const casualCaptions = [
+						"Thought you'd like this!",
+						"Check this out!",
+						"A little snapshot for you",
+						"Something special to share",
+						"Just wanted to show you"
+					];
+					const randomCaption = casualCaptions[Math.floor(Math.random() * casualCaptions.length)];
+					polaroid = addPolaroidToLetter(imageUrl, randomCaption);
+				}
+			}
+
+			// Save AI's response to conversation
+			saveConversation({
+				content: aiResponse,
+				from: state.currentPenpal.name,
+				timestamp: Date.now()
+			}, true);
+			
+			// Update penpal's last letter in state
+			if (state.currentPenpal.id && state.penpals[state.currentPenpal.id]) {
+				state.penpals[state.currentPenpal.id].lastLetter = aiResponse;
+				localStorage.setItem('penpals', JSON.stringify(state.penpals));
+			}
+			
+			await writeLetter(aiResponse, true, polaroid);
+		} catch (error) {
+			console.error('Error generating response:', error);
+			document.getElementById('ai-letter').innerHTML = '<div class="error-message">Sorry, there was an error sending your letter. Please try again.</div>';
+		}
+	}
 
 	window.onload = async () => {
 		// Modal setup
