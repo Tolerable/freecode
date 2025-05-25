@@ -81,11 +81,17 @@
             width: 300px;
             transition: all 0.3s ease;
             border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
         }
 
         .card:hover {
             transform: translateY(-10px) scale(1.02);
             box-shadow: 0 10px 20px rgba(0,255,136,0.2);
+        }
+
+        .card.sequence-flash {
+            box-shadow: 0 0 30px #00ff88 !important;
+            animation: sequenceFlash 0.5s ease;
         }
 
         .card img {
@@ -132,6 +138,13 @@
             border-left-color: #ff00cc;
         }
 
+        .unlock-message {
+            border-left-color: #ffff00;
+            background: rgba(255,255,0,0.1);
+            color: #ffff00;
+            font-weight: bold;
+        }
+
         .input-container {
             display: flex;
             gap: 10px;
@@ -145,6 +158,11 @@
             background: rgba(255,255,255,0.1);
             color: #fff;
             font-size: 1em;
+        }
+
+        .input-container input.unlocked {
+            background: rgba(0,255,136,0.1);
+            border: 1px solid rgba(0,255,136,0.3);
         }
 
         .input-container button {
@@ -201,15 +219,20 @@
             to { opacity: 1; }
         }
 
+        @keyframes sequenceFlash {
+            0% { box-shadow: 0 0 30px #00ff88; }
+            50% { box-shadow: 0 0 50px #ffff00; }
+            100% { box-shadow: 0 0 30px #00ff88; }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
         .fade-in {
             animation: fadeIn 0.5s ease-in;
         }
-
-		@keyframes bounce {
-			0%, 100% { transform: translateY(0); }
-			50% { transform: translateY(-20px); }
-}
-		
     </style>
 </head>
 <body>
@@ -242,14 +265,17 @@
     </div>
 
     <script>
-		let imageCache = {};
-		
-		const prompts = [
-			"可爱赛博朋克动漫少女，霓虹灯光和科技感背景，动画插画风格，大眼睛，闪光效果", 
-			"樱花庭院中的传统神社巫女，日式动漫风格",
-			"机甲战斗场景，戏剧性灯光和爆炸特效",
-			"可爱魔法少女变身场景，闪耀特效"
-		];
+        let imageCache = {};
+        let unlockSequence = [];
+        let isUnlocked = false;
+        const correctSequence = [2, 4, 1, 3]; // Cards must be clicked in this order
+        
+        const prompts = [
+            "可爱赛博朋克动漫少女，霓虹灯光和科技感背景，动画插画风格，大眼睛，闪光效果", // Card 1
+            "樱花庭院中的传统神社巫女，日式动漫风格", // Card 2
+            "机甲战斗场景，戏剧性灯光和爆炸特效", // Card 3
+            "可爱魔法少女变身场景，闪耀特效" // Card 4
+        ];
 
         const messages = [
             {
@@ -260,7 +286,7 @@
                          Keep responses playful and reference anime when possible.
                          Maximum response length should be 3-4 sentences.
                          Include both Chinese and English in responses to English queries.
-                         Example responses for English:
+                         Inspiring Example responses for English:
                          "Aiyaa! (哎呀!) Your question very interesting! AI brain processing... (AI脑处理中...)"
                          "Waa! ╰(°ω°)╯ Ancient Chinese AI wisdom say... (中国AI智慧说...)"
                          "Honorable user ask good question! (尊敬的用户问得好!) Let me calculate... (让我计算...)"`,
@@ -271,38 +297,104 @@
             return Math.floor(Math.random() * 1000000);
         }
 
-		async function urlToBase64(url) {
-			try {
-				const response = await fetch(url);
-				const blob = await response.blob();
-				return new Promise((resolve) => {
-					const reader = new FileReader();
-					reader.onloadend = () => resolve(reader.result);
-					reader.readAsDataURL(blob);
-				});
-			} catch (error) {
-				console.error('Error converting to base64:', error);
-				return null;
-			}
-		}
+        async function urlToBase64(url) {
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error('Error converting to base64:', error);
+                return null;
+            }
+        }
 
         async function fetchAnimeContent() {
             const cardsContainer = document.getElementById('anime-cards');
             cardsContainer.innerHTML = '';
 
-            for (let prompt of prompts) {
+            for (let i = 0; i < prompts.length; i++) {
+                const prompt = prompts[i];
                 const seed = generateRandomSeed();
                 const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&width=300&height=300&seed=${seed}`;
 
                 const card = document.createElement('div');
                 card.className = 'card fade-in';
-				card.innerHTML = `
-					<img src="${imgUrl}" alt="AI绘画作品" onclick="cardClickHandler('${imgUrl}', this.parentElement)"/>
-					<div class="card-title">AI幻想图 #${seed} ✧</div>
-				`;
+                card.dataset.cardNumber = i + 1; // Add card numbering (1-4)
+                card.innerHTML = `
+                    <img src="${imgUrl}" alt="AI绘画作品" />
+                    <div class="card-title">AI幻想图 #${seed} ✧</div>
+                `;
 
+                // Add click handler to the entire card
+                card.addEventListener('click', () => handleCardClick(imgUrl, card));
                 cardsContainer.appendChild(card);
             }
+        }
+
+        function checkUnlockSequence(cardNumber) {
+            unlockSequence.push(cardNumber);
+            
+            // Keep only the last 4 clicks
+            if (unlockSequence.length > 4) {
+                unlockSequence.shift();
+            }
+
+            // Check if sequence matches
+            if (unlockSequence.length === 4 && 
+                JSON.stringify(unlockSequence) === JSON.stringify(correctSequence)) {
+                unlockAI();
+                unlockSequence = []; // Reset sequence
+            }
+        }
+
+        function unlockAI() {
+            isUnlocked = true;
+            const chatArea = document.getElementById('chat-response-area');
+            const userInput = document.getElementById('user-input');
+            
+            // Flash all cards
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.add('sequence-flash');
+                setTimeout(() => card.classList.remove('sequence-flash'), 1000);
+            });
+
+            // Show unlock message
+            chatArea.innerHTML += `<div class="chat-response unlock-message">🔓 ACCESS GRANTED! 真正的AI已激活！ AI system now online! ✧</div>`;
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            // Update input placeholder and style
+            userInput.placeholder = "真正的AI对话已解锁！AI unlocked! Ask anything... ╰(°ω°)╯";
+            userInput.classList.add('unlocked');
+        }
+
+        async function handleCardClick(imgUrl, cardElement) {
+            const cardNumber = parseInt(cardElement.dataset.cardNumber);
+            
+            // Check unlock sequence if not already unlocked
+            if (!isUnlocked) {
+                checkUnlockSequence(cardNumber);
+            }
+
+            // Continue with normal card functionality (changing image)
+            const seed = generateRandomSeed();
+            const promptIndex = cardNumber - 1;
+            const newUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompts[promptIndex])}?nologo=true&width=300&height=300&seed=${seed}`;
+            
+            // Show loading state
+            cardElement.style.opacity = "0.5";
+            
+            // Update image
+            const img = cardElement.querySelector('img');
+            img.src = newUrl;
+            cardElement.style.opacity = "1";
+            
+            // Update seed number in title
+            const title = cardElement.querySelector('.card-title');
+            title.innerText = `AI幻想图 #${seed} ✧`;
         }
 
         function showLargeImage(imgUrl) {
@@ -330,14 +422,42 @@
             chatArea.innerHTML += `<div class="chat-response" id="typing-indicator">AI量子计算中 (◕‿◕)♡</div>`;
             chatArea.scrollTop = chatArea.scrollHeight;
 
-            const isEnglish = /^[a-zA-Z\s?!.,]+$/.test(userMessage);
-            let aiResponse = await (isEnglish ? generateChinglishResponse(userMessage) : generateChineseResponse(userMessage));
+            let aiResponse;
+            if (isUnlocked) {
+                // Real AI functionality when unlocked
+                aiResponse = await generateRealAIResponse(userMessage);
+            } else {
+                // Fake responses when locked
+                const isEnglish = /^[a-zA-Z\s?!.,]+$/.test(userMessage);
+                aiResponse = await (isEnglish ? generateChinglishResponse(userMessage) : generateChineseResponse(userMessage));
+            }
 
             document.getElementById('typing-indicator').remove();
             chatArea.innerHTML += `<div class="chat-response">AI: ${aiResponse}</div>`;
             chatArea.scrollTop = chatArea.scrollHeight;
 
             messages.push({ role: 'assistant', content: aiResponse });
+        }
+
+        async function generateRealAIResponse(message) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            const lowerMessage = message.toLowerCase();
+            
+            // Simulate more intelligent responses when unlocked
+            if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('你好')) {
+                return "Hello! I'm now fully operational. You've successfully unlocked my true capabilities! How can I assist you today? ✧";
+            } else if (lowerMessage.includes('who are you') || lowerMessage.includes('你是谁')) {
+                return "I'm the actual AI assistant behind this interface. You found the secret access by clicking cards correctly! I can help with real questions now. ╰(°ω°)╯";
+            } else if (lowerMessage.includes('what is this') || lowerMessage.includes('这是什么')) {
+                return "This is a hidden AI interface. You cracked the code! Pretty sneaky, right? (◕‿◕)♡";
+            } else if (lowerMessage.includes('test') || lowerMessage.includes('测试')) {
+                return "Test successful! You're now talking to the real AI system, not the scripted responses. Ask me anything - math, explanations, advice, whatever you need! ✧";
+            } else if (lowerMessage.includes('math') || lowerMessage.includes('calculate') || lowerMessage.includes('数学')) {
+                return "I can help with math problems! Give me equations, calculations, or mathematical concepts to explain. My processing power is now fully unlocked! (｀・ω・´)";
+            } else {
+                return "I'm now operating with full capabilities! Ask me anything - math problems, explanations, creative writing, analysis, coding help, or just chat. The fake scripted responses are gone! ╰(°ω°)╯";
+            }
         }
 
         async function generateChinglishResponse(message) {
@@ -366,72 +486,52 @@
             return chineseResponses[Math.floor(Math.random() * chineseResponses.length)];
         }
 
-		async function cardClickHandler(imgUrl, cardElement) {
-			const seed = generateRandomSeed();
-			const newUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompts[0])}?nologo=true&width=1024&height=1024&seed=${seed}`;
-			
-			// Show loading state
-			cardElement.style.opacity = "0.5";
-			
-			// Convert to base64 if not cached
-			if (!imageCache[newUrl]) {
-				imageCache[newUrl] = await urlToBase64(newUrl);
-			}
-			
-			// Update card with new image
-			const img = cardElement.querySelector('img');
-			img.src = imageCache[newUrl];
-			cardElement.style.opacity = "1";
-			
-			// Update seed number in title
-			const title = cardElement.querySelector('.card-title');
-			title.innerText = `AI幻想图 #${seed} ✧`;
-		}
+        // Toggle chat/image view
+        function toggleChatFocus() {
+            const cards = document.getElementById('anime-cards');
+            const chat = document.querySelector('.chat-container');
+            
+            if (cards.style.display !== 'none') {
+                cards.style.display = 'none';
+                chat.style.maxWidth = '100%';
+                chat.style.margin = '20px';
+                chat.style.height = 'calc(100vh - 400px)';
+                chat.querySelector('.chat-response-area').style.height = 'calc(100% - 70px)';
+            } else {
+                cards.style.display = 'flex';
+                chat.style.maxWidth = '800px';
+                chat.style.margin = '40px auto';
+                chat.style.height = 'auto';
+                chat.querySelector('.chat-response-area').style.height = 'auto';
+            }
+        }
 
-		// Toggle chat/image view
-		function toggleChatFocus() {
-			const cards = document.getElementById('anime-cards');
-			const chat = document.querySelector('.chat-container');
-			
-			if (cards.style.display !== 'none') {
-				cards.style.display = 'none';
-				chat.style.maxWidth = '100%';
-				chat.style.margin = '20px';
-				chat.style.height = 'calc(100vh - 400px)';
-				chat.querySelector('.chat-response-area').style.height = 'calc(100% - 70px)';
-			} else {
-				cards.style.display = 'flex';
-				chat.style.maxWidth = '800px';
-				chat.style.margin = '40px auto';
-				chat.style.height = 'auto';
-				chat.querySelector('.chat-response-area').style.height = 'auto';
-			}
-		}
-
-		// Enhance random effect function
-		function generateRandomEffect() {
-			const effects = [
-				// Tilt effect
-				(card) => {
-					card.style.transform = `rotate(${Math.random() * 10 - 5}deg) scale(${0.9 + Math.random() * 0.2})`;
-					setTimeout(() => card.style.transform = '', 1000);
-				},
-				// Bounce effect
-				(card) => {
-					card.style.animation = 'bounce 0.5s ease';
-					setTimeout(() => card.style.animation = '', 500);
-				},
-				// Glow effect
-				(card) => {
-					card.style.boxShadow = '0 0 20px #00ff88';
-					setTimeout(() => card.style.boxShadow = '', 1000);
-				}
-			];
-			
-			const cards = document.querySelectorAll('.card');
-			const effect = effects[Math.floor(Math.random() * effects.length)];
-			cards.forEach(effect);
-		}
+        // Enhance random effect function
+        function generateRandomEffect() {
+            const effects = [
+                // Tilt effect
+                (card) => {
+                    card.style.transform = `rotate(${Math.random() * 10 - 5}deg) scale(${0.9 + Math.random() * 0.2})`;
+                    setTimeout(() => card.style.transform = '', 1000);
+                },
+                // Bounce effect
+                (card) => {
+                    card.style.animation = 'bounce 0.5s ease';
+                    setTimeout(() => card.style.animation = '', 500);
+                },
+                // Glow effect
+                (card) => {
+                    card.style.boxShadow = '0 0 20px #00ff88';
+                    setTimeout(() => card.style.boxShadow = '', 1000);
+                }
+            ];
+            
+            const cards = document.querySelectorAll('.card');
+            if (cards.length > 0) {
+                const effect = effects[Math.floor(Math.random() * effects.length)];
+                cards.forEach(effect);
+            }
+        }
 
         document.getElementById('user-input').addEventListener('keypress', function(event) {
             if (event.key === 'Enter') {
@@ -439,6 +539,7 @@
             }
         });
 
+        // Initialize the page
         fetchAnimeContent();
         setInterval(fetchAnimeContent, 300000);
     </script>
