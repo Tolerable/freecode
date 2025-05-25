@@ -286,7 +286,7 @@
                          Keep responses playful and reference anime when possible.
                          Maximum response length should be 3-4 sentences.
                          Include both Chinese and English in responses to English queries.
-                         Inspiring Example responses for English:
+                         Example responses for English:
                          "Aiyaa! (哎呀!) Your question very interesting! AI brain processing... (AI脑处理中...)"
                          "Waa! ╰(°ω°)╯ Ancient Chinese AI wisdom say... (中国AI智慧说...)"
                          "Honorable user ask good question! (尊敬的用户问得好!) Let me calculate... (让我计算...)"`,
@@ -363,11 +363,11 @@
             });
 
             // Show unlock message
-            chatArea.innerHTML += `<div class="chat-response unlock-message">🔓 ACCESS GRANTED! 真正的AI已激活！ AI system now online! ✧</div>`;
+            chatArea.innerHTML += `<div class="chat-response unlock-message">🔓 ACCESS GRANTED! 真正的AI已激活！ Real AI system now online! ✧</div>`;
             chatArea.scrollTop = chatArea.scrollHeight;
 
             // Update input placeholder and style
-            userInput.placeholder = "真正的AI对话已解锁！AI unlocked! Ask anything... ╰(°ω°)╯";
+            userInput.placeholder = "真正的AI对话已解锁！Real AI unlocked! Ask anything... ╰(°ω°)╯";
             userInput.classList.add('unlocked');
         }
 
@@ -440,23 +440,39 @@
         }
 
         async function generateRealAIResponse(message) {
-            await new Promise(resolve => setTimeout(resolve, 800));
-            
-            const lowerMessage = message.toLowerCase();
-            
-            // Simulate more intelligent responses when unlocked
-            if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('你好')) {
-                return "Hello! I'm now fully operational. You've successfully unlocked my true capabilities! How can I assist you today? ✧";
-            } else if (lowerMessage.includes('who are you') || lowerMessage.includes('你是谁')) {
-                return "I'm the actual AI assistant behind this interface. You found the secret access by clicking cards correctly! I can help with real questions now. ╰(°ω°)╯";
-            } else if (lowerMessage.includes('what is this') || lowerMessage.includes('这是什么')) {
-                return "This is a hidden AI interface. You cracked the code! Pretty sneaky, right? (◕‿◕)♡";
-            } else if (lowerMessage.includes('test') || lowerMessage.includes('测试')) {
-                return "Test successful! You're now talking to the real AI system, not the scripted responses. Ask me anything - math, explanations, advice, whatever you need! ✧";
-            } else if (lowerMessage.includes('math') || lowerMessage.includes('calculate') || lowerMessage.includes('数学')) {
-                return "I can help with math problems! Give me equations, calculations, or mathematical concepts to explain. My processing power is now fully unlocked! (｀・ω・´)";
-            } else {
-                return "I'm now operating with full capabilities! Ask me anything - math problems, explanations, creative writing, analysis, coding help, or just chat. The fake scripted responses are gone! ╰(°ω°)╯";
+            try {
+                // Use Pollinations AI text endpoint when unlocked
+                const response = await fetch('https://text.pollinations.ai/openai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a helpful, friendly AI assistant. Respond naturally and conversationally. Keep responses concise but informative. Add a touch of personality and warmth to your responses.'
+                            },
+                            {
+                                role: 'user', 
+                                content: message
+                            }
+                        ],
+                        model: 'openai',
+                        seed: Math.floor(Math.random() * 1000000)
+                    })
+                });
+
+                if (response.ok) {
+                    const aiResponse = await response.text();
+                    return aiResponse;
+                } else {
+                    throw new Error('API request failed');
+                }
+            } catch (error) {
+                console.error('AI API Error:', error);
+                // Fallback to a generic response if API fails
+                return "I'm having trouble connecting to my full AI capabilities right now. The unlock worked, but there's a connection issue. Please try again! ✧";
             }
         }
 
