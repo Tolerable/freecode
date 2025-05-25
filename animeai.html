@@ -441,28 +441,8 @@
 
         async function generateRealAIResponse(message) {
             try {
-                // Use Pollinations AI text endpoint when unlocked
-                const response = await fetch('https://text.pollinations.ai/openai', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        messages: [
-                            {
-                                role: 'system',
-                                content: 'You are a helpful, friendly AI assistant. Respond naturally and conversationally. Keep responses concise but informative. Add a touch of personality and warmth to your responses.'
-                            },
-                            {
-                                role: 'user', 
-                                content: message
-                            }
-                        ],
-                        model: 'openai',
-                        seed: Math.floor(Math.random() * 1000000)
-                    })
-                });
-
+                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(message)}?model=openai&system=${encodeURIComponent("You are a helpful, friendly AI assistant. Respond naturally and conversationally. Keep responses concise but informative. Add a touch of personality and warmth to your responses.")}`);
+                
                 if (response.ok) {
                     const aiResponse = await response.text();
                     return aiResponse;
@@ -471,7 +451,6 @@
                 }
             } catch (error) {
                 console.error('AI API Error:', error);
-                // Fallback to a generic response if API fails
                 return "I'm having trouble connecting to my full AI capabilities right now. The unlock worked, but there's a connection issue. Please try again! ✧";
             }
         }
