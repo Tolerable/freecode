@@ -240,24 +240,23 @@
             position: relative;
         }
 
-        .story-image {
-            width: 100%;
-            max-width: 400px;
-            height: 300px;
-            object-fit: cover;
-            border-radius: 15px;
-            border: 3px solid #ffd700;
-            margin: 1rem auto;
-            display: block;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-        }
+		.story-image {
+			width: 100%;
+			max-width: 600px;
+			height: 400px;
+			object-fit: cover;
+			border-radius: 15px;
+			border: 3px solid #ffd700;
+			margin: 1rem auto;
+			display: block;
+			box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+		}
 
-        .story-complete-layout {
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            gap: 2rem;
-            align-items: start;
-        }
+		.story-complete-layout {
+			display: flex;
+			flex-direction: column;
+			gap: 2rem;
+		}
 
         .story-content {
             display: flex;
@@ -265,18 +264,21 @@
             gap: 1rem;
         }
 
-        .story-media {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
+		.story-media {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			align-items: center;
+		}
 
-        .audio-player-compact {
-            background: linear-gradient(135deg, #e6f3ff, #f0e6ff);
-            border-radius: 15px;
-            padding: 1rem;
-            text-align: center;
-        }
+		.audio-player-compact {
+			background: linear-gradient(135deg, #e6f3ff, #f0e6ff);
+			border-radius: 15px;
+			padding: 1rem;
+			text-align: center;
+			width: 100%;
+			max-width: 600px;
+		}
 
         .audio-player-compact audio {
             width: 100%;
@@ -991,39 +993,43 @@
         }
 
         // Load story from library
-        window.loadStoryFromLibrary = function(index) {
-            if (index >= 0 && index < storyLibrary.length) {
-                const story = storyLibrary[index];
-                currentStory = story;
-                currentAudioUrl = story.audioUrl;
-                
-                // Fill form fields
-                document.getElementById('story-character').value = story.character;
-                document.getElementById('story-setting').value = story.setting;
-                document.getElementById('story-theme').value = story.theme;
-                document.getElementById('story-length').value = story.length;
-                document.getElementById('narrator-voice').value = story.voice || 'nova';
-                
-                // Display story
-                displayStory(story.content);
-                
-                // Show image if available
-                if (story.imageUrl) {
-                    showStoryImage(story.imageUrl);
-                }
-                
-                // Show audio if available
-                if (story.audioUrl) {
-                    showStoryAudio(story.audioUrl);
-                }
-                
-                // Update favorite button
-                favoriteStoryBtn.innerHTML = story.favorited ? 
-                    '⭐ Remove from Favorites' : '⭐ Add to Favorites';
-                
-                showStatus('Story loaded! ✨', 'success');
-            }
-        };
+		window.loadStoryFromLibrary = function(index) {
+			if (index >= 0 && index < storyLibrary.length) {
+				const story = storyLibrary[index];
+				currentStory = story;
+				currentAudioUrl = story.audioUrl;
+				
+				// Fill form fields
+				document.getElementById('story-character').value = story.character;
+				document.getElementById('story-setting').value = story.setting;
+				document.getElementById('story-theme').value = story.theme;
+				document.getElementById('story-length').value = story.length || 'medium';
+				document.getElementById('narrator-voice').value = story.voice || 'nova';
+				
+				// Display story
+				displayStory(story.content);
+				
+				// Show image if available
+				if (story.imageUrl) {
+					showStoryImage(story.imageUrl);
+				} else {
+					storyImageContainer.classList.add('hidden');
+				}
+				
+				// Show audio if available
+				if (story.audioUrl) {
+					showStoryAudio(story.audioUrl);
+				} else {
+					audioContainer.style.display = 'none';
+				}
+				
+				// Update favorite button
+				favoriteStoryBtn.innerHTML = story.favorited ? 
+					'⭐ Remove from Favorites' : '⭐ Add to Favorites';
+				
+				showStatus('Story loaded! ✨', 'success');
+			}
+		};
 
         // Play library audio
         window.playLibraryAudio = function(index) {
