@@ -252,32 +252,14 @@
 			box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 		}
 
-		.story-complete-layout {
-			display: flex;
-			flex-direction: column;
-			gap: 2rem;
-		}
-
-        .story-content {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-		.story-media {
-			display: flex;
-			flex-direction: column;
-			gap: 1rem;
-			align-items: center;
-		}
-
 		.audio-player-compact {
 			background: linear-gradient(135deg, #e6f3ff, #f0e6ff);
 			border-radius: 15px;
 			padding: 1rem;
 			text-align: center;
 			width: 100%;
-			max-width: 600px;
+			max-width: none;
+			margin: 1rem 0;
 		}
 
         .audio-player-compact audio {
@@ -504,36 +486,34 @@
         </div>
 
         <!-- Generated Story Display -->
-        <div class="story-section hidden" id="story-section">
-            <h2 class="section-title">📖 Your Magical Story</h2>
-            <div class="story-complete-layout">
-                <div class="story-content">
-                    <div class="story-display" id="story-display">
-                        Your story will appear here...
-                    </div>
-                    <div class="controls">
-                        <button class="control-button" id="regenerate-story-btn">
-                            🔄 New Story
-                        </button>
-                        <button class="control-button" id="favorite-story-btn">
-                            ⭐ Add to Favorites
-                        </button>
-                    </div>
-                </div>
-                <div class="story-media">
-                    <div id="story-image-container" class="hidden">
-                        <img id="story-image" class="story-image" alt="Story illustration" />
-                    </div>
-                    <div class="audio-player-compact" id="audio-container" style="display: none;">
-                        <h3 style="color: #553c9a; margin-bottom: 0.5rem;">🎵 Story Audio</h3>
-                        <audio id="audio-player" controls></audio>
-                        <button class="mini-button" id="download-audio-btn" style="margin-top: 0.5rem;">
-                            💾 Download Audio
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+		<div class="story-section hidden" id="story-section">
+			<h2 class="section-title">📖 Your Magical Story</h2>
+			
+			<!-- Image first, full width at top -->
+			<div id="story-image-container" class="hidden">
+				<img id="story-image" class="story-image" alt="Story illustration" />
+			</div>
+			
+			<!-- Story text below image -->
+			<div class="story-display" id="story-display">
+				Your story will appear here...
+			</div>
+			
+			<!-- Audio player below story -->
+			<div class="audio-player-compact" id="audio-container" style="display: none;">
+				<h3 style="color: #553c9a; margin-bottom: 0.5rem;">🎵 Story Audio</h3>
+				<audio id="audio-player" controls></audio>
+				<button class="mini-button" id="download-audio-btn" style="margin-top: 0.5rem;">
+					💾 Download Audio
+				</button>
+			</div>
+			
+			<!-- Controls at bottom -->
+			<div class="controls">
+				<button class="control-button" id="regenerate-story-btn">🔄 New Story</button>
+				<button class="control-button" id="favorite-story-btn">⭐ Add to Favorites</button>
+			</div>
+		</div>
 
         <!-- Story Library -->
         <div class="story-library">
@@ -750,7 +730,8 @@
         async function generateStoryText() {
             const prompt = buildStoryPrompt();
             const encodedPrompt = encodeURIComponent(prompt);
-            const storyUrl = `${TEXT_API}${encodedPrompt}?model=openai&referrer=storycreator`;
+            const randomSeed = Math.floor(Math.random() * 1000000);
+			const storyUrl = `${TEXT_API}${encodedPrompt}?model=openai&seed=${randomSeed}&referrer=storycreator`;
             
             const response = await fetch(storyUrl, {
                 method: 'GET',
@@ -772,22 +753,21 @@
             return story;
         }
 
-        // Generate story image
-        async function generateStoryImage() {
-            const imagePrompt = buildImagePrompt();
-            const encodedPrompt = encodeURIComponent(imagePrompt);
-            const imageUrl = `${IMAGE_API}${encodedPrompt}?width=512&height=512&model=flux&enhance=true&referrer=storycreator`;
-            
-            // Preload image to ensure it works
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => resolve(imageUrl);
-                img.onerror = () => reject(new Error('Image generation failed'));
-                img.src = imageUrl;
-            });
-        }
+		async function generateStoryImage() {
+			const imagePrompt = buildImagePrompt();
+			const encodedPrompt = encodeURIComponent(imagePrompt);
+			const randomSeed = Math.floor(Math.random() * 1000000);
+			const imageUrl = `${IMAGE_API}${encodedPrompt}?width=512&height=512&model=flux&enhance=true&nologo=true&seed=${randomSeed}&referrer=storycreator`;
+			
+			return new Promise((resolve, reject) => {
+				const img = new Image();
+				img.onload = () => resolve(imageUrl);
+				img.onerror = () => reject(new Error('Image generation failed'));
+				img.src = imageUrl;
+			});
+		}
 
-// Generate story audio
+		// Generate story audio
         async function generateStoryAudio(storyText, voice) {
             const cleanText = storyText
                 .replace(/\n/g, ' ')
