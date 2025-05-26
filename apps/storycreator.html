@@ -466,17 +466,17 @@
             <div class="story-display" id="story-display">
                 Your story will appear here...
             </div>
-            <div class="controls">
-                <button class="control-button" id="regenerate-story-btn">
-                    🔄 New Story
-                </button>
-                <button class="control-button" id="create-image-btn">
-                    🎨 Add Picture
-                </button>
-                <button class="control-button" id="create-audio-btn">
-                    🎵 Make Audio Story
-                </button>
-            </div>
+			<div class="controls">
+				<button class="control-button" id="regenerate-story-btn">
+					🔄 New Story
+				</button>
+				<button class="control-button" id="create-image-btn">
+					🎨 Add Picture
+				</button>
+				<button class="control-button hidden" id="retry-audio-btn">
+					🎵 Try Audio Again
+				</button>
+			</div>
         </div>
 
         <!-- Audio Section -->
@@ -521,7 +521,9 @@
         const createImageBtn = document.getElementById('create-image-btn');
         const createAudioBtn = document.getElementById('create-audio-btn');
         const downloadAudioBtn = document.getElementById('download-audio-btn');
-        const clearLibraryBtn = document.getElementById('clear-library-btn');
+		const clearLibraryBtn = document.getElementById('clear-library-btn');
+		const retryAudioBtn = document.getElementById('retry-audio-btn');
+		
         
         const storySection = document.getElementById('story-section');
         const audioSection = document.getElementById('audio-section');
@@ -550,7 +552,20 @@
         createAudioBtn.addEventListener('click', generateStoryAudio);
         downloadAudioBtn.addEventListener('click', downloadAudio);
         clearLibraryBtn.addEventListener('click', clearLibrary);
-
+		retryAudioBtn.addEventListener('click', async function() {
+			if (currentStory) {
+				try {
+					setLoading(this, true, 'Creating audio...');
+					await generateStoryAudioAuto();
+					showStatus('Audio created successfully! 🎵', 'success');
+					this.classList.add('hidden');
+				} catch (error) {
+					showStatus('Audio creation failed again. Please try later! 🎵', 'error');
+				} finally {
+					setLoading(this, false);
+				}
+			}
+		});
         // Initialize IndexedDB
         async function initDB() {
             return new Promise((resolve, reject) => {
@@ -668,6 +683,56 @@
             storySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
+		// Auto-generate audio (with better error handling)
+		async function generateStoryAudioAuto() {
+			const voice = document.getElementById('narrator-voice').value;
+			const storyText = currentStory.content;
+			
+			// Clean and prepare text for audio
+			const cleanText = storyText
+				.replace(/\n/g, ' ')
+				.replace(/\s+/g, ' ')
+				.replace(/([.!?])\s+/g, '$1 ')
+				.trim();
+			
+			const instruction = "READ THIS STORY ALOUD FOR CHILDREN:";
+			const textToRead = `${instruction} ${cleanText}`;
+			const encodedText = encodeURIComponent(textToRead);
+			
+			const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&referrer=storycreator`;
+			
+			return new Promise((resolve, reject) => {
+				const audio = new Audio();
+				
+				const timeout = setTimeout(() => {
+					reject(new Error('Audio loading timeout'));
+				}, 30000); // 30 second timeout
+				
+				audio.addEventListener('canplaythrough', () => {
+					clearTimeout(timeout);
+					audioPlayer.src = audioUrl;
+					currentAudioUrl = audioUrl;
+					currentStory.audioUrl = audioUrl;
+					currentStory.voice = voice;
+					
+					// Show audio section
+					audioSection.classList.remove('hidden');
+					audioContainer.style.display = 'block';
+					
+					resolve();
+				}, { once: true });
+				
+				audio.addEventListener('error', (e) => {
+					clearTimeout(timeout);
+					console.error('Audio loading error:', e);
+					reject(new Error('Audio generation failed'));
+				}, { once: true });
+				
+				audio.src = audioUrl;
+				audio.load();
+			});
+		}
+
         // Generate story image
         async function generateStoryImage() {
             if (!currentStory) {
@@ -709,61 +774,85 @@
             }
         }
 
-        // Generate story audio
-        async function generateStoryAudio() {
-            if (!currentStory) {
-                showStatus('Please create a story first! 📖', 'error');
-                return;
-            }
-            
-            setLoading(createAudioBtn, true, 'Creating audio story...');
-            audioSection.classList.remove('hidden');
-            audioContainer.style.display = 'none';
-            
-            try {
-                const voice = document.getElementById('narrator-voice').value;
-                const storyText = currentStory.content;
-                
-                // Clean and prepare text for audio
-                const cleanText = storyText
-                    .replace(/\n/g, ' ')
-                    .replace(/\s+/g, ' ')
-                    .replace(/([.!?])\s+/g, '$1 ')
-                    .trim();
-                
-                const instruction = "READ THIS STORY ALOUD FOR CHILDREN:";
-                const textToRead = `${instruction} ${cleanText}`;
-                const encodedText = encodeURIComponent(textToRead);
-                
-                const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}`;
-                
-                // Test audio loading
-                const audio = new Audio(audioUrl);
-                audio.addEventListener('canplaythrough', () => {
-                    audioPlayer.src = audioUrl;
-                    currentAudioUrl = audioUrl;
-                    audioContainer.style.display = 'block';
-                    currentStory.audioUrl = audioUrl;
-                    currentStory.voice = voice;
-                    showStatus('Audio story is ready! 🎵', 'success');
-                    
-                    // Scroll to audio section
-                    audioSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, { once: true });
-                
-                audio.addEventListener('error', () => {
-                    showStatus('Audio creation failed. Please try again! 🎵', 'error');
-                }, { once: true });
-                
-                audio.load();
-                
-            } catch (error) {
-                console.error('Error generating audio:', error);
-                showStatus('Audio magic failed. Please try again! 🎵', 'error');
-            } finally {
-                setLoading(createAudioBtn, false);
-            }
-        }
+		// Generate story and audio automatically (with retry logic)
+		async function generateStory() {
+			const character = document.getElementById('story-character').value.trim();
+			const setting = document.getElementById('story-setting').value.trim();
+			
+			if (!character && !setting) {
+				showStatus('Please fill in at least a character or setting to create your story! 🎭', 'error');
+				return;
+			}
+			
+			setLoading(generateStoryBtn, true, 'Creating your magical story...');
+			storySection.classList.add('hidden');
+			audioSection.classList.add('hidden');
+			
+			// Try up to 3 times
+			for (let attempt = 1; attempt <= 3; attempt++) {
+				try {
+					const prompt = buildStoryPrompt();
+					const encodedPrompt = encodeURIComponent(prompt);
+					
+					// Add referrer parameter to help with API access
+					const storyUrl = `${TEXT_API}${encodedPrompt}?model=openai&referrer=storycreator`;
+					
+					const response = await fetch(storyUrl, {
+						method: 'GET',
+						headers: {
+							'Accept': 'text/plain',
+						}
+					});
+					
+					if (!response.ok) {
+						throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+					}
+					
+					const story = await response.text();
+					
+					if (!story || story.length < 50) {
+						throw new Error('Story too short or empty');
+					}
+					
+					currentStory = {
+						content: story,
+						character: character || 'Unknown',
+						setting: setting || 'Unknown',
+						theme: document.getElementById('story-theme').value,
+						timestamp: new Date().toISOString()
+					};
+					
+					displayStory(story);
+					showStatus('Story created! Now creating audio version... 🎵', 'success');
+					
+					// Auto-generate audio
+					try {
+						await generateStoryAudioAuto();
+						showStatus('Your magical story with audio is ready! ✨🎵', 'success');
+					} catch (audioError) {
+						console.error('Audio generation failed:', audioError);
+						showStatus('Story created! Audio generation failed - you can try adding audio later. 📖', 'success');
+					}
+					
+					saveToLibrary(currentStory);
+					return; // Success, exit the retry loop
+					
+				} catch (error) {
+					console.error(`Story generation attempt ${attempt} failed:`, error);
+					
+					if (attempt === 3) {
+						// Final attempt failed
+						showStatus('Story creation failed after 3 attempts. Please try again! 🎭', 'error');
+					} else {
+						// Show retry message
+						showStatus(`Attempt ${attempt} failed, trying again... 🔄`, 'info');
+						await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+					}
+				}
+			}
+			
+			setLoading(generateStoryBtn, false);
+		}
 
         // Download audio (fixed version)
         async function downloadAudio() {
