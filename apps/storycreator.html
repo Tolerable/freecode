@@ -632,48 +632,6 @@
             return prompt;
         }
 
-        // Generate story
-        async function generateStory() {
-            const character = document.getElementById('story-character').value.trim();
-            const setting = document.getElementById('story-setting').value.trim();
-            
-            if (!character && !setting) {
-                showStatus('Please fill in at least a character or setting to create your story! 🎭', 'error');
-                return;
-            }
-            
-            setLoading(generateStoryBtn, true, 'Creating your magical story...');
-            storySection.classList.add('hidden');
-            audioSection.classList.add('hidden');
-            
-            try {
-                const prompt = buildStoryPrompt();
-                const encodedPrompt = encodeURIComponent(prompt);
-                const response = await fetch(`${TEXT_API}${encodedPrompt}?model=openai`);
-                
-                if (!response.ok) throw new Error('Failed to generate story');
-                
-                const story = await response.text();
-                currentStory = {
-                    content: story,
-                    character: character || 'Unknown',
-                    setting: setting || 'Unknown',
-                    theme: document.getElementById('story-theme').value,
-                    timestamp: new Date().toISOString()
-                };
-                
-                displayStory(story);
-                saveToLibrary(currentStory);
-                showStatus('Your magical story is ready! ✨', 'success');
-                
-            } catch (error) {
-                console.error('Error generating story:', error);
-                showStatus('Oops! The story magic failed. Please try again! 🎭', 'error');
-            } finally {
-                setLoading(generateStoryBtn, false);
-            }
-        }
-
         // Display story
         function displayStory(story) {
             storyDisplay.textContent = story;
