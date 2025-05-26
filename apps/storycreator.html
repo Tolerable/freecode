@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magical Story Creator 📚✨</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #2d3748;
+            overflow-x: hidden;
+        }
+
+        /* Animated background elements */
+        .bg-decoration {
+            position: fixed;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            color: #ffd700;
+            animation: twinkle 2s infinite alternate;
+        }
+
+        .cloud {
+            color: rgba(255, 255, 255, 0.8);
+            animation: float 6s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1.2); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            background-size: 300% 300%;
+            animation: gradientShift 4s ease infinite;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #4a5568;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            display: inline-block;
+            margin-bottom: 2rem;
+        }
+
+        .story-prompt-section,
+        .story-section,
+        .audio-section,
+        .story-library {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid #ffd700;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .story-prompt-section::before,
+        .story-section::before,
+        .audio-section::before,
+        .story-library::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.1), transparent);
+            animation: shimmer 3s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: #553c9a;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .prompt-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-weight: bold;
+            color: #553c9a;
+            font-size: 1.1rem;
+        }
+
+        input, select, textarea {
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .magic-button {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .magic-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .magic-button:active {
+            transform: translateY(-1px);
+        }
+
+        .magic-button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .story-display {
+            background: linear-gradient(135deg, #fff9e6, #ffe6f2);
+            border: 2px dashed #ffd700;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 1rem 0;
+            line-height: 1.8;
+            font-size: 1.1rem;
+            color: #2d3748;
+            min-height: 200px;
+            position: relative;
+        }
+
+        .story-image {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 15px;
+            border: 3px solid #ffd700;
+            margin: 1rem auto;
+            display: block;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .control-button {
+            background: linear-gradient(45deg, #48dbfb, #0abde3);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .audio-container {
+            background: linear-gradient(135deg, #e6f3ff, #f0e6ff);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            text-align: center;
+            display: none;
+        }
+
+        audio {
+            width: 100%;
+            max-width: 500px;
+            margin: 1rem 0;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .status-success { background: #c6f6d5; color: #22543d; }
+        .status-error { background: #fed7d7; color: #742a2a; }
+        .status-info { background: #bee3f8; color: #2a4365; }
+
+        .story-card {
+            background: linear-gradient(135deg, #fff, #f7fafc);
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .story-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .story-title {
+            font-size: 1.3rem;
+            color: #553c9a;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .story-preview {
+            color: #4a5568;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .story-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        .story-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .mini-button {
+            background: transparent;
+            border: 1px solid #cbd5e0;
+            border-radius: 20px;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mini-button:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .prompt-inputs { grid-template-columns: 1fr; }
+            h1 { font-size: 2rem; }
+            .controls { flex-direction: column; }
+            .control-button, .magic-button { width: 100%; justify-content: center; }
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <!-- Animated background decorations -->
+    <div class="bg-decoration star" style="top: 10%; left: 10%; font-size: 1.5rem;">⭐</div>
+    <div class="bg-decoration star" style="top: 20%; right: 15%; font-size: 1.2rem;">✨</div>
+    <div class="bg-decoration star" style="top: 60%; left: 8%; font-size: 1.8rem;">🌟</div>
+    <div class="bg-decoration cloud" style="top: 15%; left: 70%; font-size: 2rem;">☁️</div>
+    <div class="bg-decoration cloud" style="top: 50%; right: 20%; font-size: 1.5rem;">☁️</div>
+    <div class="bg-decoration" style="top: 80%; left: 20%; font-size: 1.5rem; animation: float 4s infinite;">🦄</div>
+    <div class="bg-decoration" style="top: 30%; right: 10%; font-size: 1.2rem; animation: float 5s infinite;">🧚‍♀️</div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🏰 Magical Story Creator ✨</h1>
+            <div class="subtitle">Create amazing adventures with AI magic! 📚🎭</div>
+        </div>
+
+        <!-- Story Creation Section -->
+        <div class="story-prompt-section">
+            <h2 class="section-title">🎨 Create Your Story</h2>
+            <div class="prompt-inputs">
+                <div class="input-group">
+                    <label for="story-character">Main Character 🦸‍♀️</label>
+                    <input type="text" id="story-character" placeholder="e.g., a brave princess, funny dragon" />
+                </div>
+                <div class="input-group">
+                    <label for="story-setting">Setting 🏞️</label>
+                    <input type="text" id="story-setting" placeholder="e.g., enchanted forest, space station" />
+                </div>
+                <div class="input-group">
+                    <label for="story-theme">Adventure Type 🎭</label>
+                    <select id="story-theme">
+                        <option value="friendship">Friendship Adventure</option>
+                        <option value="magic">Magical Quest</option>
+                        <option value="mystery">Mystery to Solve</option>
+                        <option value="kindness">Acts of Kindness</option>
+                        <option value="courage">Courage & Bravery</option>
+                        <option value="exploration">Exploration Journey</option>
+                        <option value="animals">Animal Friends</option>
+                        <option value="fantasy">Fantasy World</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="story-length">Story Length 📏</label>
+                    <select id="story-length">
+                        <option value="short">Short (2-3 minutes)</option>
+                        <option value="medium" selected>Medium (4-5 minutes)</option>
+                        <option value="long">Long (6-8 minutes)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="custom-prompt">Special Requests (Optional) 💭</label>
+                <textarea id="custom-prompt" rows="3" placeholder="Any special details you'd like in your story?"></textarea>
+            </div>
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <button class="magic-button" id="generate-story-btn">
+                    ✨ Create My Story! ✨
+                </button>
+            </div>
+        </div>
+
+        <!-- Generated Story Display -->
+        <div class="story-section hidden" id="story-section">
+            <h2 class="section-title">📖 Your Magical Story</h2>
+            <div id="story-image-container" class="hidden">
+                <img id="story-image" class="story-image" alt="Story illustration" />
+            </div>
+            <div class="story-display" id="story-display">
+                Your story will appear here...
+            </div>
+            <div class="controls">
+                <button class="control-button" id="regenerate-story-btn">
+                    🔄 New Story
+                </button>
+                <button class="control-button" id="create-image-btn">
+                    🎨 Add Picture
+                </button>
+                <button class="control-button" id="create-audio-btn">
+                    🎵 Make Audio Story
+                </button>
+            </div>
+        </div>
+
+        <!-- Audio Section -->
+        <div class="audio-section hidden" id="audio-section">
+            <h2 class="section-title">🎵 Story Audio</h2>
+            <div class="input-group" style="margin-bottom: 1rem;">
+                <label for="narrator-voice">Choose Narrator Voice 🎭</label>
+                <select id="narrator-voice">
+                    <option value="nova">Nova (Clear & Friendly)</option>
+                    <option value="alloy">Alloy (Warm & Balanced)</option>
+                    <option value="echo">Echo (Deep & Dramatic)</option>
+                    <option value="shimmer">Shimmer (Bright & Cheerful)</option>
+                    <option value="fable">Fable (British Storyteller)</option>
+                    <option value="onyx">Onyx (Rich & Authoritative)</option>
+                </select>
+            </div>
+            <div class="audio-container" id="audio-container">
+                <audio id="audio-player" controls></audio>
+                <div class="controls">
+                    <button class="control-button" id="download-audio-btn">
+                        💾 Download Audio
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Story Library -->
+        <div class="story-library">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 class="section-title">📚 Your Story Library</h2>
+                <button class="mini-button" id="clear-library-btn">🗑️ Clear All</button>
+            </div>
+            <div id="story-library-list">
+                <div style="text-align: center; color: #718096; font-style: italic; padding: 2rem;">
+                    No stories created yet. Start creating magical adventures above! ✨
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="status-message" class="status-message hidden"></div>
+    </div>
+
+    <script>
+        // Constants
+        const TEXT_API = 'https://text.pollinations.ai/';
+        const IMAGE_API = 'https://image.pollinations.ai/prompt/';
+        const AUDIO_API = 'https://text.pollinations.ai/';
+        
+        // DOM Elements
+        const generateStoryBtn = document.getElementById('generate-story-btn');
+        const regenerateStoryBtn = document.getElementById('regenerate-story-btn');
+        const createImageBtn = document.getElementById('create-image-btn');
+        const createAudioBtn = document.getElementById('create-audio-btn');
+        const downloadAudioBtn = document.getElementById('download-audio-btn');
+        const clearLibraryBtn = document.getElementById('clear-library-btn');
+        
+        const storySection = document.getElementById('story-section');
+        const audioSection = document.getElementById('audio-section');
+        const storyDisplay = document.getElementById('story-display');
+        const storyImageContainer = document.getElementById('story-image-container');
+        const storyImage = document.getElementById('story-image');
+        const audioContainer = document.getElementById('audio-container');
+        const audioPlayer = document.getElementById('audio-player');
+        const statusMessage = document.getElementById('status-message');
+        const storyLibraryList = document.getElementById('story-library-list');
+        
+        // State
+        let currentStory = null;
+        let currentAudioUrl = null;
+        let storyLibrary = [];
+        let db;
+
+        // Initialize
+        initDB();
+        loadLibrary();
+
+        // Event Listeners
+        generateStoryBtn.addEventListener('click', generateStory);
+        regenerateStoryBtn.addEventListener('click', generateStory);
+        createImageBtn.addEventListener('click', generateStoryImage);
+        createAudioBtn.addEventListener('click', generateStoryAudio);
+        downloadAudioBtn.addEventListener('click', downloadAudio);
+        clearLibraryBtn.addEventListener('click', clearLibrary);
+
+        // Initialize IndexedDB
+        async function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('storyCreatorDB', 1);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('stories')) {
+                        db.createObjectStore('stories', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+            });
+        }
+
+        // Show status message
+        function showStatus(message, type = 'info') {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message status-${type}`;
+            statusMessage.classList.remove('hidden');
+            setTimeout(() => statusMessage.classList.add('hidden'), 5000);
+        }
+
+        // Generate story prompt
+        function buildStoryPrompt() {
+            const character = document.getElementById('story-character').value.trim();
+            const setting = document.getElementById('story-setting').value.trim();
+            const theme = document.getElementById('story-theme').value;
+            const length = document.getElementById('story-length').value;
+            const customPrompt = document.getElementById('custom-prompt').value.trim();
+            
+            let lengthInstruction = '';
+            switch(length) {
+                case 'short': lengthInstruction = 'Write a short story (2-3 paragraphs, about 200-300 words)'; break;
+                case 'medium': lengthInstruction = 'Write a medium-length story (4-5 paragraphs, about 400-500 words)'; break;
+                case 'long': lengthInstruction = 'Write a longer story (6-8 paragraphs, about 600-800 words)'; break;
+            }
+            
+            const themeDescriptions = {
+                friendship: 'about the power of friendship and helping others',
+                magic: 'filled with magical elements, spells, and wonder',
+                mystery: 'with an exciting mystery to solve',
+                kindness: 'showcasing acts of kindness and compassion',
+                courage: 'about being brave and overcoming fears',
+                exploration: 'about discovering new worlds and adventures',
+                animals: 'featuring talking animals as main characters',
+                fantasy: 'set in a magical fantasy world with mythical creatures'
+            };
+            
+            let prompt = `${lengthInstruction} suitable for children aged 5-12. The story should be ${themeDescriptions[theme]}.`;
+            
+            if (character) prompt += ` The main character is ${character}.`;
+            if (setting) prompt += ` The story takes place in ${setting}.`;
+            if (customPrompt) prompt += ` Additional details: ${customPrompt}.`;
+            
+            prompt += ' Make the story engaging, age-appropriate, with a positive message and happy ending. Use simple language but keep it interesting and magical.';
+            
+            return prompt;
+        }
+
+        // Generate story
+        async function generateStory() {
+            const character = document.getElementById('story-character').value.trim();
+            const setting = document.getElementById('story-setting').value.trim();
+            
+            if (!character && !setting) {
+                showStatus('Please fill in at least a character or setting to create your story! 🎭', 'error');
+                return;
+            }
+            
+            setLoading(generateStoryBtn, true, 'Creating your magical story...');
+            storySection.classList.add('hidden');
+            audioSection.classList.add('hidden');
+            
+            try {
+                const prompt = buildStoryPrompt();
+                const encodedPrompt = encodeURIComponent(prompt);
+                const response = await fetch(`${TEXT_API}${encodedPrompt}?model=openai`);
+                
+                if (!response.ok) throw new Error('Failed to generate story');
+                
+                const story = await response.text();
+                currentStory = {
+                    content: story,
+                    character: character || 'Unknown',
+                    setting: setting || 'Unknown',
+                    theme: document.getElementById('story-theme').value,
+                    timestamp: new Date().toISOString()
+                };
+                
+                displayStory(story);
+                saveToLibrary(currentStory);
+                showStatus('Your magical story is ready! ✨', 'success');
+                
+            } catch (error) {
+                console.error('Error generating story:', error);
+                showStatus('Oops! The story magic failed. Please try again! 🎭', 'error');
+            } finally {
+                setLoading(generateStoryBtn, false);
+            }
+        }
+
+        // Display story
+        function displayStory(story) {
+            storyDisplay.textContent = story;
+            storySection.classList.remove('hidden');
+            storyImageContainer.classList.add('hidden');
+            
+            // Scroll to story
+            storySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Generate story image
+        async function generateStoryImage() {
+            if (!currentStory) {
+                showStatus('Please create a story first! 📖', 'error');
+                return;
+            }
+            
+            setLoading(createImageBtn, true, 'Creating picture...');
+            
+            try {
+                // Create image prompt from story
+                const character = document.getElementById('story-character').value.trim();
+                const setting = document.getElementById('story-setting').value.trim();
+                const theme = document.getElementById('story-theme').value;
+                
+                let imagePrompt = `children's book illustration, cute and colorful, ${character} in ${setting}, ${theme} theme, fantasy art style, bright colors, kid-friendly, magical atmosphere`;
+                
+                const encodedPrompt = encodeURIComponent(imagePrompt);
+                const imageUrl = `${IMAGE_API}${encodedPrompt}?width=512&height=512&model=flux&enhance=true`;
+                
+                // Preload image
+                const img = new Image();
+                img.onload = () => {
+                    storyImage.src = imageUrl;
+                    storyImageContainer.classList.remove('hidden');
+                    currentStory.imageUrl = imageUrl;
+                    showStatus('Beautiful picture created! 🎨', 'success');
+                };
+                img.onerror = () => {
+                    showStatus('Picture creation failed. Try again! 🎨', 'error');
+                };
+                img.src = imageUrl;
+                
+            } catch (error) {
+                console.error('Error generating image:', error);
+                showStatus('Picture magic failed. Please try again! 🎨', 'error');
+            } finally {
+                setLoading(createImageBtn, false);
+            }
+        }
+
+        // Generate story audio
+        async function generateStoryAudio() {
+            if (!currentStory) {
+                showStatus('Please create a story first! 📖', 'error');
+                return;
+            }
+            
+            setLoading(createAudioBtn, true, 'Creating audio story...');
+            audioSection.classList.remove('hidden');
+            audioContainer.style.display = 'none';
+            
+            try {
+                const voice = document.getElementById('narrator-voice').value;
+                const storyText = currentStory.content;
+                
+                // Clean and prepare text for audio
+                const cleanText = storyText
+                    .replace(/\n/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .replace(/([.!?])\s+/g, '$1 ')
+                    .trim();
+                
+                const instruction = "READ THIS STORY ALOUD FOR CHILDREN:";
+                const textToRead = `${instruction} ${cleanText}`;
+                const encodedText = encodeURIComponent(textToRead);
+                
+                const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}`;
+                
+                // Test audio loading
+                const audio = new Audio(audioUrl);
+                audio.addEventListener('canplaythrough', () => {
+                    audioPlayer.src = audioUrl;
+                    currentAudioUrl = audioUrl;
+                    audioContainer.style.display = 'block';
+                    currentStory.audioUrl = audioUrl;
+                    currentStory.voice = voice;
+                    showStatus('Audio story is ready! 🎵', 'success');
+                    
+                    // Scroll to audio section
+                    audioSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, { once: true });
+                
+                audio.addEventListener('error', () => {
+                    showStatus('Audio creation failed. Please try again! 🎵', 'error');
+                }, { once: true });
+                
+                audio.load();
+                
+            } catch (error) {
+                console.error('Error generating audio:', error);
+                showStatus('Audio magic failed. Please try again! 🎵', 'error');
+            } finally {
+                setLoading(createAudioBtn, false);
+            }
+        }
+
+        // Download audio (fixed version)
+        async function downloadAudio() {
+            if (!currentAudioUrl) {
+                showStatus('No audio to download. Create audio first! 🎵', 'error');
+                return;
+            }
+            
+            showStatus('Preparing download...', 'info');
+            
+            try {
+                // Fetch the audio as blob first
+                const response = await fetch(currentAudioUrl);
+                if (!response.ok) throw new Error('Failed to fetch audio');
+                
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                
+                // Create download link
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                
+                // Generate filename
+                const character = document.getElementById('story-character').value.trim() || 'story';
+                const safeFileName = character.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+                const filename = `magical_story_${safeFileName}_${Date.now()}.mp3`;
+                a.download = filename;
+                
+                // Trigger download
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // Cleanup
+                URL.revokeObjectURL(blobUrl);
+                
+                showStatus('Download started! 💾', 'success');
+                
+            } catch (error) {
+                console.error('Download error:', error);
+               showStatus('Download failed. Please try again! 💾', 'error');
+           }
+       }
+
+       // Save story to library
+       async function saveToLibrary(story) {
+           try {
+               const transaction = db.transaction(['stories'], 'readwrite');
+               const store = transaction.objectStore('stories');
+               await store.add(story);
+               loadLibrary();
+           } catch (error) {
+               console.error('Error saving to library:', error);
+           }
+       }
+
+       // Load library from DB
+       async function loadLibrary() {
+           try {
+               const transaction = db.transaction(['stories'], 'readonly');
+               const store = transaction.objectStore('stories');
+               const request = store.getAll();
+               
+               request.onsuccess = () => {
+                   storyLibrary = request.result.sort((a, b) => 
+                       new Date(b.timestamp) - new Date(a.timestamp)
+                   );
+                   updateLibraryUI();
+               };
+           } catch (error) {
+               console.error('Error loading library:', error);
+           }
+       }
+
+       // Update library UI
+       function updateLibraryUI() {
+           if (storyLibrary.length === 0) {
+               storyLibraryList.innerHTML = `
+                   <div style="text-align: center; color: #718096; font-style: italic; padding: 2rem;">
+                       No stories created yet. Start creating magical adventures above! ✨
+                   </div>
+               `;
+               return;
+           }
+           
+           storyLibraryList.innerHTML = storyLibrary.map((story, index) => {
+               const preview = story.content.substring(0, 150) + '...';
+               const date = new Date(story.timestamp).toLocaleDateString();
+               
+               return `
+                   <div class="story-card">
+                       <div class="story-title">
+                           ${story.character} in ${story.setting}
+                       </div>
+                       <div class="story-preview">${preview}</div>
+                       ${story.imageUrl ? `<img src="${story.imageUrl}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 10px; margin: 0.5rem 0;">` : ''}
+                       <div class="story-meta">
+                           <span>📅 ${date} | 🎭 ${story.theme}</span>
+                           <div class="story-actions">
+                               <button class="mini-button" onclick="loadStoryFromLibrary(${index})">📖 View</button>
+                               ${story.audioUrl ? `<button class="mini-button" onclick="playLibraryAudio(${index})">🎵 Play</button>` : ''}
+                               ${story.audioUrl ? `<button class="mini-button" onclick="downloadLibraryAudio(${index})">💾 Download</button>` : ''}
+                               <button class="mini-button" onclick="deleteStoryFromLibrary(${index})">🗑️ Delete</button>
+                           </div>
+                       </div>
+                   </div>
+               `;
+           }).join('');
+       }
+
+       // Load story from library
+       window.loadStoryFromLibrary = function(index) {
+           if (index >= 0 && index < storyLibrary.length) {
+               const story = storyLibrary[index];
+               currentStory = story;
+               
+               // Fill form fields
+               document.getElementById('story-character').value = story.character;
+               document.getElementById('story-setting').value = story.setting;
+               document.getElementById('story-theme').value = story.theme;
+               
+               // Display story
+               displayStory(story.content);
+               
+               // Show image if available
+               if (story.imageUrl) {
+                   storyImage.src = story.imageUrl;
+                   storyImageContainer.classList.remove('hidden');
+               }
+               
+               showStatus('Story loaded! ✨', 'success');
+           }
+       };
+
+       // Play library audio
+       window.playLibraryAudio = function(index) {
+           if (index >= 0 && index < storyLibrary.length) {
+               const story = storyLibrary[index];
+               if (story.audioUrl) {
+                   audioPlayer.src = story.audioUrl;
+                   audioSection.classList.remove('hidden');
+                   audioContainer.style.display = 'block';
+                   currentAudioUrl = story.audioUrl;
+                   audioPlayer.play();
+                   
+                   // Set voice selector
+                   if (story.voice) {
+                       document.getElementById('narrator-voice').value = story.voice;
+                   }
+                   
+                   showStatus('Playing story audio! 🎵', 'success');
+               }
+           }
+       };
+
+       // Download library audio (fixed version)
+       window.downloadLibraryAudio = async function(index) {
+           if (index >= 0 && index < storyLibrary.length) {
+               const story = storyLibrary[index];
+               if (story.audioUrl) {
+                   showStatus('Preparing download...', 'info');
+                   
+                   try {
+                       // Fetch the audio as blob first
+                       const response = await fetch(story.audioUrl);
+                       if (!response.ok) throw new Error('Failed to fetch audio');
+                       
+                       const blob = await response.blob();
+                       const blobUrl = URL.createObjectURL(blob);
+                       
+                       // Create download link
+                       const a = document.createElement('a');
+                       a.href = blobUrl;
+                       
+                       // Generate filename
+                       const safeFileName = story.character.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+                       const filename = `story_${safeFileName}_${Date.now()}.mp3`;
+                       a.download = filename;
+                       
+                       // Trigger download
+                       document.body.appendChild(a);
+                       a.click();
+                       document.body.removeChild(a);
+                       
+                       // Cleanup
+                       URL.revokeObjectURL(blobUrl);
+                       
+                       showStatus('Download complete! 💾', 'success');
+                       
+                   } catch (error) {
+                       console.error('Download error:', error);
+                       showStatus('Download failed. Please try again! 💾', 'error');
+                   }
+               }
+           }
+       };
+
+       // Delete story from library
+       window.deleteStoryFromLibrary = async function(index) {
+           if (index >= 0 && index < storyLibrary.length) {
+               if (confirm('Are you sure you want to delete this story? 🗑️')) {
+                   try {
+                       const story = storyLibrary[index];
+                       const transaction = db.transaction(['stories'], 'readwrite');
+                       const store = transaction.objectStore('stories');
+                       await store.delete(story.id);
+                       
+                       loadLibrary();
+                       showStatus('Story deleted! 🗑️', 'success');
+                   } catch (error) {
+                       console.error('Error deleting story:', error);
+                       showStatus('Failed to delete story! 🗑️', 'error');
+                   }
+               }
+           }
+       };
+
+       // Clear entire library
+       async function clearLibrary() {
+           if (confirm('Are you sure you want to delete ALL stories? This cannot be undone! 🗑️')) {
+               try {
+                   const transaction = db.transaction(['stories'], 'readwrite');
+                   const store = transaction.objectStore('stories');
+                   await store.clear();
+                   
+                   storyLibrary = [];
+                   updateLibraryUI();
+                   showStatus('All stories deleted! 🗑️', 'success');
+               } catch (error) {
+                   console.error('Error clearing library:', error);
+                   showStatus('Failed to clear library! 🗑️', 'error');
+               }
+           }
+       }
+
+       // Loading state helper
+       function setLoading(button, isLoading, loadingText = 'Loading...') {
+           if (isLoading) {
+               button.disabled = true;
+               button.innerHTML = `<span class="loading-spinner"></span> ${loadingText}`;
+           } else {
+               button.disabled = false;
+               // Reset button text based on button ID
+               if (button.id === 'generate-story-btn') {
+                   button.innerHTML = '✨ Create My Story! ✨';
+               } else if (button.id === 'regenerate-story-btn') {
+                   button.innerHTML = '🔄 New Story';
+               } else if (button.id === 'create-image-btn') {
+                   button.innerHTML = '🎨 Add Picture';
+               } else if (button.id === 'create-audio-btn') {
+                   button.innerHTML = '🎵 Make Audio Story';
+               }
+           }
+       }
+
+       // Add some fun interactions
+       document.addEventListener('DOMContentLoaded', function() {
+           // Add sparkle effect to magic buttons
+           const magicButtons = document.querySelectorAll('.magic-button');
+           magicButtons.forEach(button => {
+               button.addEventListener('click', function(e) {
+                   // Create sparkle effect
+                   for (let i = 0; i < 6; i++) {
+                       setTimeout(() => {
+                           const sparkle = document.createElement('div');
+                           sparkle.innerHTML = '✨';
+                           sparkle.style.position = 'absolute';
+                           sparkle.style.left = e.pageX + (Math.random() - 0.5) * 50 + 'px';
+                           sparkle.style.top = e.pageY + (Math.random() - 0.5) * 50 + 'px';
+                           sparkle.style.pointerEvents = 'none';
+                           sparkle.style.fontSize = '1.5rem';
+                           sparkle.style.zIndex = '9999';
+                           sparkle.style.animation = 'sparkleFloat 1s ease-out forwards';
+                           document.body.appendChild(sparkle);
+                           
+                           setTimeout(() => sparkle.remove(), 1000);
+                       }, i * 100);
+                   }
+               });
+           });
+           
+           // Add the sparkle animation CSS
+           const style = document.createElement('style');
+           style.textContent = `
+               @keyframes sparkleFloat {
+                   0% { opacity: 1; transform: translateY(0px) scale(1); }
+                   100% { opacity: 0; transform: translateY(-30px) scale(0.5); }
+               }
+           `;
+           document.head.appendChild(style);
+       });
+   </script>
+</body>
+</html>
