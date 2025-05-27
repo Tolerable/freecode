@@ -992,19 +992,35 @@
 				if (story.imageUrl) {
 					showStoryImage(story.imageUrl);
 				} else {
-					// Generate missing image
-					showStatus('Generating missing image... 🎨', 'info');
+					// Show loading placeholder
+					storyImageContainer.classList.remove('hidden');
+					storyImageContainer.innerHTML = `
+						<div style="width: 100%; max-width: 600px; height: 400px; background: linear-gradient(135deg, #f7fafc, #edf2f7); border: 2px dashed #cbd5e0; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 1rem auto;">
+							<div style="text-align: center; color: #667eea;">
+								<div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+								<p>Creating beautiful artwork... 🎨</p>
+							</div>
+						</div>
+					`;
+					
 					try {
 						const imageUrl = await generateStoryImage();
 						story.imageUrl = imageUrl;
-						showStoryImage(imageUrl);
+						storyImageContainer.innerHTML = `<img id="story-image" class="story-image" alt="Story illustration" />`;
+						document.getElementById('story-image').src = imageUrl;
+						
 						// Update in database
 						const transaction = db.transaction(['stories'], 'readwrite');
 						const store = transaction.objectStore('stories');
 						await store.put(story);
-						loadLibrary(); // Refresh library display
+						loadLibrary();
 					} catch (error) {
 						console.error('Failed to generate missing image:', error);
+						storyImageContainer.innerHTML = `
+							<div style="width: 100%; max-width: 600px; height: 200px; background: #fed7d7; border: 2px dashed #e53e3e; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 1rem auto;">
+								<p style="color: #742a2a;">❌ Image generation failed</p>
+							</div>
+						`;
 					}
 				}
 				
@@ -1014,22 +1030,47 @@
 					audioContainer.style.display = 'block';
 					currentAudioUrl = story.audioUrl;
 				} else {
+					// Show loading placeholder while generating audio
+					audioContainer.style.display = 'block';
+					audioContainer.innerHTML = `
+						<h3 style="color: #553c9a; margin-bottom: 0.5rem;">🎵 Story Audio</h3>
+						<div style="padding: 2rem; text-align: center; color: #667eea;">
+							<div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+							<p>Creating audio narration... Please wait! 🎙️</p>
+						</div>
+					`;
+					
 					// Generate missing audio
-					showStatus('Generating missing audio... 🎵', 'info');
 					try {
 						const audioUrl = await generateStoryAudio(story.content, story.voice || 'nova');
 						story.audioUrl = audioUrl;
-						audioPlayer.src = audioUrl;
-						audioContainer.style.display = 'block';
 						currentAudioUrl = audioUrl;
+						
+						// Replace loading with actual audio player
+						audioContainer.innerHTML = `
+							<h3 style="color: #553c9a; margin-bottom: 0.5rem;">🎵 Story Audio</h3>
+							<audio id="audio-player" controls></audio>
+							<button class="mini-button" id="download-audio-btn" style="margin-top: 0.5rem;">
+								💾 Download Audio
+							</button>
+						`;
+						document.getElementById('audio-player').src = audioUrl;
+						
 						// Update in database
 						const transaction = db.transaction(['stories'], 'readwrite');
 						const store = transaction.objectStore('stories');
 						await store.put(story);
-						loadLibrary(); // Refresh library display
+						loadLibrary();
+						
+						showStatus('Audio generated successfully! 🎵', 'success');
 					} catch (error) {
 						console.error('Failed to generate missing audio:', error);
-						showStatus('Could not generate audio 🎵', 'error');
+						audioContainer.innerHTML = `
+							<h3 style="color: #553c9a; margin-bottom: 0.5rem;">🎵 Story Audio</h3>
+							<div style="padding: 1rem; text-align: center; color: #e53e3e;">
+								<p>❌ Audio generation failed. Try again later!</p>
+							</div>
+						`;
 					}
 				}
 				
