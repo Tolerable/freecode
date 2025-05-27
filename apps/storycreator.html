@@ -1001,23 +1001,19 @@
                 await store.add(story);
                 
                 // Check if we exceed the limit
-                const allStories = await store.getAll();
-                if (allStories.length > 10) {
-                    // Sort by favorited status and timestamp
-                    const sortedStories = allStories.sort((a, b) => {
-                        if (a.favorited && !b.favorited) return -1;
-                        if (!a.favorited && b.favorited) return 1;
-                        return new Date(a.timestamp) - new Date(b.timestamp);
-                    });
-                    
-                    // Delete oldest non-favorited stories
-                    const toDelete = sortedStories.slice(0, sortedStories.length - 10);
-                    for (const storyToDelete of toDelete) {
-                        if (!storyToDelete.favorited) {
-                            await store.delete(storyToDelete.id);
-                        }
-                    }
-                }
+				const allStories = await store.getAll();
+				if (allStories.length > 10) {
+					// Find non-favorited stories, sorted by oldest first
+					const nonFavorited = allStories
+						.filter(story => !story.favorited)
+						.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+					
+					// Delete oldest non-favorited stories until we're back to 10 total
+					const needToDelete = allStories.length - 10;
+					for (let i = 0; i < Math.min(needToDelete, nonFavorited.length); i++) {
+						await store.delete(nonFavorited[i].id);
+					}
+				}
                 
                 loadLibrary();
             } catch (error) {
@@ -1033,11 +1029,7 @@
                 const request = store.getAll();
                 
                 request.onsuccess = () => {
-                    storyLibrary = request.result.sort((a, b) => {
-                        if (a.favorited && !b.favorited) return -1;
-                        if (!a.favorited && b.favorited) return 1;
-                        return new Date(b.timestamp) - new Date(a.timestamp);
-                    });
+					storyLibrary = request.result;
                     updateLibraryUI();
                 };
             } catch (error) {
