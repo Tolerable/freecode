@@ -815,11 +815,11 @@
             storyImageContainer.classList.remove('hidden');
         }
 
-        // Show story audio
-        function showStoryAudio(audioUrl) {
-            audioPlayer.src = audioUrl;
-            audioContainer.style.display = 'block';
-        }
+		function showStoryAudio(audioUrl) {
+			audioPlayer.src = audioUrl;
+			audioContainer.style.display = 'block';
+			currentAudioUrl = audioUrl;
+		}
 
         // Toggle favorite status
         async function toggleFavorite() {
@@ -973,11 +973,10 @@
         }
 
         // Load story from library
-		window.loadStoryFromLibrary = function(index) {
+		window.loadStoryFromLibrary = async function(index) {
 			if (index >= 0 && index < storyLibrary.length) {
 				const story = storyLibrary[index];
 				currentStory = story;
-				currentAudioUrl = story.audioUrl;
 				
 				// Fill form fields
 				document.getElementById('story-character').value = story.character;
@@ -989,18 +988,49 @@
 				// Display story
 				displayStory(story.content);
 				
-				// Show image if available
+				// Handle image - show existing or generate new
 				if (story.imageUrl) {
 					showStoryImage(story.imageUrl);
 				} else {
-					storyImageContainer.classList.add('hidden');
+					// Generate missing image
+					showStatus('Generating missing image... 🎨', 'info');
+					try {
+						const imageUrl = await generateStoryImage();
+						story.imageUrl = imageUrl;
+						showStoryImage(imageUrl);
+						// Update in database
+						const transaction = db.transaction(['stories'], 'readwrite');
+						const store = transaction.objectStore('stories');
+						await store.put(story);
+						loadLibrary(); // Refresh library display
+					} catch (error) {
+						console.error('Failed to generate missing image:', error);
+					}
 				}
 				
-				// Show audio if available
+				// Handle audio - show existing or generate new
 				if (story.audioUrl) {
-					showStoryAudio(story.audioUrl);
+					audioPlayer.src = story.audioUrl;
+					audioContainer.style.display = 'block';
+					currentAudioUrl = story.audioUrl;
 				} else {
-					audioContainer.style.display = 'none';
+					// Generate missing audio
+					showStatus('Generating missing audio... 🎵', 'info');
+					try {
+						const audioUrl = await generateStoryAudio(story.content, story.voice || 'nova');
+						story.audioUrl = audioUrl;
+						audioPlayer.src = audioUrl;
+						audioContainer.style.display = 'block';
+						currentAudioUrl = audioUrl;
+						// Update in database
+						const transaction = db.transaction(['stories'], 'readwrite');
+						const store = transaction.objectStore('stories');
+						await store.put(story);
+						loadLibrary(); // Refresh library display
+					} catch (error) {
+						console.error('Failed to generate missing audio:', error);
+						showStatus('Could not generate audio 🎵', 'error');
+					}
 				}
 				
 				// Update favorite button
