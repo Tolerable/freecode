@@ -730,16 +730,20 @@
                     showStatus('Story created! Image generation failed, but continuing... 🎨', 'info');
                 }
                 
-                // Step 3: Generate audio
-                showStatus('Recording story narration... 🎵', 'info');
-                try {
-                    const audioUrl = await generateStoryAudio(storyText, storyData.voice);
-                    storyData.audioUrl = audioUrl;
-                    showStoryAudio(audioUrl);
-                } catch (error) {
-                    console.error('Audio generation failed:', error);
-                    showStatus('Story and image created! Audio generation failed, but story is ready... 🎵', 'info');
-                }
+				// Step 3: Generate audio - show placeholder immediately
+				showStatus('Recording story narration... 🎵', 'info');
+				showAudioPlaceholder(); // Show loading placeholder immediately
+
+				try {
+					const audioUrl = await generateStoryAudio(storyText, storyData.voice);
+					storyData.audioUrl = audioUrl;
+					showStoryAudio(audioUrl);
+					showStatus('Audio narration complete! 🎵', 'success');
+				} catch (error) {
+					console.error('Audio generation failed:', error);
+					showAudioError();
+					showStatus('Story and image created! Audio generation failed - you can try regenerating later... 🎵', 'info');
+				}
                 
                 currentStory = storyData;
                 currentAudioUrl = storyData.audioUrl;
@@ -750,7 +754,12 @@
                 // Save to library (with limit management)
                 await saveToLibrary(storyData);
                 
-                showStatus('Your complete magical story is ready! ✨📖🎨🎵', 'success');
+                // Only show complete success if we have all components
+				if (storyData.audioUrl) {
+					showStatus('Your complete magical story with audio is ready! ✨📖🎨🎵', 'success');
+				} else {
+					showStatus('Your magical story with artwork is ready! Audio generation had issues but you can try again. ✨📖🎨', 'success');
+				}
                 
             } catch (error) {
                 console.error('Story generation failed:', error);
@@ -850,9 +859,49 @@
         }
 
 		function showStoryAudio(audioUrl) {
-			audioPlayer.src = audioUrl;
 			audioContainer.style.display = 'block';
+			audioContainer.innerHTML = `
+				<h3 style="color: #553c9a; margin-bottom: 0.5rem;">🎵 Story Audio</h3>
+				<audio id="audio-player" controls></audio>
+				<button class="mini-button" id="download-audio-btn" style="margin-top: 0.5rem;">
+					💾 Download Audio
+				</button>
+			`;
+			
+			// Re-get the audio player element after innerHTML update
+			const newAudioPlayer = document.getElementById('audio-player');
+			const newDownloadBtn = document.getElementById('download-audio-btn');
+			
+			newAudioPlayer.src = audioUrl;
 			currentAudioUrl = audioUrl;
+			
+			// Re-attach download event listener
+			newDownloadBtn.addEventListener('click', downloadAudio);
+		}
+
+		// Show audio loading placeholder
+		function showAudioPlaceholder() {
+			audioContainer.style.display = 'block';
+			audioContainer.innerHTML = `
+				<h3 style="color: #553c9a; margin-bottom: 0.5rem;">🎵 Story Audio</h3>
+				<div style="padding: 2rem; text-align: center; color: #667eea; background: linear-gradient(135deg, #e6f3ff, #f0e6ff); border-radius: 10px;">
+					<div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+					<p><strong>Creating your magical audio narration...</strong></p>
+					<p style="font-size: 0.9rem; margin-top: 0.5rem; color: #718096;">This may take 30-60 seconds ⏳</p>
+				</div>
+			`;
+		}
+
+		// Show audio error state
+		function showAudioError() {
+			audioContainer.style.display = 'block';
+			audioContainer.innerHTML = `
+				<h3 style="color: #553c9a; margin-bottom: 0.5rem;">🎵 Story Audio</h3>
+				<div style="padding: 1.5rem; text-align: center; color: #e53e3e; background: #fed7d7; border-radius: 10px;">
+					<p><strong>❌ Audio generation failed</strong></p>
+					<p style="font-size: 0.9rem; margin-top: 0.5rem;">You can try creating a new story to generate audio, or view this story later from your library!</p>
+				</div>
+			`;
 		}
 
         // Toggle favorite status
@@ -968,43 +1017,43 @@
         }
 
         // Update library UI
-        function updateLibraryUI() {
-            if (storyLibrary.length === 0) {
-                storyLibraryList.innerHTML = `
-                    <div style="text-align: center; color: #718096; font-style: italic; padding: 2rem;">
-                        No stories created yet. Start creating magical adventures above! ✨
-                    </div>
-                `;
-                return;
-            }
-            
-            storyLibraryList.innerHTML = storyLibrary.map((story, index) => {
-                const preview = story.content.substring(0, 120) + '...';
-                const date = new Date(story.timestamp).toLocaleDateString();
-                
-                return `
-                    <div class="story-card ${story.favorited ? 'favorited' : ''}">
-                        <div class="story-title">
-                            ${story.favorited ? '⭐ ' : ''}${story.character} in ${story.setting}
-                        </div>
-                        <div class="story-preview">${preview}</div>
-                        ${story.imageUrl ? `<img src="${story.imageUrl}" class="story-card-image" alt="Story image">` : ''}
-                        <div class="story-meta">
-                            <span>📅 ${date} | 🎭 ${story.theme} | 📏 ${story.length}</span>
-                        </div>
-                        <div class="story-actions">
-                            <button class="mini-button" onclick="loadStoryFromLibrary(${index})">📖 View Full Story</button>
-                            ${story.audioUrl ? `<button class="mini-button" onclick="playLibraryAudio(${index})">🎵 Play Audio</button>` : ''}
-                            ${story.audioUrl ? `<button class="mini-button" onclick="downloadLibraryAudio(${index})">💾 Download</button>` : ''}
-                            <button class="mini-button ${story.favorited ? 'favorite' : ''}" onclick="toggleLibraryFavorite(${index})">
-                                ${story.favorited ? '⭐ Favorited' : '⭐ Favorite'}
-                            </button>
-                            <button class="mini-button" onclick="deleteStoryFromLibrary(${index})">🗑️ Delete</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
+		function updateLibraryUI() {
+			if (storyLibrary.length === 0) {
+				storyLibraryList.innerHTML = `
+					<div style="text-align: center; color: #718096; font-style: italic; padding: 2rem;">
+						No stories created yet. Start creating magical adventures above! ✨
+					</div>
+				`;
+				return;
+			}
+			
+			storyLibraryList.innerHTML = storyLibrary.map((story) => {
+				const preview = story.content.substring(0, 120) + '...';
+				const date = new Date(story.timestamp).toLocaleDateString();
+				
+				return `
+					<div class="story-card ${story.favorited ? 'favorited' : ''}" data-story-id="${story.id}">
+						<div class="story-title">
+							${story.favorited ? '⭐ ' : ''}${story.character} in ${story.setting}
+						</div>
+						<div class="story-preview">${preview}</div>
+						${story.imageUrl ? `<img src="${story.imageUrl}" class="story-card-image" alt="Story image">` : ''}
+						<div class="story-meta">
+							<span>📅 ${date} | 🎭 ${story.theme} | 📏 ${story.length}</span>
+						</div>
+						<div class="story-actions">
+							<button class="mini-button" onclick="loadStoryFromLibrary(${story.id})">📖 View Full Story</button>
+							${story.audioUrl ? `<button class="mini-button" onclick="playLibraryAudio(${story.id})">🎵 Play Audio</button>` : ''}
+							${story.audioUrl ? `<button class="mini-button" onclick="downloadLibraryAudio(${story.id})">💾 Download</button>` : ''}
+							<button class="mini-button ${story.favorited ? 'favorite' : ''}" onclick="toggleLibraryFavorite(${story.id})">
+								${story.favorited ? '⭐ Favorited' : '⭐ Favorite'}
+							</button>
+							<button class="mini-button" onclick="deleteStoryFromLibrary(${story.id})">🗑️ Delete</button>
+						</div>
+					</div>
+				`;
+			}).join('');
+		}
 
         // Load story from library
 		window.loadStoryFromLibrary = async function(index) {
