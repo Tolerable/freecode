@@ -889,23 +889,30 @@
 
 		function showStoryAudio(audioUrl) {
 			audioContainer.style.display = 'block';
-			audioContainer.innerHTML = `
-				<h3 style="color: #553c9a; margin-bottom: 0.5rem;">🎵 Story Audio</h3>
-				<audio id="audio-player" controls></audio>
-				<button class="mini-button" id="download-audio-btn" style="margin-top: 0.5rem;">
-					💾 Download Audio
-				</button>
-			`;
 			
-			// Re-get the audio player element after innerHTML update
-			const newAudioPlayer = document.getElementById('audio-player');
-			const newDownloadBtn = document.getElementById('download-audio-btn');
+			// Update the existing audio player instead of replacing everything
+			const existingAudio = audioContainer.querySelector('audio');
+			if (existingAudio) {
+				// Just update the source of existing audio player
+				existingAudio.src = audioUrl;
+			} else {
+				// Create the full audio section if it doesn't exist
+				audioContainer.innerHTML = `
+					<h3 style="color: #553c9a; margin-bottom: 0.5rem;">🎵 Story Audio</h3>
+					<audio id="audio-player" controls></audio>
+					<button class="mini-button" id="download-audio-btn" style="margin-top: 0.5rem;">
+						💾 Download Audio
+					</button>
+				`;
+				
+				// Set the audio source
+				document.getElementById('audio-player').src = audioUrl;
+				
+				// Re-attach download event listener to the new button
+				document.getElementById('download-audio-btn').addEventListener('click', downloadAudio);
+			}
 			
-			newAudioPlayer.src = audioUrl;
 			currentAudioUrl = audioUrl;
-			
-			// Re-attach download event listener
-			newDownloadBtn.addEventListener('click', downloadAudio);
 		}
 
 		// Show audio loading placeholder
@@ -1130,9 +1137,7 @@
 				
 				// Handle audio - show existing or generate new
 				if (story.audioUrl) {
-					audioPlayer.src = story.audioUrl;
-					audioContainer.style.display = 'block';
-					currentAudioUrl = story.audioUrl;
+					showStoryAudio(story.audioUrl);
 				} else {
 					// Show loading placeholder while generating audio
 					audioContainer.style.display = 'block';
@@ -1151,14 +1156,7 @@
 						currentAudioUrl = audioUrl;
 						
 						// Replace loading with actual audio player
-						audioContainer.innerHTML = `
-							<h3 style="color: #553c9a; margin-bottom: 0.5rem;">🎵 Story Audio</h3>
-							<audio id="audio-player" controls></audio>
-							<button class="mini-button" id="download-audio-btn" style="margin-top: 0.5rem;">
-								💾 Download Audio
-							</button>
-						`;
-						document.getElementById('audio-player').src = audioUrl;
+						showStoryAudio(audioUrl);
 						
 						// Update in database
 						const transaction = db.transaction(['stories'], 'readwrite');
