@@ -699,12 +699,28 @@
                 </button>
             </div>
             
-            <!-- Controls -->
-            <div class="controls">
-                <button class="control-button" id="regenerate-lyrics-btn">🔄 New Version</button>
-                <button class="control-button" id="favorite-song-btn">⭐ Add to Favorites</button>
-                <button class="control-button" id="copy-lyrics-btn">📋 Copy Lyrics</button>
-            </div>
+			<!-- Controls -->
+			<div class="controls">
+				<button class="control-button" id="regenerate-lyrics-btn">🔄 New Version</button>
+				<button class="control-button" id="favorite-song-btn">⭐ Add to Favorites</button>
+				<button class="control-button" id="copy-lyrics-btn">📋 Copy Lyrics</button>
+				
+				<!-- Audio Regeneration Controls -->
+				<div style="display: flex; align-items: center; gap: 1rem; background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 15px; border: 2px solid rgba(255,255,255,0.2);">
+					<label style="color: white; font-weight: 600;">🎤 Voice:</label>
+					<select id="regenerate-voice-type" style="padding: 0.5rem; border-radius: 8px; border: none; background: white;">
+						<option value="nova">Nova (Clear & Neutral)</option>
+						<option value="alloy">Alloy (Warm & Balanced)</option>
+						<option value="echo">Echo (Deep & Rich)</option>
+						<option value="shimmer">Shimmer (Bright & Upbeat)</option>
+						<option value="fable">Fable (Storytelling)</option>
+						<option value="onyx">Onyx (Strong & Bold)</option>
+					</select>
+					<button class="control-button" id="regenerate-audio-btn" style="background: linear-gradient(45deg, #ff6b6b, #feca57);">
+						🎤 Regenerate Audio
+					</button>
+				</div>
+			</div>
         </div>
 
         <!-- Song Library -->
@@ -782,6 +798,9 @@
         // Set default genre selection
         document.querySelector('[data-genre="pop"]').classList.add('selected');
 
+		// Audio regeneration
+		document.getElementById('regenerate-audio-btn').addEventListener('click', regenerateAudioWithNewVoice);
+
         // Initialize IndexedDB
         async function initDB() {
             return new Promise((resolve, reject) => {
@@ -803,6 +822,69 @@
                 };
             });
         }
+
+		// Regenerate audio with selected voice
+		async function regenerateAudioWithNewVoice() {
+			if (!currentSong) {
+				showStatus('No song loaded to regenerate audio! 🎤', 'error');
+				return;
+			}
+			
+			const selectedVoice = document.getElementById('regenerate-voice-type').value;
+			const regenBtn = document.getElementById('regenerate-audio-btn');
+			
+			// Update button state
+			const originalText = regenBtn.innerHTML;
+			regenBtn.innerHTML = '<span class="loading-spinner"></span> Generating...';
+			regenBtn.disabled = true;
+			
+			showStatus('Generating new vocal demo with selected voice... 🎤', 'info');
+			showAudioPlaceholder();
+			
+			try {
+				const newAudioUrl = await generateVocalDemo(currentSong.lyrics, selectedVoice);
+				
+				// Convert to base64 for storage
+				const response = await fetch(newAudioUrl);
+				const blob = await response.blob();
+				const reader = new FileReader();
+				reader.onloadend = async () => {
+					const base64data = reader.result;
+					currentSong.audioUrl = base64data;
+					currentSong.voice = selectedVoice; // Update the voice preference
+					currentAudioUrl = base64data;
+					
+					// Update in database
+					const transaction = db.transaction(['songs'], 'readwrite');
+					const store = transaction.objectStore('songs');
+					await store.put(currentSong);
+					
+					// Update display
+					showAudio(base64data);
+					
+					// Update library if this song exists there
+					const songIndex = songLibrary.findIndex(s => s.id === currentSong.id);
+					if (songIndex >= 0) {
+						songLibrary[songIndex] = currentSong;
+						updateLibraryUI();
+					}
+					
+					// Update the voice selector in the form
+					document.getElementById('voice-type').value = selectedVoice;
+					
+					showStatus('New vocal demo generated! 🎤', 'success');
+				};
+				reader.readAsDataURL(blob);
+				
+			} catch (error) {
+				console.error('Audio regeneration failed:', error);
+				showAudioError();
+				showStatus('Failed to generate new vocal demo. Please try again! 🎤', 'error');
+			} finally {
+				regenBtn.innerHTML = originalText;
+				regenBtn.disabled = false;
+			}
+		}
 
         // Show status message
         function showStatus(message, type = 'info') {
@@ -1235,7 +1317,6 @@
 					<div class="lyrics-edit-controls">
 						<button class="mini-button" onclick="saveLyricsEdit()">💾 Save Changes</button>
 						<button class="mini-button" onclick="cancelLyricsEdit()">❌ Cancel</button>
-						<button class="mini-button" onclick="regenerateAudioAfterEdit()">🎤 Generate New Audio</button>
 					</div>
 				</div>
 			`;
@@ -1486,6 +1567,12 @@
 					} else {
 						document.getElementById('custom-genre').value = song.genre;
 					}
+				}
+
+				// Update regenerate voice selector if it exists
+				const regenVoiceSelect = document.getElementById('regenerate-voice-type');
+				if (regenVoiceSelect) {
+					regenVoiceSelect.value = song.voice || 'nova';
 				}
 				
 				// Display lyrics
