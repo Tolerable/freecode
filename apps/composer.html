@@ -1424,75 +1424,74 @@
             }
         }
 
-        // Update library UI
-        function updateLibraryUI() {
-            if (songLibrary.length === 0) {
-                songLibraryList.innerHTML = `
-                    <div style="text-align: center; color: #718096; font-style: italic; padding: 3rem;">
-                        No songs created yet. Start composing your first masterpiece above! 🎼
-                    </div>
-                `;
-                return;
-            }
-            
-            songLibraryList.innerHTML = songLibrary.map((song) => {
-                const preview = song.lyrics.substring(0, 150) + '...';
-                const date = new Date(song.timestamp).toLocaleDateString();
-                
-                return `
-                    <div class="song-card ${song.favorited ? 'favorited' : ''}" data-song-id="${song.id}">
-                        <div class="song-title">
-                            ${song.favorited ? '⭐ ' : ''}${song.title}
-                        </div>
-                        <div class="song-preview">${preview}</div>
-                        <div class="song-meta">
-                            <span>📅 ${date} | 🎵 ${song.genre} | 😊 ${song.mood}</span>
-                        </div>
-                        <div class="song-actions">
-                            <button class="mini-button" onclick="loadSongFromLibrary(${songLibrary.indexOf(song)})">🎼 View Full Song</button>
-                            ${song.audioUrl ? `<button class="mini-button" onclick="playLibraryAudio(${songLibrary.indexOf(song)})">🎤 Play Demo</button>` : ''}
-                            ${song.audioUrl ? `<button class="mini-button" onclick="downloadLibraryAudio(${songLibrary.indexOf(song)})">💾 Download</button>` : ''}
-                            <button class="mini-button" onclick="copyLibraryLyrics(${songLibrary.indexOf(song)})">📋 Copy Lyrics</button>
-                            <button class="mini-button ${song.favorited ? 'favorite' : ''}" onclick="toggleLibraryFavorite(${songLibrary.indexOf(song)})">
-                                ${song.favorited ? '⭐ Favorited' : '⭐ Favorite'}
-                            </button>
-                            <button class="mini-button" onclick="deleteSongFromLibrary(${songLibrary.indexOf(song)})">🗑️ Delete</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
+		// Update library UI
+		function updateLibraryUI() {
+			if (songLibrary.length === 0) {
+				songLibraryList.innerHTML = `
+					<div style="text-align: center; color: #718096; font-style: italic; padding: 3rem;">
+						No songs created yet. Start composing your first masterpiece above! 🎼
+					</div>
+				`;
+				return;
+			}
+			
+			songLibraryList.innerHTML = songLibrary.map((song) => {
+				const preview = song.lyrics.substring(0, 150) + '...';
+				const date = new Date(song.timestamp).toLocaleDateString();
+				
+				return `
+					<div class="song-card ${song.favorited ? 'favorited' : ''}" data-song-id="${song.id}">
+						<div class="song-title">
+							${song.favorited ? '⭐ ' : ''}${song.title}
+						</div>
+						<div class="song-preview">${preview}</div>
+						<div class="song-meta">
+							<span>📅 ${date} | 🎵 ${song.genre} | 😊 ${song.mood}</span>
+						</div>
+						<div class="song-actions">
+							<button class="mini-button" onclick="loadSongFromLibrary(${songLibrary.indexOf(song)})">🎼 View Full Song</button>
+							<button class="mini-button" onclick="playLibraryAudio(${songLibrary.indexOf(song)})">🎤 Play Demo</button>
+							<button class="mini-button" onclick="downloadLibraryAudio(${songLibrary.indexOf(song)})">💾 Download</button>
+							<button class="mini-button" onclick="copyLibraryLyrics(${songLibrary.indexOf(song)})">📋 Copy Lyrics</button>
+							<button class="mini-button ${song.favorited ? 'favorite' : ''}" onclick="toggleLibraryFavorite(${songLibrary.indexOf(song)})">
+								${song.favorited ? '⭐ Favorited' : '⭐ Favorite'}
+							</button>
+							<button class="mini-button" onclick="deleteSongFromLibrary(${songLibrary.indexOf(song)})">🗑️ Delete</button>
+						</div>
+					</div>
+				`;
+			}).join('');
+		}
 
-        // Library functions
-        window.loadSongFromLibrary = async function(index) {
-            if (index >= 0 && index < songLibrary.length) {
-                const song = songLibrary[index];
-                currentSong = song;
-                
-                // Fill form fields
-                document.getElementById('song-title').value = song.title;
-                document.getElementById('song-artist').value = song.artist || '';
-                document.getElementById('song-theme').value = song.theme || '';
-                document.getElementById('song-mood').value = song.mood;
-                document.getElementById('song-structure').value = song.structure || 'verse-chorus';
-                document.getElementById('voice-type').value = song.voice || 'nova';
-                
-                // Update genre selection
-                if (song.genre) {
-                    document.querySelectorAll('.genre-button').forEach(b => b.classList.remove('selected'));
-                    const genreButton = document.querySelector(`[data-genre="${song.genre}"]`);
-                    if (genreButton) {
-                        genreButton.classList.add('selected');
-                        selectedGenre = song.genre;
-                    } else {
-                        document.getElementById('custom-genre').value = song.genre;
-                    }
-                }
-                
-                // Display lyrics
-                displayLyrics(song.lyrics);
-                
-                // Handle artwork
+		window.loadSongFromLibrary = async function(index) {
+			if (index >= 0 && index < songLibrary.length) {
+				const song = songLibrary[index];
+				currentSong = song;
+				
+				// Fill form fields
+				document.getElementById('song-title').value = song.title;
+				document.getElementById('song-artist').value = song.artist || '';
+				document.getElementById('song-theme').value = song.theme || '';
+				document.getElementById('song-mood').value = song.mood;
+				document.getElementById('song-structure').value = song.structure || 'verse-chorus';
+				document.getElementById('voice-type').value = song.voice || 'nova';
+				
+				// Update genre selection
+				if (song.genre) {
+					document.querySelectorAll('.genre-button').forEach(b => b.classList.remove('selected'));
+					const genreButton = document.querySelector(`[data-genre="${song.genre}"]`);
+					if (genreButton) {
+						genreButton.classList.add('selected');
+						selectedGenre = song.genre;
+					} else {
+						document.getElementById('custom-genre').value = song.genre;
+					}
+				}
+				
+				// Display lyrics
+				displayLyrics(song.lyrics);
+				
+				// Handle artwork
 				if (song.artworkUrl) {
 					showArtwork(song.artworkUrl);
 				} else {
@@ -1508,7 +1507,6 @@
 					
 					try {
 						const artworkUrl = await generateArtwork();
-						// Convert to base64 for storage
 						const response = await fetch(artworkUrl);
 						const blob = await response.blob();
 						const reader = new FileReader();
@@ -1520,7 +1518,10 @@
 							const transaction = db.transaction(['songs'], 'readwrite');
 							const store = transaction.objectStore('songs');
 							await store.put(song);
-							loadLibrary();
+							
+							// Update the songLibrary array directly
+							songLibrary[index] = song;
+							updateLibraryUI();
 						};
 						reader.readAsDataURL(blob);
 					} catch (error) {
@@ -1532,51 +1533,61 @@
 						`;
 					}
 				}
-                
-                // Handle audio
-                if (song.audioUrl) {
-                    showAudio(song.audioUrl);
-                } else {
-                    audioContainer.style.display = 'block';
-                    audioContainer.innerHTML = `
-                        <h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
-                        <div style="padding: 2rem; text-align: center; color: #667eea;">
-                            <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
-                            <p>Creating vocal demo... Please wait! 🎤</p>
-                        </div>
-                    `;
-                    
-                    try {
-                        const audioUrl = await generateVocalDemo(song.lyrics, song.voice || 'nova');
-                        song.audioUrl = audioUrl;
-                        currentAudioUrl = audioUrl;
-                        
-                        showAudio(audioUrl);
-                        
-                        const transaction = db.transaction(['songs'], 'readwrite');
-                        const store = transaction.objectStore('songs');
-                        await store.put(song);
-                        loadLibrary();
-                        
-                        showStatus('Vocal demo generated successfully! 🎤', 'success');
-                    } catch (error) {
-                        console.error('Failed to generate missing audio:', error);
-                        audioContainer.innerHTML = `
-                            <h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
-                            <div style="padding: 1rem; text-align: center; color: #e53e3e;">
-                                <p>❌ Vocal demo generation failed. Try again later!</p>
-                            </div>
-                        `;
-                    }
-                }
-                
-                // Update favorite button
-                favoriteSongBtn.innerHTML = song.favorited ? 
-                    '⭐ Remove from Favorites' : '⭐ Add to Favorites';
-                
-                showStatus('Song loaded! ✨', 'success');
-            }
-        };
+				
+				// Handle audio
+				if (song.audioUrl) {
+					showAudio(song.audioUrl);
+				} else {
+					audioContainer.style.display = 'block';
+					audioContainer.innerHTML = `
+						<h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
+						<div style="padding: 2rem; text-align: center; color: #667eea;">
+							<div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+							<p>Creating vocal demo... Please wait! 🎤</p>
+						</div>
+					`;
+					
+					try {
+						const audioUrl = await generateVocalDemo(song.lyrics, song.voice || 'nova');
+						const response = await fetch(audioUrl);
+						const blob = await response.blob();
+						const reader = new FileReader();
+						reader.onloadend = async () => {
+							const base64data = reader.result;
+							song.audioUrl = base64data;
+							currentAudioUrl = base64data;
+							
+							showAudio(base64data);
+							
+							const transaction = db.transaction(['songs'], 'readwrite');
+							const store = transaction.objectStore('songs');
+							await store.put(song);
+							
+							// Update the songLibrary array directly
+							songLibrary[index] = song;
+							updateLibraryUI();
+							
+							showStatus('Vocal demo generated successfully! 🎤', 'success');
+						};
+						reader.readAsDataURL(blob);
+					} catch (error) {
+						console.error('Failed to generate missing audio:', error);
+						audioContainer.innerHTML = `
+							<h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
+							<div style="padding: 1rem; text-align: center; color: #e53e3e;">
+								<p>❌ Vocal demo generation failed. Try again later!</p>
+							</div>
+						`;
+					}
+				}
+				
+				// Update favorite button
+				favoriteSongBtn.innerHTML = song.favorited ? 
+					'⭐ Remove from Favorites' : '⭐ Add to Favorites';
+				
+				showStatus('Song loaded! ✨', 'success');
+			}
+		};
 
         window.playLibraryAudio = function(index) {
             if (index >= 0 && index < songLibrary.length) {
