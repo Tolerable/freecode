@@ -860,36 +860,44 @@
 				// Display lyrics immediately after successful generation
 				displayLyrics(lyrics);
 				
-				// Step 2: Generate artwork (non-blocking) - STORE LOCALLY
+				// Step 2: Generate artwork (non-blocking) - STORE AS BASE64 IN DB
 				showStatus('Creating album artwork... 🎨', 'info');
 				generateArtwork()
 					.then(async artworkUrl => {
-						// Download and store locally
+						// Download and convert to base64 for permanent storage
 						const response = await fetch(artworkUrl);
 						const blob = await response.blob();
-						const localUrl = URL.createObjectURL(blob);
-						songData.artworkUrl = localUrl;
-						showArtwork(localUrl);
+						const reader = new FileReader();
+						reader.onloadend = () => {
+							const base64data = reader.result;
+							songData.artworkUrl = base64data; // Store as base64
+							showArtwork(base64data);
+						};
+						reader.readAsDataURL(blob);
 					})
 					.catch(error => {
 						console.error('Artwork generation failed:', error);
 						showStatus('Lyrics created! Artwork generation failed, but continuing... 🎨', 'info');
 					});
 				
-				// Step 3: Generate vocal demo (non-blocking) - STORE LOCALLY
+				// Step 3: Generate vocal demo (non-blocking) - STORE AS BASE64 IN DB
 				showStatus('Recording vocal demo... 🎤', 'info');
 				showAudioPlaceholder();
 				generateVocalDemo(lyrics, songData.voice)
 					.then(async audioUrl => {
 						if (audioUrl) {
-							// Download and store locally
+							// Download and convert to base64 for permanent storage
 							const response = await fetch(audioUrl);
 							const blob = await response.blob();
-							const localUrl = URL.createObjectURL(blob);
-							songData.audioUrl = localUrl;
-							currentAudioUrl = localUrl;
-							showAudio(localUrl);
-							showStatus('Vocal demo complete! 🎤', 'success');
+							const reader = new FileReader();
+							reader.onloadend = () => {
+								const base64data = reader.result;
+								songData.audioUrl = base64data; // Store as base64
+								currentAudioUrl = base64data;
+								showAudio(base64data);
+								showStatus('Vocal demo complete! 🎤', 'success');
+							};
+							reader.readAsDataURL(blob);
 						} else {
 							throw new Error('Audio URL is empty');
 						}
