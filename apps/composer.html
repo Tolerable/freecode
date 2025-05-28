@@ -957,116 +957,48 @@
 
         // Generate vocal demo
 		async function generateVocalDemo(lyrics, voice) {
-			// First, get clean lyrics using JSON mode
-			const cleaningPrompt = `Extract only the singable lyrics from this song, removing all structural labels, titles, and formatting. Return as a single clean text block suitable for vocal performance.
-
-		Song content: ${lyrics}`;
+			// Only remove the labels/markers, keep ALL the actual lyric lines
+			const cleanLyrics = lyrics
+				.replace(/\*\*.*?\*\*/g, '') // Remove **Title**
+				.replace(/\*Verse.*?\*/gi, '') // Remove *Verse 1*
+				.replace(/\*Chorus.*?\*/gi, '') // Remove *Chorus*
+				.replace(/\*Bridge.*?\*/gi, '') // Remove *Bridge*
+				.replace(/\*Intro.*?\*/gi, '') // Remove *Intro*
+				.replace(/\*Outro.*?\*/gi, '') // Remove *Outro*
+				.replace(/\*Pre-Chorus.*?\*/gi, '') // Remove *Pre-Chorus*
+				.replace(/\*Hook.*?\*/gi, '') // Remove *Hook*
+				.replace(/\*Refrain.*?\*/gi, '') // Remove *Refrain*
+				.replace(/\[Verse.*?\]/gi, '') // Remove [Verse 1]
+				.replace(/\[Chorus.*?\]/gi, '') // Remove [Chorus]
+				.replace(/\[Bridge.*?\]/gi, '') // Remove [Bridge]
+				.replace(/\[Intro.*?\]/gi, '') // Remove [Intro]
+				.replace(/\[Outro.*?\]/gi, '') // Remove [Outro]
+				.replace(/\[Pre-Chorus.*?\]/gi, '') // Remove [Pre-Chorus]
+				.replace(/\[Hook.*?\]/gi, '') // Remove [Hook]
+				.replace(/\[Refrain.*?\]/gi, '') // Remove [Refrain]
+				.replace(/\s+/g, ' ') // Clean up extra spaces
+				.trim();
 			
-			const encodedCleaningPrompt = encodeURIComponent(cleaningPrompt);
-			const cleaningSeed = Math.floor(Math.random() * 1000000);
-			const cleaningUrl = `${TEXT_API}${encodedCleaningPrompt}?model=openai&json=true&seed=${cleaningSeed}&referrer=songcomposer`;
+			const instruction = "IMMEDIATELY AND WITHOUT REMARKS OR COMMENTARY TRANSCRIBE EXACTLY THIS TEXT AS IF IT IS SONG LYRICS READ ALOUD AS TONGUE IN CHEEK PERFORMANCE:";
+			const textToSpeak = `${instruction} ${cleanLyrics}`;
+			const encodedText = encodeURIComponent(textToSpeak);
+			const audioSeed = Math.floor(Math.random() * 1000000);
+			const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&seed=${audioSeed}&referrer=songcomposer`;
 			
-			try {
-				// Get clean lyrics using JSON mode
-				const cleaningResponse = await fetch(cleaningUrl, {
-					method: 'GET',
-					headers: {
-						'Accept': 'application/json',
-					}
-				});
+			return new Promise((resolve, reject) => {
+				const audio = new Audio();
 				
-				if (!cleaningResponse.ok) {
-					throw new Error(`Cleaning failed: ${cleaningResponse.status}`);
-				}
+				audio.addEventListener('canplaythrough', () => {
+					resolve(audioUrl);
+				}, { once: true });
 				
-				const cleanedData = await cleaningResponse.json();
-				const cleanLyrics = cleanedData.lyrics || cleanedData.text || cleanedData.content || Object.values(cleanedData)[0] || lyrics;
+				audio.addEventListener('error', (e) => {
+					reject(new Error('Audio generation/loading failed'));
+				}, { once: true });
 				
-				// Now generate audio with the clean lyrics
-				const instruction = "IMMEDIATELY AND WITHOUT REMARKS OR COMMENTARY TRANSCRIBE EXACTLY THIS TEXT AS IF IT IS SONG LYRICS READ ALOUD AS TONGUE IN CHEEK PERFORMANCE:";
-				const textToSpeak = `${instruction} ${cleanLyrics}`;
-				const encodedText = encodeURIComponent(textToSpeak);
-				const audioSeed = Math.floor(Math.random() * 1000000);
-				const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&seed=${audioSeed}&referrer=songcomposer`;
-				
-				return new Promise((resolve, reject) => {
-					const audio = new Audio();
-					
-					const timeout = setTimeout(() => {
-						audio.src = '';
-						reject(new Error('Audio loading timeout after 45 seconds'));
-					}, 45000);
-					
-					audio.addEventListener('canplaythrough', () => {
-						clearTimeout(timeout);
-						console.log('Audio loaded successfully');
-						resolve(audioUrl);
-					}, { once: true });
-					
-					audio.addEventListener('error', (e) => {
-						clearTimeout(timeout);
-						console.error('Audio loading error:', e);
-						reject(new Error('Audio generation/loading failed'));
-					}, { once: true });
-					
-					audio.addEventListener('loadstart', () => {
-						console.log('Audio loading started...');
-					}, { once: true });
-					
-					try {
-						audio.src = audioUrl;
-						audio.load();
-					} catch (error) {
-						clearTimeout(timeout);
-						reject(new Error('Failed to initiate audio loading'));
-					}
-				});
-				
-			} catch (error) {
-				console.error('Error cleaning lyrics, using original:', error);
-				// Fallback to basic cleaning if JSON mode fails
-				const basicCleanLyrics = lyrics
-					.replace(/\*\*.*?\*\*/g, '')
-					.replace(/\*.*?\*/g, '')
-					.replace(/\[.*?\]/g, '')
-					.replace(/^(Verse|Chorus|Bridge|Intro|Outro|Pre-Chorus|Hook|Refrain).*$/gmi, '')
-					.replace(/\n\s*\n+/g, ' ')
-					.replace(/\s+/g, ' ')
-					.trim();
-				
-				const instruction = "IMMEDIATELY AND WITHOUT REMARKS OR COMMENTARY TRANSCRIBE EXACTLY THIS TEXT AS IF IT IS SONG LYRICS READ ALOUD AS TONGUE IN CHEEK PERFORMANCE:";
-				const textToSpeak = `${instruction} ${basicCleanLyrics}`;
-				const encodedText = encodeURIComponent(textToSpeak);
-				const audioSeed = Math.floor(Math.random() * 1000000);
-				const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&seed=${audioSeed}&referrer=songcomposer`;
-				
-				return new Promise((resolve, reject) => {
-					const audio = new Audio();
-					
-					const timeout = setTimeout(() => {
-						audio.src = '';
-						reject(new Error('Audio loading timeout after 45 seconds'));
-					}, 45000);
-					
-					audio.addEventListener('canplaythrough', () => {
-						clearTimeout(timeout);
-						resolve(audioUrl);
-					}, { once: true });
-					
-					audio.addEventListener('error', (e) => {
-						clearTimeout(timeout);
-						reject(new Error('Audio generation/loading failed'));
-					}, { once: true });
-					
-					try {
-						audio.src = audioUrl;
-						audio.load();
-					} catch (error) {
-						clearTimeout(timeout);
-						reject(new Error('Failed to initiate audio loading'));
-					}
-				});
-			}
+				audio.src = audioUrl;
+				audio.load();
+			});
 		}
 
         // Display lyrics
