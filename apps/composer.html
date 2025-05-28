@@ -823,100 +823,100 @@
         }
 
         // Generate complete song
-        async function generateCompleteSong() {
-            const title = document.getElementById('song-title').value.trim();
-            const theme = document.getElementById('song-theme').value.trim();
-            
-            if (!title && !theme) {
-                showStatus('Please provide at least a song title or theme! 🎵', 'error');
-                return;
-            }
-            
-            setLoading(generateLyricsBtn, true, 'Composing your song...');
-            lyricsSection.classList.add('hidden');
-            
-            let songData = {
-                title: title || 'Untitled',
-                artist: document.getElementById('song-artist').value.trim() || 'Unknown',
-                theme: theme || 'Unknown',
-                mood: document.getElementById('song-mood').value,
-                genre: document.getElementById('custom-genre').value.trim() || selectedGenre,
-                structure: document.getElementById('song-structure').value,
-                voice: document.getElementById('voice-type').value,
-                timestamp: new Date().toISOString(),
-                favorited: false
-            };
+		async function generateCompleteSong() {
+			const title = document.getElementById('song-title').value.trim();
+			const theme = document.getElementById('song-theme').value.trim();
+			
+			if (!title && !theme) {
+				showStatus('Please provide at least a song title or theme! 🎵', 'error');
+				return;
+			}
+			
+			setLoading(generateLyricsBtn, true, 'Composing your song...');
+			lyricsSection.classList.add('hidden');
+			
+			let songData = {
+				title: title || 'Untitled',
+				artist: document.getElementById('song-artist').value.trim() || 'Unknown',
+				theme: theme || 'Unknown',
+				mood: document.getElementById('song-mood').value,
+				genre: document.getElementById('custom-genre').value.trim() || selectedGenre,
+				structure: document.getElementById('song-structure').value,
+				voice: document.getElementById('voice-type').value,
+				timestamp: new Date().toISOString(),
+				favorited: false
+			};
 
-            try {
-                // Step 1: Generate lyrics
-                showStatus('Writing your song lyrics... ✍️', 'info');
-                const lyrics = await generateLyrics();
-                songData.lyrics = lyrics;
-                
-                // Display lyrics immediately
-                displayLyrics(lyrics);
-                
-                // Step 2: Generate artwork
-                showStatus('Creating album artwork... 🎨', 'info');
-                try {
-                    const artworkUrl = await generateArtwork();
-                    songData.artworkUrl = artworkUrl;
-                    showArtwork(artworkUrl);
-                } catch (error) {
-                    console.error('Artwork generation failed:', error);
-                    showStatus('Song created! Artwork generation failed, but continuing... 🎨', 'info');
-                }
-                
-                // Step 3: Generate vocal demo
-                showStatus('Recording vocal demo... 🎤', 'info');
-                showAudioPlaceholder();
+			try {
+				// Step 1: Generate lyrics - MUST succeed first
+				showStatus('Writing your song lyrics... ✍️', 'info');
+				const lyrics = await generateLyrics();
+				if (!lyrics || lyrics.length < 50) {
+					throw new Error('Generated lyrics are too short or empty');
+				}
+				songData.lyrics = lyrics;
+				
+				// Display lyrics immediately after successful generation
+				displayLyrics(lyrics);
+				
+				// Step 2: Generate artwork (non-blocking)
+				showStatus('Creating album artwork... 🎨', 'info');
+				generateArtwork()
+					.then(artworkUrl => {
+						songData.artworkUrl = artworkUrl;
+						showArtwork(artworkUrl);
+					})
+					.catch(error => {
+						console.error('Artwork generation failed:', error);
+						showStatus('Lyrics created! Artwork generation failed, but continuing... 🎨', 'info');
+					});
+				
+				// Step 3: Generate vocal demo (non-blocking)
+				showStatus('Recording vocal demo... 🎤', 'info');
+				showAudioPlaceholder();
 
-                try {
-                    const audioUrl = await generateVocalDemo(lyrics, songData.voice);
-                    if (audioUrl) {
-                        songData.audioUrl = audioUrl;
-                        showAudio(audioUrl);
-                        showStatus('Vocal demo complete! 🎤', 'success');
-                    } else {
-                        throw new Error('Audio URL is empty');
-                    }
-                } catch (error) {
-                    console.error('Audio generation failed:', error);
-                    songData.audioUrl = null;
-                    showAudioError();
-                    showStatus('Song and artwork created! Vocal demo generation failed - you can try regenerating later... 🎤', 'info');
-                }
-                
-                currentSong = songData;
-                currentAudioUrl = songData.audioUrl;
-                
-                // Update favorite button for new song
-                favoriteSongBtn.innerHTML = '⭐ Add to Favorites';
-                
-                // Save to library
-                await saveToLibrary(songData);
-                
-                // Show completion status
-                if (songData.audioUrl) {
-                    showStatus('Your complete song with vocal demo is ready! ✨🎼🎨🎤', 'success');
-                } else {
-                    showStatus('Your song with artwork is ready! Vocal demo had issues but you can try again. ✨🎼🎨', 'success');
-                }
-                
-            } catch (error) {
-                console.error('Song generation failed:', error);
-                showStatus('Song creation failed. Please try again! 🎵', 'error');
-            } finally {
-                setLoading(generateLyricsBtn, false);
-            }
-        }
+				generateVocalDemo(lyrics, songData.voice)
+					.then(audioUrl => {
+						if (audioUrl) {
+							songData.audioUrl = audioUrl;
+							currentAudioUrl = audioUrl;
+							showAudio(audioUrl);
+							showStatus('Vocal demo complete! 🎤', 'success');
+						} else {
+							throw new Error('Audio URL is empty');
+						}
+					})
+					.catch(error => {
+						console.error('Audio generation failed:', error);
+						songData.audioUrl = null;
+						showAudioError();
+						showStatus('Song created! Vocal demo generation failed - you can try regenerating later... 🎤', 'info');
+					});
+				
+				currentSong = songData;
+				
+				// Update favorite button for new song
+				favoriteSongBtn.innerHTML = '⭐ Add to Favorites';
+				
+				// Save to library immediately with what we have
+				await saveToLibrary(songData);
+				
+				showStatus('Your song lyrics are ready! Artwork and vocal demo are being generated... ✨🎼', 'success');
+				
+			} catch (error) {
+				console.error('Song generation failed:', error);
+				showStatus(`Song creation failed: ${error.message}. Please try again! 🎵`, 'error');
+			} finally {
+				setLoading(generateLyricsBtn, false);
+			}
+		}
 
         // Generate lyrics
         async function generateLyrics() {
             const prompt = buildLyricsPrompt();
             const encodedPrompt = encodeURIComponent(prompt);
-            const randomSeed = Math.floor(Math.random() * 1000000);
-            const lyricsUrl = `${TEXT_API}${encodedPrompt}?model=openai&seed=${randomSeed}&referrer=songcomposer`;
+			const randomSeed = Math.floor(Math.random() * 1000000);
+			const lyricsUrl = `${TEXT_API}${encodedPrompt}?model=openai&seed=${randomSeed}&referrer=songcomposer`;
             
             const response = await fetch(lyricsUrl, {
                 method: 'GET',
@@ -955,17 +955,22 @@
 
         // Generate vocal demo
         async function generateVocalDemo(lyrics, voice) {
-            const cleanLyrics = lyrics
-                .replace(/\n/g, ' ')
-                .replace(/\s+/g, ' ')
-                .replace(/([.!?])\s+/g, '$1 ')
-                .replace(/\[(.*?)\]/g, '') // Remove section labels like [Verse], [Chorus]
-                .trim();
+			const cleanLyrics = lyrics
+				.replace(/\[(.*?)\]/g, '') // Remove section labels like [Verse], [Chorus]
+				.replace(/^.*?:/gm, '') // Remove any line starting with text followed by colon
+				.replace(/\b(Verse|Chorus|Bridge|Intro|Outro|Pre-Chorus|Hook|Refrain)[\s\d]*:?/gi, '') // Remove structure words
+				.replace(/\n\s*\n/g, '\n') // Remove extra blank lines
+				.replace(/^\s+|\s+$/gm, '') // Trim each line
+				.replace(/\n/g, ' ') // Convert to single line
+				.replace(/\s+/g, ' ') // Clean up multiple spaces
+				.replace(/([.!?])\s+/g, '$1 ') // Clean punctuation spacing
+				.trim();
             
             const instruction = "IMMEDIATELY AND WITHOUT REMARKS OR COMMENTARY TRANSCRIBE EXACTLY THIS TEXT AS IF IT IS SONG LYRICS READ ALOUD AS TONGUE IN CHEEK PERFORMANCE:";
             const textToSing = `${instruction} ${cleanLyrics}`;
             const encodedText = encodeURIComponent(textToSing);
-            const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&referrer=songcomposer`;
+			const randomSeed = Math.floor(Math.random() * 1000000);
+			const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&seed=${randomSeed}&referrer=songcomposer`;
             
             return new Promise((resolve, reject) => {
                 const audio = new Audio();
