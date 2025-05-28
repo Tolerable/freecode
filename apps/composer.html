@@ -824,7 +824,7 @@
             return artworkPrompt;
         }
 
-        // Generate complete song
+		// Generate complete song
 		async function generateCompleteSong() {
 			const title = document.getElementById('song-title').value.trim();
 			const theme = document.getElementById('song-theme').value.trim();
@@ -848,7 +848,6 @@
 				timestamp: new Date().toISOString(),
 				favorited: false
 			};
-
 			try {
 				// Step 1: Generate lyrics - MUST succeed first
 				showStatus('Writing your song lyrics... ✍️', 'info');
@@ -861,28 +860,35 @@
 				// Display lyrics immediately after successful generation
 				displayLyrics(lyrics);
 				
-				// Step 2: Generate artwork (non-blocking)
+				// Step 2: Generate artwork (non-blocking) - STORE LOCALLY
 				showStatus('Creating album artwork... 🎨', 'info');
 				generateArtwork()
-					.then(artworkUrl => {
-						songData.artworkUrl = artworkUrl;
-						showArtwork(artworkUrl);
+					.then(async artworkUrl => {
+						// Download and store locally
+						const response = await fetch(artworkUrl);
+						const blob = await response.blob();
+						const localUrl = URL.createObjectURL(blob);
+						songData.artworkUrl = localUrl;
+						showArtwork(localUrl);
 					})
 					.catch(error => {
 						console.error('Artwork generation failed:', error);
 						showStatus('Lyrics created! Artwork generation failed, but continuing... 🎨', 'info');
 					});
 				
-				// Step 3: Generate vocal demo (non-blocking)
+				// Step 3: Generate vocal demo (non-blocking) - STORE LOCALLY
 				showStatus('Recording vocal demo... 🎤', 'info');
 				showAudioPlaceholder();
-
 				generateVocalDemo(lyrics, songData.voice)
-					.then(audioUrl => {
+					.then(async audioUrl => {
 						if (audioUrl) {
-							songData.audioUrl = audioUrl;
-							currentAudioUrl = audioUrl;
-							showAudio(audioUrl);
+							// Download and store locally
+							const response = await fetch(audioUrl);
+							const blob = await response.blob();
+							const localUrl = URL.createObjectURL(blob);
+							songData.audioUrl = localUrl;
+							currentAudioUrl = localUrl;
+							showAudio(localUrl);
 							showStatus('Vocal demo complete! 🎤', 'success');
 						} else {
 							throw new Error('Audio URL is empty');
@@ -941,19 +947,21 @@
         }
 
         // Generate artwork
-        async function generateArtwork() {
-            const artworkPrompt = buildArtworkPrompt();
-            const encodedPrompt = encodeURIComponent(artworkPrompt);
-            const randomSeed = Math.floor(Math.random() * 1000000);
-            const artworkUrl = `${IMAGE_API}${encodedPrompt}?width=512&height=512&model=flux&enhance=true&nologo=true&seed=${randomSeed}&referrer=songcomposer`;
-            
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => resolve(artworkUrl);
-                img.onerror = () => reject(new Error('Artwork generation failed'));
-                img.src = artworkUrl;
-            });
-        }
+		async function generateArtwork() {
+			const artworkPrompt = buildArtworkPrompt();
+			const encodedPrompt = encodeURIComponent(artworkPrompt);
+			const randomSeed = Math.floor(Math.random() * 1000000);
+			const artworkUrl = `${IMAGE_API}${encodedPrompt}?width=512&height=512&model=flux&enhance=true&nologo=true&seed=${randomSeed}&referrer=songcomposer`;
+			
+			// Download and convert to blob URL for local storage
+			const response = await fetch(artworkUrl);
+			if (!response.ok) throw new Error('Artwork generation failed');
+			
+			const blob = await response.blob();
+			const localUrl = URL.createObjectURL(blob);
+			
+			return localUrl;
+		}
 
         // Generate vocal demo
 		async function generateVocalDemo(lyrics, voice) {
@@ -985,19 +993,18 @@
 			const audioSeed = Math.floor(Math.random() * 1000000);
 			const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&seed=${audioSeed}&referrer=songcomposer`;
 			
-			return new Promise((resolve, reject) => {
-				const audio = new Audio();
-				
-				audio.addEventListener('canplaythrough', () => {
-					resolve(audioUrl);
-				}, { once: true });
-				
-				audio.addEventListener('error', (e) => {
-					reject(new Error('Audio generation/loading failed'));
-				}, { once: true });
-				
-				audio.src = audioUrl;
-				audio.load();
+			return new Promise(async (resolve, reject) => {
+				try {
+					const response = await fetch(audioUrl);
+					if (!response.ok) throw new Error('Audio fetch failed');
+					
+					const blob = await response.blob();
+					const localAudioUrl = URL.createObjectURL(blob);
+					
+					resolve(localAudioUrl);
+				} catch (error) {
+					reject(error);
+				}
 			});
 		}
 
