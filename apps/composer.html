@@ -98,6 +98,61 @@
             animation: vinylSpin 8s infinite linear;
         }
 
+		.artwork-container {
+			position: relative;
+			display: inline-block;
+			margin: 1rem auto;
+		}
+
+		.refresh-artwork-btn {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			background: rgba(255, 255, 255, 0.9);
+			border: 2px solid #667eea;
+			border-radius: 50%;
+			width: 40px;
+			height: 40px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 1.2rem;
+			transition: all 0.3s ease;
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+		}
+
+		.refresh-artwork-btn:hover {
+			background: #667eea;
+			color: white;
+			transform: rotate(180deg);
+		}
+
+		.editable-lyrics {
+			background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+			border: 2px solid #dee2e6;
+			border-radius: 15px;
+			padding: 2rem;
+			margin: 1rem 0;
+			line-height: 1.8;
+			font-size: 1.1rem;
+			color: #2d3748;
+			min-height: 300px;
+			position: relative;
+			font-family: 'Georgia', serif;
+			white-space: pre-line;
+			resize: vertical;
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		.lyrics-edit-controls {
+			display: flex;
+			gap: 1rem;
+			justify-content: center;
+			margin-top: 1rem;
+		}
+
         @keyframes musicFloat {
             0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.7; }
             50% { transform: translateY(-15px) rotate(10deg); opacity: 1; }
@@ -1016,18 +1071,194 @@
 			});
 		}
 
-        // Display lyrics
-        function displayLyrics(lyrics) {
-            lyricsDisplay.textContent = lyrics;
-            lyricsSection.classList.remove('hidden');
-            lyricsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+		// Refresh artwork with new seed
+		window.refreshArtwork = async function() {
+			if (!currentSong) return;
+			
+			const refreshBtn = document.querySelector('.refresh-artwork-btn');
+			if (refreshBtn) {
+				refreshBtn.innerHTML = '⏳';
+				refreshBtn.style.pointerEvents = 'none';
+			}
+			
+			showStatus('Generating new artwork... 🎨', 'info');
+			
+			try {
+				const newArtworkUrl = await generateArtwork();
+				
+				// Convert to base64 for storage
+				const response = await fetch(newArtworkUrl);
+				const blob = await response.blob();
+				const reader = new FileReader();
+				reader.onloadend = async () => {
+					const base64data = reader.result;
+					currentSong.artworkUrl = base64data;
+					
+					// Update in database
+					const transaction = db.transaction(['songs'], 'readwrite');
+					const store = transaction.objectStore('songs');
+					await store.put(currentSong);
+					
+					// Update display
+					showArtwork(base64data);
+					loadLibrary();
+					showStatus('New artwork generated! 🎨', 'success');
+				};
+				reader.readAsDataURL(blob);
+				
+			} catch (error) {
+				console.error('Artwork refresh failed:', error);
+				showStatus('Failed to generate new artwork. Please try again! 🎨', 'error');
+				if (refreshBtn) {
+					refreshBtn.innerHTML = '🔄';
+					refreshBtn.style.pointerEvents = 'auto';
+				}
+			}
+		};
 
-        // Show artwork
-        function showArtwork(artworkUrl) {
-            songArtwork.src = artworkUrl;
-            songArtworkContainer.classList.remove('hidden');
-        }
+		// Start lyrics editing
+		function startLyricsEdit() {
+			document.getElementById('lyrics-text').classList.add('hidden');
+			document.getElementById('lyrics-editor').classList.remove('hidden');
+			document.getElementById('lyrics-textarea').focus();
+		}
+
+		// Save lyrics edit
+		window.saveLyricsEdit = async function() {
+			const newLyrics = document.getElementById('lyrics-textarea').value.trim();
+			
+			if (!newLyrics) {
+				showStatus('Lyrics cannot be empty! ✏️', 'error');
+				return;
+			}
+			
+			if (!currentSong) {
+				showStatus('No song to update! ✏️', 'error');
+				return;
+			}
+			
+			// Update current song
+			currentSong.lyrics = newLyrics;
+			
+			try {
+				// Save to database
+				const transaction = db.transaction(['songs'], 'readwrite');
+				const store = transaction.objectStore('songs');
+				await store.put(currentSong);
+				
+				// Update display
+				document.getElementById('lyrics-text').innerHTML = `
+					${newLyrics}
+					<div style="position: absolute; top: 10px; right: 10px; font-size: 0.8rem; color: #667eea; opacity: 0.7;">
+						Click to edit ✏️
+					</div>
+				`;
+				
+				document.getElementById('lyrics-editor').classList.add('hidden');
+				document.getElementById('lyrics-text').classList.remove('hidden');
+				
+				loadLibrary();
+				showStatus('Lyrics updated successfully! ✏️', 'success');
+				
+			} catch (error) {
+				console.error('Error saving lyrics:', error);
+				showStatus('Failed to save lyrics changes! ✏️', 'error');
+			}
+		};
+
+		// Cancel lyrics edit
+		window.cancelLyricsEdit = function() {
+			document.getElementById('lyrics-editor').classList.add('hidden');
+			document.getElementById('lyrics-text').classList.remove('hidden');
+		};
+
+		// Regenerate audio after lyrics edit
+		window.regenerateAudioAfterEdit = async function() {
+			if (!currentSong) return;
+			
+			const regenBtn = document.querySelector('.lyrics-edit-controls button:last-child');
+			if (regenBtn) {
+				regenBtn.innerHTML = '⏳ Generating...';
+				regenBtn.disabled = true;
+			}
+			
+			showStatus('Generating new vocal demo with updated lyrics... 🎤', 'info');
+			showAudioPlaceholder();
+			
+			try {
+				const newAudioUrl = await generateVocalDemo(currentSong.lyrics, currentSong.voice || 'nova');
+				
+				// Convert to base64 for storage
+				const response = await fetch(newAudioUrl);
+				const blob = await response.blob();
+				const reader = new FileReader();
+				reader.onloadend = async () => {
+					const base64data = reader.result;
+					currentSong.audioUrl = base64data;
+					currentAudioUrl = base64data;
+					
+					// Update in database
+					const transaction = db.transaction(['songs'], 'readwrite');
+					const store = transaction.objectStore('songs');
+					await store.put(currentSong);
+					
+					// Update display
+					showAudio(base64data);
+					loadLibrary();
+					showStatus('New vocal demo generated with updated lyrics! 🎤', 'success');
+				};
+				reader.readAsDataURL(blob);
+				
+			} catch (error) {
+				console.error('Audio regeneration failed:', error);
+				showAudioError();
+				showStatus('Failed to generate new vocal demo. Please try again! 🎤', 'error');
+			} finally {
+				if (regenBtn) {
+					regenBtn.innerHTML = '🎤 Generate New Audio';
+					regenBtn.disabled = false;
+				}
+			}
+		};
+
+        // Display lyrics
+		function displayLyrics(lyrics) {
+			lyricsDisplay.innerHTML = `
+				<div id="lyrics-text" class="lyrics-display" style="cursor: pointer; position: relative;">
+					${lyrics}
+					<div style="position: absolute; top: 10px; right: 10px; font-size: 0.8rem; color: #667eea; opacity: 0.7;">
+						Click to edit ✏️
+					</div>
+				</div>
+				<div id="lyrics-editor" class="hidden">
+					<textarea id="lyrics-textarea" class="editable-lyrics">${lyrics}</textarea>
+					<div class="lyrics-edit-controls">
+						<button class="mini-button" onclick="saveLyricsEdit()">💾 Save Changes</button>
+						<button class="mini-button" onclick="cancelLyricsEdit()">❌ Cancel</button>
+						<button class="mini-button" onclick="regenerateAudioAfterEdit()">🎤 Generate New Audio</button>
+					</div>
+				</div>
+			`;
+			
+			// Add click handler for editing
+			document.getElementById('lyrics-text').addEventListener('click', startLyricsEdit);
+			
+			lyricsSection.classList.remove('hidden');
+			lyricsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}
+
+		// Show artwork with refresh button
+		function showArtwork(artworkUrl) {
+			songArtworkContainer.innerHTML = `
+				<div class="artwork-container">
+					<img id="song-artwork" class="song-artwork" alt="Song artwork" src="${artworkUrl}" />
+					<button class="refresh-artwork-btn" onclick="refreshArtwork()" title="Generate new artwork">
+						🔄
+					</button>
+				</div>
+			`;
+			songArtworkContainer.classList.remove('hidden');
+		}
 
         // Show audio
         function showAudio(audioUrl) {
@@ -1262,38 +1493,45 @@
                 displayLyrics(song.lyrics);
                 
                 // Handle artwork
-                if (song.artworkUrl) {
-                    showArtwork(song.artworkUrl);
-                } else {
-                    songArtworkContainer.classList.remove('hidden');
-                    songArtworkContainer.innerHTML = `
-                        <div style="width: 100%; max-width: 400px; height: 400px; background: linear-gradient(135deg, #f7fafc, #edf2f7); border: 2px dashed #cbd5e0; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 1rem auto;">
-                            <div style="text-align: center; color: #667eea;">
-                                <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
-                                <p>Creating album artwork... 🎨</p>
-                            </div>
-                        </div>
-                    `;
-                    
-                    try {
-                        const artworkUrl = await generateArtwork();
-                        song.artworkUrl = artworkUrl;
-                        songArtworkContainer.innerHTML = `<img id="song-artwork" class="song-artwork" alt="Song artwork" />`;
-                        document.getElementById('song-artwork').src = artworkUrl;
-                        
-                        const transaction = db.transaction(['songs'], 'readwrite');
-                        const store = transaction.objectStore('songs');
-                        await store.put(song);
-                        loadLibrary();
-                    } catch (error) {
-                        console.error('Failed to generate missing artwork:', error);
-                        songArtworkContainer.innerHTML = `
-                            <div style="width: 100%; max-width: 400px; height: 200px; background: #fed7d7; border: 2px dashed #e53e3e; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 1rem auto;">
-                                <p style="color: #742a2a;">❌ Artwork generation failed</p>
-                            </div>
-                        `;
-                    }
-                }
+				if (song.artworkUrl) {
+					showArtwork(song.artworkUrl);
+				} else {
+					songArtworkContainer.classList.remove('hidden');
+					songArtworkContainer.innerHTML = `
+						<div style="width: 100%; max-width: 400px; height: 400px; background: linear-gradient(135deg, #f7fafc, #edf2f7); border: 2px dashed #cbd5e0; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 1rem auto;">
+							<div style="text-align: center; color: #667eea;">
+								<div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+								<p>Creating album artwork... 🎨</p>
+							</div>
+						</div>
+					`;
+					
+					try {
+						const artworkUrl = await generateArtwork();
+						// Convert to base64 for storage
+						const response = await fetch(artworkUrl);
+						const blob = await response.blob();
+						const reader = new FileReader();
+						reader.onloadend = async () => {
+							const base64data = reader.result;
+							song.artworkUrl = base64data;
+							showArtwork(base64data);
+							
+							const transaction = db.transaction(['songs'], 'readwrite');
+							const store = transaction.objectStore('songs');
+							await store.put(song);
+							loadLibrary();
+						};
+						reader.readAsDataURL(blob);
+					} catch (error) {
+						console.error('Failed to generate missing artwork:', error);
+						songArtworkContainer.innerHTML = `
+							<div style="width: 100%; max-width: 400px; height: 200px; background: #fed7d7; border: 2px dashed #e53e3e; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 1rem auto;">
+								<p style="color: #742a2a;">❌ Artwork generation failed</p>
+							</div>
+						`;
+					}
+				}
                 
                 // Handle audio
                 if (song.audioUrl) {
