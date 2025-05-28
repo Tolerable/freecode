@@ -765,11 +765,16 @@
 
 				try {
 					const audioUrl = await generateStoryAudio(storyText, storyData.voice);
-					storyData.audioUrl = audioUrl;
-					showStoryAudio(audioUrl);
-					showStatus('Audio narration complete! 🎵', 'success');
+					if (audioUrl) {
+						storyData.audioUrl = audioUrl;
+						showStoryAudio(audioUrl);
+						showStatus('Audio narration complete! 🎵', 'success');
+					} else {
+						throw new Error('Audio URL is empty');
+					}
 				} catch (error) {
 					console.error('Audio generation failed:', error);
+					storyData.audioUrl = null; // Make sure it's null so it doesn't get saved as broken
 					showAudioError();
 					showStatus('Story and image created! Audio generation failed - you can try regenerating later... 🎵', 'info');
 				}
@@ -839,40 +844,51 @@
 			});
 		}
 
-		// Generate story audio
-        async function generateStoryAudio(storyText, voice) {
-            const cleanText = storyText
-                .replace(/\n/g, ' ')
-                .replace(/\s+/g, ' ')
-                .replace(/([.!?])\s+/g, '$1 ')
-                .trim();
-            
-            const instruction = "READ THIS STORY ALOUD FOR CHILDREN:";
-            const textToRead = `${instruction} ${cleanText}`;
-            const encodedText = encodeURIComponent(textToRead);
-            const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&referrer=storycreator`;
-            
-            return new Promise((resolve, reject) => {
-                const audio = new Audio();
-                
-                const timeout = setTimeout(() => {
-                    reject(new Error('Audio loading timeout'));
-                }, 30000);
-                
-                audio.addEventListener('canplaythrough', () => {
-                    clearTimeout(timeout);
-                    resolve(audioUrl);
-                }, { once: true });
-                
-                audio.addEventListener('error', (e) => {
-                    clearTimeout(timeout);
-                    reject(new Error('Audio generation failed'));
-                }, { once: true });
-                
-                audio.src = audioUrl;
-                audio.load();
-            });
-        }
+		async function generateStoryAudio(storyText, voice) {
+			const cleanText = storyText
+				.replace(/\n/g, ' ')
+				.replace(/\s+/g, ' ')
+				.replace(/([.!?])\s+/g, '$1 ')
+				.trim();
+			
+			const instruction = "READ THIS STORY ALOUD FOR CHILDREN:";
+			const textToRead = `${instruction} ${cleanText}`;
+			const encodedText = encodeURIComponent(textToRead);
+			const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&referrer=storycreator`;
+			
+			return new Promise((resolve, reject) => {
+				const audio = new Audio();
+				
+				const timeout = setTimeout(() => {
+					audio.src = ''; // Clear the source
+					reject(new Error('Audio loading timeout after 45 seconds'));
+				}, 45000); // Increased timeout to 45 seconds
+				
+				audio.addEventListener('canplaythrough', () => {
+					clearTimeout(timeout);
+					console.log('Audio loaded successfully');
+					resolve(audioUrl);
+				}, { once: true });
+				
+				audio.addEventListener('error', (e) => {
+					clearTimeout(timeout);
+					console.error('Audio loading error:', e);
+					reject(new Error('Audio generation/loading failed'));
+				}, { once: true });
+				
+				audio.addEventListener('loadstart', () => {
+					console.log('Audio loading started...');
+				}, { once: true });
+				
+				try {
+					audio.src = audioUrl;
+					audio.load();
+				} catch (error) {
+					clearTimeout(timeout);
+					reject(new Error('Failed to initiate audio loading'));
+				}
+			});
+		}
 
         // Display story
         function displayStory(story) {
