@@ -108,15 +108,25 @@ function initDB() {
     return new Promise((resolve, reject) => {
         console.log('🔧 Opening database...');
         
+        // ADD TIMEOUT - if database doesn't open in 3 seconds, continue anyway
+        const timeout = setTimeout(() => {
+            console.error('❌ Database timeout - continuing without database!');
+            db = null; // Set to null, we'll work without it
+            resolve(null);
+        }, 3000);
+        
         try {
             const request = indexedDB.open('songComposerDB', 3);
             
             request.onerror = () => {
+                clearTimeout(timeout);
                 console.error('❌ Database error:', request.error);
-                reject(request.error);
+                db = null; // Work without database
+                resolve(null); // DON'T REJECT - RESOLVE ANYWAY
             };
             
             request.onsuccess = () => {
+                clearTimeout(timeout);
                 db = request.result;
                 console.log('✅ Database opened successfully');
                 resolve(db);
@@ -133,9 +143,20 @@ function initDB() {
                     console.log('✅ Songs object store created');
                 }
             };
+            
+            // ADDITIONAL FAILSAFE
+            request.onblocked = () => {
+                clearTimeout(timeout);
+                console.error('❌ Database blocked!');
+                db = null;
+                resolve(null);
+            };
+            
         } catch (error) {
+            clearTimeout(timeout);
             console.error('❌ IndexedDB not available:', error);
-            reject(error);
+            db = null;
+            resolve(null); // CONTINUE WITHOUT DATABASE
         }
     });
 }
@@ -594,10 +615,12 @@ async function generateVocalDemo(lyrics, voice) {
 
 // Load library from database
 async function loadLibrary() {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         try {
             if (!db) {
-                console.warn('⚠️ Database not ready for loading library');
+                console.warn('⚠️ No database - using empty library');
+                songLibrary = [];
+                updateLibraryUI();
                 resolve();
                 return;
             }
@@ -615,11 +638,15 @@ async function loadLibrary() {
             
             request.onerror = () => {
                 console.error('❌ Error loading library:', request.error);
-                reject(request.error);
+                songLibrary = [];
+                updateLibraryUI();
+                resolve(); // RESOLVE ANYWAY
             };
         } catch (error) {
             console.error('❌ Library load exception:', error);
-            reject(error);
+            songLibrary = [];
+            updateLibraryUI();
+            resolve(); // RESOLVE ANYWAY
         }
     });
 }
