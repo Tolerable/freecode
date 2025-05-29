@@ -18,20 +18,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Initialize the app
 async function initializeApp() {
+    console.log('🚀 STARTING APP INITIALIZATION...');
+    
     try {
+        // Show loading message
+        showStatus('🔧 Setting up your song composer...', 'info');
+        
         await initDB();
         console.log('✅ Database initialized');
+        showStatus('✅ Database ready...', 'info');
         
         await loadLibrary();
         console.log('✅ Library loaded');
+        showStatus('✅ Library loaded...', 'info');
         
         setupEventListeners();
         console.log('✅ Event listeners set up');
         
-        console.log('🎵 APP READY');
+        showStatus('🎵 Ready to create amazing songs! Click the button!', 'success');
+        console.log('🎵 APP READY - EVERYTHING SHOULD WORK NOW!');
+        
     } catch (error) {
         console.error('❌ App initialization failed:', error);
-        showStatus('App initialization failed. Please refresh the page.', 'error');
+        showStatus('❌ App setup failed. Check console and refresh!', 'error');
+        
+        // Try to at least set up basic event listeners
+        setTimeout(setupEventListeners, 1000);
     }
 }
 
@@ -70,57 +82,60 @@ function initDB() {
 function setupEventListeners() {
     console.log('🔧 SETTING UP EVENT LISTENERS...');
     
-    // Main buttons - with debug logging
-    const generateBtn = document.getElementById('generate-lyrics-btn');
-    console.log('🔧 Looking for generate button...', generateBtn);
-    
-    if (generateBtn) {
-        // REMOVE ANY EXISTING LISTENERS
-        generateBtn.onclick = null;
+    // Wait a bit to ensure DOM is ready
+    setTimeout(() => {
+        const generateBtn = document.getElementById('generate-lyrics-btn');
+        console.log('🔧 Generate button found:', !!generateBtn);
         
-        // ADD THE REAL FUNCTION
-        generateBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('🎵 GENERATE BUTTON CLICKED - CALLING FUNCTION!');
-            generateCompleteSong();
-        });
-        console.log('✅ Generate button listener attached');
-    } else {
-        console.error('❌ Generate button NOT FOUND!');
-    }
-    
-    const regenerateBtn = document.getElementById('regenerate-lyrics-btn');
-    if (regenerateBtn) {
-        regenerateBtn.addEventListener('click', generateCompleteSong);
-        console.log('✅ Regenerate button listener attached');
-    }
-    
-    const favoriteBtn = document.getElementById('favorite-song-btn');
-    if (favoriteBtn) {
-        favoriteBtn.addEventListener('click', toggleFavorite);
-        console.log('✅ Favorite button listener attached');
-    }
-    
-    const copyBtn = document.getElementById('copy-lyrics-btn');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', copyLyrics);
-        console.log('✅ Copy button listener attached');
-    }
-    
-    const clearBtn = document.getElementById('clear-library-btn');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', clearLibrary);
-        console.log('✅ Clear button listener attached');
-    }
-    
-    const regenAudioBtn = document.getElementById('regenerate-audio-btn');
-    if (regenAudioBtn) {
-        regenAudioBtn.addEventListener('click', regenerateAudioWithNewVoice);
-        console.log('✅ Regen audio button listener attached');
-    }
+        if (generateBtn) {
+            // CLEAR any existing listeners first
+            generateBtn.replaceWith(generateBtn.cloneNode(true));
+            const newBtn = document.getElementById('generate-lyrics-btn');
+            
+            newBtn.addEventListener('click', function(e) {
+                console.log('🎵 BUTTON CLICKED! Starting generation...');
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // IMMEDIATE visual feedback
+                newBtn.style.background = 'linear-gradient(45deg, #ff3333, #ff6666)';
+                newBtn.innerHTML = '🔥 WORKING ON IT... 🔥';
+                newBtn.disabled = true;
+                
+                // Call the function
+                generateCompleteSong();
+            });
+            console.log('✅ Generate button listener attached');
+        } else {
+            console.error('❌ Generate button NOT FOUND!');
+        }
+        
+        // Other buttons with same pattern
+        setupOtherButtons();
+        
+    }, 100);
+}
 
-    // Genre selection
+function setupOtherButtons() {
+    const buttons = [
+        { id: 'regenerate-lyrics-btn', handler: generateCompleteSong },
+        { id: 'favorite-song-btn', handler: toggleFavorite },
+        { id: 'copy-lyrics-btn', handler: copyLyrics },
+        { id: 'clear-library-btn', handler: clearLibrary },
+        { id: 'regenerate-audio-btn', handler: regenerateAudioWithNewVoice }
+    ];
+    
+    buttons.forEach(({ id, handler }) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.replaceWith(btn.cloneNode(true));
+            const newBtn = document.getElementById(id);
+            newBtn.addEventListener('click', handler);
+            console.log(`✅ ${id} listener attached`);
+        }
+    });
+    
+    // Genre buttons
     document.querySelectorAll('.genre-button').forEach(button => {
         button.addEventListener('click', () => {
             console.log('🎼 Genre selected:', button.dataset.genre);
@@ -128,65 +143,96 @@ function setupEventListeners() {
             button.classList.add('selected');
             selectedGenre = button.dataset.genre;
             document.getElementById('custom-genre').value = '';
+            
+            // Visual feedback
+            button.style.transform = 'scale(1.1)';
+            setTimeout(() => button.style.transform = '', 200);
         });
     });
-
-    console.log('✅ Event listeners attached');
 }
 
 // Generate complete song
 async function generateCompleteSong() {
-	const title = document.getElementById('song-title').value.trim();
-	const theme = document.getElementById('song-theme').value.trim();
-	if (!title && !theme) {
-       showStatus('Please provide at least a song title or theme! 🎵', 'error');
-       return;
-   }
-   
-   setLoading(document.getElementById('generate-lyrics-btn'), true, 'Composing your song...');
-   document.getElementById('lyrics-section').classList.add('hidden');
-   
-   let songData = {
-       title: title || 'Untitled',
-       artist: document.getElementById('song-artist').value.trim() || 'Unknown',
-       theme: theme || 'Unknown',
-       mood: document.getElementById('song-mood').value,
-       genre: document.getElementById('custom-genre').value.trim() || selectedGenre,
-       structure: document.getElementById('song-structure').value,
-       voice: document.getElementById('voice-type').value,
-       timestamp: new Date().toISOString(),
-       favorited: false
-   };
+    console.log('🎵 GENERATE FUNCTION CALLED!');
+    
+    const title = document.getElementById('song-title').value.trim();
+    const theme = document.getElementById('song-theme').value.trim();
+    
+    console.log('📝 Title:', title, 'Theme:', theme);
+    
+    if (!title && !theme) {
+        showStatus('❌ Please provide at least a song title or theme! 🎵', 'error');
+        resetGenerateButton();
+        return;
+    }
+    
+    const generateBtn = document.getElementById('generate-lyrics-btn');
+    generateBtn.style.background = 'linear-gradient(45deg, #00ff00, #00aa00)';
+    generateBtn.innerHTML = '🎼 WRITING YOUR LYRICS... ✍️';
+    
+    document.getElementById('lyrics-section').classList.add('hidden');
+    
+    let songData = {
+        title: title || 'Untitled',
+        artist: document.getElementById('song-artist').value.trim() || 'Unknown',
+        theme: theme || 'Unknown',
+        mood: document.getElementById('song-mood').value,
+        genre: document.getElementById('custom-genre').value.trim() || selectedGenre,
+        structure: document.getElementById('song-structure').value,
+        voice: document.getElementById('voice-type').value,
+        timestamp: new Date().toISOString(),
+        favorited: false
+    };
+    
+    console.log('📋 Song data prepared:', songData);
 
-   try {
-       // Step 1: Generate lyrics
-       showStatus('Writing your song lyrics... ✍️', 'info');
-       const lyrics = await generateLyrics();
-       if (!lyrics || lyrics.length < 50) {
-           throw new Error('Generated lyrics are too short or empty');
-       }
-       songData.lyrics = lyrics;
-       
-       // Display lyrics immediately
-       displayLyrics(lyrics);
-       
-       // Save to database with proper limit management
-       await saveToLibraryWithLimit(songData);
-       
-       // Generate artwork (non-blocking)
-       generateArtworkAsync(songData);
-       
-       // Generate audio (non-blocking)
-       generateAudioAsync(songData);
-       
-       showStatus('Your song lyrics are ready! Artwork and vocal demo are being generated... ✨🎼', 'success');
-       
-   } catch (error) {
-       console.error('❌ Song generation failed:', error);
-       showStatus(`Song creation failed: ${error.message}. Please try again! 🎵`, 'error');
-   } finally {
-       setLoading(document.getElementById('generate-lyrics-btn'), false);
-   }
+    try {
+        // Step 1: Generate lyrics
+        showStatus('✍️ AI is writing your song lyrics...', 'info');
+        generateBtn.innerHTML = '🤖 AI IS THINKING... 🧠';
+        
+        const lyrics = await generateLyrics();
+        console.log('✅ Lyrics generated, length:', lyrics.length);
+        
+        if (!lyrics || lyrics.length < 50) {
+            throw new Error('Generated lyrics are too short or empty');
+        }
+        
+        songData.lyrics = lyrics;
+        
+        // Display lyrics immediately
+        displayLyrics(lyrics);
+        showStatus('🎼 Lyrics complete! Saving to your library...', 'success');
+        
+        // Save to database
+        if (db) {
+            await saveToLibraryWithLimit(songData);
+            console.log('✅ Song saved to database');
+        } else {
+            console.warn('⚠️ Database not available, song not saved');
+        }
+        
+        // Generate artwork (non-blocking)
+        generateArtworkAsync(songData);
+        
+        // Generate audio (non-blocking)
+        generateAudioAsync(songData);
+        
+        showStatus('🎵 Your song is ready! Artwork and audio coming soon...', 'success');
+        
+    } catch (error) {
+        console.error('❌ Song generation failed:', error);
+        showStatus(`❌ Song creation failed: ${error.message}`, 'error');
+    } finally {
+        resetGenerateButton();
+    }
+}
+
+function resetGenerateButton() {
+    const generateBtn = document.getElementById('generate-lyrics-btn');
+    generateBtn.disabled = false;
+    generateBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #feca57)';
+    generateBtn.innerHTML = '✨ Create My Song Lyrics! ✨';
 }
 
 // Save song to library with proper 10-song limit
@@ -1061,4 +1107,32 @@ function setLoading(button, isLoading, loadingText = 'Loading...') {
    }
 }
 
-console.log('🎵 SCRIPT LOADED SUCCESSFULLY');
+// FORCE INITIALIZATION - ADD THIS AT THE VERY END OF script.js
+console.log('🎵 SCRIPT LOADED - FORCING INITIALIZATION IN 2 SECONDS...');
+
+// Try multiple initialization methods
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎵 DOM CONTENT LOADED - INITIALIZING NOW');
+    initializeApp();
+});
+
+// Backup initialization
+setTimeout(() => {
+    console.log('🎵 TIMEOUT BACKUP INITIALIZATION');
+    if (!db) {
+        initializeApp();
+    }
+}, 2000);
+
+// Ultimate backup - manual button setup
+setTimeout(() => {
+    const btn = document.getElementById('generate-lyrics-btn');
+    if (btn && !btn.onclick) {
+        console.log('🚨 EMERGENCY BUTTON SETUP');
+        btn.onclick = function() {
+            console.log('🚨 EMERGENCY CLICK HANDLER FIRED');
+            btn.innerHTML = '🚨 EMERGENCY MODE ACTIVE';
+            generateCompleteSong();
+        };
+    }
+}, 3000);
