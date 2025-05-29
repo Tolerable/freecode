@@ -1468,31 +1468,47 @@
             }
         }
 
-        // Save to library with limit management
-        async function saveToLibrary(song) {
-            try {
-                const transaction = db.transaction(['songs'], 'readwrite');
-                const store = transaction.objectStore('songs');
-                
-                await store.add(song);
-                
-                const allSongs = await store.getAll();
-                if (allSongs.length > 10) {
-                    const nonFavorited = allSongs
-                        .filter(song => !song.favorited)
-                        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-                    
-                    const needToDelete = allSongs.length - 10;
-                    for (let i = 0; i < Math.min(needToDelete, nonFavorited.length); i++) {
-                        await store.delete(nonFavorited[i].id);
-                    }
-                }
-                
-                loadLibrary();
-            } catch (error) {
-                console.error('Error saving to library:', error);
-            }
-        }
+		// Save to library with limit management
+		async function saveToLibrary(song) {
+			try {
+				const transaction = db.transaction(['songs'], 'readwrite');
+				const store = transaction.objectStore('songs');
+				
+				// Add the song and wait for completion
+				const request = store.add(song);
+				
+				request.onsuccess = async () => {
+					// Get all songs after adding
+					const getAllRequest = store.getAll();
+					
+					getAllRequest.onsuccess = async () => {
+						const allSongs = getAllRequest.result;
+						
+						if (allSongs.length > 10) {
+							const nonFavorited = allSongs
+								.filter(s => !s.favorited)
+								.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+							
+							const needToDelete = allSongs.length - 10;
+							for (let i = 0; i < Math.min(needToDelete, nonFavorited.length); i++) {
+								await store.delete(nonFavorited[i].id);
+							}
+						}
+						
+						loadLibrary();
+					};
+				};
+				
+				request.onerror = () => {
+					console.error('Error saving to library:', request.error);
+					showStatus('Failed to save song to library!', 'error');
+				};
+				
+			} catch (error) {
+				console.error('Error saving to library:', error);
+				showStatus('Failed to save song to library!', 'error');
+			}
+		}
 
         // Load library
         async function loadLibrary() {
