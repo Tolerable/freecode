@@ -1052,30 +1052,7 @@
 				favoriteSongBtn.innerHTML = '⭐ Add to Favorites';
 				
 				// Save to library immediately with what we have
-								const transaction = db.transaction(['songs'], 'readwrite');
-								const store = transaction.objectStore('songs');
-
-								// Add the new song first
-								const result = await store.add(songData);
-								songData.id = result;
-								currentSong = songData;
-
-								// Now check limits and clean up if needed
-								const allSongs = await store.getAll();
-								const favorited = allSongs.filter(song => song.favorited);
-								const nonFavorited = allSongs.filter(song => !song.favorited);
-
-								// If we have more than 10 total songs, delete oldest non-favorited ones
-								if (allSongs.length > 10) {
-									nonFavorited.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-									const toDelete = allSongs.length - 10;
-									
-									for (let i = 0; i < Math.min(toDelete, nonFavorited.length); i++) {
-										await store.delete(nonFavorited[i].id);
-									}
-								}
-
-								loadLibrary(); // Refresh the library display
+				await saveToLibrary(songData);
 				
 				showStatus('Your song lyrics are ready! Artwork and vocal demo are being generated... ✨🎼', 'success');
 				
@@ -1486,68 +1463,50 @@
             }
         }
 
-		// Save to library with limit management
-		async function saveToLibrary(song) {
-			try {
-				const transaction = db.transaction(['songs'], 'readwrite');
-				const store = transaction.objectStore('songs');
-				
-				// Use put() to update existing or add new
-				const result = await store.put(song);
-				
-				// If it's a new song, set the ID
-				if (!song.id) {
-					song.id = result;
-				}
-				
-				// Get all songs after adding/updating
-				const allSongs = await store.getAll();
-				const favorited = allSongs.filter(song => song.favorited);
-				const nonFavorited = allSongs.filter(song => !song.favorited);
+        // Save to library with limit management
+        async function saveToLibrary(song) {
+            try {
+                const transaction = db.transaction(['songs'], 'readwrite');
+                const store = transaction.objectStore('songs');
+                
+                await store.add(song);
+                
+                const allSongs = await store.getAll();
+                if (allSongs.length > 10) {
+                    const nonFavorited = allSongs
+                        .filter(song => !song.favorited)
+                        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    
+                    const needToDelete = allSongs.length - 10;
+                    for (let i = 0; i < Math.min(needToDelete, nonFavorited.length); i++) {
+                        await store.delete(nonFavorited[i].id);
+                    }
+                }
+                
+                loadLibrary();
+            } catch (error) {
+                console.error('Error saving to library:', error);
+            }
+        }
 
-				// If we have more than 10 non-favorited songs, delete the oldest ones
-				if (nonFavorited.length > 10) {
-					// Sort by timestamp (oldest first)
-					nonFavorited.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-					
-					const toDelete = nonFavorited.length - 10;
-					for (let i = 0; i < toDelete; i++) {
-						await store.delete(nonFavorited[i].id);
-					}
-				}
-				
-				loadLibrary();
-			} catch (error) {
-				console.error('Error saving to library:', error);
-			}
-		}
+        // Load library
+        async function loadLibrary() {
+            try {
+                const transaction = db.transaction(['songs'], 'readonly');
+                const store = transaction.objectStore('songs');
+                const request = store.getAll();
+                
+                request.onsuccess = () => {
+                    songLibrary = request.result;
+                    updateLibraryUI();
+                };
+            } catch (error) {
+                console.error('Error loading library:', error);
+            }
+        }
 
-		// Add this debug to the loadLibrary function - replace the existing loadLibrary function:
-		async function loadLibrary() {
-			console.log('🔧 DEBUG: loadLibrary() called');
-			try {
-				const transaction = db.transaction(['songs'], 'readonly');
-				const store = transaction.objectStore('songs');
-				const request = store.getAll();
-				
-				request.onsuccess = () => {
-					songLibrary = request.result;
-					console.log('🔧 DEBUG: Loaded songs from DB:', songLibrary.length);
-					console.log('🔧 DEBUG: Song IDs and types:', songLibrary.map(s => ({id: s.id, type: typeof s.id, title: s.title})));
-					updateLibraryUI();
-				};
-				
-				request.onerror = () => {
-					console.error('🔧 DEBUG: Error loading library:', request.error);
-				};
-			} catch (error) {
-				console.error('🔧 DEBUG: loadLibrary exception:', error);
-			}
-		}
-
+		// Update library UI
 		function updateLibraryUI() {
-			console.log('🔧 DEBUG: updateLibraryUI called, songLibrary length:', songLibrary.length);
-			
 			if (songLibrary.length === 0) {
 				songLibraryList.innerHTML = `
 					<div style="text-align: center; color: #718096; font-style: italic; padding: 3rem;">
@@ -1557,21 +1516,9 @@
 				return;
 			}
 			
-			// Sort songs: favorites first, then by newest timestamp
-			const sortedSongs = [...songLibrary].sort((a, b) => {
-				if (a.favorited !== b.favorited) {
-					return b.favorited - a.favorited;
-				}
-				return new Date(b.timestamp) - new Date(a.timestamp);
-			});
-			
-			console.log('🔧 DEBUG: Sorted songs:', sortedSongs.map(s => ({id: s.id, title: s.title})));
-			
-			songLibraryList.innerHTML = sortedSongs.map((song, index) => {
+			songLibraryList.innerHTML = songLibrary.map((song) => {
 				const preview = song.lyrics.substring(0, 150) + '...';
 				const date = new Date(song.timestamp).toLocaleDateString();
-				
-				console.log(`🔧 DEBUG: Creating card for song ID: ${song.id}, title: ${song.title}`);
 				
 				return `
 					<div class="song-card ${song.favorited ? 'favorited' : ''}" data-song-id="${song.id}">
@@ -1583,245 +1530,18 @@
 							<span>📅 ${date} | 🎵 ${song.genre} | 😊 ${song.mood}</span>
 						</div>
 						<div class="song-actions">
-							<button class="mini-button" onclick="console.log('🔧 BUTTON CLICKED: loadSong', ${song.id}); window.debugLoadSong(${song.id});">🎼 View Full Song</button>
-							<button class="mini-button" onclick="console.log('🔧 BUTTON CLICKED: downloadAudio', ${song.id}); window.debugDownloadAudio(${song.id});">💾 Download</button>
-							<button class="mini-button" onclick="console.log('🔧 BUTTON CLICKED: copyLyrics', ${song.id}); window.debugCopyLyrics(${song.id});">📋 Copy Lyrics</button>
-							<button class="mini-button ${song.favorited ? 'favorite' : ''}" onclick="console.log('🔧 BUTTON CLICKED: toggleFavorite', ${song.id}); window.debugToggleFavorite(${song.id});">
+							<button class="mini-button" onclick="loadSongFromLibrary(${songLibrary.indexOf(song)})">🎼 View Full Song</button>
+							<button class="mini-button" onclick="playLibraryAudio(${songLibrary.indexOf(song)})">🎤 Play Demo</button>
+							<button class="mini-button" onclick="downloadLibraryAudio(${songLibrary.indexOf(song)})">💾 Download</button>
+							<button class="mini-button" onclick="copyLibraryLyrics(${songLibrary.indexOf(song)})">📋 Copy Lyrics</button>
+							<button class="mini-button ${song.favorited ? 'favorite' : ''}" onclick="toggleLibraryFavorite(${songLibrary.indexOf(song)})">
 								${song.favorited ? '⭐ Favorited' : '⭐ Favorite'}
 							</button>
-							<button class="mini-button" onclick="console.log('🔧 BUTTON CLICKED: deleteSong', ${song.id}); window.debugDeleteSong(${song.id});">🗑️ Delete</button>
+							<button class="mini-button" onclick="deleteSongFromLibrary(${songLibrary.indexOf(song)})">🗑️ Delete</button>
 						</div>
 					</div>
 				`;
 			}).join('');
-			
-			console.log('🔧 DEBUG: Library HTML updated, cards created:', sortedSongs.length);
-		}
-
-		// DEBUG FUNCTIONS - These will show exactly what's happening
-		window.debugLoadSong = function(songId) {
-			console.log('🔧 DEBUG: debugLoadSong called with ID:', songId, typeof songId);
-			console.log('🔧 DEBUG: songLibrary:', songLibrary.map(s => ({id: s.id, title: s.title, idType: typeof s.id})));
-			
-			const song = songLibrary.find(s => s.id == songId);
-			console.log('🔧 DEBUG: Found song:', song ? song.title : 'NOT FOUND');
-			
-			if (!song) {
-				console.error('🔧 DEBUG: SONG NOT FOUND for ID:', songId);
-				alert('Song not found! Check console for debug info.');
-				return;
-			}
-			
-			loadSongById(songId);
-		};
-
-		window.debugDownloadAudio = function(songId) {
-			console.log('🔧 DEBUG: debugDownloadAudio called with ID:', songId);
-			const song = songLibrary.find(s => s.id == songId);
-			console.log('🔧 DEBUG: Found song for download:', song ? song.title : 'NOT FOUND');
-			console.log('🔧 DEBUG: Song has audio:', song ? (song.audioUrl ? 'YES' : 'NO') : 'N/A');
-			
-			if (!song) {
-				alert('Song not found for download!');
-				return;
-			}
-			
-			downloadAudioById(songId);
-		};
-
-		window.debugCopyLyrics = function(songId) {
-			console.log('🔧 DEBUG: debugCopyLyrics called with ID:', songId);
-			const song = songLibrary.find(s => s.id == songId);
-			console.log('🔧 DEBUG: Found song for copy:', song ? song.title : 'NOT FOUND');
-			
-			if (!song) {
-				alert('Song not found for copy!');
-				return;
-			}
-			
-			copyLyricsById(songId);
-		};
-
-		window.debugToggleFavorite = function(songId) {
-			console.log('🔧 DEBUG: debugToggleFavorite called with ID:', songId);
-			const song = songLibrary.find(s => s.id == songId);
-			console.log('🔧 DEBUG: Found song for favorite:', song ? song.title : 'NOT FOUND');
-			console.log('🔧 DEBUG: Current favorite status:', song ? song.favorited : 'N/A');
-			
-			if (!song) {
-				alert('Song not found for favorite toggle!');
-				return;
-			}
-			
-			toggleFavoriteById(songId);
-		};
-
-		window.debugDeleteSong = function(songId) {
-			console.log('🔧 DEBUG: debugDeleteSong called with ID:', songId);
-			const song = songLibrary.find(s => s.id == songId);
-			console.log('🔧 DEBUG: Found song for delete:', song ? song.title : 'NOT FOUND');
-			
-			if (!song) {
-				alert('Song not found for delete!');
-				return;
-			}
-			
-			deleteSongFromLibraryById(songId);
-		};
-
-		// Fix loadSongById
-		function loadSongById(songId) {
-			const song = songLibrary.find(s => s.id == songId);
-			if (!song) return;
-			
-			currentSong = song;
-			
-			// Fill form fields
-			document.getElementById('song-title').value = song.title;
-			document.getElementById('song-artist').value = song.artist || '';
-			document.getElementById('song-theme').value = song.theme || '';
-			document.getElementById('song-mood').value = song.mood;
-			document.getElementById('song-structure').value = song.structure || 'verse-chorus';
-			document.getElementById('voice-type').value = song.voice || 'nova';
-			
-			// Update genre selection
-			if (song.genre) {
-				document.querySelectorAll('.genre-button').forEach(b => b.classList.remove('selected'));
-				const genreButton = document.querySelector(`[data-genre="${song.genre}"]`);
-				if (genreButton) {
-					genreButton.classList.add('selected');
-					selectedGenre = song.genre;
-				} else {
-					document.getElementById('custom-genre').value = song.genre;
-				}
-			}
-
-			// Update regenerate voice selector if it exists
-			const regenVoiceSelect = document.getElementById('regenerate-voice-type');
-			if (regenVoiceSelect) {
-				regenVoiceSelect.value = song.voice || 'nova';
-			}
-			
-			// Display lyrics
-			displayLyrics(song.lyrics);
-			
-			// Handle artwork
-			if (song.artworkUrl) {
-				showArtwork(song.artworkUrl);
-			} else {
-				songArtworkContainer.classList.add('hidden');
-			}
-			
-			// Handle audio
-			if (song.audioUrl) {
-				showAudio(song.audioUrl);
-			} else {
-				audioContainer.style.display = 'none';
-			}
-			
-			// Update favorite button
-			favoriteSongBtn.innerHTML = song.favorited ? 
-				'⭐ Remove from Favorites' : '⭐ Add to Favorites';
-			
-			showStatus('Song loaded! ✨', 'success');
-			lyricsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-		}
-
-		// Fix downloadAudioById
-		function downloadAudioById(songId) {
-			const song = songLibrary.find(s => s.id == songId);
-			if (!song || !song.audioUrl) {
-				showStatus('No vocal demo to download! 💾', 'error');
-				return;
-			}
-			
-			showStatus('Preparing download...', 'info');
-			
-			try {
-				const a = document.createElement('a');
-				a.href = song.audioUrl;
-				
-				const safeFileName = song.title.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
-				const filename = `song_demo_${safeFileName}_${Date.now()}.mp3`;
-				a.download = filename;
-				
-				document.body.appendChild(a);
-				a.click();
-				document.body.removeChild(a);
-				
-				showStatus('Download started! 💾', 'success');
-				
-			} catch (error) {
-				console.error('Download error:', error);
-				showStatus('Download failed. Please try again! 💾', 'error');
-			}
-		}
-
-		// Fix copyLyricsById
-		function copyLyricsById(songId) {
-			const song = songLibrary.find(s => s.id == songId);
-			if (!song) return;
-			
-			navigator.clipboard.writeText(song.lyrics).then(() => {
-				showStatus('Lyrics copied to clipboard! 📋', 'success');
-			}).catch(() => {
-				showStatus('Failed to copy lyrics! 📋', 'error');
-			});
-		}
-
-		// Fix toggleFavoriteById
-		async function toggleFavoriteById(songId) {
-			const song = songLibrary.find(s => s.id == songId);
-			if (!song) return;
-			
-			song.favorited = !song.favorited;
-			
-			try {
-				const transaction = db.transaction(['songs'], 'readwrite');
-				const store = transaction.objectStore('songs');
-				await store.put(song);
-				
-				loadLibrary();
-				showStatus(song.favorited ? 'Added to favorites! ⭐' : 'Removed from favorites! ⭐', 'success');
-			} catch (error) {
-				console.error('Error updating favorite:', error);
-			}
-		}
-
-		// Fix deleteSongFromLibraryById
-		async function deleteSongFromLibraryById(songId) {
-			const song = songLibrary.find(s => s.id == songId);
-			if (!song) return;
-			
-			const songTitle = song.title || 'Untitled';
-			
-			if (confirm(`Are you sure you want to delete "${songTitle}"? This cannot be undone! 🗑️`)) {
-				try {
-					const transaction = db.transaction(['songs'], 'readwrite');
-					const store = transaction.objectStore('songs');
-					await store.delete(songId);
-					
-					// Remove from the songLibrary array
-					const index = songLibrary.findIndex(s => s.id == songId);
-					if (index >= 0) {
-						songLibrary.splice(index, 1);
-					}
-					
-					// Update UI
-					updateLibraryUI();
-					
-					// Clear current song if it was the deleted one
-					if (currentSong && currentSong.id == songId) {
-						currentSong = null;
-						lyricsSection.classList.add('hidden');
-					}
-					
-					showStatus(`"${songTitle}" deleted! 🗑️`, 'success');
-				} catch (error) {
-					console.error('Error deleting song:', error);
-					showStatus('Failed to delete song! 🗑️', 'error');
-				}
-			}
 		}
 
 		window.loadSongFromLibrary = async function(index) {
@@ -2035,85 +1755,42 @@
             }
         };
 
-		window.loadSongFromLibraryById = function(songId) {
-			const index = songLibrary.findIndex(s => s.id === songId);
-			if (index >= 0) loadSongFromLibrary(index);
-		};
+        window.deleteSongFromLibrary = async function(index) {
+            if (index >= 0 && index < songLibrary.length) {
+                if (confirm('Are you sure you want to delete this song? 🗑️')) {
+                    try {
+                        const song = songLibrary[index];
+                        const transaction = db.transaction(['songs'], 'readwrite');
+                        const store = transaction.objectStore('songs');
+                        await store.delete(song.id);
+                        
+                        loadLibrary();
+                        showStatus('Song deleted! 🗑️', 'success');
+                    } catch (error) {
+                        console.error('Error deleting song:', error);
+                        showStatus('Failed to delete song! 🗑️', 'error');
+                    }
+                }
+            }
+        };
 
-		window.playLibraryAudioById = function(songId) {
-			const index = songLibrary.findIndex(s => s.id === songId);
-			if (index >= 0) playLibraryAudio(index);
-		};
-
-		window.downloadLibraryAudioById = function(songId) {
-			const index = songLibrary.findIndex(s => s.id === songId);
-			if (index >= 0) downloadLibraryAudio(index);
-		};
-
-		window.copyLibraryLyricsById = function(songId) {
-			const index = songLibrary.findIndex(s => s.id === songId);
-			if (index >= 0) copyLibraryLyrics(index);
-		};
-
-		window.toggleLibraryFavoriteById = function(songId) {
-			const index = songLibrary.findIndex(s => s.id === songId);
-			if (index >= 0) toggleLibraryFavorite(index);
-		};
-
-		window.deleteSongFromLibraryById = async function(songId) {
-			const song = songLibrary.find(s => s.id === songId);
-			if (!song) return;
-			
-			const songTitle = song.title || 'Untitled';
-			
-			if (confirm(`Are you sure you want to delete "${songTitle}"? This cannot be undone! 🗑️`)) {
-				try {
-					const transaction = db.transaction(['songs'], 'readwrite');
-					const store = transaction.objectStore('songs');
-					await store.delete(songId);
-					
-					// Remove from the songLibrary array
-					const index = songLibrary.findIndex(s => s.id === songId);
-					if (index >= 0) {
-						songLibrary.splice(index, 1);
-					}
-					
-					// Update UI
-					updateLibraryUI();
-					
-					// Clear current song if it was the deleted one
-					if (currentSong && currentSong.id === songId) {
-						currentSong = null;
-						lyricsSection.classList.add('hidden');
-					}
-					
-					showStatus(`"${songTitle}" deleted! 🗑️`, 'success');
-				} catch (error) {
-					console.error('Error deleting song:', error);
-					showStatus('Failed to delete song! 🗑️', 'error');
-				}
-			}
-		};
-
-		// Clear library - Delete ALL songs (including favorites)
-		async function clearLibrary() {
-			if (confirm('Are you sure you want to delete ALL songs (including favorites)? This cannot be undone! 🗑️')) {
-				try {
-					const transaction = db.transaction(['songs'], 'readwrite');
-					const store = transaction.objectStore('songs');
-					await store.clear();
-					
-					songLibrary = [];
-					currentSong = null;
-					lyricsSection.classList.add('hidden');
-					updateLibraryUI();
-					showStatus('All songs deleted! 🗑️', 'success');
-				} catch (error) {
-					console.error('Error clearing library:', error);
-					showStatus('Failed to clear library! 🗑️', 'error');
-				}
-			}
-		}
+        // Clear library
+        async function clearLibrary() {
+            if (confirm('Are you sure you want to delete ALL songs? This cannot be undone! 🗑️')) {
+                try {
+                    const transaction = db.transaction(['songs'], 'readwrite');
+                    const store = transaction.objectStore('songs');
+                    await store.clear();
+                    
+                    songLibrary = [];
+                    updateLibraryUI();
+                    showStatus('All songs deleted! 🗑️', 'success');
+                } catch (error) {
+                    console.error('Error clearing library:', error);
+                    showStatus('Failed to clear library! 🗑️', 'error');
+                }
+            }
+        }
 
         // Loading state helper
         function setLoading(button, isLoading, loadingText = 'Loading...') {
