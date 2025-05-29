@@ -1052,7 +1052,27 @@
 				favoriteSongBtn.innerHTML = '⭐ Add to Favorites';
 				
 				// Save to library immediately with what we have
-				await saveToLibrary(songData);
+								const transaction = db.transaction(['songs'], 'readwrite');
+								const store = transaction.objectStore('songs');
+								const result = await store.put(songData);
+								songData.id = result; // Set the ID from the database
+								currentSong = songData; // Update currentSong with the ID
+								
+								// Now handle the limit management
+								const allSongs = await store.getAll();
+								const favorited = allSongs.filter(song => song.favorited);
+								const nonFavorited = allSongs.filter(song => !song.favorited);
+
+								// If we have more than 10 non-favorited songs, delete the oldest ones
+								if (nonFavorited.length > 10) {
+									nonFavorited.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+									const toDelete = nonFavorited.length - 10;
+									for (let i = 0; i < toDelete; i++) {
+										await store.delete(nonFavorited[i].id);
+									}
+								}
+								
+								loadLibrary(); // Refresh the library display
 				
 				showStatus('Your song lyrics are ready! Artwork and vocal demo are being generated... ✨🎼', 'success');
 				
@@ -1463,15 +1483,21 @@
             }
         }
 
-        // Save to library with limit management
-        async function saveToLibrary(song) {
-            try {
-                const transaction = db.transaction(['songs'], 'readwrite');
-                const store = transaction.objectStore('songs');
-                
-                await store.add(song);
-                
-				// Get all songs after adding the new one
+		// Save to library with limit management
+		async function saveToLibrary(song) {
+			try {
+				const transaction = db.transaction(['songs'], 'readwrite');
+				const store = transaction.objectStore('songs');
+				
+				// Use put() to update existing or add new
+				const result = await store.put(song);
+				
+				// If it's a new song, set the ID
+				if (!song.id) {
+					song.id = result;
+				}
+				
+				// Get all songs after adding/updating
 				const allSongs = await store.getAll();
 				const favorited = allSongs.filter(song => song.favorited);
 				const nonFavorited = allSongs.filter(song => !song.favorited);
@@ -1486,12 +1512,12 @@
 						await store.delete(nonFavorited[i].id);
 					}
 				}
-                
-                loadLibrary();
-            } catch (error) {
-                console.error('Error saving to library:', error);
-            }
-        }
+				
+				loadLibrary();
+			} catch (error) {
+				console.error('Error saving to library:', error);
+			}
+		}
 
         // Load library
         async function loadLibrary() {
@@ -1770,42 +1796,57 @@
             }
         };
 
-        window.deleteSongFromLibrary = async function(index) {
-            if (index >= 0 && index < songLibrary.length) {
-                if (confirm('Are you sure you want to delete this song? 🗑️')) {
-                    try {
-                        const song = songLibrary[index];
-                        const transaction = db.transaction(['songs'], 'readwrite');
-                        const store = transaction.objectStore('songs');
-                        await store.delete(song.id);
-                        
-                        loadLibrary();
-                        showStatus('Song deleted! 🗑️', 'success');
-                    } catch (error) {
-                        console.error('Error deleting song:', error);
-                        showStatus('Failed to delete song! 🗑️', 'error');
-                    }
-                }
-            }
-        };
+		window.deleteSongFromLibrary = async function(index) {
+			if (index >= 0 && index < songLibrary.length) {
+				const song = songLibrary[index];
+				const songTitle = song.title || 'Untitled';
+				
+				if (confirm(`Are you sure you want to delete "${songTitle}"? This cannot be undone! 🗑️`)) {
+					try {
+						const transaction = db.transaction(['songs'], 'readwrite');
+						const store = transaction.objectStore('songs');
+						await store.delete(song.id);
+						
+						// Remove from the songLibrary array immediately
+						songLibrary.splice(index, 1);
+						
+						// Update UI
+						updateLibraryUI();
+						
+						// Clear current song if it was the deleted one
+						if (currentSong && currentSong.id === song.id) {
+							currentSong = null;
+							lyricsSection.classList.add('hidden');
+						}
+						
+						showStatus(`"${songTitle}" deleted! 🗑️`, 'success');
+					} catch (error) {
+						console.error('Error deleting song:', error);
+						showStatus('Failed to delete song! 🗑️', 'error');
+					}
+				}
+			}
+		};
 
-        // Clear library
-        async function clearLibrary() {
-            if (confirm('Are you sure you want to delete ALL songs? This cannot be undone! 🗑️')) {
-                try {
-                    const transaction = db.transaction(['songs'], 'readwrite');
-                    const store = transaction.objectStore('songs');
-                    await store.clear();
-                    
-                    songLibrary = [];
-                    updateLibraryUI();
-                    showStatus('All songs deleted! 🗑️', 'success');
-                } catch (error) {
-                    console.error('Error clearing library:', error);
-                    showStatus('Failed to clear library! 🗑️', 'error');
-                }
-            }
-        }
+		// Clear library - Delete ALL songs (including favorites)
+		async function clearLibrary() {
+			if (confirm('Are you sure you want to delete ALL songs (including favorites)? This cannot be undone! 🗑️')) {
+				try {
+					const transaction = db.transaction(['songs'], 'readwrite');
+					const store = transaction.objectStore('songs');
+					await store.clear();
+					
+					songLibrary = [];
+					currentSong = null;
+					lyricsSection.classList.add('hidden');
+					updateLibraryUI();
+					showStatus('All songs deleted! 🗑️', 'success');
+				} catch (error) {
+					console.error('Error clearing library:', error);
+					showStatus('Failed to clear library! 🗑️', 'error');
+				}
+			}
+		}
 
         // Loading state helper
         function setLoading(button, isLoading, loadingText = 'Loading...') {
