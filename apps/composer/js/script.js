@@ -59,11 +59,12 @@ window.copyLyrics = copyLyrics;
 window.clearLibrary = clearLibrary;
 window.regenerateAudioWithNewVoice = regenerateAudioWithNewVoice;
 
-// CRITICAL: Wait for BOTH DOM and window load
-window.addEventListener('load', function() {
-    console.log('🌟 Window fully loaded, starting initialization...');
-    // Give a small delay to ensure all dynamic content is rendered
-    setTimeout(initializeApp, 100);
+// REMOVE ALL THE OLD INITIALIZATION CODE AND USE ONLY THIS:
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎵 DOM Ready - Initializing ONCE');
+    if (!isInitialized) {
+        initializeApp();
+    }
 });
 
 // Initialize the app
