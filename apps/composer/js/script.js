@@ -1,3 +1,4 @@
+
 // Constants
 const TEXT_API = 'https://text.pollinations.ai/';
 const IMAGE_API = 'https://image.pollinations.ai/prompt/';
@@ -11,7 +12,7 @@ let songLibrary = [];
 let selectedGenre = 'pop';
 let isInitialized = false;
 
-// Make functions globally accessible for onclick handlers
+// Make ALL functions globally accessible IMMEDIATELY
 window.loadSongById = loadSongById;
 window.downloadAudioById = downloadAudioById;
 window.copyLyricsById = copyLyricsById;
@@ -22,14 +23,18 @@ window.downloadCurrentAudio = downloadCurrentAudio;
 window.startLyricsEdit = startLyricsEdit;
 window.saveLyricsEdit = saveLyricsEdit;
 window.cancelLyricsEdit = cancelLyricsEdit;
+window.generateCompleteSong = generateCompleteSong;
+window.toggleFavorite = toggleFavorite;
+window.copyLyrics = copyLyrics;
+window.clearLibrary = clearLibrary;
+window.regenerateAudioWithNewVoice = regenerateAudioWithNewVoice;
 
-// Wait for DOM to be fully loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    // DOM is already loaded
-    initializeApp();
-}
+// CRITICAL: Wait for BOTH DOM and window load
+window.addEventListener('load', function() {
+    console.log('🌟 Window fully loaded, starting initialization...');
+    // Give a small delay to ensure all dynamic content is rendered
+    setTimeout(initializeApp, 100);
+});
 
 // Initialize the app
 async function initializeApp() {
@@ -51,9 +56,12 @@ async function initializeApp() {
         await loadLibrary();
         console.log('✅ Library loaded');
         
-        // Setup event listeners after ensuring DOM is ready
-        setupEventListeners();
-        console.log('✅ Event listeners set up');
+        // Setup event listeners - CRITICAL: Do this AFTER everything else
+        const listenersAttached = setupEventListeners();
+        if (!listenersAttached) {
+            console.error('❌ Failed to attach listeners, retrying...');
+            setTimeout(setupEventListeners, 500);
+        }
         
         isInitialized = true;
         showStatus('🎵 Ready to create amazing songs! Click the button!', 'success');
@@ -106,34 +114,80 @@ function initDB() {
 function setupEventListeners() {
     console.log('🔧 SETTING UP EVENT LISTENERS...');
     
-    // Main generate button
+    // Check if critical elements exist
     const generateBtn = document.getElementById('generate-lyrics-btn');
-    if (generateBtn) {
-        generateBtn.addEventListener('click', function(e) {
-            console.log('🎵 Generate button clicked!');
-            e.preventDefault();
-            generateCompleteSong();
-        });
-        console.log('✅ Generate button listener attached');
-    } else {
-        console.error('❌ CRITICAL: Generate button not found!');
+    if (!generateBtn) {
+        console.error('❌ CRITICAL: Generate button not found! DOM not ready.');
+        return false;
     }
     
-    // Other buttons with safe attachment
-    attachButtonListener('regenerate-lyrics-btn', generateCompleteSong);
-    attachButtonListener('favorite-song-btn', toggleFavorite);
-    attachButtonListener('copy-lyrics-btn', copyLyrics);
-    attachButtonListener('clear-library-btn', clearLibrary);
-    attachButtonListener('regenerate-audio-btn', regenerateAudioWithNewVoice);
+    // CRITICAL FIX: Remove ALL existing event listeners first
+    const newGenerateBtn = generateBtn.cloneNode(true);
+    generateBtn.parentNode.replaceChild(newGenerateBtn, generateBtn);
     
-    // Genre buttons
-    document.querySelectorAll('.genre-button').forEach(button => {
-        button.addEventListener('click', function() {
-            console.log('🎼 Genre selected:', this.dataset.genre);
-            document.querySelectorAll('.genre-button').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            selectedGenre = this.dataset.genre;
+    // Add the click listener to the fresh button
+    newGenerateBtn.addEventListener('click', function(e) {
+        console.log('🎵 Generate button CLICKED - Event fired!');
+        e.preventDefault();
+        e.stopPropagation();
+        generateCompleteSong();
+    });
+    
+    // Also add as onclick for backup
+    newGenerateBtn.onclick = function(e) {
+        console.log('🎵 Generate button onclick fired!');
+        e.preventDefault();
+        generateCompleteSong();
+    };
+    
+    console.log('✅ Generate button listeners attached');
+    
+    // Other buttons - use the same cloning technique
+    const buttonConfigs = [
+        { id: 'regenerate-lyrics-btn', handler: generateCompleteSong },
+        { id: 'favorite-song-btn', handler: toggleFavorite },
+        { id: 'copy-lyrics-btn', handler: copyLyrics },
+        { id: 'clear-library-btn', handler: clearLibrary },
+        { id: 'regenerate-audio-btn', handler: regenerateAudioWithNewVoice }
+    ];
+    
+    buttonConfigs.forEach(({ id, handler }) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.addEventListener('click', handler);
+            newBtn.onclick = handler; // Backup
+            console.log(`✅ ${id} listener attached`);
+        }
+    });
+    
+    // Genre buttons - CRITICAL FIX
+    const genreButtons = document.querySelectorAll('.genre-button');
+    console.log(`🎼 Found ${genreButtons.length} genre buttons`);
+    
+    genreButtons.forEach((button, index) => {
+        // Clone to remove any existing listeners
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        
+        newButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             
+            const genre = this.dataset.genre;
+            console.log('🎼 Genre clicked:', genre);
+            
+            // Remove selected class from all
+            document.querySelectorAll('.genre-button').forEach(b => {
+                b.classList.remove('selected');
+            });
+            
+            // Add selected to this one
+            this.classList.add('selected');
+            selectedGenre = genre;
+            
+            // Clear custom genre input
             const customGenreInput = document.getElementById('custom-genre');
             if (customGenreInput) {
                 customGenreInput.value = '';
@@ -141,11 +195,16 @@ function setupEventListeners() {
             
             // Visual feedback
             this.style.transform = 'scale(1.1)';
-            setTimeout(() => this.style.transform = '', 200);
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 200);
+            
+            console.log('✅ Genre selected:', selectedGenre);
         });
     });
     
-    console.log('✅ All event listeners set up');
+    console.log('✅ All event listeners successfully set up!');
+    return true;
 }
 
 // Helper function to safely attach button listeners
@@ -161,12 +220,17 @@ function attachButtonListener(buttonId, handler) {
 
 // Generate complete song with better error handling
 async function generateCompleteSong() {
-    console.log('🎵 Starting song generation...');
+    console.log('🎵 generateCompleteSong CALLED!');
+    console.log('🎵 Current selectedGenre:', selectedGenre);
     
     const titleInput = document.getElementById('song-title');
     const themeInput = document.getElementById('song-theme');
     const generateBtn = document.getElementById('generate-lyrics-btn');
     
+    console.log('📝 Title input:', titleInput?.value);
+    console.log('📝 Theme input:', themeInput?.value);
+    
+    // Rest of your existing generateCompleteSong function...
     if (!titleInput || !themeInput) {
         console.error('❌ Required input fields not found');
         showStatus('❌ Error: Required fields not found!', 'error');
