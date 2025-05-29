@@ -73,49 +73,75 @@ function initDB() {
     });
 }
 
-// Set up all event listeners - SIMPLIFIED
+// Set up all event listeners - FIXED VERSION
 function setupEventListeners() {
     console.log('🔧 SETTING UP EVENT LISTENERS...');
     
-    // Main generate button
-    const generateBtn = document.getElementById('generate-lyrics-btn');
-    if (generateBtn) {
-        generateBtn.addEventListener('click', function(e) {
-            console.log('🎵 BUTTON CLICKED!');
-            e.preventDefault();
-            generateCompleteSong();
-        });
-        console.log('✅ Generate button ready');
-    }
-    
-    // Other buttons
-    const buttons = [
-        { id: 'regenerate-lyrics-btn', handler: generateCompleteSong },
-        { id: 'favorite-song-btn', handler: toggleFavorite },
-        { id: 'copy-lyrics-btn', handler: copyLyrics },
-        { id: 'clear-library-btn', handler: clearLibrary },
-        { id: 'regenerate-audio-btn', handler: regenerateAudioWithNewVoice }
-    ];
-    
-    buttons.forEach(({ id, handler }) => {
-        const btn = document.getElementById(id);
-        if (btn) {
-            btn.addEventListener('click', handler);
-            console.log(`✅ ${id} ready`);
+    // Wait for DOM elements to be ready
+    setTimeout(() => {
+        const generateBtn = document.getElementById('generate-lyrics-btn');
+        console.log('🔧 Generate button found:', !!generateBtn);
+        
+        if (generateBtn) {
+            // Clear any existing listeners and add new one
+            generateBtn.replaceWith(generateBtn.cloneNode(true));
+            const newBtn = document.getElementById('generate-lyrics-btn');
+            
+            newBtn.addEventListener('click', function(e) {
+                console.log('🎵 BUTTON CLICKED! Starting generation...');
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Immediate visual feedback
+                newBtn.style.background = 'linear-gradient(45deg, #ff3333, #ff6666)';
+                newBtn.innerHTML = '🔥 WORKING ON IT... 🔥';
+                newBtn.disabled = true;
+                
+                // Call the function
+                generateCompleteSong();
+            });
+            console.log('✅ Generate button listener attached');
+        } else {
+            console.error('❌ Generate button NOT FOUND!');
         }
-    });
-    
-    // Genre buttons
-    document.querySelectorAll('.genre-button').forEach(button => {
-        button.addEventListener('click', () => {
-            document.querySelectorAll('.genre-button').forEach(b => b.classList.remove('selected'));
-            button.classList.add('selected');
-            selectedGenre = button.dataset.genre;
-            document.getElementById('custom-genre').value = '';
+        
+        // Other buttons
+        const buttons = [
+            { id: 'regenerate-lyrics-btn', handler: generateCompleteSong },
+            { id: 'favorite-song-btn', handler: toggleFavorite },
+            { id: 'copy-lyrics-btn', handler: copyLyrics },
+            { id: 'clear-library-btn', handler: clearLibrary },
+            { id: 'regenerate-audio-btn', handler: regenerateAudioWithNewVoice }
+        ];
+        
+        buttons.forEach(({ id, handler }) => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.replaceWith(btn.cloneNode(true));
+                const newBtn = document.getElementById(id);
+                newBtn.addEventListener('click', handler);
+                console.log(`✅ ${id} listener attached`);
+            }
         });
-    });
-    
-    console.log('✅ All event listeners set up');
+        
+        // Genre buttons
+        document.querySelectorAll('.genre-button').forEach(button => {
+            button.addEventListener('click', () => {
+                console.log('🎼 Genre selected:', button.dataset.genre);
+                document.querySelectorAll('.genre-button').forEach(b => b.classList.remove('selected'));
+                button.classList.add('selected');
+                selectedGenre = button.dataset.genre;
+                document.getElementById('custom-genre').value = '';
+                
+                // Visual feedback
+                button.style.transform = 'scale(1.1)';
+                setTimeout(() => button.style.transform = '', 200);
+            });
+        });
+        
+        console.log('✅ All event listeners set up');
+        
+    }, 100); // This timeout was NEEDED and I stupidly removed it
 }
 
 // Generate complete song
