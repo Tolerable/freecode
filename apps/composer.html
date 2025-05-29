@@ -1535,7 +1535,6 @@
             }
         }
 
-		// Update library UI
 		function updateLibraryUI() {
 			if (songLibrary.length === 0) {
 				songLibraryList.innerHTML = `
@@ -1570,18 +1569,166 @@
 							<span>📅 ${date} | 🎵 ${song.genre} | 😊 ${song.mood}</span>
 						</div>
 						<div class="song-actions">
-							<button class="mini-button" onclick="loadSongFromLibraryById('${song.id}')">🎼 View Full Song</button>
-							<button class="mini-button" onclick="playLibraryAudioById('${song.id}')">🎤 Play Demo</button>
-							<button class="mini-button" onclick="downloadLibraryAudioById('${song.id}')">💾 Download</button>
-							<button class="mini-button" onclick="copyLibraryLyricsById('${song.id}')">📋 Copy Lyrics</button>
-							<button class="mini-button ${song.favorited ? 'favorite' : ''}" onclick="toggleLibraryFavoriteById('${song.id}')">
+							<button class="mini-button" onclick="loadSongById('${song.id}')">🎼 View Full Song</button>
+							<button class="mini-button" onclick="downloadAudioById('${song.id}')">💾 Download</button>
+							<button class="mini-button" onclick="copyLyricsById('${song.id}')">📋 Copy Lyrics</button>
+							<button class="mini-button ${song.favorited ? 'favorite' : ''}" onclick="toggleFavoriteById('${song.id}')">
 								${song.favorited ? '⭐ Favorited' : '⭐ Favorite'}
 							</button>
-							<button class="mini-button" onclick="deleteSongFromLibraryById('${song.id}')">🗑️ Delete</button>
+							<button class="mini-button" onclick="deleteSongById('${song.id}')">🗑️ Delete</button>
 						</div>
 					</div>
 				`;
 			}).join('');
+		}
+
+		function loadSongById(songId) {
+			const song = songLibrary.find(s => s.id == songId);
+			if (!song) return;
+			
+			currentSong = song;
+			
+			// Fill form fields
+			document.getElementById('song-title').value = song.title;
+			document.getElementById('song-artist').value = song.artist || '';
+			document.getElementById('song-theme').value = song.theme || '';
+			document.getElementById('song-mood').value = song.mood;
+			document.getElementById('song-structure').value = song.structure || 'verse-chorus';
+			document.getElementById('voice-type').value = song.voice || 'nova';
+			
+			// Update genre selection
+			if (song.genre) {
+				document.querySelectorAll('.genre-button').forEach(b => b.classList.remove('selected'));
+				const genreButton = document.querySelector(`[data-genre="${song.genre}"]`);
+				if (genreButton) {
+					genreButton.classList.add('selected');
+					selectedGenre = song.genre;
+				} else {
+					document.getElementById('custom-genre').value = song.genre;
+				}
+			}
+
+			// Update regenerate voice selector if it exists
+			const regenVoiceSelect = document.getElementById('regenerate-voice-type');
+			if (regenVoiceSelect) {
+				regenVoiceSelect.value = song.voice || 'nova';
+			}
+			
+			// Display lyrics
+			displayLyrics(song.lyrics);
+			
+			// Handle artwork
+			if (song.artworkUrl) {
+				showArtwork(song.artworkUrl);
+			} else {
+				songArtworkContainer.classList.add('hidden');
+			}
+			
+			// Handle audio
+			if (song.audioUrl) {
+				showAudio(song.audioUrl);
+			} else {
+				audioContainer.style.display = 'none';
+			}
+			
+			// Update favorite button
+			favoriteSongBtn.innerHTML = song.favorited ? 
+				'⭐ Remove from Favorites' : '⭐ Add to Favorites';
+			
+			showStatus('Song loaded! ✨', 'success');
+		}
+
+		function downloadAudioById(songId) {
+			const song = songLibrary.find(s => s.id == songId);
+			if (!song || !song.audioUrl) {
+				showStatus('No vocal demo to download! 💾', 'error');
+				return;
+			}
+			
+			showStatus('Preparing download...', 'info');
+			
+			try {
+				const a = document.createElement('a');
+				a.href = song.audioUrl;
+				
+				const safeFileName = song.title.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+				const filename = `song_demo_${safeFileName}_${Date.now()}.mp3`;
+				a.download = filename;
+				
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				
+				showStatus('Download started! 💾', 'success');
+				
+			} catch (error) {
+				console.error('Download error:', error);
+				showStatus('Download failed. Please try again! 💾', 'error');
+			}
+		}
+
+		function copyLyricsById(songId) {
+			const song = songLibrary.find(s => s.id == songId);
+			if (!song) return;
+			
+			navigator.clipboard.writeText(song.lyrics).then(() => {
+				showStatus('Lyrics copied to clipboard! 📋', 'success');
+			}).catch(() => {
+				showStatus('Failed to copy lyrics! 📋', 'error');
+			});
+		}
+
+		async function toggleFavoriteById(songId) {
+			const song = songLibrary.find(s => s.id == songId);
+			if (!song) return;
+			
+			song.favorited = !song.favorited;
+			
+			try {
+				const transaction = db.transaction(['songs'], 'readwrite');
+				const store = transaction.objectStore('songs');
+				await store.put(song);
+				
+				loadLibrary();
+				showStatus(song.favorited ? 'Added to favorites! ⭐' : 'Removed from favorites! ⭐', 'success');
+			} catch (error) {
+				console.error('Error updating favorite:', error);
+			}
+		}
+
+		async function deleteSongById(songId) {
+			const song = songLibrary.find(s => s.id == songId);
+			if (!song) return;
+			
+			const songTitle = song.title || 'Untitled';
+			
+			if (confirm(`Are you sure you want to delete "${songTitle}"? This cannot be undone! 🗑️`)) {
+				try {
+					const transaction = db.transaction(['songs'], 'readwrite');
+					const store = transaction.objectStore('songs');
+					await store.delete(songId);
+					
+					// Remove from the songLibrary array
+					const index = songLibrary.findIndex(s => s.id == songId);
+					if (index >= 0) {
+						songLibrary.splice(index, 1);
+					}
+					
+					// Update UI
+					updateLibraryUI();
+					
+					// Clear current song if it was the deleted one
+					if (currentSong && currentSong.id == songId) {
+						currentSong = null;
+						lyricsSection.classList.add('hidden');
+					}
+					
+					showStatus(`"${songTitle}" deleted! 🗑️`, 'success');
+				} catch (error) {
+					console.error('Error deleting song:', error);
+					showStatus('Failed to delete song! 🗑️', 'error');
+				}
+			}
 		}
 
 		window.loadSongFromLibrary = async function(index) {
