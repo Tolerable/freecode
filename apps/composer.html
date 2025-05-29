@@ -1054,24 +1054,27 @@
 				// Save to library immediately with what we have
 								const transaction = db.transaction(['songs'], 'readwrite');
 								const store = transaction.objectStore('songs');
-								const result = await store.put(songData);
-								songData.id = result; // Set the ID from the database
-								currentSong = songData; // Update currentSong with the ID
-								
-								// Now handle the limit management
+
+								// Add the new song first
+								const result = await store.add(songData);
+								songData.id = result;
+								currentSong = songData;
+
+								// Now check limits and clean up if needed
 								const allSongs = await store.getAll();
 								const favorited = allSongs.filter(song => song.favorited);
 								const nonFavorited = allSongs.filter(song => !song.favorited);
 
-								// If we have more than 10 non-favorited songs, delete the oldest ones
-								if (nonFavorited.length > 10) {
+								// If we have more than 10 total songs, delete oldest non-favorited ones
+								if (allSongs.length > 10) {
 									nonFavorited.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-									const toDelete = nonFavorited.length - 10;
-									for (let i = 0; i < toDelete; i++) {
+									const toDelete = allSongs.length - 10;
+									
+									for (let i = 0; i < Math.min(toDelete, nonFavorited.length); i++) {
 										await store.delete(nonFavorited[i].id);
 									}
 								}
-								
+
 								loadLibrary(); // Refresh the library display
 				
 				showStatus('Your song lyrics are ready! Artwork and vocal demo are being generated... ✨🎼', 'success');
@@ -1569,10 +1572,10 @@
 							<span>📅 ${date} | 🎵 ${song.genre} | 😊 ${song.mood}</span>
 						</div>
 						<div class="song-actions">
-							<button class="mini-button" onclick="loadSongById('${song.id}')">🎼 View Full Song</button>
-							<button class="mini-button" onclick="downloadAudioById('${song.id}')">💾 Download</button>
-							<button class="mini-button" onclick="copyLyricsById('${song.id}')">📋 Copy Lyrics</button>
-							<button class="mini-button ${song.favorited ? 'favorite' : ''}" onclick="toggleFavoriteById('${song.id}')">
+							<button class="mini-button" onclick="loadSongById(${song.id})">🎼 View Full Song</button>
+							<button class="mini-button" onclick="downloadAudioById(${song.id})">💾 Download</button>
+							<button class="mini-button" onclick="copyLyricsById(${song.id})">📋 Copy Lyrics</button>
+							<button class="mini-button ${song.favorited ? 'favorite' : ''}" onclick="toggleFavoriteById(${song.id})">
 								${song.favorited ? '⭐ Favorited' : '⭐ Favorite'}
 							</button>
 							<button class="mini-button" onclick="deleteSongFromLibraryById(${song.id})">🗑️ Delete</button>
@@ -1582,6 +1585,7 @@
 			}).join('');
 		}
 
+		// Fix loadSongById
 		function loadSongById(songId) {
 			const song = songLibrary.find(s => s.id == songId);
 			if (!song) return;
@@ -1636,8 +1640,10 @@
 				'⭐ Remove from Favorites' : '⭐ Add to Favorites';
 			
 			showStatus('Song loaded! ✨', 'success');
+			lyricsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 		}
 
+		// Fix downloadAudioById
 		function downloadAudioById(songId) {
 			const song = songLibrary.find(s => s.id == songId);
 			if (!song || !song.audioUrl) {
@@ -1667,6 +1673,7 @@
 			}
 		}
 
+		// Fix copyLyricsById
 		function copyLyricsById(songId) {
 			const song = songLibrary.find(s => s.id == songId);
 			if (!song) return;
@@ -1678,6 +1685,7 @@
 			});
 		}
 
+		// Fix toggleFavoriteById
 		async function toggleFavoriteById(songId) {
 			const song = songLibrary.find(s => s.id == songId);
 			if (!song) return;
@@ -1696,45 +1704,38 @@
 			}
 		}
 
-		async function deleteSongById(songId) {
+		// Fix deleteSongFromLibraryById
+		async function deleteSongFromLibraryById(songId) {
 			const song = songLibrary.find(s => s.id == songId);
 			if (!song) return;
 			
 			const songTitle = song.title || 'Untitled';
 			
-			if (confirm(`Delete "${songTitle}"?`)) {
+			if (confirm(`Are you sure you want to delete "${songTitle}"? This cannot be undone! 🗑️`)) {
 				try {
-					// Delete from database
 					const transaction = db.transaction(['songs'], 'readwrite');
 					const store = transaction.objectStore('songs');
-					store.delete(parseInt(songId));
+					await store.delete(songId);
 					
-					// Wait for transaction to complete
-					await new Promise((resolve, reject) => {
-						transaction.oncomplete = resolve;
-						transaction.onerror = reject;
-					});
-					
-					// Remove from array immediately
+					// Remove from the songLibrary array
 					const index = songLibrary.findIndex(s => s.id == songId);
 					if (index >= 0) {
 						songLibrary.splice(index, 1);
 					}
 					
-					// Clear current song if it matches
+					// Update UI
+					updateLibraryUI();
+					
+					// Clear current song if it was the deleted one
 					if (currentSong && currentSong.id == songId) {
 						currentSong = null;
 						lyricsSection.classList.add('hidden');
 					}
 					
-					// Force UI update
-					updateLibraryUI();
-					
-					showStatus(`"${songTitle}" deleted!`, 'success');
-					
+					showStatus(`"${songTitle}" deleted! 🗑️`, 'success');
 				} catch (error) {
-					console.error('Delete failed:', error);
-					showStatus('Delete failed!', 'error');
+					console.error('Error deleting song:', error);
+					showStatus('Failed to delete song! 🗑️', 'error');
 				}
 			}
 		}
