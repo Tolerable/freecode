@@ -72,12 +72,20 @@ function setupEventListeners() {
     
     // Main buttons - with debug logging
     const generateBtn = document.getElementById('generate-lyrics-btn');
+    console.log('🔧 Looking for generate button...', generateBtn);
+    
     if (generateBtn) {
-        generateBtn.addEventListener('click', function() {
-            console.log('🎵 GENERATE BUTTON CLICKED!!!');
+        // REMOVE ANY EXISTING LISTENERS
+        generateBtn.onclick = null;
+        
+        // ADD THE REAL FUNCTION
+        generateBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🎵 GENERATE BUTTON CLICKED - CALLING FUNCTION!');
             generateCompleteSong();
         });
-        console.log('✅ Generate button found and listener attached');
+        console.log('✅ Generate button listener attached');
     } else {
         console.error('❌ Generate button NOT FOUND!');
     }
