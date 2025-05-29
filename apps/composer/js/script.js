@@ -68,17 +68,54 @@ function initDB() {
 
 // Set up all event listeners
 function setupEventListeners() {
-    // Main buttons
-    document.getElementById('generate-lyrics-btn').addEventListener('click', generateCompleteSong);
-    document.getElementById('regenerate-lyrics-btn').addEventListener('click', generateCompleteSong);
-    document.getElementById('favorite-song-btn').addEventListener('click', toggleFavorite);
-    document.getElementById('copy-lyrics-btn').addEventListener('click', copyLyrics);
-    document.getElementById('clear-library-btn').addEventListener('click', clearLibrary);
-    document.getElementById('regenerate-audio-btn').addEventListener('click', regenerateAudioWithNewVoice);
+    console.log('🔧 SETTING UP EVENT LISTENERS...');
+    
+    // Main buttons - with debug logging
+    const generateBtn = document.getElementById('generate-lyrics-btn');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', function() {
+            console.log('🎵 GENERATE BUTTON CLICKED!!!');
+            generateCompleteSong();
+        });
+        console.log('✅ Generate button found and listener attached');
+    } else {
+        console.error('❌ Generate button NOT FOUND!');
+    }
+    
+    const regenerateBtn = document.getElementById('regenerate-lyrics-btn');
+    if (regenerateBtn) {
+        regenerateBtn.addEventListener('click', generateCompleteSong);
+        console.log('✅ Regenerate button listener attached');
+    }
+    
+    const favoriteBtn = document.getElementById('favorite-song-btn');
+    if (favoriteBtn) {
+        favoriteBtn.addEventListener('click', toggleFavorite);
+        console.log('✅ Favorite button listener attached');
+    }
+    
+    const copyBtn = document.getElementById('copy-lyrics-btn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', copyLyrics);
+        console.log('✅ Copy button listener attached');
+    }
+    
+    const clearBtn = document.getElementById('clear-library-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', clearLibrary);
+        console.log('✅ Clear button listener attached');
+    }
+    
+    const regenAudioBtn = document.getElementById('regenerate-audio-btn');
+    if (regenAudioBtn) {
+        regenAudioBtn.addEventListener('click', regenerateAudioWithNewVoice);
+        console.log('✅ Regen audio button listener attached');
+    }
 
     // Genre selection
     document.querySelectorAll('.genre-button').forEach(button => {
         button.addEventListener('click', () => {
+            console.log('🎼 Genre selected:', button.dataset.genre);
             document.querySelectorAll('.genre-button').forEach(b => b.classList.remove('selected'));
             button.classList.add('selected');
             selectedGenre = button.dataset.genre;
@@ -1015,40 +1052,5 @@ function setLoading(button, isLoading, loadingText = 'Loading...') {
        }
    }
 }
-
-// Add musical effects to buttons
-document.addEventListener('DOMContentLoaded', function() {
-   const magicButtons = document.querySelectorAll('.magic-button');
-   magicButtons.forEach(button => {
-       button.addEventListener('click', function(e) {
-           const notes = ['🎵', '🎶', '🎼', '🎤', '🎸'];
-           for (let i = 0; i < 8; i++) {
-               setTimeout(() => {
-                   const note = document.createElement('div');
-                   note.innerHTML = notes[Math.floor(Math.random() * notes.length)];
-                   note.style.position = 'absolute';
-                   note.style.left = e.pageX + (Math.random() - 0.5) * 60 + 'px';
-                   note.style.top = e.pageY + (Math.random() - 0.5) * 60 + 'px';
-                   note.style.pointerEvents = 'none';
-                   note.style.fontSize = '1.5rem';
-                   note.style.zIndex = '9999';
-                   note.style.animation = 'noteFloat 1.2s ease-out forwards';
-                   document.body.appendChild(note);
-                   
-                   setTimeout(() => note.remove(), 1200);
-               }, i * 150);
-           }
-       });
-   });
-   
-   const style = document.createElement('style');
-   style.textContent = `
-       @keyframes noteFloat {
-           0% { opacity: 1; transform: translateY(0px) scale(1) rotate(0deg); }
-           100% { opacity: 0; transform: translateY(-40px) scale(0.3) rotate(360deg); }
-       }
-   `;
-   document.head.appendChild(style);
-});
 
 console.log('🎵 SCRIPT LOADED SUCCESSFULLY');
