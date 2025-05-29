@@ -368,6 +368,8 @@ function getInputValue(elementId, defaultValue = '') {
 
 // Save song to library with proper error handling
 async function saveToLibraryWithLimit(songData) {
+    console.log('💾 SAVETOLIBRARYWITHLIMIT CALLED WITH:', songData); // ADD THIS
+    
     return new Promise((resolve, reject) => {
         try {
             if (!db) {
@@ -379,6 +381,7 @@ async function saveToLibraryWithLimit(songData) {
             const transaction = db.transaction(['songs'], 'readwrite');
             const store = transaction.objectStore('songs');
             
+            console.log('💾 About to add song to store...'); // ADD THIS
             const addRequest = store.add(songData);
             
             addRequest.onsuccess = () => {
@@ -390,6 +393,8 @@ async function saveToLibraryWithLimit(songData) {
                 const getAllRequest = store.getAll();
                 getAllRequest.onsuccess = () => {
                     const allSongs = getAllRequest.result;
+                    console.log('📚 TOTAL SONGS IN DB AFTER SAVE:', allSongs.length); // ADD THIS
+                    console.log('📚 ALL SONGS:', allSongs); // ADD THIS
                     
                     if (allSongs.length > 10) {
                         const nonFavorited = allSongs.filter(song => !song.favorited);
@@ -401,7 +406,11 @@ async function saveToLibraryWithLimit(songData) {
                         }
                     }
                     
-                    loadLibrary().then(resolve);
+                    console.log('📚 About to call loadLibrary()...'); // ADD THIS
+                    loadLibrary().then(() => {
+                        console.log('📚 loadLibrary completed, resolving...'); // ADD THIS
+                        resolve();
+                    });
                 };
                 
                 getAllRequest.onerror = () => {
