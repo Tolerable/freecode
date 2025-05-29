@@ -1,3 +1,33 @@
+// DEBUG: Check if script is even running
+console.log('🚨 SCRIPT.JS LOADED!');
+console.error('🚨 TESTING CONSOLE.ERROR');
+
+// DEBUG: Check when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚨 DOM CONTENT LOADED EVENT FIRED!');
+    
+    // Check if critical elements exist
+    console.log('Generate button exists?', !!document.getElementById('generate-lyrics-btn'));
+    console.log('Clear button exists?', !!document.getElementById('clear-library-btn'));
+    console.log('Genre buttons exist?', document.querySelectorAll('.genre-button').length);
+});
+
+// DEBUG: Check when window loads
+window.addEventListener('load', () => {
+    console.log('🚨 WINDOW LOAD EVENT FIRED!');
+});
+
+// DEBUG: Try to attach a simple test listener
+setTimeout(() => {
+    console.log('🚨 ATTEMPTING TEST LISTENER...');
+    const btn = document.getElementById('generate-lyrics-btn');
+    if (btn) {
+        btn.onclick = () => console.log('🚨 TEST CLICK WORKED!');
+        console.log('🚨 Test listener attached to button');
+    } else {
+        console.error('🚨 BUTTON NOT FOUND!');
+    }
+}, 2000);
 
 // Constants
 const TEXT_API = 'https://text.pollinations.ai/';
