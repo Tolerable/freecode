@@ -237,48 +237,62 @@ function resetGenerateButton() {
 
 // Save song to library with proper 10-song limit
 async function saveToLibraryWithLimit(songData) {
-   try {
-       const transaction = db.transaction(['songs'], 'readwrite');
-       const store = transaction.objectStore('songs');
-       
-       // Add the new song
-       const addRequest = store.add(songData);
-       
-       addRequest.onsuccess = async () => {
-           songData.id = addRequest.result;
-           currentSong = songData;
-           console.log('✅ Song saved with ID:', songData.id);
-           
-           // Now enforce the 10-song limit
-           const getAllRequest = store.getAll();
-           getAllRequest.onsuccess = async () => {
-               const allSongs = getAllRequest.result;
-               console.log('📊 Total songs in DB:', allSongs.length);
-               
-               if (allSongs.length > 10) {
-                   // Sort by timestamp (oldest first), but keep favorites
-                   const nonFavorited = allSongs.filter(song => !song.favorited);
-                   nonFavorited.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-                   
-                   const toDelete = allSongs.length - 10;
-                   console.log('🗑️ Need to delete', toDelete, 'old songs');
-                   
-                   for (let i = 0; i < Math.min(toDelete, nonFavorited.length); i++) {
-                       const deleteRequest = store.delete(nonFavorited[i].id);
-                       deleteRequest.onsuccess = () => {
-                           console.log('🗑️ Deleted old song:', nonFavorited[i].title);
-                       };
-                   }
-               }
-               
-               // Reload the library to reflect changes
-               await loadLibrary();
-           };
-       };
-       
-   } catch (error) {
-       console.error('❌ Error saving to library:', error);
-   }
+    try {
+        // Check if database is available
+        if (!db) {
+            console.warn('⚠️ Database not available, attempting to reinitialize...');
+            await initDB();
+            if (!db) {
+                console.error('❌ Database still unavailable, skipping save');
+                return;
+            }
+        }
+        
+        const transaction = db.transaction(['songs'], 'readwrite');
+        const store = transaction.objectStore('songs');
+        
+        // Add the new song
+        const addRequest = store.add(songData);
+        
+        addRequest.onsuccess = async () => {
+            songData.id = addRequest.result;
+            currentSong = songData;
+            console.log('✅ Song saved with ID:', songData.id);
+            
+            // Now enforce the 10-song limit
+            const getAllRequest = store.getAll();
+            getAllRequest.onsuccess = async () => {
+                const allSongs = getAllRequest.result;
+                console.log('📊 Total songs in DB:', allSongs.length);
+                
+                if (allSongs.length > 10) {
+                    // Sort by timestamp (oldest first), but keep favorites
+                    const nonFavorited = allSongs.filter(song => !song.favorited);
+                    nonFavorited.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    
+                    const toDelete = allSongs.length - 10;
+                    console.log('🗑️ Need to delete', toDelete, 'old songs');
+                    
+                    for (let i = 0; i < Math.min(toDelete, nonFavorited.length); i++) {
+                        const deleteRequest = store.delete(nonFavorited[i].id);
+                        deleteRequest.onsuccess = () => {
+                            console.log('🗑️ Deleted old song:', nonFavorited[i].title);
+                        };
+                    }
+                }
+                
+                // Reload the library to reflect changes
+                await loadLibrary();
+            };
+        };
+        
+        addRequest.onerror = () => {
+            console.error('❌ Error saving song:', addRequest.error);
+        };
+        
+    } catch (error) {
+        console.error('❌ Error in saveToLibraryWithLimit:', error);
+    }
 }
 
 // Generate artwork asynchronously
@@ -1107,32 +1121,10 @@ function setLoading(button, isLoading, loadingText = 'Loading...') {
    }
 }
 
-// FORCE INITIALIZATION - ADD THIS AT THE VERY END OF script.js
-console.log('🎵 SCRIPT LOADED - FORCING INITIALIZATION IN 2 SECONDS...');
+// SIMPLE INITIALIZATION - ONLY ONCE
+console.log('🎵 SCRIPT LOADED');
 
-// Try multiple initialization methods
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎵 DOM CONTENT LOADED - INITIALIZING NOW');
+    console.log('🎵 DOM CONTENT LOADED - INITIALIZING');
     initializeApp();
 });
-
-// Backup initialization
-setTimeout(() => {
-    console.log('🎵 TIMEOUT BACKUP INITIALIZATION');
-    if (!db) {
-        initializeApp();
-    }
-}, 2000);
-
-// Ultimate backup - manual button setup
-setTimeout(() => {
-    const btn = document.getElementById('generate-lyrics-btn');
-    if (btn && !btn.onclick) {
-        console.log('🚨 EMERGENCY BUTTON SETUP');
-        btn.onclick = function() {
-            console.log('🚨 EMERGENCY CLICK HANDLER FIRED');
-            btn.innerHTML = '🚨 EMERGENCY MODE ACTIVE';
-            generateCompleteSong();
-        };
-    }
-}, 3000);
