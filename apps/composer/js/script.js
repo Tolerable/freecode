@@ -424,6 +424,14 @@ async function saveToLibraryWithLimit(songData) {
 
 // Generate artwork asynchronously
 async function generateArtworkAsync(songData) {
+    // Prevent double execution
+    if (songData._artworkGenerating) {
+        console.log('⚠️ Artwork already generating, skipping duplicate call');
+        return;
+    }
+    songData._artworkGenerating = true;
+    
+    // REST OF THE EXISTING FUNCTION STAYS THE SAME
     try {
         showStatus('Creating album artwork... 🎨', 'info');
         const artworkUrl = await generateArtwork();
