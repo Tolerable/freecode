@@ -10,9 +10,9 @@ let currentAudioUrl = null;
 let songLibrary = [];
 let selectedGenre = 'pop';
 
-// Initialize when page loads
+// SINGLE INITIALIZATION POINT
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎵 INITIALIZING APP');
+    console.log('🎵 INITIALIZING APP - SINGLE INIT');
     initializeApp();
 });
 
@@ -21,28 +21,23 @@ async function initializeApp() {
     console.log('🚀 STARTING APP INITIALIZATION...');
     
     try {
-        // Show loading message
         showStatus('🔧 Setting up your song composer...', 'info');
         
         await initDB();
         console.log('✅ Database initialized');
-        showStatus('✅ Database ready...', 'info');
         
         await loadLibrary();
         console.log('✅ Library loaded');
-        showStatus('✅ Library loaded...', 'info');
         
         setupEventListeners();
         console.log('✅ Event listeners set up');
         
         showStatus('🎵 Ready to create amazing songs! Click the button!', 'success');
-        console.log('🎵 APP READY - EVERYTHING SHOULD WORK NOW!');
+        console.log('🎵 APP READY!');
         
     } catch (error) {
         console.error('❌ App initialization failed:', error);
         showStatus('❌ App setup failed. Check console and refresh!', 'error');
-        
-        // Try to at least set up basic event listeners
         setTimeout(setupEventListeners, 1000);
     }
 }
@@ -78,45 +73,22 @@ function initDB() {
     });
 }
 
-// Set up all event listeners
+// Set up all event listeners - SIMPLIFIED
 function setupEventListeners() {
     console.log('🔧 SETTING UP EVENT LISTENERS...');
     
-    // Wait a bit to ensure DOM is ready
-    setTimeout(() => {
-        const generateBtn = document.getElementById('generate-lyrics-btn');
-        console.log('🔧 Generate button found:', !!generateBtn);
-        
-        if (generateBtn) {
-            // CLEAR any existing listeners first
-            generateBtn.replaceWith(generateBtn.cloneNode(true));
-            const newBtn = document.getElementById('generate-lyrics-btn');
-            
-            newBtn.addEventListener('click', function(e) {
-                console.log('🎵 BUTTON CLICKED! Starting generation...');
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // IMMEDIATE visual feedback
-                newBtn.style.background = 'linear-gradient(45deg, #ff3333, #ff6666)';
-                newBtn.innerHTML = '🔥 WORKING ON IT... 🔥';
-                newBtn.disabled = true;
-                
-                // Call the function
-                generateCompleteSong();
-            });
-            console.log('✅ Generate button listener attached');
-        } else {
-            console.error('❌ Generate button NOT FOUND!');
-        }
-        
-        // Other buttons with same pattern
-        setupOtherButtons();
-        
-    }, 100);
-}
-
-function setupOtherButtons() {
+    // Main generate button
+    const generateBtn = document.getElementById('generate-lyrics-btn');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', function(e) {
+            console.log('🎵 BUTTON CLICKED!');
+            e.preventDefault();
+            generateCompleteSong();
+        });
+        console.log('✅ Generate button ready');
+    }
+    
+    // Other buttons
     const buttons = [
         { id: 'regenerate-lyrics-btn', handler: generateCompleteSong },
         { id: 'favorite-song-btn', handler: toggleFavorite },
@@ -128,27 +100,22 @@ function setupOtherButtons() {
     buttons.forEach(({ id, handler }) => {
         const btn = document.getElementById(id);
         if (btn) {
-            btn.replaceWith(btn.cloneNode(true));
-            const newBtn = document.getElementById(id);
-            newBtn.addEventListener('click', handler);
-            console.log(`✅ ${id} listener attached`);
+            btn.addEventListener('click', handler);
+            console.log(`✅ ${id} ready`);
         }
     });
     
     // Genre buttons
     document.querySelectorAll('.genre-button').forEach(button => {
         button.addEventListener('click', () => {
-            console.log('🎼 Genre selected:', button.dataset.genre);
             document.querySelectorAll('.genre-button').forEach(b => b.classList.remove('selected'));
             button.classList.add('selected');
             selectedGenre = button.dataset.genre;
             document.getElementById('custom-genre').value = '';
-            
-            // Visual feedback
-            button.style.transform = 'scale(1.1)';
-            setTimeout(() => button.style.transform = '', 200);
         });
     });
+    
+    console.log('✅ All event listeners set up');
 }
 
 // Generate complete song
@@ -158,17 +125,14 @@ async function generateCompleteSong() {
     const title = document.getElementById('song-title').value.trim();
     const theme = document.getElementById('song-theme').value.trim();
     
-    console.log('📝 Title:', title, 'Theme:', theme);
-    
     if (!title && !theme) {
         showStatus('❌ Please provide at least a song title or theme! 🎵', 'error');
-        resetGenerateButton();
         return;
     }
     
     const generateBtn = document.getElementById('generate-lyrics-btn');
-    generateBtn.style.background = 'linear-gradient(45deg, #00ff00, #00aa00)';
-    generateBtn.innerHTML = '🎼 WRITING YOUR LYRICS... ✍️';
+    generateBtn.innerHTML = '🎼 CREATING YOUR SONG...';
+    generateBtn.disabled = true;
     
     document.getElementById('lyrics-section').classList.add('hidden');
     
@@ -183,39 +147,28 @@ async function generateCompleteSong() {
         timestamp: new Date().toISOString(),
         favorited: false
     };
-    
-    console.log('📋 Song data prepared:', songData);
 
     try {
-        // Step 1: Generate lyrics
         showStatus('✍️ AI is writing your song lyrics...', 'info');
-        generateBtn.innerHTML = '🤖 AI IS THINKING... 🧠';
         
         const lyrics = await generateLyrics();
-        console.log('✅ Lyrics generated, length:', lyrics.length);
+        console.log('✅ Lyrics generated');
         
         if (!lyrics || lyrics.length < 50) {
             throw new Error('Generated lyrics are too short or empty');
         }
         
         songData.lyrics = lyrics;
-        
-        // Display lyrics immediately
         displayLyrics(lyrics);
         showStatus('🎼 Lyrics complete! Saving to your library...', 'success');
         
-        // Save to database
         if (db) {
             await saveToLibraryWithLimit(songData);
             console.log('✅ Song saved to database');
-        } else {
-            console.warn('⚠️ Database not available, song not saved');
         }
         
-        // Generate artwork (non-blocking)
+        // Generate artwork and audio async
         generateArtworkAsync(songData);
-        
-        // Generate audio (non-blocking)
         generateAudioAsync(songData);
         
         showStatus('🎵 Your song is ready! Artwork and audio coming soon...', 'success');
@@ -224,34 +177,22 @@ async function generateCompleteSong() {
         console.error('❌ Song generation failed:', error);
         showStatus(`❌ Song creation failed: ${error.message}`, 'error');
     } finally {
-        resetGenerateButton();
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '✨ Create My Song Lyrics! ✨';
     }
-}
-
-function resetGenerateButton() {
-    const generateBtn = document.getElementById('generate-lyrics-btn');
-    generateBtn.disabled = false;
-    generateBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #feca57)';
-    generateBtn.innerHTML = '✨ Create My Song Lyrics! ✨';
 }
 
 // Save song to library with proper 10-song limit
 async function saveToLibraryWithLimit(songData) {
     try {
-        // Check if database is available
         if (!db) {
-            console.warn('⚠️ Database not available, attempting to reinitialize...');
-            await initDB();
-            if (!db) {
-                console.error('❌ Database still unavailable, skipping save');
-                return;
-            }
+            console.warn('⚠️ Database not available');
+            return;
         }
         
         const transaction = db.transaction(['songs'], 'readwrite');
         const store = transaction.objectStore('songs');
         
-        // Add the new song
         const addRequest = store.add(songData);
         
         addRequest.onsuccess = async () => {
@@ -259,35 +200,23 @@ async function saveToLibraryWithLimit(songData) {
             currentSong = songData;
             console.log('✅ Song saved with ID:', songData.id);
             
-            // Now enforce the 10-song limit
+            // Enforce 10-song limit
             const getAllRequest = store.getAll();
             getAllRequest.onsuccess = async () => {
                 const allSongs = getAllRequest.result;
-                console.log('📊 Total songs in DB:', allSongs.length);
                 
                 if (allSongs.length > 10) {
-                    // Sort by timestamp (oldest first), but keep favorites
                     const nonFavorited = allSongs.filter(song => !song.favorited);
                     nonFavorited.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                     
                     const toDelete = allSongs.length - 10;
-                    console.log('🗑️ Need to delete', toDelete, 'old songs');
-                    
                     for (let i = 0; i < Math.min(toDelete, nonFavorited.length); i++) {
-                        const deleteRequest = store.delete(nonFavorited[i].id);
-                        deleteRequest.onsuccess = () => {
-                            console.log('🗑️ Deleted old song:', nonFavorited[i].title);
-                        };
+                        store.delete(nonFavorited[i].id);
                     }
                 }
                 
-                // Reload the library to reflect changes
                 await loadLibrary();
             };
-        };
-        
-        addRequest.onerror = () => {
-            console.error('❌ Error saving song:', addRequest.error);
         };
         
     } catch (error) {
@@ -301,7 +230,6 @@ async function generateArtworkAsync(songData) {
        showStatus('Creating album artwork... 🎨', 'info');
        const artworkUrl = await generateArtwork();
        
-       // Convert to base64 for storage
        const response = await fetch(artworkUrl);
        const blob = await response.blob();
        
@@ -310,10 +238,11 @@ async function generateArtworkAsync(songData) {
            songData.artworkUrl = reader.result;
            showArtwork(reader.result);
            
-           // Update in database
-           const transaction = db.transaction(['songs'], 'readwrite');
-           const store = transaction.objectStore('songs');
-           store.put(songData);
+           if (db) {
+               const transaction = db.transaction(['songs'], 'readwrite');
+               const store = transaction.objectStore('songs');
+               store.put(songData);
+           }
            
            console.log('✅ Artwork generated and saved');
        };
@@ -333,7 +262,6 @@ async function generateAudioAsync(songData) {
        
        const audioUrl = await generateVocalDemo(songData.lyrics, songData.voice);
        
-       // Convert to base64 for storage
        const response = await fetch(audioUrl);
        const blob = await response.blob();
        
@@ -343,10 +271,11 @@ async function generateAudioAsync(songData) {
            currentAudioUrl = reader.result;
            showAudio(reader.result);
            
-           // Update in database
-           const transaction = db.transaction(['songs'], 'readwrite');
-           const store = transaction.objectStore('songs');
-           store.put(songData);
+           if (db) {
+               const transaction = db.transaction(['songs'], 'readwrite');
+               const store = transaction.objectStore('songs');
+               store.put(songData);
+           }
            
            showStatus('Vocal demo complete! 🎤', 'success');
            console.log('✅ Audio generated and saved');
@@ -418,9 +347,7 @@ async function generateLyrics() {
    
    const response = await fetch(lyricsUrl, {
        method: 'GET',
-       headers: {
-           'Accept': 'text/plain',
-       }
+       headers: { 'Accept': 'text/plain' }
    });
    
    if (!response.ok) {
@@ -459,31 +386,15 @@ async function generateArtwork() {
    if (!response.ok) throw new Error('Artwork generation failed');
    
    const blob = await response.blob();
-   const localUrl = URL.createObjectURL(blob);
-   
-   return localUrl;
+   return URL.createObjectURL(blob);
 }
 
 // Generate vocal demo
 async function generateVocalDemo(lyrics, voice) {
    const cleanLyrics = lyrics
        .replace(/\*\*.*?\*\*/g, '')
-       .replace(/\*Verse.*?\*/gi, '')
-       .replace(/\*Chorus.*?\*/gi, '')
-       .replace(/\*Bridge.*?\*/gi, '')
-       .replace(/\*Intro.*?\*/gi, '')
-       .replace(/\*Outro.*?\*/gi, '')
-       .replace(/\*Pre-Chorus.*?\*/gi, '')
-       .replace(/\*Hook.*?\*/gi, '')
-       .replace(/\*Refrain.*?\*/gi, '')
-       .replace(/\[Verse.*?\]/gi, '')
-       .replace(/\[Chorus.*?\]/gi, '')
-       .replace(/\[Bridge.*?\]/gi, '')
-       .replace(/\[Intro.*?\]/gi, '')
-       .replace(/\[Outro.*?\]/gi, '')
-       .replace(/\[Pre-Chorus.*?\]/gi, '')
-       .replace(/\[Hook.*?\]/gi, '')
-       .replace(/\[Refrain.*?\]/gi, '')
+       .replace(/\*.*?\*/gi, '')
+       .replace(/\[.*?\]/gi, '')
        .replace(/\s+/g, ' ')
        .trim();
    
@@ -497,9 +408,7 @@ async function generateVocalDemo(lyrics, voice) {
    if (!response.ok) throw new Error('Audio fetch failed');
    
    const blob = await response.blob();
-   const localAudioUrl = URL.createObjectURL(blob);
-   
-   return localAudioUrl;
+   return URL.createObjectURL(blob);
 }
 
 // Load library from database
@@ -541,7 +450,6 @@ function updateLibraryUI() {
        return;
    }
    
-   // Sort songs: favorites first, then by newest timestamp
    const sortedSongs = [...songLibrary].sort((a, b) => {
        if (a.favorited !== b.favorited) {
            return b.favorited - a.favorited;
@@ -574,16 +482,12 @@ function updateLibraryUI() {
            </div>
        `;
    }).join('');
-   
-   console.log('🔄 Library UI updated with', sortedSongs.length, 'songs');
 }
 
 // Load song by ID
 function loadSongById(songId) {
-   console.log('🔧 Loading song ID:', songId);
    const song = songLibrary.find(s => s.id == songId);
    if (!song) {
-       console.error('❌ Song not found:', songId);
        showStatus('Song not found!', 'error');
        return;
    }
@@ -610,30 +514,25 @@ function loadSongById(songId) {
        }
    }
 
-   // Update regenerate voice selector
    const regenVoiceSelect = document.getElementById('regenerate-voice-type');
    if (regenVoiceSelect) {
        regenVoiceSelect.value = song.voice || 'nova';
    }
    
-   // Display lyrics
    displayLyrics(song.lyrics);
    
-   // Handle artwork
    if (song.artworkUrl) {
        showArtwork(song.artworkUrl);
    } else {
        document.getElementById('song-artwork-container').classList.add('hidden');
    }
    
-   // Handle audio
    if (song.audioUrl) {
        showAudio(song.audioUrl);
    } else {
        document.getElementById('audio-container').style.display = 'none';
    }
    
-   // Update favorite button
    document.getElementById('favorite-song-btn').innerHTML = song.favorited ? 
        '⭐ Remove from Favorites' : '⭐ Add to Favorites';
    
@@ -702,13 +601,8 @@ function downloadAudioById(songId) {
 
 // Delete song by ID
 async function deleteSongById(songId) {
-   console.log('🗑️ DELETE: Starting delete for ID:', songId);
-   
    const song = songLibrary.find(s => s.id == songId);
-   if (!song) {
-       console.error('❌ Song not found for deletion:', songId);
-       return;
-   }
+   if (!song) return;
    
    const songTitle = song.title || 'Untitled';
    
@@ -720,28 +614,18 @@ async function deleteSongById(songId) {
            const deleteRequest = store.delete(Number(songId));
            
            deleteRequest.onsuccess = async () => {
-               console.log('✅ Song deleted from database');
-               
-               // Remove from memory array
                const index = songLibrary.findIndex(s => s.id == songId);
                if (index >= 0) {
                    songLibrary.splice(index, 1);
                }
                
-               // Clear current song if it was deleted
                if (currentSong && currentSong.id == songId) {
                    currentSong = null;
                    document.getElementById('lyrics-section').classList.add('hidden');
                }
                
-               // Update UI
                updateLibraryUI();
                showStatus(`"${songTitle}" DELETED! 🗑️`, 'success');
-           };
-           
-           deleteRequest.onerror = () => {
-               console.error('❌ Delete failed:', deleteRequest.error);
-               showStatus('Delete failed! 🗑️', 'error');
            };
            
        } catch (error) {
@@ -753,8 +637,6 @@ async function deleteSongById(songId) {
 
 // Clear entire library
 async function clearLibrary() {
-   console.log('🗑️ CLEAR ALL: Starting...');
-   
    if (confirm('Are you sure you want to delete ALL songs (including favorites)? This cannot be undone! 🗑️')) {
        try {
            const transaction = db.transaction(['songs'], 'readwrite');
@@ -763,26 +645,16 @@ async function clearLibrary() {
            const clearRequest = store.clear();
            
            clearRequest.onsuccess = () => {
-               console.log('✅ All songs cleared from database');
-               
-               // Clear memory
                songLibrary = [];
                currentSong = null;
                currentAudioUrl = null;
                
-               // Hide current song display
                document.getElementById('lyrics-section').classList.add('hidden');
                document.getElementById('song-artwork-container').classList.add('hidden');
                document.getElementById('audio-container').style.display = 'none';
                
-               // Update UI
                updateLibraryUI();
                showStatus('ALL SONGS DELETED! 🗑️💥', 'success');
-           };
-           
-           clearRequest.onerror = () => {
-               console.error('❌ Clear all failed:', clearRequest.error);
-               showStatus('Failed to clear library! 🗑️', 'error');
            };
            
        } catch (error) {
@@ -824,7 +696,6 @@ async function copyLyrics() {
        await navigator.clipboard.writeText(currentSong.lyrics);
        showStatus('Lyrics copied to clipboard! 📋', 'success');
    } catch (error) {
-       console.error('❌ Copy failed:', error);
        showStatus('Failed to copy lyrics. Please select and copy manually! 📋', 'error');
    }
 }
@@ -849,7 +720,6 @@ async function regenerateAudioWithNewVoice() {
    try {
        const newAudioUrl = await generateVocalDemo(currentSong.lyrics, selectedVoice);
        
-       // Convert to base64 for storage
        const response = await fetch(newAudioUrl);
        const blob = await response.blob();
        const reader = new FileReader();
@@ -859,18 +729,14 @@ async function regenerateAudioWithNewVoice() {
            currentSong.voice = selectedVoice;
            currentAudioUrl = base64data;
            
-           // Update in database
-           const transaction = db.transaction(['songs'], 'readwrite');
-           const store = transaction.objectStore('songs');
-           store.put(currentSong);
+           if (db) {
+               const transaction = db.transaction(['songs'], 'readwrite');
+               const store = transaction.objectStore('songs');
+               store.put(currentSong);
+           }
            
-           // Update display
            showAudio(base64data);
-           
-           // Update library
            await loadLibrary();
-           
-           // Update the voice selector in the form
            document.getElementById('voice-type').value = selectedVoice;
            
            showStatus('New vocal demo generated! 🎤', 'success');
@@ -901,230 +767,204 @@ function displayLyrics(lyrics) {
            <div class="lyrics-edit-controls">
                <button class="mini-button" onclick="saveLyricsEdit()">💾 Save Changes</button>
                <button class="mini-button" onclick="cancelLyricsEdit()">❌ Cancel</button>
-           </div>
-       </div>
-   `;
-   
-   // Add click handler for editing
-   document.getElementById('lyrics-text').addEventListener('click', startLyricsEdit);
-   
-   document.getElementById('lyrics-section').classList.remove('hidden');
-   document.getElementById('lyrics-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          </div>
+      </div>
+  `;
+  
+  // Add click handler for editing
+  document.getElementById('lyrics-text').addEventListener('click', startLyricsEdit);
+  
+  document.getElementById('lyrics-section').classList.remove('hidden');
+  document.getElementById('lyrics-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Show artwork with refresh button
 function showArtwork(artworkUrl) {
-   document.getElementById('song-artwork-container').innerHTML = `
-       <div class="artwork-container">
-           <img class="song-artwork" alt="Song artwork" src="${artworkUrl}" />
-           <button class="refresh-artwork-btn" onclick="refreshArtwork()" title="Generate new artwork">
-               🔄
-           </button>
-       </div>
-   `;
-   document.getElementById('song-artwork-container').classList.remove('hidden');
+  document.getElementById('song-artwork-container').innerHTML = `
+      <div class="artwork-container">
+          <img class="song-artwork" alt="Song artwork" src="${artworkUrl}" />
+          <button class="refresh-artwork-btn" onclick="refreshArtwork()" title="Generate new artwork">
+              🔄
+          </button>
+      </div>
+  `;
+  document.getElementById('song-artwork-container').classList.remove('hidden');
 }
 
 // Show audio
 function showAudio(audioUrl) {
-   const audioContainer = document.getElementById('audio-container');
-   audioContainer.style.display = 'block';
-   
-   audioContainer.innerHTML = `
-       <h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
-       <audio id="audio-player" controls src="${audioUrl}"></audio>
-       <button class="mini-button" onclick="downloadCurrentAudio()" style="margin-top: 1rem;">
-           💾 Download Demo
-       </button>
-   `;
-   
-   currentAudioUrl = audioUrl;
+  const audioContainer = document.getElementById('audio-container');
+  audioContainer.style.display = 'block';
+  
+  audioContainer.innerHTML = `
+      <h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
+      <audio id="audio-player" controls src="${audioUrl}"></audio>
+      <button class="mini-button" onclick="downloadCurrentAudio()" style="margin-top: 1rem;">
+          💾 Download Demo
+      </button>
+  `;
+  
+  currentAudioUrl = audioUrl;
 }
 
 // Show audio loading placeholder
 function showAudioPlaceholder() {
+  const audioContainer = document.getElementById('audio-container');
+  audioContainer.style.display = 'block';
+  audioContainer.innerHTML = `
+      <h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
+      <div style="padding: 2rem; text-align: center; color: #667eea; background: linear-gradient(135deg, #e6f3ff, #f0e6ff); border-radius: 10px;">
+          <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+          <p><strong>Creating your vocal demo...</strong></p>
+          <p style="font-size: 0.9rem; margin-top: 0.5rem; color: #718096;">This may take 30-60 seconds ⏳</p>
+      </div>
+  `;
+}
+
+function showAudioError() {
    const audioContainer = document.getElementById('audio-container');
    audioContainer.style.display = 'block';
    audioContainer.innerHTML = `
        <h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
-       <div style="padding: 2rem; text-align: center; color: #667eea; background: linear-gradient(135deg, #e6f3ff, #f0e6ff); border-radius: 10px;">
-           <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
-           <p><strong>Creating your vocal demo...</strong></p>
-           <p style="font-size: 0.9rem; margin-top: 0.5rem; color: #718096;">This may take 30-60 seconds ⏳</p>
+       <div style="padding: 1.5rem; text-align: center; color: #e53e3e; background: #fed7d7; border-radius: 10px;">
+           <p><strong>❌ Vocal demo generation failed</strong></p>
+           <p style="font-size: 0.9rem; margin-top: 0.5rem;">You can try creating a new version to generate audio, or view this song later from your library!</p>
        </div>
    `;
 }
 
-function showAudioError() {
-    const audioContainer = document.getElementById('audio-container');
-    audioContainer.style.display = 'block';
-    audioContainer.innerHTML = `
-        <h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
-        <div style="padding: 1.5rem; text-align: center; color: #e53e3e; background: #fed7d7; border-radius: 10px;">
-            <p><strong>❌ Vocal demo generation failed</strong></p>
-            <p style="font-size: 0.9rem; margin-top: 0.5rem;">You can try creating a new version to generate audio, or view this song later from your library!</p>
-        </div>
-    `;
-}
-
 // Download current audio
 function downloadCurrentAudio() {
-   if (!currentAudioUrl) {
-       showStatus('No vocal demo to download. Create audio first! 🎤', 'error');
-       return;
-   }
-   
-   try {
-       const a = document.createElement('a');
-       a.href = currentAudioUrl;
-       
-       const title = document.getElementById('song-title').value.trim() || 'song';
-       const safeFileName = title.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
-       const filename = `song_demo_${safeFileName}_${Date.now()}.mp3`;
-       a.download = filename;
-       
-       document.body.appendChild(a);
-       a.click();
-       document.body.removeChild(a);
-       
-       showStatus('Download started! 💾', 'success');
-       
-   } catch (error) {
-       console.error('❌ Download error:', error);
-       showStatus('Download failed. Please try again! 💾', 'error');
-   }
+  if (!currentAudioUrl) {
+      showStatus('No vocal demo to download. Create audio first! 🎤', 'error');
+      return;
+  }
+  
+  try {
+      const a = document.createElement('a');
+      a.href = currentAudioUrl;
+      
+      const title = document.getElementById('song-title').value.trim() || 'song';
+      const safeFileName = title.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+      const filename = `song_demo_${safeFileName}_${Date.now()}.mp3`;
+      a.download = filename;
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      showStatus('Download started! 💾', 'success');
+      
+  } catch (error) {
+      console.error('❌ Download error:', error);
+      showStatus('Download failed. Please try again! 💾', 'error');
+  }
 }
 
 // Refresh artwork with new seed
 function refreshArtwork() {
-   if (!currentSong) return;
-   
-   const refreshBtn = document.querySelector('.refresh-artwork-btn');
-   if (refreshBtn) {
-       refreshBtn.innerHTML = '⏳';
-       refreshBtn.style.pointerEvents = 'none';
-   }
-   
-   showStatus('Generating new artwork... 🎨', 'info');
-   
-   generateArtwork().then(async (newArtworkUrl) => {
-       // Convert to base64 for storage
-       const response = await fetch(newArtworkUrl);
-       const blob = await response.blob();
-       const reader = new FileReader();
-       reader.onloadend = async () => {
-           const base64data = reader.result;
-           currentSong.artworkUrl = base64data;
-           
-           // Update in database
-           const transaction = db.transaction(['songs'], 'readwrite');
-           const store = transaction.objectStore('songs');
-           store.put(currentSong);
-           
-           // Update display
-           showArtwork(base64data);
-           await loadLibrary();
-           showStatus('New artwork generated! 🎨', 'success');
-       };
-       reader.readAsDataURL(blob);
-       
-   }).catch((error) => {
-       console.error('❌ Artwork refresh failed:', error);
-       showStatus('Failed to generate new artwork. Please try again! 🎨', 'error');
-       if (refreshBtn) {
-           refreshBtn.innerHTML = '🔄';
-           refreshBtn.style.pointerEvents = 'auto';
-       }
-   });
+  if (!currentSong) return;
+  
+  const refreshBtn = document.querySelector('.refresh-artwork-btn');
+  if (refreshBtn) {
+      refreshBtn.innerHTML = '⏳';
+      refreshBtn.style.pointerEvents = 'none';
+  }
+  
+  showStatus('Generating new artwork... 🎨', 'info');
+  
+  generateArtwork().then(async (newArtworkUrl) => {
+      const response = await fetch(newArtworkUrl);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+          const base64data = reader.result;
+          currentSong.artworkUrl = base64data;
+          
+          if (db) {
+              const transaction = db.transaction(['songs'], 'readwrite');
+              const store = transaction.objectStore('songs');
+              store.put(currentSong);
+          }
+          
+          showArtwork(base64data);
+          await loadLibrary();
+          showStatus('New artwork generated! 🎨', 'success');
+      };
+      reader.readAsDataURL(blob);
+      
+  }).catch((error) => {
+      console.error('❌ Artwork refresh failed:', error);
+      showStatus('Failed to generate new artwork. Please try again! 🎨', 'error');
+      if (refreshBtn) {
+          refreshBtn.innerHTML = '🔄';
+          refreshBtn.style.pointerEvents = 'auto';
+      }
+  });
 }
 
 // Start lyrics editing
 function startLyricsEdit() {
-   document.getElementById('lyrics-text').classList.add('hidden');
-   document.getElementById('lyrics-editor').classList.remove('hidden');
-   document.getElementById('lyrics-textarea').focus();
+  document.getElementById('lyrics-text').classList.add('hidden');
+  document.getElementById('lyrics-editor').classList.remove('hidden');
+  document.getElementById('lyrics-textarea').focus();
 }
 
 // Save lyrics edit
 function saveLyricsEdit() {
-   const newLyrics = document.getElementById('lyrics-textarea').value.trim();
-   
-   if (!newLyrics) {
-       showStatus('Lyrics cannot be empty! ✏️', 'error');
-       return;
-   }
-   
-   if (!currentSong) {
-       showStatus('No song to update! ✏️', 'error');
-       return;
-   }
-   
-   // Update current song
-   currentSong.lyrics = newLyrics;
-   
-   try {
-       // Save to database
-       const transaction = db.transaction(['songs'], 'readwrite');
-       const store = transaction.objectStore('songs');
-       store.put(currentSong);
-       
-       // Update display
-       document.getElementById('lyrics-text').innerHTML = `
-           ${newLyrics}
-           <div style="position: absolute; top: 10px; right: 10px; font-size: 0.8rem; color: #667eea; opacity: 0.7;">
-               Click to edit ✏️
-           </div>
-       `;
-       
-       document.getElementById('lyrics-editor').classList.add('hidden');
-       document.getElementById('lyrics-text').classList.remove('hidden');
-       
-       // Re-add click handler
-       document.getElementById('lyrics-text').addEventListener('click', startLyricsEdit);
-       
-       loadLibrary();
-       showStatus('Lyrics updated successfully! ✏️', 'success');
-       
-   } catch (error) {
-       console.error('❌ Error saving lyrics:', error);
-       showStatus('Failed to save lyrics changes! ✏️', 'error');
-   }
+  const newLyrics = document.getElementById('lyrics-textarea').value.trim();
+  
+  if (!newLyrics) {
+      showStatus('Lyrics cannot be empty! ✏️', 'error');
+      return;
+  }
+  
+  if (!currentSong) {
+      showStatus('No song to update! ✏️', 'error');
+      return;
+  }
+  
+  currentSong.lyrics = newLyrics;
+  
+  try {
+      if (db) {
+          const transaction = db.transaction(['songs'], 'readwrite');
+          const store = transaction.objectStore('songs');
+          store.put(currentSong);
+      }
+      
+      document.getElementById('lyrics-text').innerHTML = `
+          ${newLyrics}
+          <div style="position: absolute; top: 10px; right: 10px; font-size: 0.8rem; color: #667eea; opacity: 0.7;">
+              Click to edit ✏️
+          </div>
+      `;
+      
+      document.getElementById('lyrics-editor').classList.add('hidden');
+      document.getElementById('lyrics-text').classList.remove('hidden');
+      
+      document.getElementById('lyrics-text').addEventListener('click', startLyricsEdit);
+      
+      loadLibrary();
+      showStatus('Lyrics updated successfully! ✏️', 'success');
+      
+  } catch (error) {
+      console.error('❌ Error saving lyrics:', error);
+      showStatus('Failed to save lyrics changes! ✏️', 'error');
+  }
 }
 
 // Cancel lyrics edit
 function cancelLyricsEdit() {
-   document.getElementById('lyrics-editor').classList.add('hidden');
-   document.getElementById('lyrics-text').classList.remove('hidden');
+  document.getElementById('lyrics-editor').classList.add('hidden');
+  document.getElementById('lyrics-text').classList.remove('hidden');
 }
 
 // Show status message
 function showStatus(message, type = 'info') {
-   const statusMessage = document.getElementById('status-message');
-   statusMessage.textContent = message;
-   statusMessage.className = `status-message status-${type}`;
-   statusMessage.classList.remove('hidden');
-   setTimeout(() => statusMessage.classList.add('hidden'), 5000);
+  const statusMessage = document.getElementById('status-message');
+  statusMessage.textContent = message;
+  statusMessage.className = `status-message status-${type}`;
+  statusMessage.classList.remove('hidden');
+  setTimeout(() => statusMessage.classList.add('hidden'), 5000);
 }
-
-// Loading state helper
-function setLoading(button, isLoading, loadingText = 'Loading...') {
-   if (isLoading) {
-       button.disabled = true;
-       button.innerHTML = `<span class="loading-spinner"></span> ${loadingText}`;
-   } else {
-       button.disabled = false;
-       if (button.id === 'generate-lyrics-btn') {
-           button.innerHTML = '✨ Create My Song Lyrics! ✨';
-       } else if (button.id === 'regenerate-lyrics-btn') {
-           button.innerHTML = '🔄 New Version';
-       }
-   }
-}
-
-// SIMPLE INITIALIZATION - ONLY ONCE
-console.log('🎵 SCRIPT LOADED');
-
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎵 DOM CONTENT LOADED - INITIALIZING');
-    initializeApp();
-});
