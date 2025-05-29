@@ -150,11 +150,15 @@ async function generateCompleteSong() {
     
     const title = document.getElementById('song-title').value.trim();
     const theme = document.getElementById('song-theme').value.trim();
-    
-    if (!title && !theme) {
-        showStatus('❌ Please provide at least a song title or theme! 🎵', 'error');
-        return;
-    }
+		
+	if (!title && !theme) {
+		showStatus('❌ Please provide at least a song title or theme! 🎵', 'error');
+		// RESET THE BUTTON BEFORE RETURNING
+		const generateBtn = document.getElementById('generate-lyrics-btn');
+		generateBtn.disabled = false;
+		generateBtn.innerHTML = '✨ Create My Song Lyrics! ✨';
+		return;
+	}
     
     const generateBtn = document.getElementById('generate-lyrics-btn');
     generateBtn.innerHTML = '🎼 CREATING YOUR SONG...';
