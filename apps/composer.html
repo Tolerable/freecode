@@ -1697,36 +1697,44 @@
 		}
 
 		async function deleteSongById(songId) {
-			const song = songLibrary.find(s => s.id === parseInt(songId));
+			const song = songLibrary.find(s => s.id == songId);
 			if (!song) return;
 			
 			const songTitle = song.title || 'Untitled';
 			
-			if (confirm(`Are you sure you want to delete "${songTitle}"? This cannot be undone! 🗑️`)) {
+			if (confirm(`Delete "${songTitle}"?`)) {
 				try {
+					// Delete from database
 					const transaction = db.transaction(['songs'], 'readwrite');
 					const store = transaction.objectStore('songs');
-					await store.delete(songId);
+					store.delete(parseInt(songId));
 					
-					// Remove from the songLibrary array
+					// Wait for transaction to complete
+					await new Promise((resolve, reject) => {
+						transaction.oncomplete = resolve;
+						transaction.onerror = reject;
+					});
+					
+					// Remove from array immediately
 					const index = songLibrary.findIndex(s => s.id == songId);
 					if (index >= 0) {
 						songLibrary.splice(index, 1);
 					}
 					
-					// Update UI
-					updateLibraryUI();
-					
-					// Clear current song if it was the deleted one
-					if (currentSong && currentSong.id === parseInt(songId)) {
+					// Clear current song if it matches
+					if (currentSong && currentSong.id == songId) {
 						currentSong = null;
 						lyricsSection.classList.add('hidden');
 					}
 					
-					showStatus(`"${songTitle}" deleted! 🗑️`, 'success');
+					// Force UI update
+					updateLibraryUI();
+					
+					showStatus(`"${songTitle}" deleted!`, 'success');
+					
 				} catch (error) {
-					console.error('Error deleting song:', error);
-					showStatus('Failed to delete song! 🗑️', 'error');
+					console.error('Delete failed:', error);
+					showStatus('Delete failed!', 'error');
 				}
 			}
 		}
