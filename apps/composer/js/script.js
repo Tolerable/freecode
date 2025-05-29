@@ -39,7 +39,7 @@ async function initializeApp() {
 function initDB() {
     return new Promise((resolve, reject) => {
         console.log('🔧 Opening database...');
-        const request = indexedDB.open('songComposerDB', 1);
+        const request = indexedDB.open('songComposerDB', 3);
         
         request.onerror = () => {
             console.error('❌ Database error:', request.error);
