@@ -1033,25 +1033,6 @@
            return artworkPrompt;
        }
 
-       // Convert URL to base64
-       async function urlToBase64(url) {
-           try {
-               const response = await fetch(url);
-               if (!response.ok) throw new Error('Failed to fetch');
-               const blob = await response.blob();
-               
-               return new Promise((resolve, reject) => {
-                   const reader = new FileReader();
-                   reader.onloadend = () => resolve(reader.result);
-                   reader.onerror = reject;
-                   reader.readAsDataURL(blob);
-               });
-           } catch (error) {
-               console.error('Failed to convert URL to base64:', error);
-               throw error;
-           }
-       }
-
        // Generate lyrics
        async function generateLyrics() {
            const prompt = buildLyricsPrompt();
@@ -1084,25 +1065,36 @@
            return artworkUrl;
        }
 
-       // Generate vocal demo
-       async function generateVocalDemo(lyrics, voice) {
-           // Clean lyrics for audio generation
-           const cleanLyrics = lyrics
-               .replace(/\*\*.*?\*\*/g, '')
-               .replace(/\*.*?\*/gi, '')
-               .replace(/\[.*?\]/gi, '')
-               .replace(/\s+/g, ' ')
-               .trim();
-           
-           const instruction = "SKIP NO LINES AND IMMEDIATELY WITHOUT REMARKS OR COMMENTARY TRANSCRIBE COMPLETELY AND EXACTLY THIS TEXT FOR IT IS SONG LYRICS, READ ALOUD WITH FEELING AND DEPTH:";
-           const textToSpeak = `${instruction} ${cleanLyrics}`;
-           const encodedText = encodeURIComponent(textToSpeak);
-           const audioSeed = Math.floor(Math.random() * 1000000);
-           const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&seed=${audioSeed}&referrer=songcomposer`;
-           
-           return audioUrl;
-       }
-
+		async function generateVocalDemo(lyrics, voice) {
+			const cleanLyrics = lyrics
+				.replace(/\*\*.*?\*\*/g, '')
+				.replace(/\*.*?\*/gi, '')
+				.replace(/\[.*?\]/gi, '')
+				.replace(/\s+/g, ' ')
+				.trim();
+			
+			const instruction = "SKIP NO LINES AND IMMEDIATELY WITHOUT REMARKS OR COMMENTARY TRANSCRIBE COMPLETELY AND EXACTLY THIS TEXT FOR IT IS SONG LYRICS, READ ALOUD WITH FEELING AND DEPTH:";
+			const textToSpeak = `${instruction} ${cleanLyrics}`;
+			const encodedText = encodeURIComponent(textToSpeak);
+			const audioSeed = Math.floor(Math.random() * 1000000);
+			const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&seed=${audioSeed}&referrer=songcomposer`;
+			
+			return new Promise((resolve, reject) => {
+				const audio = new Audio();
+				
+				audio.addEventListener('canplaythrough', () => {
+					resolve(audioUrl);
+				}, { once: true });
+				
+				audio.addEventListener('error', (e) => {
+					reject(new Error('Audio generation/loading failed'));
+				}, { once: true });
+				
+				audio.src = audioUrl;
+				audio.load();
+			});
+		}
+		
        // Generate complete song
        async function generateCompleteSong() {
            const title = document.getElementById('song-title').value.trim();
@@ -1167,13 +1159,12 @@
                
                // Step 3: Generate audio (async)
                showAudioPlaceholder();
-               generateVocalDemo(lyrics, songData.voice)
-                   .then(url => urlToBase64(url))
-                   .then(base64 => {
-                       songData.audioUrl = base64;
-                       showAudio(base64);
-                       return updateSong(songData);
-                   })
+				generateVocalDemo(lyrics, songData.voice)
+					.then(audioUrl => {
+						songData.audioUrl = audioUrl;
+						showAudio(audioUrl);
+						return updateSong(songData);
+					})
                    .catch(err => {
                        console.error('Audio generation failed:', err);
                        showAudioError();
