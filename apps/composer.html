@@ -771,11 +771,13 @@
         let db;
 
         // Initialize
-        initDB().then(() => {
-            loadLibrary();
-        }).catch(err => {
-            console.error('DB initialization failed:', err);
-        });
+		initDB().then(() => {
+			return loadLibrary();
+		}).then(() => {
+			console.log('Library loaded:', songLibrary.length, 'songs');
+		}).catch(err => {
+			console.error('DB initialization failed:', err);
+		});
 
         // Event Listeners
         generateLyricsBtn.addEventListener('click', generateCompleteSong);
@@ -1521,11 +1523,27 @@
 
 		// Simple save to database
 		function saveToDatabase(song) {
-			if (!db) return;
+			if (!db) {
+				console.error('No database connection for saving');
+				return;
+			}
 			
-			const transaction = db.transaction(['songs'], 'readwrite');
-			const store = transaction.objectStore('songs');
-			store.put(song);
+			try {
+				const transaction = db.transaction(['songs'], 'readwrite');
+				const store = transaction.objectStore('songs');
+				const request = store.put(song);
+				
+				request.onsuccess = () => {
+					console.log('Song saved to DB:', song.id);
+				};
+				
+				request.onerror = () => {
+					console.error('Failed to save song:', request.error);
+				};
+				
+			} catch (error) {
+				console.error('Save transaction error:', error);
+			}
 		}
 
 		// Update song in library array and UI
@@ -1538,26 +1556,45 @@
 			}
 		}
 
-		// Load library - SIMPLIFIED
-		async function loadLibrary() {
-			if (!db) return;
-			
-			const transaction = db.transaction(['songs'], 'readonly');
-			const store = transaction.objectStore('songs');
-			const request = store.getAll();
-			
-			request.onsuccess = () => {
-				songLibrary = request.result || [];
-				
-				// Keep only last 10 songs
-				if (songLibrary.length > 10) {
-					songLibrary = songLibrary
-						.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-						.slice(0, 10);
+		// Load library
+		function loadLibrary() {
+			return new Promise((resolve, reject) => {
+				if (!db) {
+					console.error('No database connection');
+					resolve(); // Don't reject, just continue with empty library
+					return;
 				}
 				
-				updateLibraryUI();
-			};
+				try {
+					const transaction = db.transaction(['songs'], 'readonly');
+					const store = transaction.objectStore('songs');
+					const request = store.getAll();
+					
+					request.onsuccess = () => {
+						songLibrary = request.result || [];
+						console.log('Loaded songs from DB:', songLibrary);
+						
+						// Keep only last 10 songs
+						if (songLibrary.length > 10) {
+							songLibrary = songLibrary
+								.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+								.slice(0, 10);
+						}
+						
+						updateLibraryUI();
+						resolve();
+					};
+					
+					request.onerror = () => {
+						console.error('Failed to load songs:', request.error);
+						reject(request.error);
+					};
+					
+				} catch (error) {
+					console.error('Transaction error:', error);
+					reject(error);
+				}
+			});
 		}
 
 		// Update library UI - FIXED without Play Demo button
