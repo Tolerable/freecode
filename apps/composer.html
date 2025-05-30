@@ -800,27 +800,35 @@
 		// Audio regeneration
 		document.getElementById('regenerate-audio-btn').addEventListener('click', regenerateAudioWithNewVoice);
 
-        // Initialize IndexedDB
-        async function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open('songComposerDB', 2);
-                
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => {
-                    db = request.result;
-                    resolve(db);
-                };
-                
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains('songs')) {
-                        const store = db.createObjectStore('songs', { keyPath: 'id', autoIncrement: true });
-                        store.createIndex('timestamp', 'timestamp', { unique: false });
-                        store.createIndex('favorited', 'favorited', { unique: false });
-                    }
-                };
-            });
-        }
+		// Initialize DB - SIMPLIFIED
+		async function initDB() {
+			return new Promise((resolve, reject) => {
+				const request = indexedDB.open('songComposerDB', 4);
+				
+				request.onerror = () => {
+					console.error('DB error:', request.error);
+					reject(request.error);
+				};
+				
+				request.onsuccess = () => {
+					db = request.result;
+					resolve(db);
+				};
+				
+				request.onupgradeneeded = (event) => {
+					const db = event.target.result;
+					
+					// Delete old store if exists
+					if (db.objectStoreNames.contains('songs')) {
+						db.deleteObjectStore('songs');
+					}
+					
+					// Create new store with id as keyPath
+					const store = db.createObjectStore('songs', { keyPath: 'id' });
+					store.createIndex('timestamp', 'timestamp', { unique: false });
+				};
+			});
+		}
 
 		// Regenerate audio with selected voice
 		async function regenerateAudioWithNewVoice() {
@@ -960,7 +968,6 @@
             return artworkPrompt;
         }
 
-		// Generate complete song
 		async function generateCompleteSong() {
 			const title = document.getElementById('song-title').value.trim();
 			const theme = document.getElementById('song-theme').value.trim();
@@ -973,7 +980,9 @@
 			setLoading(generateLyricsBtn, true, 'Composing your song...');
 			lyricsSection.classList.add('hidden');
 			
+			// Create song object
 			let songData = {
+				id: Date.now(), // Simple ID
 				title: title || 'Untitled',
 				artist: document.getElementById('song-artist').value.trim() || 'Unknown',
 				theme: theme || 'Unknown',
@@ -982,82 +991,55 @@
 				structure: document.getElementById('song-structure').value,
 				voice: document.getElementById('voice-type').value,
 				timestamp: new Date().toISOString(),
-				favorited: false
+				favorited: false,
+				lyrics: '',
+				artworkUrl: null,
+				audioUrl: null
 			};
+			
 			try {
-				// Step 1: Generate lyrics - MUST succeed first
+				// Step 1: Generate lyrics
 				showStatus('Writing your song lyrics... ✍️', 'info');
 				const lyrics = await generateLyrics();
-				if (!lyrics || lyrics.length < 50) {
-					throw new Error('Generated lyrics are too short or empty');
-				}
 				songData.lyrics = lyrics;
 				
-				// Display lyrics immediately after successful generation
+				// Display lyrics immediately
 				displayLyrics(lyrics);
 				
-				// Step 2: Generate artwork (non-blocking) - STORE AS BASE64 IN DB
-				showStatus('Creating album artwork... 🎨', 'info');
-				generateArtwork()
-					.then(async artworkUrl => {
-						// Download and convert to base64 for permanent storage
-						const response = await fetch(artworkUrl);
-						const blob = await response.blob();
-						const reader = new FileReader();
-						reader.onloadend = () => {
-							const base64data = reader.result;
-							songData.artworkUrl = base64data; // Store as base64
-							showArtwork(base64data);
-						};
-						reader.readAsDataURL(blob);
-					})
-					.catch(error => {
-						console.error('Artwork generation failed:', error);
-						showStatus('Lyrics created! Artwork generation failed, but continuing... 🎨', 'info');
-					});
-				
-				// Step 3: Generate vocal demo (non-blocking) - STORE AS BASE64 IN DB
-				showStatus('Recording vocal demo... 🎤', 'info');
-				showAudioPlaceholder();
-				generateVocalDemo(lyrics, songData.voice)
-					.then(async audioUrl => {
-						if (audioUrl) {
-							// Download and convert to base64 for permanent storage
-							const response = await fetch(audioUrl);
-							const blob = await response.blob();
-							const reader = new FileReader();
-							reader.onloadend = () => {
-								const base64data = reader.result;
-								songData.audioUrl = base64data; // Store as base64
-								currentAudioUrl = base64data;
-								showAudio(base64data);
-								showStatus('Vocal demo complete! 🎤', 'success');
-							};
-							reader.readAsDataURL(blob);
-						} else {
-							throw new Error('Audio URL is empty');
-						}
-					})
-					.catch(error => {
-						console.error('Audio generation failed:', error);
-						songData.audioUrl = null;
-						showAudioError();
-						showStatus('Song created! Vocal demo generation failed - you can try regenerating later... 🎤', 'info');
-					});
-				
+				// Set as current song
 				currentSong = songData;
 				
-				// Update favorite button for new song
-				favoriteSongBtn.innerHTML = '⭐ Add to Favorites';
+				// Add to library immediately
+				songLibrary.push(songData);
+				updateLibraryUI();
 				
-				// Save to library immediately with what we have
-				await saveToLibrary(songData);
+				// Save to DB
+				saveToDatabase(songData);
 				
-				showStatus('Your song lyrics are ready! Artwork and vocal demo are being generated... ✨🎼', 'success');
+				// Step 2: Generate artwork (don't wait)
+				generateArtwork().then(url => {
+					songData.artworkUrl = url;
+					showArtwork(url);
+					updateSongInLibrary(songData);
+				}).catch(err => console.error('Artwork failed:', err));
+				
+				// Step 3: Generate audio (don't wait)
+				showAudioPlaceholder();
+				generateVocalDemo(lyrics, songData.voice).then(url => {
+					songData.audioUrl = url;
+					currentAudioUrl = url;
+					showAudio(url);
+					updateSongInLibrary(songData);
+				}).catch(err => {
+					console.error('Audio failed:', err);
+					showAudioError();
+				});
+				
+				showStatus('Song created! 🎵', 'success');
 				
 			} catch (error) {
 				console.error('Song generation failed:', error);
-				showStatus(`Song creation failed: ${error.message}. Please try again! 🎵`, 'error');
+				showStatus('Failed to create song! 🎵', 'error');
 			} finally {
 				setLoading(generateLyricsBtn, false);
 			}
@@ -1516,23 +1498,48 @@
 			}
 		}
 
-        // Load library
-        async function loadLibrary() {
-            try {
-                const transaction = db.transaction(['songs'], 'readonly');
-                const store = transaction.objectStore('songs');
-                const request = store.getAll();
-                
-                request.onsuccess = () => {
-                    songLibrary = request.result;
-                    updateLibraryUI();
-                };
-            } catch (error) {
-                console.error('Error loading library:', error);
-            }
-        }
+		// Simple save to database
+		function saveToDatabase(song) {
+			if (!db) return;
+			
+			const transaction = db.transaction(['songs'], 'readwrite');
+			const store = transaction.objectStore('songs');
+			store.put(song);
+		}
 
-		// Update library UI
+		// Update song in library array and UI
+		function updateSongInLibrary(song) {
+			const index = songLibrary.findIndex(s => s.id === song.id);
+			if (index >= 0) {
+				songLibrary[index] = song;
+				updateLibraryUI();
+				saveToDatabase(song);
+			}
+		}
+
+		// Load library - SIMPLIFIED
+		async function loadLibrary() {
+			if (!db) return;
+			
+			const transaction = db.transaction(['songs'], 'readonly');
+			const store = transaction.objectStore('songs');
+			const request = store.getAll();
+			
+			request.onsuccess = () => {
+				songLibrary = request.result || [];
+				
+				// Keep only last 10 songs
+				if (songLibrary.length > 10) {
+					songLibrary = songLibrary
+						.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+						.slice(0, 10);
+				}
+				
+				updateLibraryUI();
+			};
+		}
+
+		// Update library UI - FIXED
 		function updateLibraryUI() {
 			if (songLibrary.length === 0) {
 				songLibraryList.innerHTML = `
@@ -1544,22 +1551,22 @@
 			}
 			
 			songLibraryList.innerHTML = songLibrary.map((song, index) => {
-				const preview = song.lyrics ? song.lyrics.substring(0, 150) + '...' : 'No lyrics available';
+				const preview = song.lyrics ? song.lyrics.substring(0, 150) + '...' : 'No lyrics yet...';
 				const date = new Date(song.timestamp).toLocaleDateString();
 				
 				return `
 					<div class="song-card ${song.favorited ? 'favorited' : ''}" data-song-id="${song.id}">
 						<div class="song-title">
-							${song.favorited ? '⭐ ' : ''}${song.title || 'Untitled'}
+							${song.favorited ? '⭐ ' : ''}${song.title}
 						</div>
 						<div class="song-preview">${preview}</div>
 						<div class="song-meta">
-							<span>📅 ${date} | 🎵 ${song.genre || 'Unknown'} | 😊 ${song.mood || 'Unknown'}</span>
+							<span>📅 ${date} | 🎵 ${song.genre} | 😊 ${song.mood}</span>
 						</div>
 						<div class="song-actions">
 							<button class="mini-button" onclick="loadSongFromLibrary(${index})">🎼 View Full Song</button>
-							<button class="mini-button" onclick="playLibraryAudio(${index})">🎤 Play Demo</button>
-							<button class="mini-button" onclick="downloadLibraryAudio(${index})">💾 Download</button>
+							${song.audioUrl ? `<button class="mini-button" onclick="playLibraryAudio(${index})">🎤 Play Demo</button>` : ''}
+							${song.audioUrl ? `<button class="mini-button" onclick="downloadLibraryAudio(${index})">💾 Download</button>` : ''}
 							<button class="mini-button" onclick="copyLibraryLyrics(${index})">📋 Copy Lyrics</button>
 							<button class="mini-button ${song.favorited ? 'favorite' : ''}" onclick="toggleLibraryFavorite(${index})">
 								${song.favorited ? '⭐ Favorited' : '⭐ Favorite'}
