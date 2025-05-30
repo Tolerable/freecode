@@ -1013,31 +1013,44 @@
 				
 				// Add to library immediately
 				songLibrary.push(songData);
+				updateLibraryUI();
 				
-				if (songLibrary.length > 10) {
-					// Remove oldest non-favorited songs
-					const nonFavorited = songLibrary
-						.filter(s => !s.favorited)
-						.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+				// Save to DB and wait for it to complete
+				if (db) {
+					const transaction = db.transaction(['songs'], 'readwrite');
+					const store = transaction.objectStore('songs');
+					const request = store.put(songData);
 					
-					while (songLibrary.length > 10 && nonFavorited.length > 0) {
-						const oldestSong = nonFavorited.shift();
-						const index = songLibrary.findIndex(s => s.id === oldestSong.id);
-						if (index >= 0) {
-							songLibrary.splice(index, 1);
-							// Delete from DB
-							if (db) {
-								const transaction = db.transaction(['songs'], 'readwrite');
-								const store = transaction.objectStore('songs');
-								store.delete(oldestSong.id);
+					request.onsuccess = () => {
+						console.log('Song saved successfully with ID:', songData.id);
+						
+						// Check if we need to delete old songs
+						if (songLibrary.length > 10) {
+							// Remove oldest non-favorited songs
+							const nonFavorited = songLibrary
+								.filter(s => !s.favorited)
+								.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+							
+							while (songLibrary.length > 10 && nonFavorited.length > 0) {
+								const oldestSong = nonFavorited.shift();
+								const index = songLibrary.findIndex(s => s.id === oldestSong.id);
+								if (index >= 0) {
+									songLibrary.splice(index, 1);
+									// Delete from DB
+									const delTransaction = db.transaction(['songs'], 'readwrite');
+									const delStore = delTransaction.objectStore('songs');
+									delStore.delete(oldestSong.id);
+								}
 							}
+							updateLibraryUI();
 						}
-					}
-					updateLibraryUI();
+					};
+					
+					request.onerror = () => {
+						console.error('Failed to save song to DB:', request.error);
+						showStatus('Warning: Song may not persist after refresh!', 'error');
+					};
 				}
-				
-				// Save to DB
-				saveToDatabase(songData);
 				
 				// Step 2: Generate artwork (don't wait)
 				generateArtwork().then(url => {
@@ -1521,38 +1534,27 @@
 			}
 		}
 
-		// Simple save to database
-		function saveToDatabase(song) {
-			if (!db) {
-				console.error('No database connection for saving');
-				return;
-			}
-			
-			try {
-				const transaction = db.transaction(['songs'], 'readwrite');
-				const store = transaction.objectStore('songs');
-				const request = store.put(song);
-				
-				request.onsuccess = () => {
-					console.log('Song saved to DB:', song.id);
-				};
-				
-				request.onerror = () => {
-					console.error('Failed to save song:', request.error);
-				};
-				
-			} catch (error) {
-				console.error('Save transaction error:', error);
-			}
-		}
-
 		// Update song in library array and UI
 		function updateSongInLibrary(song) {
 			const index = songLibrary.findIndex(s => s.id === song.id);
 			if (index >= 0) {
 				songLibrary[index] = song;
 				updateLibraryUI();
-				saveToDatabase(song);
+				
+				// Save updated song to database
+				if (db) {
+					const transaction = db.transaction(['songs'], 'readwrite');
+					const store = transaction.objectStore('songs');
+					const request = store.put(song);
+					
+					request.onsuccess = () => {
+						console.log('Song updated in DB:', song.id);
+					};
+					
+					request.onerror = () => {
+						console.error('Failed to update song in DB:', request.error);
+					};
+				}
 			}
 		}
 
