@@ -1236,17 +1236,13 @@
            showStatus('Generating new artwork... 🎨', 'info');
            
            try {
-               const artworkUrl = await generateArtwork();
-               const base64Artwork = await urlToBase64(artworkUrl);
+				const artworkUrl = await generateArtwork();
+
+				currentSong.artworkUrl = artworkUrl;
+				showArtwork(artworkUrl);
+                await loadLibrary();
                
-               currentSong.artworkUrl = base64Artwork;
-               
-               await updateSong(currentSong);
-               
-               showArtwork(base64Artwork);
-               await loadLibrary();
-               
-               showStatus('New artwork generated! 🎨', 'success');
+                showStatus('New artwork generated! 🎨', 'success');
                
            } catch (error) {
                console.error('Artwork refresh failed:', error);
@@ -1540,15 +1536,14 @@
                `;
                
                // Generate missing artwork
-               generateArtwork()
-                   .then(url => urlToBase64(url))
-                   .then(base64 => {
-                       song.artworkUrl = base64;
-                       showArtwork(base64);
-                       return updateSong(song);
-                   })
-                   .then(() => loadLibrary())
-                   .catch(error => {
+				generateArtwork()
+					.then(artworkUrl => {
+						songData.artworkUrl = artworkUrl;
+						showArtwork(artworkUrl);
+						return updateSong(songData);
+					})
+                    .then(() => loadLibrary())
+                    .catch(error => {
                        console.error('Failed to generate missing artwork:', error);
                        songArtworkContainer.innerHTML = `
                            <div style="width: 100%; max-width: 400px; height: 200px; background: #fed7d7; border: 2px dashed #e53e3e; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 1rem auto;">
