@@ -1011,7 +1011,28 @@
 				
 				// Add to library immediately
 				songLibrary.push(songData);
-				updateLibraryUI();
+				
+				if (songLibrary.length > 10) {
+					// Remove oldest non-favorited songs
+					const nonFavorited = songLibrary
+						.filter(s => !s.favorited)
+						.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+					
+					while (songLibrary.length > 10 && nonFavorited.length > 0) {
+						const oldestSong = nonFavorited.shift();
+						const index = songLibrary.findIndex(s => s.id === oldestSong.id);
+						if (index >= 0) {
+							songLibrary.splice(index, 1);
+							// Delete from DB
+							if (db) {
+								const transaction = db.transaction(['songs'], 'readwrite');
+								const store = transaction.objectStore('songs');
+								store.delete(oldestSong.id);
+							}
+						}
+					}
+					updateLibraryUI();
+				}
 				
 				// Save to DB
 				saveToDatabase(songData);
@@ -1789,24 +1810,45 @@
             }
         };
 
-        window.deleteSongFromLibrary = async function(index) {
-            if (index >= 0 && index < songLibrary.length) {
-                if (confirm('Are you sure you want to delete this song? 🗑️')) {
-                    try {
-                        const song = songLibrary[index];
-                        const transaction = db.transaction(['songs'], 'readwrite');
-                        const store = transaction.objectStore('songs');
-                        await store.delete(song.id);
-                        
-                        loadLibrary();
-                        showStatus('Song deleted! 🗑️', 'success');
-                    } catch (error) {
-                        console.error('Error deleting song:', error);
-                        showStatus('Failed to delete song! 🗑️', 'error');
-                    }
-                }
-            }
-        };
+		window.deleteSongFromLibrary = async function(index) {
+			if (index >= 0 && index < songLibrary.length) {
+				if (confirm('Are you sure you want to delete this song? 🗑️')) {
+					try {
+						const song = songLibrary[index];
+						
+						// Delete from database
+						if (db) {
+							const transaction = db.transaction(['songs'], 'readwrite');
+							const store = transaction.objectStore('songs');
+							const deleteRequest = store.delete(song.id);
+							
+							deleteRequest.onsuccess = () => {
+								// Remove from array
+								songLibrary.splice(index, 1);
+								
+								// Update UI
+								updateLibraryUI();
+								showStatus('Song deleted! 🗑️', 'success');
+							};
+							
+							deleteRequest.onerror = () => {
+								console.error('Delete error:', deleteRequest.error);
+								showStatus('Failed to delete song! 🗑️', 'error');
+							};
+						} else {
+							// If no DB, just remove from array
+							songLibrary.splice(index, 1);
+							updateLibraryUI();
+							showStatus('Song deleted! 🗑️', 'success');
+						}
+						
+					} catch (error) {
+						console.error('Error deleting song:', error);
+						showStatus('Failed to delete song! 🗑️', 'error');
+					}
+				}
+			}
+		};
 
         // Clear library
         async function clearLibrary() {
