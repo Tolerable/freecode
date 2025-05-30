@@ -1145,13 +1145,12 @@
                showStatus('Song created! Generating artwork and audio... 🎨🎤', 'success');
                
                // Step 2: Generate artwork (async)
-               generateArtwork()
-                   .then(url => urlToBase64(url))
-                   .then(base64 => {
-                       songData.artworkUrl = base64;
-                       showArtwork(base64);
-                       return updateSong(songData);
-                   })
+				generateArtwork()
+					.then(artworkUrl => {
+						songData.artworkUrl = artworkUrl;
+						showArtwork(artworkUrl);
+						return updateSong(songData);
+					})
                    .catch(err => {
                        console.error('Artwork generation failed:', err);
                        showStatus('Artwork generation failed', 'error');
@@ -1196,23 +1195,22 @@
            showAudioPlaceholder();
            
            try {
-               const audioUrl = await generateVocalDemo(currentSong.lyrics, selectedVoice);
-               const base64Audio = await urlToBase64(audioUrl);
-               
-               currentSong.audioUrl = base64Audio;
-               currentSong.voice = selectedVoice;
-               
-               await updateSong(currentSong);
-               
-               showAudio(base64Audio);
-               
-               // Update the voice selector in the form
-               document.getElementById('voice-type').value = selectedVoice;
-               
-               await loadLibrary();
-               
-               showStatus('New vocal demo generated! 🎤', 'success');
-               
+				const audioUrl = await generateVocalDemo(currentSong.lyrics, selectedVoice);
+
+				currentSong.audioUrl = audioUrl;
+                currentSong.voice = selectedVoice;
+                
+                await updateSong(currentSong);
+                
+                showAudio(base64Audio);
+                
+                // Update the voice selector in the form
+                document.getElementById('voice-type').value = selectedVoice;
+                
+                await loadLibrary();
+                
+                showStatus('New vocal demo generated! 🎤', 'success');
+                
            } catch (error) {
                console.error('Audio regeneration failed:', error);
                showAudioError();
@@ -1538,9 +1536,9 @@
                // Generate missing artwork
 				generateArtwork()
 					.then(artworkUrl => {
-						songData.artworkUrl = artworkUrl;
+						song.artworkUrl = artworkUrl;  // ← USE 'song' NOT 'songData'
 						showArtwork(artworkUrl);
-						return updateSong(songData);
+						return updateSong(song);  // ← USE 'song' NOT 'songData'
 					})
                     .then(() => loadLibrary())
                     .catch(error => {
@@ -1560,13 +1558,12 @@
                showAudioPlaceholder();
                
                // Generate missing audio
-               generateVocalDemo(song.lyrics, song.voice || 'nova')
-                   .then(url => urlToBase64(url))
-                   .then(base64 => {
-                       song.audioUrl = base64;
-                       showAudio(base64);
-                       return updateSong(song);
-                   })
+			   generateVocalDemo(song.lyrics, song.voice || 'nova')
+			   	.then(audioUrl => {
+			   		song.audioUrl = audioUrl;
+			   		showAudio(audioUrl);
+			   		return updateSong(song);
+			   	})
                    .then(() => {
                        loadLibrary();
                        showStatus('Vocal demo generated successfully! 🎤', 'success');
