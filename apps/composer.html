@@ -1474,10 +1474,12 @@
 				const transaction = db.transaction(['songs'], 'readwrite');
 				const store = transaction.objectStore('songs');
 				
-				// Add the song and wait for completion
 				const request = store.add(song);
 				
 				request.onsuccess = async () => {
+					// Get the auto-generated ID
+					song.id = request.result;
+					
 					// Get all songs after adding
 					const getAllRequest = store.getAll();
 					
@@ -1495,6 +1497,10 @@
 							}
 						}
 						
+						// Update the current song with the ID
+						currentSong.id = song.id;
+						
+						// Reload library to show the new song
 						loadLibrary();
 					};
 				};
