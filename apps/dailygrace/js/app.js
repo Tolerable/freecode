@@ -228,7 +228,7 @@ class DailyGraceApp {
     try {
       const meditationTopic = topic || this.currentMeditation?.topic || "peaceful Christian scene";
       
-      // Create varied, dynamic image prompts
+      // Use stored values or generate new ones
       const imageStyles = [
         "watercolor painting, soft pastels, peaceful",
         "oil painting, warm golden light, serene",
@@ -247,12 +247,23 @@ class DailyGraceApp {
         "seaside cliff overlooking ocean"
       ];
       
-      const randomStyle = imageStyles[Math.floor(Math.random() * imageStyles.length)];
-      const randomEnv = environments[Math.floor(Math.random() * environments.length)];
+      const randomStyle = this.currentMeditation?.imageStyle || 
+        imageStyles[Math.floor(Math.random() * imageStyles.length)];
+      const randomEnv = this.currentMeditation?.imageEnv || 
+        environments[Math.floor(Math.random() * environments.length)];
+      const imageSeed = this.currentMeditation?.imageSeed || 
+        Date.now() + Math.floor(Math.random() * 10000);
       
       const imagePrompt = `${meditationTopic}, ${randomEnv}, ${randomStyle}, no text, spiritual atmosphere, Christian symbolism`;
-      const imageSeed = Date.now() + Math.floor(Math.random() * 10000);
       
+      // Store values if new meditation
+      if (!this.currentMeditation?.imageSeed) {
+        this.currentMeditation.imageStyle = randomStyle;
+        this.currentMeditation.imageEnv = randomEnv;
+        this.currentMeditation.imageSeed = imageSeed;
+        localStorage.setItem('todaysMeditation', JSON.stringify(this.currentMeditation));
+      }
+
       const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?nologo=true&model=flux&width=1200&height=675&seed=${imageSeed}`;
 
       const img = document.getElementById("meditation-image");
