@@ -139,10 +139,8 @@ class DailyGraceApp {
     const avoidTopics = Array.from(this.sessionTopics).join(', ');
     const timeContext = this.getTimeOfDayContext();
     
-    const topicPrompt = `Generate ONE unique Christian meditation topic. Context: ${timeContext}. 
-    Avoid these recently used topics: ${avoidTopics}. 
-    Focus on: spiritual growth, Bible characters, Christian virtues, God's nature, prayer, worship, or seasonal themes.
-    Respond with ONLY the topic name, no extra text. Seed: ${uniqueSeed}`;
+	const topicPrompt = `Generate ONE unique Christian meditation topic. Context: ${timeContext}. Avoid these recently used topics: ${avoidTopics}. Focus on: spiritual growth, Bible characters, Christian virtues, God's nature, prayer, worship, or seasonal themes. Respond ONLY with a clear, emotionally resonant topic title. Do NOT include scripture references or verse numbers.`;
+
 
     const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(topicPrompt)}?model=openai&seed=${Math.floor(uniqueSeed)}`);
     let topic = (await response.text()).trim();
