@@ -101,13 +101,7 @@ class DailyGraceApp {
   }
 
   requestNewMeditation() {
-    if (this.currentMeditation) {
-      if (confirm("Generate a new meditation? This will replace your current one.")) {
-        this.generateMeditation();
-      }
-    } else {
-      this.generateMeditation();
-    }
+    this.generateMeditation();
   }
 
   async generateMeditation() {
