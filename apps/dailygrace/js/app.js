@@ -38,22 +38,24 @@ class DailyGraceApp {
     document.getElementById("loading-overlay").classList.add("hidden");
   }
 
-  async generateMeditation() {
+	async generateMeditation() {
 	  this.showLoading();
 	  try {
-		const topicPrompt = "Suggest a fresh, unique Christian meditation topic that is not repeated.";
+		const randomSeed = Math.floor(Math.random() * 1e9);
+		// Add seed into prompt text to generate unique topic each time
+		const topicPrompt = `Suggest a fresh, unique Christian meditation topic. Random seed: ${randomSeed}`;
 		const topicRes = await fetch(`https://text.pollinations.ai/${encodeURIComponent(topicPrompt)}?model=openai`);
 		const topic = (await topicRes.text()).trim();
 
 		const medPrompt = `Without commentary or remark, write a short Christian meditation on the topic: "${topic}". It must begin directly. Include one Bible verse naturally in the flow. End with a short prayer or reflection question. Do not introduce or explain anything. Do not offer help or ask questions. Output only the meditation text.`;
 
+		// You can also reuse the same seed or make a new one here
 		this.seed = Math.floor(Math.random() * 1e9);
 		const medRes = await fetch(`https://text.pollinations.ai/${encodeURIComponent(medPrompt)}?model=openai&seed=${this.seed}`);
 		const meditation = await medRes.text();
 
 		// Clean output
-		const cleanMeditation = meditation
-		  .replace(/Would you like.*\\n?/gi, '');
+		const cleanMeditation = meditation.replace(/Would you like.*\\n?/gi, '');
 
 		this.displayMeditation(topic, cleanMeditation);
 		this.generateImage();
@@ -63,7 +65,7 @@ class DailyGraceApp {
 	  } finally {
 		this.hideLoading();
 	  }
-  }
+	}
 
 
 
