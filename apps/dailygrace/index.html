@@ -184,6 +184,34 @@
       white-space: pre-wrap;
     }
 
+    .delete-button {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 30px;
+        height: 30px;
+        background: #dc2626;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        transition: background 0.3s ease;
+        opacity: 0.8;
+    }
+
+    .delete-button:hover {
+        background: #b91c1c;
+        opacity: 1;
+    }
+
+    .history-item {
+        position: relative;
+    }
+
     /* Audio Player */
     .audio-player {
       background: var(--gradient-soft);
@@ -1041,86 +1069,134 @@
       }
 
       async requestPrayerHelp() {
-        this.showLoading('Seeking guidance for your prayer...');
-        
-        try {
-          const context = this.getTimeContext();
-          const prompt = `Write a heartfelt Christian prayer for ${context}. 
-          Make it personal, sincere, and about 100-150 words. 
-          Focus on gratitude, trust, and seeking God's guidance.`;
+          const userInput = document.getElementById('prayer-input').value.trim();
+          this.showLoading('Seeking guidance for your prayer...');
           
-          const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai`);
-          const prayerText = await response.text();
-          
-          document.getElementById('prayer-input').value = prayerText;
-          this.showSuccess('Prayer suggestion ready. Feel free to personalize it!');
-        } catch (error) {
-          this.showError('Unable to generate prayer suggestion');
-        } finally {
-          this.hideLoading();
-        }
+          try {
+              const context = this.getTimeContext();
+              
+              // If user has already written something, incorporate it
+              let prompt;
+              if (userInput) {
+                  prompt = `The user wants to pray about: "${userInput}". 
+                  Based on this request, write a heartfelt Christian prayer that addresses their specific needs. 
+                  Make it personal, sincere, and about 100-150 words. 
+                  Include their concerns while adding gratitude, trust, and seeking God's guidance.`;
+              } else {
+                  prompt = `Write a heartfelt Christian prayer for ${context}. 
+                  Make it personal, sincere, and about 100-150 words. 
+                  Focus on gratitude, trust, and seeking God's guidance.`;
+              }
+              
+              const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai`);
+              const prayerText = await response.text();
+              
+              // If user had input, append the AI prayer to their text
+              if (userInput) {
+                  document.getElementById('prayer-input').value = userInput + "\n\n" + prayerText;
+                  this.showSuccess('Prayer suggestion added to your prayer!');
+              } else {
+                  document.getElementById('prayer-input').value = prayerText;
+                  this.showSuccess('Prayer suggestion ready. Feel free to personalize it!');
+              }
+          } catch (error) {
+              this.showError('Unable to generate prayer suggestion');
+          } finally {
+              this.hideLoading();
+          }
       }
 
       async listenToPrayer() {
-        const prayerText = document.getElementById('prayer-input').value.trim();
-        if (!prayerText) {
-          this.showError('Please write a prayer first');
-          return;
-        }
-        
-        this.showLoading('Preparing audio...');
-        
-        try {
-          const audioUrl = `https://text.pollinations.ai/${encodeURIComponent(prayerText)}?model=openai-audio&voice=nova`;
+          const prayerText = document.getElementById('prayer-input').value.trim();
+          if (!prayerText) {
+              this.showError('Please write a prayer first');
+              return;
+          }
           
-          // Create temporary audio player
-          const tempAudio = new Audio(audioUrl);
-          tempAudio.play();
+          this.showLoading('Preparing audio...');
           
-          this.hideLoading();
-        } catch (error) {
-          this.showError('Unable to create audio');
-          this.hideLoading();
-        }
+          try {
+              // Clean up text
+              let cleanText = prayerText
+                  .replace(/\n/g, ' ')
+                  .replace(/\s+/g, ' ')
+                  .replace(/([.!?])\s+/g, '$1\n')
+                  .trim();
+              
+              // Use the EXACT same format as the working transcribe.html
+              const transcriptionInstruction = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE:";
+              const textToRead = transcriptionInstruction + " " + cleanText;
+              
+              const encodedText = encodeURIComponent(textToRead);
+              const audioUrl = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=nova`;
+              
+              // Create temporary audio player
+              const tempAudio = new Audio(audioUrl);
+              tempAudio.play();
+              
+              this.hideLoading();
+          } catch (error) {
+              this.showError('Unable to create audio');
+              this.hideLoading();
+          }
       }
 
       async loadSavedPrayers() {
-        const prayers = await this.getAllContent('prayer');
-        const container = document.getElementById('saved-prayers');
-        
-        if (prayers.length === 0) {
-          container.innerHTML = '<p class="text-center">No saved prayers yet. Write your first prayer above!</p>';
-          return;
-        }
-        
-        container.innerHTML = prayers.map(prayer => `
-          <div class="history-item" onclick="app.showDetail(${prayer.id})">
-            <span class="history-item-type">Prayer</span>
-            <h4 class="history-item-title">${prayer.title}</h4>
-            <p class="history-item-date">${new Date(prayer.date).toLocaleDateString()}</p>
-          </div>
-        `).join('');
+          const prayers = await this.getAllContent('prayer');
+          const container = document.getElementById('saved-prayers');
+          
+          if (prayers.length === 0) {
+              container.innerHTML = '<p class="text-center">No saved prayers yet. Write your first prayer above!</p>';
+              return;
+          }
+          
+          container.innerHTML = prayers.map(prayer => `
+              <div class="history-item" onclick="app.showDetail(${prayer.id})">
+                  <button class="delete-button" onclick="event.stopPropagation(); app.deleteItem(${prayer.id})">×</button>
+                  <span class="history-item-type">Prayer</span>
+                  <h4 class="history-item-title">${prayer.title}</h4>
+                  <p class="history-item-date">${new Date(prayer.date).toLocaleDateString()}</p>
+              </div>
+          `).join('');
       }
 
       // History Management
       async loadHistory() {
-        const content = await this.getAllContent(this.currentFilter === 'all' ? null : this.currentFilter);
-        const container = document.getElementById('history-container');
-        
-        if (content.length === 0) {
-          container.innerHTML = '<p class="text-center">No content yet. Start your spiritual journey today!</p>';
-          return;
-        }
-        
-        container.innerHTML = content.map(item => `
-          <div class="history-item" onclick="app.showDetail(${item.id})">
-            <span class="history-item-type">${item.type === 'devotion' ? 'Devotion' : 'Prayer'}</span>
-            <h4 class="history-item-title">${item.topic || item.title}</h4>
-            <p class="history-item-date">${new Date(item.date).toLocaleDateString()}</p>
-          </div>
-        `).join('');
+          const content = await this.getAllContent(this.currentFilter === 'all' ? null : this.currentFilter);
+          const container = document.getElementById('history-container');
+          
+          if (content.length === 0) {
+              container.innerHTML = '<p class="text-center">No content yet. Start your spiritual journey today!</p>';
+              return;
+          }
+          
+          container.innerHTML = content.map(item => `
+              <div class="history-item" onclick="app.showDetail(${item.id})">
+                  <button class="delete-button" onclick="event.stopPropagation(); app.deleteItem(${item.id})">×</button>
+                  <span class="history-item-type">${item.type === 'devotion' ? 'Devotion' : 'Prayer'}</span>
+                  <h4 class="history-item-title">${item.topic || item.title}</h4>
+                  <p class="history-item-date">${new Date(item.date).toLocaleDateString()}</p>
+              </div>
+          `).join('');
       }
 
+      async deleteItem(id) {
+          if (!confirm('Are you sure you want to delete this item?')) return;
+          
+          return new Promise((resolve, reject) => {
+              const transaction = this.db.transaction(['content'], 'readwrite');
+              const store = transaction.objectStore('content');
+              const request = store.delete(id);
+              
+              request.onsuccess = () => {
+                  this.showSuccess('Item deleted');
+                  this.loadHistory(); // Reload the history
+                  resolve();
+              };
+              request.onerror = () => reject(request.error);
+          });
+      }
+	  
       filterHistory(type) {
         this.currentFilter = type;
         this.loadHistory();
@@ -1175,9 +1251,22 @@
       }
 
       async playPrayerAudio(text) {
-        const audioUrl = `https://text.pollinations.ai/${encodeURIComponent(text)}?model=openai-audio&voice=nova`;
-        const tempAudio = new Audio(audioUrl);
-        tempAudio.play();
+          // Clean up text
+          let cleanText = text
+              .replace(/\n/g, ' ')
+              .replace(/\s+/g, ' ')
+              .replace(/([.!?])\s+/g, '$1\n')
+              .trim();
+          
+          // Use the working format
+          const transcriptionInstruction = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE:";
+          const textToRead = transcriptionInstruction + " " + cleanText;
+          
+          const encodedText = encodeURIComponent(textToRead);
+          const audioUrl = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=nova`;
+          
+          const tempAudio = new Audio(audioUrl);
+          tempAudio.play();
       }
 
       closeModal() {
