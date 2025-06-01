@@ -919,17 +919,53 @@
         `;
       }
 
-      // Audio Management - Fixed to read actual content
-      async preloadAudio(item) {
-        const audioText = `${item.topic}. ${item.content}`;
-        const audioUrl = `https://text.pollinations.ai/${encodeURIComponent(audioText)}?model=openai-audio&voice=nova`;
-        
-        const audio = document.getElementById(`audio-${item.id}`);
-        if (audio) {
-          audio.src = audioUrl;
-        }
-      }
-
+	  // Audio Management - Using POST with EXACT instructions
+	  async preloadAudio(item) {
+	     try {
+	  	   const audioText = `EXACTLY TRANSCRIBE THE TEXT WITHOUT COMMENT OR REMARKS AS GIVEN WITHOUT SKIPPING LINES: ${item.topic}. ${item.content}`;
+	  	   
+	  	   // Use POST method
+	  	   const response = await fetch('https://text.pollinations.ai/openai', {
+	  		   method: 'POST',
+	  		   headers: {
+	  			   'Content-Type': 'application/json',
+	  		   },
+	  		   body: JSON.stringify({
+	  			   model: 'openai-audio',
+	  			   messages: [
+	  				   {
+	  					   role: 'user',
+	  					   content: audioText
+	  				   }
+	  			   ],
+	  			   voice: 'nova',
+	  			   private: false
+	  		   })
+	  	   });
+	  	   
+	  	   const result = await response.json();
+	  	   
+	  	   // Extract the base64 audio data from the response
+	  	   if (result.choices && result.choices[0] && result.choices[0].message.audio) {
+	  		   const audioData = result.choices[0].message.audio.data;
+	  		   const audio = document.getElementById(`audio-${item.id}`);
+	  		   if (audio) {
+	  			   // Convert base64 to audio URL
+	  			   audio.src = `data:audio/mpeg;base64,${audioData}`;
+	  		   }
+	  	   }
+	     } catch (error) {
+	  	   console.error('Failed to generate audio:', error);
+	  	   // Fallback to GET method with same instructions
+	  	   const fallbackText = `EXACTLY TRANSCRIBE THE TEXT WITHOUT COMMENT OR REMARKS AS GIVEN WITHOUT SKIPPING LINES: ${item.topic}. ${item.content}`;
+	  	   const audioUrl = `https://text.pollinations.ai/${encodeURIComponent(fallbackText)}?model=openai-audio&voice=nova`;
+	  	   const audio = document.getElementById(`audio-${item.id}`);
+	  	   if (audio) {
+	  		   audio.src = audioUrl;
+	  	   }
+	     }
+	  }
+   
       async toggleAudio(id, type) {
         const audio = document.getElementById(`audio-${id}`);
         const playBtn = event.target;
