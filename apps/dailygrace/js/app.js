@@ -223,69 +223,84 @@ class DailyGraceApp {
     }
   }
 
-  async generateImage(topic = null) {
-    this.showLoading();
-    try {
-      const meditationTopic = topic || this.currentMeditation?.topic || "peaceful Christian scene";
-      
-      // Use stored values or generate new ones
-      const imageStyles = [
-        "watercolor painting, soft pastels, peaceful",
-        "oil painting, warm golden light, serene",
-        "digital art, heavenly rays, tranquil",
-        "impressionist style, gentle colors, spiritual",
-        "realistic photography, natural lighting, calming"
-      ];
-      
-      const environments = [
-        "garden with blooming flowers",
-        "mountain vista at sunrise", 
-        "peaceful lake reflection",
-        "forest path with dappled sunlight",
-        "field of wheat swaying in breeze",
-        "quiet chapel interior",
-        "seaside cliff overlooking ocean"
-      ];
-      
-      const randomStyle = this.currentMeditation?.imageStyle || 
-        imageStyles[Math.floor(Math.random() * imageStyles.length)];
-      const randomEnv = this.currentMeditation?.imageEnv || 
-        environments[Math.floor(Math.random() * environments.length)];
-      const imageSeed = this.currentMeditation?.imageSeed || 
-        Date.now() + Math.floor(Math.random() * 10000);
-      
-      const imagePrompt = `${meditationTopic}, ${randomEnv}, ${randomStyle}, no text, spiritual atmosphere, Christian symbolism`;
-      
-      // Store values if new meditation
-      if (!this.currentMeditation?.imageSeed) {
-        this.currentMeditation.imageStyle = randomStyle;
-        this.currentMeditation.imageEnv = randomEnv;
-        this.currentMeditation.imageSeed = imageSeed;
-        localStorage.setItem('todaysMeditation', JSON.stringify(this.currentMeditation));
-      }
+	async generateImage(topic = null) {
+	  this.showLoading();
+	  try {
+		const meditationTopic = topic || this.currentMeditation?.topic || "peaceful Christian scene";
 
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?nologo=true&model=flux&width=1200&height=675&seed=${imageSeed}`;
+		const styleOptions = [
+		  "watercolor painting, soft pastels, peaceful",
+		  "oil painting, warm golden light, serene",
+		  "digital art, heavenly rays, tranquil",
+		  "impressionist style, gentle colors, spiritual",
+		  "realistic photography, natural lighting, calming"
+		];
+		
+		const environmentOptions = [
+		  "a garden with blooming flowers",
+		  "a mountain vista at sunrise", 
+		  "a peaceful lake with reflection",
+		  "a forest path with dappled sunlight",
+		  "a field of wheat swaying in the breeze",
+		  "a quiet chapel interior",
+		  "a seaside cliff overlooking the ocean"
+		];
 
-      const img = document.getElementById("meditation-image");
-      img.src = url;
-      img.classList.remove("hidden");
-      img.classList.add("fade-in");
-      
-    } catch (err) {
-      console.error('Image generation failed:', err);
-      this.displayError("Image generation failed.");
-    } finally {
-      this.hideLoading();
-    }
-  }
+		const style = styleOptions[Math.floor(Math.random() * styleOptions.length)];
+		const environment = environmentOptions[Math.floor(Math.random() * environmentOptions.length)];
+		const seed = Date.now() + Math.floor(Math.random() * 10000);
 
-  async regenerateImage() {
-    if (!this.currentMeditation) {
-      this.displayError("Please generate a meditation first.");
-      return;
-    }
-    await this.generateImage();
-  }
+		// Ask the AI to generate a proper visual scene prompt
+		const aiPrompt = `Write a descriptive image prompt for a Christian-themed visual based on the topic "${meditationTopic}". 
+	It should depict a meaningful scene that captures the spiritual essence, using artistic description (no text instructions).
+	Include a visually rich environment and style suggestion. Focus on what the image should *look like*, not instructions.`;
+
+		const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(aiPrompt)}?model=openai`);
+		let promptText = (await response.text()).trim();
+
+		// Clean and finalize the AI-generated prompt
+		promptText = promptText.replace(/["']$/, '').replace(/^["']/, '').trim();
+
+		// Store metadata if this is a fresh meditation
+		if (!this.currentMeditation?.imageSeed) {
+		  this.currentMeditation.imageStyle = style;
+		  this.currentMeditation.imageEnv = environment;
+		  this.currentMeditation.imageSeed = seed;
+		  this.currentMeditation.imagePrompt = promptText;
+		  localStorage.setItem('todaysMeditation', JSON.stringify(this.currentMeditation));
+		}
+
+		// Generate image
+		const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?nologo=true&model=flux&width=1200&height=675&seed=${seed}`;
+
+		const img = document.getElementById("meditation-image");
+		img.src = imageUrl;
+		img.classList.remove("hidden");
+		img.classList.add("fade-in");
+	  } catch (err) {
+		console.error('Image generation failed:', err);
+		this.displayError("Image generation failed.");
+	  } finally {
+		this.hideLoading();
+	  }
+	}
+
+
+	async regenerateImage() {
+	  if (!this.currentMeditation) {
+		this.displayError("Please generate a meditation first.");
+		return;
+	  }
+
+	  // Preserve existing style and environment
+	  this.currentMeditation.imageSeed = Date.now() + Math.floor(Math.random() * 10000);
+
+	  // Re-store with new seed only
+	  localStorage.setItem('todaysMeditation', JSON.stringify(this.currentMeditation));
+
+	  await this.generateImage(this.currentMeditation.topic);
+	}
+
 
   async generateAudio() {
     if (!this.currentMeditation) {
