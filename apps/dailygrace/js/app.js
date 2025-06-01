@@ -82,7 +82,7 @@ class DailyGraceApp {
       const title = document.getElementById("meditation-title").textContent;
       const prompt = `${title}, peaceful Christian scene, nature, gentle light, watercolor style, no text, serene, spiritual`;
       const seed = Math.floor(Math.random() * 1e9);
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=flux&width=1200&height=675&seed=${seed}`;
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&model=flux&width=1200&height=675&seed=${seed}`;
 
       const img = document.getElementById("meditation-image");
       img.src = url;
@@ -104,7 +104,7 @@ class DailyGraceApp {
 
 		// Add strict instruction for exact transcription
 		const instruction = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE, SKIPPING NOTHING:";
-		const audioText = `${instruction} ${title}. ${verse}. ${desc}`;
+		const audioText = `${instruction} ${title} ${verse} ${desc}`;
 
 		const url = `https://text.pollinations.ai/${encodeURIComponent(audioText)}?model=openai-audio&voice=nova&seed=${this.seed}`;
 
