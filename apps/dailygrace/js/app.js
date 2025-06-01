@@ -52,6 +52,9 @@ class DailyGraceApp {
   }
 
   showNewDayWelcome() {
+    // Hide the meditation card initially
+    document.getElementById("meditation-card").classList.add("hidden");
+    
     const content = document.getElementById("meditation-description");
     content.innerHTML = `
       <div style="text-align: center; padding: 2rem;">
@@ -62,11 +65,16 @@ class DailyGraceApp {
         </button>
       </div>
     `;
+    
+    // Create a temporary container and show it instead
+    this.showWelcomeContainer(content.innerHTML);
   }
 
   showWelcomePrompt() {
-    const content = document.getElementById("meditation-description");  
-    content.innerHTML = `
+    // Hide the meditation card initially  
+    document.getElementById("meditation-card").classList.add("hidden");
+    
+    const welcomeContent = `
       <div style="text-align: center; padding: 2rem;">
         <h3>✨ Daily Grace</h3>
         <p>Ready for a moment of peace and reflection with the Lord?</p>
@@ -75,6 +83,21 @@ class DailyGraceApp {
         </button>
       </div>
     `;
+    
+    this.showWelcomeContainer(welcomeContent);
+  }
+
+  showWelcomeContainer(content) {
+    // Create or update a welcome container that replaces the meditation card
+    let welcomeContainer = document.getElementById("welcome-container");
+    if (!welcomeContainer) {
+      welcomeContainer = document.createElement("div");
+      welcomeContainer.id = "welcome-container";  
+      welcomeContainer.className = "meditation-card fade-in";
+      document.querySelector(".todays-focus").appendChild(welcomeContainer);
+    }
+    welcomeContainer.innerHTML = content;
+    welcomeContainer.classList.remove("hidden");
   }
 
   requestNewMeditation() {
@@ -169,6 +192,15 @@ class DailyGraceApp {
   }
 
   displayMeditation(topic, content) {
+    // Hide welcome container if it exists
+    const welcomeContainer = document.getElementById("welcome-container");
+    if (welcomeContainer) {
+      welcomeContainer.classList.add("hidden");
+    }
+    
+    // Show the meditation card
+    document.getElementById("meditation-card").classList.remove("hidden");
+    
     document.getElementById("meditation-title").textContent = topic;
     document.getElementById("scripture-verse").textContent = "";
     document.getElementById("meditation-description").textContent = content;
