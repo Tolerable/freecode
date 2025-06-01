@@ -642,16 +642,15 @@
     </section>
 
     <!-- Devotions Section -->
-    <section id="devotions-section" class="section">
-      <h2 class="text-center mb-2">Today's Devotion</h2>
-      <div id="devotion-container"></div>
-      
-      <div class="text-center mt-2">
-        <button class="btn btn-primary" onclick="app.createNewDevotion()">
-          🌟 New Devotion
-        </button>
-      </div>
-    </section>
+	<section id="devotions-section" class="section">
+		<div id="devotion-container"></div>
+		
+		<div class="text-center mt-2">
+			<button class="btn btn-primary" onclick="app.createNewDevotion()">
+				🌟 New Devotion
+			</button>
+		</div>
+	</section>
 
     <!-- Prayers Section -->
     <section id="prayers-section" class="section">
@@ -876,23 +875,88 @@
       }
 
       // Navigation
-      showSection(sectionName) {
-        // Hide all sections
-        document.querySelectorAll('.section').forEach(section => {
-          section.classList.remove('active');
-        });
-        
-        // Show selected section
-        document.getElementById(`${sectionName}-section`).classList.add('active');
-        this.currentSection = sectionName;
-        
-        // Load section-specific content
-        if (sectionName === 'history') {
-          this.loadHistory();
-        } else if (sectionName === 'prayers') {
-          this.loadSavedPrayers();
-        }
-      }
+	  showSection(sectionName) {
+	  	// Hide all sections
+	  	document.querySelectorAll('.section').forEach(section => {
+	  		section.classList.remove('active');
+	  	});
+	  	
+	  	// Show selected section
+	  	document.getElementById(`${sectionName}-section`).classList.add('active');
+	  	this.currentSection = sectionName;
+	  	
+	  	// Load section-specific content
+	  	if (sectionName === 'history') {
+	  		this.loadHistory();
+	  	} else if (sectionName === 'prayers') {
+	  		this.loadSavedPrayers();
+	  	} else if (sectionName === 'devotions') {
+	  		this.loadLatestDevotion(); // Add this
+	  	}
+	  }
+
+	  // Add this new method to load the latest devotion
+	  async loadLatestDevotion() {
+	  	const devotions = await this.getAllContent('devotion');
+	  	
+	  	if (devotions.length > 0) {
+	  		// Display the most recent devotion
+	  		const latestDevotion = devotions[0];
+	  		this.displayDevotion(latestDevotion);
+	  		this.preloadAudio(latestDevotion);
+	  		
+	  		// Show recent devotions below if there are more
+	  		if (devotions.length > 1) {
+	  			this.displayRecentDevotions(devotions.slice(1, 5)); // Show next 4
+	  		}
+	  	} else {
+	  		// No devotions yet, show welcome message
+	  		document.getElementById('devotion-container').innerHTML = `
+	  			<div class="welcome-section" style="text-align: center; padding: 3rem;">
+	  				<h3>No devotions yet</h3>
+	  				<p>Click the button below to create your first devotion!</p>
+	  			</div>
+	  		`;
+	  	}
+	  }
+	  
+	  // Add method to display recent devotion cards
+	  displayRecentDevotions(devotions) {
+	  	let recentSection = document.getElementById('recent-devotions');
+	  	
+	  	if (!recentSection) {
+	  		// Create the section if it doesn't exist
+	  		const devotionSection = document.getElementById('devotions-section');
+	  		const recentHTML = `
+	  			<div id="recent-devotions" style="margin-top: 3rem;">
+	  				<h3 style="text-align: center; margin-bottom: 2rem;">Recent Devotions</h3>
+	  				<div class="history-grid" id="recent-devotions-grid"></div>
+	  			</div>
+	  		`;
+	  		devotionSection.insertAdjacentHTML('beforeend', recentHTML);
+	  		recentSection = document.getElementById('recent-devotions');
+	  	}
+	  	
+	  	const grid = document.getElementById('recent-devotions-grid');
+	  	grid.innerHTML = devotions.map(devotion => `
+	  		<div class="history-item" onclick="app.updateCurrentDevotion(${devotion.id})">
+	  			<span class="history-item-type">Devotion</span>
+	  			<h4 class="history-item-title">${devotion.topic}</h4>
+	  			<p class="history-item-date">${new Date(devotion.date).toLocaleDateString()}</p>
+	  		</div>
+	  	`).join('');
+	  }
+	  
+	  // Add method to update the current devotion when a card is clicked
+	  async updateCurrentDevotion(id) {
+	  	const devotion = await this.getContentById(id);
+	  	this.displayDevotion(devotion);
+	  	this.preloadAudio(devotion);
+	  	
+	  	// Scroll to top of devotion
+	  	document.getElementById('devotion-container').scrollIntoView({ behavior: 'smooth' });
+	  }
+
 
       // Devotion Creation
       async createNewDevotion() {
