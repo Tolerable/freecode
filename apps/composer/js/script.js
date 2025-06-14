@@ -32,12 +32,10 @@ setTimeout(() => {
 // Constants
 const TEXT_API = 'https://text.pollinations.ai/';
 const IMAGE_API = 'https://image.pollinations.ai/prompt/';
-const AUDIO_API = 'https://text.pollinations.ai/';
 
 // Global variables
 let db = null;
 let currentSong = null;
-let currentAudioUrl = null;
 let songLibrary = [];
 let selectedGenre = 'pop';
 let isInitialized = false;
@@ -345,7 +343,6 @@ async function generateCompleteSong() {
         
         // Generate artwork and audio asynchronously
         generateArtworkAsync(songData);
-        generateAudioAsync(songData);
         
         showStatus('🎵 Your song is ready! Artwork and audio coming soon...', 'success');
         
@@ -440,7 +437,6 @@ async function generateArtworkAsync(songData) {
     }
     songData._artworkGenerating = true;
     
-    // REST OF THE EXISTING FUNCTION STAYS THE SAME
     try {
         showStatus('Creating album artwork... 🎨', 'info');
         const artworkUrl = await generateArtwork();
@@ -466,41 +462,6 @@ async function generateArtworkAsync(songData) {
     } catch (error) {
         console.error('❌ Artwork generation failed:', error);
         showStatus('Lyrics created! Artwork generation failed... 🎨', 'info');
-    }
-}
-
-// Generate audio asynchronously
-async function generateAudioAsync(songData) {
-    try {
-        showStatus('Recording vocal demo... 🎤', 'info');
-        showAudioPlaceholder();
-        
-        const audioUrl = await generateVocalDemo(songData.lyrics, songData.voice);
-        
-        const response = await fetch(audioUrl);
-        const blob = await response.blob();
-        
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            songData.audioUrl = reader.result;
-            currentAudioUrl = reader.result;
-            showAudio(reader.result);
-            
-            if (db && songData.id) {
-                const transaction = db.transaction(['songs'], 'readwrite');
-                const store = transaction.objectStore('songs');
-                store.put(songData);
-            }
-            
-            showStatus('Vocal demo complete! 🎤', 'success');
-            console.log('✅ Audio generated and saved');
-        };
-        reader.readAsDataURL(blob);
-        
-    } catch (error) {
-        console.error('❌ Audio generation failed:', error);
-        showAudioError();
-        showStatus('Song created! Vocal demo generation failed... 🎤', 'info');
     }
 }
 
@@ -604,28 +565,6 @@ async function generateArtwork() {
     
     const response = await fetch(artworkUrl);
     if (!response.ok) throw new Error('Artwork generation failed');
-    
-    const blob = await response.blob();
-    return URL.createObjectURL(blob);
-}
-
-// Generate vocal demo
-async function generateVocalDemo(lyrics, voice) {
-    const cleanLyrics = lyrics
-        .replace(/\*\*.*?\*\*/g, '')
-        .replace(/\*.*?\*/gi, '')
-        .replace(/\[.*?\]/gi, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    
-    const instruction = "SKIP NO LINES AND IMMEDIATELY WITHOUT REMARKS OR COMMENTARY TRANSCRIBE COMPLETELY AND EXACTLY THIS TEXT FOR IT IS SONG LYRICS, READ ALOUD WITH FEELING AND DEPTH:";
-    const textToSpeak = `${instruction} ${cleanLyrics}`;
-    const encodedText = encodeURIComponent(textToSpeak);
-    const audioSeed = Math.floor(Math.random() * 1000000);
-    const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&seed=${audioSeed}&referrer=songcomposer`;
-    
-    const response = await fetch(audioUrl);
-    if (!response.ok) throw new Error('Audio fetch failed');
     
     const blob = await response.blob();
     return URL.createObjectURL(blob);
@@ -839,36 +778,6 @@ async function toggleFavoriteById(songId) {
     }
 }
 
-// Download audio by ID
-function downloadAudioById(songId) {
-    console.log('💾 Downloading audio for song ID:', songId);
-    
-    const song = songLibrary.find(s => s.id == songId);
-    if (!song || !song.audioUrl) {
-        showStatus('No vocal demo to download! 💾', 'error');
-        return;
-    }
-    
-    try {
-        const a = document.createElement('a');
-        a.href = song.audioUrl;
-        
-        const safeFileName = song.title.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
-        const filename = `song_demo_${safeFileName}_${Date.now()}.mp3`;
-        a.download = filename;
-        
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        showStatus('Download started! 💾', 'success');
-        
-    } catch (error) {
-        console.error('❌ Download error:', error);
-        showStatus('Download failed. Please try again! 💾', 'error');
-    }
-}
-
 // Delete song by ID
 async function deleteSongById(songId) {
     console.log('🗑️ Deleting song ID:', songId);
@@ -1023,65 +932,6 @@ async function copyLyrics() {
     }
 }
 
-// Regenerate audio with new voice
-async function regenerateAudioWithNewVoice() {
-    console.log('🎤 Regenerating audio with new voice');
-    
-    if (!currentSong) {
-        showStatus('No song loaded to regenerate audio! 🎤', 'error');
-        return;
-    }
-    
-    const voiceSelect = document.getElementById('regenerate-voice-type');
-    const selectedVoice = voiceSelect ? voiceSelect.value : 'nova';
-    const regenBtn = document.getElementById('regenerate-audio-btn');
-    
-    if (regenBtn) {
-        const originalText = regenBtn.innerHTML;
-        regenBtn.innerHTML = '<span class="loading-spinner"></span> Generating...';
-        regenBtn.disabled = true;
-        
-        showStatus('Generating new vocal demo with selected voice... 🎤', 'info');
-        showAudioPlaceholder();
-        
-        try {
-            const newAudioUrl = await generateVocalDemo(currentSong.lyrics, selectedVoice);
-            
-            const response = await fetch(newAudioUrl);
-            const blob = await response.blob();
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64data = reader.result;
-                currentSong.audioUrl = base64data;
-                currentSong.voice = selectedVoice;
-                currentAudioUrl = base64data;
-                
-                if (db && currentSong.id) {
-                    const transaction = db.transaction(['songs'], 'readwrite');
-                    const store = transaction.objectStore('songs');
-                    store.put(currentSong);
-                    
-                    transaction.oncomplete = () => {
-                        showAudio(base64data);
-                        loadLibrary();
-                        setInputValue('voice-type', selectedVoice);
-                        showStatus('New vocal demo generated! 🎤', 'success');
-                    };
-                }
-            };
-            reader.readAsDataURL(blob);
-            
-        } catch (error) {
-            console.error('❌ Audio regeneration failed:', error);
-            showAudioError();
-            showStatus('Failed to generate new vocal demo. Please try again! 🎤', 'error');
-        } finally {
-            regenBtn.innerHTML = originalText;
-            regenBtn.disabled = false;
-        }
-    }
-}
-
 // Display lyrics
 function displayLyrics(lyrics) {
     if (!lyrics) {
@@ -1134,84 +984,6 @@ function showArtwork(artworkUrl) {
             </div>
         `;
         artworkContainer.classList.remove('hidden');
-    }
-}
-
-// Show audio
-function showAudio(audioUrl) {
-    const audioContainer = document.getElementById('audio-container');
-    if (audioContainer) {
-        audioContainer.style.display = 'block';
-        
-        audioContainer.innerHTML = `
-            <h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
-            <audio id="audio-player" controls src="${audioUrl}"></audio>
-            <button class="mini-button" onclick="downloadCurrentAudio()" style="margin-top: 1rem;">
-                💾 Download Demo
-            </button>
-        `;
-        
-        currentAudioUrl = audioUrl;
-    }
-}
-
-// Show audio loading placeholder
-function showAudioPlaceholder() {
-    const audioContainer = document.getElementById('audio-container');
-    if (audioContainer) {
-        audioContainer.style.display = 'block';
-        audioContainer.innerHTML = `
-            <h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
-            <div style="padding: 2rem; text-align: center; color: #667eea; background: linear-gradient(135deg, #e6f3ff, #f0e6ff); border-radius: 10px;">
-                <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
-                <p><strong>Creating your vocal demo...</strong></p>
-                <p style="font-size: 0.9rem; margin-top: 0.5rem; color: #718096;">This may take 30-60 seconds ⏳</p>
-            </div>
-        `;
-    }
-}
-
-function showAudioError() {
-    const audioContainer = document.getElementById('audio-container');
-    if (audioContainer) {
-        audioContainer.style.display = 'block';
-        audioContainer.innerHTML = `
-            <h3 style="color: #2d3748; margin-bottom: 1rem;">🎵 Vocal Demo</h3>
-            <div style="padding: 1.5rem; text-align: center; color: #e53e3e; background: #fed7d7; border-radius: 10px;">
-                <p><strong>❌ Vocal demo generation failed</strong></p>
-                <p style="font-size: 0.9rem; margin-top: 0.5rem;">You can try creating a new version to generate audio, or view this song later from your library!</p>
-            </div>
-        `;
-    }
-}
-
-// Download current audio
-function downloadCurrentAudio() {
-    console.log('💾 Downloading current audio');
-    
-    if (!currentAudioUrl) {
-        showStatus('No vocal demo to download. Create audio first! 🎤', 'error');
-        return;
-    }
-    
-    try {
-        const a = document.createElement('a');
-        a.href = currentAudioUrl;
-        
-        const title = getInputValue('song-title', 'song');
-        const safeFileName = title.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
-        const filename = `song_demo_${safeFileName}_${Date.now()}.mp3`;
-        a.download = filename;
-        
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        showStatus('Download started! 💾', 'success');
-        
-    } catch (error) {
-        console.error('❌ Download error:', error);
-        showStatus('Download failed. Please try again! 💾', 'error');
     }
 }
 
