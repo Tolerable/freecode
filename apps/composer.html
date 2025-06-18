@@ -1003,27 +1003,35 @@
            return artworkPrompt;
        }
 
-       // Generate lyrics
-       async function generateLyrics() {
-           const prompt = buildLyricsPrompt();
-           const encodedPrompt = encodeURIComponent(prompt);
-           const randomSeed = Math.floor(Math.random() * 1000000);
-           const lyricsUrl = `${TEXT_API}${encodedPrompt}?model=openai&seed=${randomSeed}&referrer=songcomposer`;
-           
-           const response = await fetch(lyricsUrl);
-           
-           if (!response.ok) {
-               throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-           }
-           
-           const lyrics = await response.text();
-           
-           if (!lyrics || lyrics.length < 50) {
-               throw new Error('Lyrics too short or empty');
-           }
-           
-           return lyrics;
-       }
+	   async function generateLyrics() {
+			const prompt = buildLyricsPrompt();
+			const encodedPrompt = encodeURIComponent(prompt);
+			
+			// Try 3 times with different seeds
+			for (let attempt = 0; attempt < 3; attempt++) {
+				try {
+					const randomSeed = Math.floor(Math.random() * 1000000);
+					const lyricsUrl = `${TEXT_API}${encodedPrompt}?model=openai&seed=${randomSeed}&referrer=songcomposer`;
+					
+					const response = await fetch(lyricsUrl);
+					
+					if (response.ok) {
+						const lyrics = await response.text();
+						if (lyrics && lyrics.length > 50) {
+							return lyrics;
+						}
+					}
+					
+					// Wait before retry
+					await new Promise(resolve => setTimeout(resolve, 2000));
+					
+				} catch (error) {
+					console.warn(`Attempt ${attempt + 1} failed:`, error);
+				}
+			}
+			
+			throw new Error('API is currently overloaded. Please try again in a few minutes.');
+	   }
 
        // Generate artwork
        async function generateArtwork() {
