@@ -1004,33 +1004,48 @@
        }
 
 	   async function generateLyrics() {
-			const prompt = buildLyricsPrompt();
-			const encodedPrompt = encodeURIComponent(prompt);
-			
-			// Try 3 times with different seeds
-			for (let attempt = 0; attempt < 3; attempt++) {
-				try {
-					const randomSeed = Math.floor(Math.random() * 1000000);
-					const lyricsUrl = `${TEXT_API}${encodedPrompt}?model=openai&seed=${randomSeed}&referrer=songcomposer`;
-					
-					const response = await fetch(lyricsUrl);
-					
-					if (response.ok) {
-						const lyrics = await response.text();
-						if (lyrics && lyrics.length > 50) {
-							return lyrics;
-						}
-					}
-					
-					// Wait before retry
-					await new Promise(resolve => setTimeout(resolve, 2000));
-					
-				} catch (error) {
-					console.warn(`Attempt ${attempt + 1} failed:`, error);
-				}
-			}
-			
-			throw new Error('API is currently overloaded. Please try again in a few minutes.');
+	   		const prompt = buildLyricsPrompt();
+	   		const encodedPrompt = encodeURIComponent(prompt);
+	   		
+	   		// Try different models in order of preference
+	   		const models = [
+	   			'openai',           // GPT-4.1 Mini
+	   			'openai-fast',      // GPT-4.1 Nano  
+	   			'grok',            // xAI Grok-3 Mini
+	   			'mistral',         // Mistral Small 3.1 24B
+	   			'llamascout',      // Llama 4 Scout 17B
+	   			'qwen-coder',      // Qwen 2.5 Coder 32B
+	   			'deepseek'         // DeepSeek V3
+	   		];
+	   		
+	   		for (const model of models) {
+	   			try {
+	   				const randomSeed = Math.floor(Math.random() * 1000000);
+	   				const lyricsUrl = `${TEXT_API}${encodedPrompt}?model=${model}&seed=${randomSeed}&referrer=songcomposer`;
+	   				
+	   				showStatus(`Trying ${model} model...`, 'info');
+	   				
+	   				const response = await fetch(lyricsUrl);
+	   				
+	   				if (response.ok) {
+	   					const lyrics = await response.text();
+	   					if (lyrics && lyrics.length > 50) {
+	   						showStatus(`Success with ${model} model!`, 'success');
+	   						return lyrics;
+	   					}
+	   				}
+	   				
+	   				console.warn(`${model} failed with status: ${response.status}`);
+	   				
+	   			} catch (error) {
+	   				console.warn(`${model} model failed:`, error);
+	   			}
+	   			
+	   			// Small delay between attempts
+	   			await new Promise(resolve => setTimeout(resolve, 1000));
+	   		}
+	   		
+	   		throw new Error('All models are currently unavailable. Please try again later.');
 	   }
 
        // Generate artwork
