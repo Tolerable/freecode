@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Style Analyzer</title>
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --primary-hover: #385d8a;
+            --secondary-color: #5e81ac;
+            --light-color: #eceff4;
+            --dark-color: #2e3440;
+            --cached-color: #FFD700;
+            --live-color: #00CC66;
+            --loading-color: #FF9933;
+            --error-color: #FF6666;
+            --ready-color: #CCCCCC;
+            --border-radius: 6px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f7f8fa;
+            color: var(--dark-color);
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .container {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .tab-container {
+            margin-bottom: 20px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background-color: #f1f1f1;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            margin-right: 5px;
+        }
+
+        .tab-button.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .tab-button:hover:not(.active) {
+            background-color: #e1e1e1;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .search-bar {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .search-bar label {
+            margin-right: 10px;
+            font-weight: 500;
+            min-width: 100px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+        }
+
+        .search-bar button {
+            margin-left: 10px;
+            padding: 8px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .search-bar button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .source-indicator {
+            padding: 5px 10px;
+            font-weight: bold;
+            border-radius: var(--border-radius);
+            margin-left: 10px;
+            font-size: 0.8rem;
+            display: inline-block;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .indicator-ready {
+            background-color: var(--ready-color);
+        }
+
+        .indicator-loading {
+            background-color: var(--loading-color);
+        }
+
+        .indicator-cached {
+            background-color: var(--cached-color);
+        }
+
+        .indicator-live {
+            background-color: var(--live-color);
+        }
+
+        .indicator-error {
+            background-color: var(--error-color);
+        }
+
+        .options-bar {
+            display: flex;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-option {
+            margin-right: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-option input {
+            margin-right: 5px;
+        }
+
+        .additional-fields {
+            display: flex;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .field-group {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+            margin-bottom: 10px;
+        }
+
+        .field-group label {
+            margin-right: 10px;
+            font-weight: 500;
+        }
+
+        .field-group input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+        }
+
+        .results-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+            background-color: #fcfcfc;
+        }
+
+        .results-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .results-section {
+            margin-bottom: 20px;
+        }
+
+        .results-section h3 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+
+        .results-section p {
+            margin-bottom: 15px;
+            line-height: 1.7;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-copy {
+            background-color: #607d8b;
+        }
+
+        .btn-copy:hover {
+            background-color: #4b636e;
+        }
+
+        .status-bar {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f1f1f1;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+        }
+
+        .database-stats {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .search-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .search-bar label {
+                margin-bottom: 5px;
+            }
+            
+            .search-bar button {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+            
+            .tab-buttons {
+                flex-wrap: wrap;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .action-group {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Music Style Analyzer</h1>
+    
+    <div class="container">
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="artist-tab">Artist/Genre</button>
+                <button class="tab-button" data-tab="song-tab">Song/Album</button>
+                <button class="tab-button" data-tab="era-tab">Era/Period</button>
+            </div>
+            
+            <!-- Artist/Genre Tab -->
+            <div id="artist-tab" class="tab-content active">
+                <div class="search-bar">
+                    <label for="artist-search">Artist/Genre:</label>
+                    <input type="text" id="artist-search" placeholder="Enter artist or genre name...">
+                    <button id="artist-search-btn">Find Style</button>
+                    <button id="artist-clear-btn">Clear</button>
+                    <div id="artist-indicator" class="source-indicator indicator-ready">READY</div>
+                </div>
+                
+                <div class="options-bar">
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="artist-force-refresh">
+                        <label for="artist-force-refresh">Force New API Query</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="artist-random-seed" checked>
+                        <label for="artist-random-seed">Use Random Seed</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="artist-auto-save" checked>
+                        <label for="artist-auto-save">Auto-Save Results</label>
+                    </div>
+                </div>
+                
+                <div class="additional-fields">
+                    <div class="field-group">
+                        <label for="artist-era">Era/Period (optional):</label>
+                        <input type="text" id="artist-era" placeholder="e.g., '1980s', 'Early career'...">
+                    </div>
+                </div>
+                
+                <div class="results-container" id="artist-results">
+                    <div class="results-placeholder">Enter an artist or genre name to see its musical style</div>
+                </div>
+                
+                <div class="action-buttons">
+                    <div class="action-group">
+                        <button class="btn" id="artist-save-btn">Save to Database</button>
+                        <button class="btn" id="artist-remove-btn">Remove from Database</button>
+                        <button class="btn" id="artist-refresh-btn">↻ Refresh Result</button>
+                    </div>
+                    <div class="action-group">
+                        <button class="btn btn-copy" id="artist-copy-musical-btn">Copy MUSICAL STYLE</button>
+                        <button class="btn btn-copy" id="artist-copy-lyrical-btn">Copy LYRICAL GUIDANCE</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Song/Album Tab -->
+            <div id="song-tab" class="tab-content">
+                <div class="search-bar">
+                    <label for="song-search">Song Title:</label>
+                    <input type="text" id="song-search" placeholder="Enter song title...">
+                    <button id="song-search-btn">Find Style</button>
+                    <button id="song-clear-btn">Clear</button>
+                    <div id="song-indicator" class="source-indicator indicator-ready">READY</div>
+                </div>
+                
+                <div class="options-bar">
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="song-force-refresh">
+                        <label for="song-force-refresh">Force New API Query</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="song-random-seed" checked>
+                        <label for="song-random-seed">Use Random Seed</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="song-auto-save" checked>
+                        <label for="song-auto-save">Auto-Save Results</label>
+                    </div>
+                </div>
+                
+                <div class="additional-fields">
+                    <div class="field-group">
+                        <label for="song-artist">Artist (recommended):</label>
+                        <input type="text" id="song-artist" placeholder="Artist name...">
+                    </div>
+                    <div class="field-group">
+                        <label for="song-album">Album (optional):</label>
+                        <input type="text" id="song-album" placeholder="Album name...">
+                    </div>
+                    <div class="field-group">
+                        <label for="song-year">Year (optional):</label>
+                        <input type="text" id="song-year" placeholder="Year...">
+                    </div>
+                </div>
+                
+                <div class="results-container" id="song-results">
+                    <div class="results-placeholder">Enter a song title to see its musical analysis</div>
+                </div>
+                
+                <div class="action-buttons">
+                    <div class="action-group">
+                        <button class="btn" id="song-save-btn">Save to Database</button>
+                        <button class="btn" id="song-remove-btn">Remove from Database</button>
+                        <button class="btn" id="song-refresh-btn">↻ Refresh Result</button>
+                    </div>
+                    <div class="action-group">
+                        <button class="btn btn-copy" id="song-copy-musical-btn">Copy MUSICAL STYLE</button>
+                        <button class="btn btn-copy" id="song-copy-production-btn">Copy PRODUCTION STYLE</button>
+                        <button class="btn btn-copy" id="song-copy-lyrical-btn">Copy LYRICAL CONTENT</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Era/Period Tab -->
+            <div id="era-tab" class="tab-content">
+                <div class="search-bar">
+                    <label for="era-search">Era/Period:</label>
+                    <input type="text" id="era-search" placeholder="Enter musical era or period...">
+                    <button id="era-search-btn">Find Style</button>
+                    <button id="era-clear-btn">Clear</button>
+                    <div id="era-indicator" class="source-indicator indicator-ready">READY</div>
+                </div>
+                
+                <div class="options-bar">
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="era-force-refresh">
+                        <label for="era-force-refresh">Force New API Query</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="era-random-seed" checked>
+                        <label for="era-random-seed">Use Random Seed</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="era-auto-save" checked>
+                        <label for="era-auto-save">Auto-Save Results</label>
+                    </div>
+                </div>
+                
+                <div class="additional-fields">
+                    <div class="field-group">
+                        <label for="era-genre">Genre (optional):</label>
+                        <input type="text" id="era-genre" placeholder="Music genre...">
+                    </div>
+                    <div class="field-group">
+                        <label for="era-location">Location (optional):</label>
+                        <input type="text" id="era-location" placeholder="Location...">
+                    </div>
+                </div>
+                
+                <div class="results-container" id="era-results">
+                    <div class="results-placeholder">Enter an era or period to see its musical characteristics</div>
+                </div>
+                
+                <div class="action-buttons">
+                    <div class="action-group">
+                        <button class="btn" id="era-save-btn">Save to Database</button>
+                        <button class="btn" id="era-remove-btn">Remove from Database</button>
+                        <button class="btn" id="era-refresh-btn">↻ Refresh Result</button>
+                    </div>
+                    <div class="action-group">
+                        <button class="btn btn-copy" id="era-copy-musical-btn">Copy MUSICAL CHARACTERISTICS</button>
+                        <button class="btn btn-copy" id="era-copy-production-btn">Copy PRODUCTION TECHNIQUES</button>
+                        <button class="btn btn-copy" id="era-copy-lyrical-btn">Copy LYRICAL THEMES</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status-bar" id="status-bar">
+            Enter a query to analyze musical style
+        </div>
+        
+        <div class="database-stats" id="database-stats">
+            Database Statistics: 0 total entries
+        </div>
+        
+        <div class="api-info-container" style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 6px;">
+            <p style="font-size: 0.9rem; color: #666; margin: 0;">
+                <strong>🌐 Web App Authentication:</strong> This application uses referrer-based authentication automatically. 
+                No API key required! For higher rate limits, you can register your domain at 
+                <a href="https://auth.pollinations.ai" target="_blank" style="color: #4a6fa5;">auth.pollinations.ai</a>.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const statusBar = document.getElementById('status-bar');
+        const databaseStats = document.getElementById('database-stats');
+
+        // Tab switching
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                
+                // Update active button
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Update active content
+                tabContents.forEach(tab => {
+                    if (tab.id === tabId) {
+                        tab.classList.add('active');
+                    } else {
+                        tab.classList.remove('active');
+                    }
+                });
+            });
+        });
+
+        // Database structure
+        let database = {
+            artists: {},
+            songs: {},
+            eras: {},
+            genres: {},
+            metadata: { last_updated: new Date().toISOString() }
+        };
+
+        // Current result tracking
+        let currentArtistResult = null;
+        let currentArtistQuery = null;
+        let currentSongResult = null;
+        let currentSongQuery = null;
+        let currentEraResult = null;
+        let currentEraQuery = null;
+
+        // Load database from localStorage
+        function loadDatabase() {
+            const savedDb = localStorage.getItem('music_style_db');
+            if (savedDb) {
+                try {
+                    database = JSON.parse(savedDb);
+                    // Ensure all categories exist
+                    if (!database.artists) database.artists = {};
+                    if (!database.songs) database.songs = {};
+                    if (!database.eras) database.eras = {};
+                    if (!database.genres) database.genres = {};
+                    if (!database.metadata) database.metadata = { last_updated: new Date().toISOString() };
+                    
+                    updateDatabaseStats();
+                    updateStatus("Database loaded from local storage");
+                } catch (error) {
+                    console.error("Error loading database:", error);
+                    updateStatus("Error loading database: " + error.message);
+                }
+            }
+        }
+
+        // Save database to localStorage
+        function saveDatabase() {
+            try {
+                database.metadata.last_updated = new Date().toISOString();
+                localStorage.setItem('music_style_db', JSON.stringify(database));
+                updateDatabaseStats();
+                return true;
+            } catch (error) {
+                console.error("Error saving database:", error);
+                updateStatus("Error saving database: " + error.message);
+                return false;
+            }
+        }
+
+        // Update database statistics display
+        function updateDatabaseStats() {
+            const artistCount = Object.keys(database.artists).length;
+            const songCount = Object.keys(database.songs).length;
+            const eraCount = Object.keys(database.eras).length;
+            const genreCount = Object.keys(database.genres).length;
+            const totalCount = artistCount + songCount + eraCount + genreCount;
+            
+            const lastUpdated = new Date(database.metadata.last_updated).toLocaleString();
+            
+            databaseStats.textContent = `Database Statistics: ${totalCount} total entries (${artistCount} artists, ${songCount} songs, ${eraCount} eras, ${genreCount} genres) | Last Updated: ${lastUpdated}`;
+        }
+
+        // Update status bar
+        function updateStatus(message) {
+            statusBar.textContent = message;
+        }
+
+		// API Call function
+        async function callApi(systemPrompt, userPrompt, useRandomSeed = true) {
+            try {
+                // Generate random seed if enabled
+                let seed = null;
+                if (useRandomSeed) {
+                    seed = Math.floor(Math.random() * 1000000) + 1;
+                    console.log(`Using random seed: ${seed}`);
+                }
+                
+                // Prepare request data
+                const data = {
+                    model: "openai",
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userPrompt }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 600
+                };
+                
+                // Add seed if we're using one
+                if (seed !== null) {
+                    data.seed = seed;
+                }
+                
+                // Make the API call (no Authorization header needed - browser sends Referer automatically)
+                const response = await fetch("https://text.pollinations.ai/openai", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                        // No Authorization header needed for web apps - referrer is automatic
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                // Extract the generated text
+                if (result.choices && result.choices.length > 0) {
+                    return result.choices[0].message.content;
+                } else {
+                    throw new Error("Unexpected API response format");
+                }
+            } catch (error) {
+                console.error("API call error:", error);
+                return null;
+            }
+        }
+
+        // Artist Tab Functions
+        const artistSearch = document.getElementById('artist-search');
+        const artistEra = document.getElementById('artist-era');
+        const artistSearchBtn = document.getElementById('artist-search-btn');
+        const artistClearBtn = document.getElementById('artist-clear-btn');
+        const artistIndicator = document.getElementById('artist-indicator');
+        const artistResults = document.getElementById('artist-results');
+        const artistForceRefresh = document.getElementById('artist-force-refresh');
+        const artistRandomSeed = document.getElementById('artist-random-seed');
+        const artistAutoSave = document.getElementById('artist-auto-save');
+        const artistSaveBtn = document.getElementById('artist-save-btn');
+        const artistRemoveBtn = document.getElementById('artist-remove-btn');
+        const artistRefreshBtn = document.getElementById('artist-refresh-btn');
+        const artistCopyMusicalBtn = document.getElementById('artist-copy-musical-btn');
+        const artistCopyLyricalBtn = document.getElementById('artist-copy-lyrical-btn');
+
+        // Find artist style
+        async function findArtistStyle() {
+            const artist = artistSearch.value.trim();
+            const era = artistEra.value.trim();
+            
+            if (!artist) {
+                alert("Please enter an artist or genre name");
+                return;
+            }
+            
+            // Update indicator to loading state
+            artistIndicator.textContent = "LOADING";
+            artistIndicator.className = "source-indicator indicator-loading";
+            
+            // Build cache key - include era if specified
+            let cacheKey;
+            if (era) {
+                cacheKey = `${artist} (${era})`;
+            } else {
+                cacheKey = artist;
+            }
+            
+            // Check if force refresh is enabled
+            const forceRefresh = artistForceRefresh.checked;
+            
+            // Check database first (unless force refresh is enabled)
+            let foundInDb = false;
+            
+            if (!forceRefresh) {
+                const cacheKeyLower = cacheKey.toLowerCase();
+                // Find case-insensitive match
+                const match = Object.keys(database.artists).find(
+                    key => key.toLowerCase() === cacheKeyLower
+                );
+                
+                if (match) {
+                    const entry = database.artists[match];
+                    currentArtistResult = {
+                        name: match,
+                        style_description: entry.style_description,
+                        lyrical_guidance: entry.lyrical_guidance,
+                        last_updated: entry.last_updated || new Date().toISOString()
+                    };
+                    currentArtistQuery = match;
+                    displayArtistResult(match, entry.style_description, entry.lyrical_guidance, true);
+                    foundInDb = true;
+                }
+            }
+            
+            // If not found or force refresh, query API
+            if (!foundInDb || forceRefresh) {
+                updateStatus(`Querying API for '${cacheKey}'...`);
+                currentArtistQuery = cacheKey;
+                
+                // Query API
+                await queryArtistApi(artist, era);
+            }
+        }
+
+        // Query API for artist style
+        async function queryArtistApi(artist, era = null) {
+            try {
+                // Prepare prompt based on whether era is specified
+                const systemPrompt = `You are a music style analyzer that provides concise, specific descriptions of musical styles without mentioning artist or genre names.
+                Focus only on the musical characteristics, sonic qualities, production techniques, instrumentation, vocal approaches, rhythmic patterns, and lyrical themes.
+                
+                For each request, provide two separate sections:
+                1. MUSICAL STYLE: Start immediately with the core musical elements - DO NOT use phrases like "This style is characterized by" or "This genre features." Begin directly with the musical characteristics.
+                2. LYRICAL GUIDANCE: Again, start immediately with the core lyrical approach - DO NOT use introductory phrases.
+                
+                Use confident, definitive statements and specific technical language that accurately captures the musical essence.
+                
+                Examples of good starts:
+                "A fusion of rhythm and blues with..." (not "This style is a fusion of...")
+                "Distorted power chords driving through..." (not "This style features distorted power chords...")
+                "Introspective narratives exploring..." (not "The lyrics tend to focus on...")
+                
+                Never mention the artist name in your response. Focus purely on the musical elements that define the sound and artist personally.`;
+                
+                // Add era-specific instructions if provided
+                let userPrompt;
+                if (era) {
+                    userPrompt = `Describe the musical style and provide lyrical guidance specifically for the artist '${artist}' during their ${era} period/era. Focus on the definitive sound from this specific period only.`;
+                } else {
+                    userPrompt = `Describe the musical style and provide lyrical guidance for the artist '${artist}'. Focus on their most definitive and recognizable sound.`;
+                }
+                
+                // Call API
+                const response = await callApi(systemPrompt, userPrompt, artistRandomSeed.checked);
+                
+                if (response) {
+                    // Process response
+                    let styleDescription = "";
+                    let lyricalGuidance = "";
+                    
+                    // Extract sections
+                    if (response.includes("MUSICAL STYLE:") && response.includes("LYRICAL GUIDANCE:")) {
+                        const parts = response.split("LYRICAL GUIDANCE:", 2);
+                        const stylePart = parts[0].replace("MUSICAL STYLE:", "").trim();
+                        const lyricalPart = parts[1].trim();
+                        
+                        styleDescription = stylePart;
+                        lyricalGuidance = lyricalPart;
+                    } else {
+                        // Fallback if sections aren't clearly marked
+                        const paragraphs = response.split("\n\n");
+                        if (paragraphs.length >= 2) {
+                            styleDescription = paragraphs[0];
+                            lyricalGuidance = paragraphs[1];
+                        } else {
+                            styleDescription = response;
+                            lyricalGuidance = "No specific lyrical guidance provided.";
+                        }
+                    }
+                    
+                    // Format cache key based on whether era was specified
+                    let cacheKey;
+                    if (era) {
+                        cacheKey = `${artist} (${era})`;
+                    } else {
+                        cacheKey = artist;
+                    }
+                    
+                    // Store for potential saving
+                    currentArtistResult = {
+                        name: cacheKey,
+						style_description: styleDescription,
+                        lyrical_guidance: lyricalGuidance,
+                        last_updated: new Date().toISOString()
+                    };
+                    
+                    // Display result
+                    displayArtistResult(cacheKey, styleDescription, lyricalGuidance, false);
+                    
+                    // Auto-save if enabled
+                    if (artistAutoSave.checked) {
+                        setTimeout(saveArtistResult, 100);
+                    }
+                } else {
+                    updateStatus(`Failed to get style for '${artist}'`);
+                    artistIndicator.textContent = "ERROR";
+                    artistIndicator.className = "source-indicator indicator-error";
+                }
+            } catch (error) {
+                console.error("API call error:", error);
+                updateStatus(`Error: ${error.message}`);
+                artistIndicator.textContent = "ERROR";
+                artistIndicator.className = "source-indicator indicator-error";
+            }
+        }
+
+        // Display artist result
+        function displayArtistResult(name, styleDescription, lyricalGuidance, fromCache = false) {
+            // Update status indicator
+            if (fromCache) {
+                artistIndicator.textContent = "CACHED";
+                artistIndicator.className = "source-indicator indicator-cached";
+            } else {
+                artistIndicator.textContent = "LIVE API";
+                artistIndicator.className = "source-indicator indicator-live";
+            }
+            
+            // Display result
+            artistResults.innerHTML = `
+                <div class="results-title">${name}</div>
+                <div class="results-section">
+                    <h3>MUSICAL STYLE</h3>
+                    <p>${styleDescription}</p>
+                </div>
+                <div class="results-section">
+                    <h3>LYRICAL GUIDANCE</h3>
+                    <p>${lyricalGuidance}</p>
+                </div>
+            `;
+            
+            // Update status
+            if (fromCache) {
+                updateStatus(`Loaded cached entry for '${name}'`);
+            } else {
+                updateStatus(`Retrieved fresh result for '${name}' from API`);
+            }
+        }
+
+        // Song Tab Functions
+        const songSearch = document.getElementById('song-search');
+        const songArtist = document.getElementById('song-artist');
+        const songAlbum = document.getElementById('song-album');
+        const songYear = document.getElementById('song-year');
+        const songSearchBtn = document.getElementById('song-search-btn');
+        const songClearBtn = document.getElementById('song-clear-btn');
+        const songIndicator = document.getElementById('song-indicator');
+        const songResults = document.getElementById('song-results');
+        const songForceRefresh = document.getElementById('song-force-refresh');
+        const songRandomSeed = document.getElementById('song-random-seed');
+        const songAutoSave = document.getElementById('song-auto-save');
+        const songSaveBtn = document.getElementById('song-save-btn');
+        const songRemoveBtn = document.getElementById('song-remove-btn');
+        const songRefreshBtn = document.getElementById('song-refresh-btn');
+        const songCopyMusicalBtn = document.getElementById('song-copy-musical-btn');
+        const songCopyProductionBtn = document.getElementById('song-copy-production-btn');
+        const songCopyLyricalBtn = document.getElementById('song-copy-lyrical-btn');
+
+        // Find song style
+        async function findSongStyle() {
+            const song = songSearch.value.trim();
+            const artist = songArtist.value.trim();
+            const album = songAlbum.value.trim();
+            const year = songYear.value.trim();
+            
+            if (!song) {
+                alert("Please enter a song title");
+                return;
+            }
+            
+            // Update indicator to loading state
+            songIndicator.textContent = "LOADING";
+            songIndicator.className = "source-indicator indicator-loading";
+            
+            // Build cache key
+            let cacheKey;
+            if (artist) {
+                cacheKey = `${song} by ${artist}`;
+                if (album) {
+                    cacheKey += ` (from ${album}`;
+                    if (year) {
+                        cacheKey += `, ${year}`;
+                    }
+                    cacheKey += ")";
+                }
+            } else {
+                cacheKey = song;
+            }
+            
+            // Check if force refresh is enabled
+            const forceRefresh = songForceRefresh.checked;
+            
+            // Check database first (unless force refresh is enabled)
+            let foundInDb = false;
+            
+            if (!forceRefresh) {
+                const cacheKeyLower = cacheKey.toLowerCase();
+                const match = Object.keys(database.songs).find(
+                    key => key.toLowerCase() === cacheKeyLower
+                );
+                
+                if (match) {
+                    const entry = database.songs[match];
+                    currentSongResult = {
+                        name: match,
+                        musical_style: entry.musical_style,
+                        production_style: entry.production_style,
+                        lyrical_content: entry.lyrical_content,
+                        last_updated: entry.last_updated || new Date().toISOString()
+                    };
+                    currentSongQuery = match;
+                    displaySongResult(match, entry.musical_style, entry.production_style, entry.lyrical_content, true);
+                    foundInDb = true;
+                }
+            }
+            
+            // If not found or force refresh, query API
+            if (!foundInDb || forceRefresh) {
+                updateStatus(`Querying API for '${cacheKey}'...`);
+                currentSongQuery = cacheKey;
+                
+                // Query API
+                await querySongApi(song, artist, album, year);
+            }
+        }
+
+        // Query API for song style
+        async function querySongApi(song, artist = null, album = null, year = null) {
+            try {
+                const systemPrompt = `You are a music analysis expert focusing on detailed song-specific musical characteristics.
+                Analyze the requested song and provide three distinct sections:
+                
+                1. MUSICAL STYLE: The song's genre, musical structure, key elements, rhythm patterns, instrumentation, and melodic approach. Begin directly with the musical characteristics.
+                
+                2. PRODUCTION STYLE: The production techniques, mixing approach, sonic textures, audio effects, and recording characteristics that define the song's sound. Focus on the technical aspects.
+                
+                3. LYRICAL CONTENT: The song's lyrical themes, narrative approach, and vocal delivery style. Provide insights into the storytelling, emotional tone, and meaning.
+                
+                Use confident, definitive statements with specific technical language. Avoid vague descriptions or hedging phrases.
+                
+                Never mention the artist or song name in your response. Focus purely on the musical elements that define this specific song.`;
+                
+                // Build user prompt
+                let userPrompt = `Analyze the song '${song}'`;
+                if (artist) userPrompt += ` by ${artist}`;
+                if (album) userPrompt += ` from the album '${album}'`;
+                if (year) userPrompt += ` (${year})`;
+                
+                // Call API
+                const response = await callApi(systemPrompt, userPrompt, songRandomSeed.checked);
+                
+                if (response) {
+                    // Process response
+                    let musicalStyle = "";
+                    let productionStyle = "";
+                    let lyricalContent = "";
+                    
+                    // Extract sections
+                    if (response.includes("MUSICAL STYLE:") && response.includes("PRODUCTION STYLE:") && response.includes("LYRICAL CONTENT:")) {
+                        const parts1 = response.split("PRODUCTION STYLE:", 2);
+                        const musicalPart = parts1[0].replace("MUSICAL STYLE:", "").trim();
+                        
+                        const parts2 = parts1[1].split("LYRICAL CONTENT:", 2);
+                        const productionPart = parts2[0].trim();
+                        const lyricalPart = parts2[1].trim();
+                        
+                        musicalStyle = musicalPart;
+                        productionStyle = productionPart;
+                        lyricalContent = lyricalPart;
+                    } else {
+                        // Fallback
+                        const paragraphs = response.split("\n\n");
+                        if (paragraphs.length >= 3) {
+                            musicalStyle = paragraphs[0];
+                            productionStyle = paragraphs[1];
+                            lyricalContent = paragraphs[2];
+                        } else {
+                            musicalStyle = response;
+                            productionStyle = "No specific production details provided.";
+                            lyricalContent = "No specific lyrical analysis provided.";
+                        }
+                    }
+                    
+                    // Build cache key
+                    let cacheKey;
+                    if (artist) {
+                        cacheKey = `${song} by ${artist}`;
+                        if (album) {
+                            cacheKey += ` (from ${album}`;
+                            if (year) {
+                                cacheKey += `, ${year}`;
+                            }
+                            cacheKey += ")";
+                        }
+                    } else {
+                        cacheKey = song;
+                    }
+                    
+                    // Store for potential saving
+                    currentSongResult = {
+                        name: cacheKey,
+                        musical_style: musicalStyle,
+                        production_style: productionStyle,
+                        lyrical_content: lyricalContent,
+                        last_updated: new Date().toISOString()
+                    };
+                    
+                    // Display result
+                    displaySongResult(cacheKey, musicalStyle, productionStyle, lyricalContent, false);
+                    
+                    // Auto-save if enabled
+                    if (songAutoSave.checked) {
+                        setTimeout(saveSongResult, 100);
+                    }
+                } else {
+                    updateStatus(`Failed to get analysis for '${song}'`);
+                    songIndicator.textContent = "ERROR";
+                    songIndicator.className = "source-indicator indicator-error";
+                }
+            } catch (error) {
+                console.error("API call error:", error);
+                updateStatus(`Error: ${error.message}`);
+                songIndicator.textContent = "ERROR";
+                songIndicator.className = "source-indicator indicator-error";
+            }
+        }
+
+        // Display song result
+        function displaySongResult(name, musicalStyle, productionStyle, lyricalContent, fromCache = false) {
+            // Update status indicator
+            if (fromCache) {
+                songIndicator.textContent = "CACHED";
+                songIndicator.className = "source-indicator indicator-cached";
+            } else {
+                songIndicator.textContent = "LIVE API";
+                songIndicator.className = "source-indicator indicator-live";
+            }
+            
+            // Display result
+            songResults.innerHTML = `
+                <div class="results-title">${name}</div>
+                <div class="results-section">
+                    <h3>MUSICAL STYLE</h3>
+                    <p>${musicalStyle}</p>
+                </div>
+                <div class="results-section">
+                    <h3>PRODUCTION STYLE</h3>
+                    <p>${productionStyle}</p>
+                </div>
+                <div class="results-section">
+                    <h3>LYRICAL CONTENT</h3>
+                    <p>${lyricalContent}</p>
+                </div>
+            `;
+            
+            // Update status
+            if (fromCache) {
+                updateStatus(`Loaded cached entry for '${name}'`);
+            } else {
+                updateStatus(`Retrieved fresh analysis for '${name}' from API`);
+            }
+        }
+
+        // Era Tab Functions
+        const eraSearch = document.getElementById('era-search');
+        const eraGenre = document.getElementById('era-genre');
+        const eraLocation = document.getElementById('era-location');
+        const eraSearchBtn = document.getElementById('era-search-btn');
+        const eraClearBtn = document.getElementById('era-clear-btn');
+        const eraIndicator = document.getElementById('era-indicator');
+        const eraResults = document.getElementById('era-results');
+        const eraForceRefresh = document.getElementById('era-force-refresh');
+        const eraRandomSeed = document.getElementById('era-random-seed');
+        const eraAutoSave = document.getElementById('era-auto-save');
+        const eraSaveBtn = document.getElementById('era-save-btn');
+        const eraRemoveBtn = document.getElementById('era-remove-btn');
+        const eraRefreshBtn = document.getElementById('era-refresh-btn');
+        const eraCopyMusicalBtn = document.getElementById('era-copy-musical-btn');
+        const eraCopyProductionBtn = document.getElementById('era-copy-production-btn');
+        const eraCopyLyricalBtn = document.getElementById('era-copy-lyrical-btn');
+
+        // Find era style
+        async function findEraStyle() {
+            const era = eraSearch.value.trim();
+            const genre = eraGenre.value.trim();
+            const location = eraLocation.value.trim();
+            
+            if (!era) {
+                alert("Please enter an era or period");
+                return;
+            }
+            
+            // Update indicator to loading state
+            eraIndicator.textContent = "LOADING";
+            eraIndicator.className = "source-indicator indicator-loading";
+            
+            // Build cache key
+            let cacheKey = era;
+            if (genre) {
+                cacheKey += ` (${genre}`;
+                if (location) {
+                    cacheKey += `, ${location}`;
+                }
+                cacheKey += ")";
+            } else if (location) {
+                cacheKey += ` (${location})`;
+            }
+            
+            // Check if force refresh is enabled
+            const forceRefresh = eraForceRefresh.checked;
+            
+            // Check database first (unless force refresh is enabled)
+            let foundInDb = false;
+            
+            if (!forceRefresh) {
+                const cacheKeyLower = cacheKey.toLowerCase();
+                const match = Object.keys(database.eras).find(
+                    key => key.toLowerCase() === cacheKeyLower
+                );
+                
+                if (match) {
+                    const entry = database.eras[match];
+                    currentEraResult = {
+                        name: match,
+                        musical_characteristics: entry.musical_characteristics,
+                        production_techniques: entry.production_techniques,
+                        lyrical_themes: entry.lyrical_themes,
+                        last_updated: entry.last_updated || new Date().toISOString()
+                    };
+                    currentEraQuery = match;
+                    displayEraResult(match, entry.musical_characteristics, entry.production_techniques, entry.lyrical_themes, true);
+                    foundInDb = true;
+                }
+            }
+            
+            // If not found or force refresh, query API
+            if (!foundInDb || forceRefresh) {
+                updateStatus(`Querying API for '${cacheKey}'...`);
+                currentEraQuery = cacheKey;
+                
+                // Query API
+                await queryEraApi(era, genre, location);
+            }
+        }
+
+        // Query API for era style
+        async function queryEraApi(era, genre = null, location = null) {
+            try {
+                const systemPrompt = `You are a music historian focusing on detailed era-specific musical characteristics.
+                Analyze the requested music era/period and provide three distinct sections:
+                
+                1. MUSICAL CHARACTERISTICS: The defining musical elements, instruments, techniques, rhythm patterns, melody structures, harmony approaches, and compositional styles of this era. Begin directly with the musical characteristics.
+                
+                2. PRODUCTION TECHNIQUES: The recording methods, studio approaches, mixing techniques, audio processing, and technological innovations that defined the sound of this era. Focus on the technical aspects.
+                
+                3. LYRICAL THEMES: The dominant lyrical topics, storytelling approaches, poetic devices, and thematic content prevalent during this era. Provide insights into the cultural context and meaning.
+                
+                Use confident, definitive statements with specific technical language. Avoid vague descriptions or hedging phrases.
+                
+                Never mention the era name itself in your response. Focus purely on the musical elements that define this specific period.`;
+                
+                // Build user prompt
+                let userPrompt = `Analyze the musical period/era '${era}'`;
+                if (genre) userPrompt += ` specifically in the ${genre} genre`;
+                if (location) userPrompt += ` in ${location}`;
+                
+                // Call API
+                const response = await callApi(systemPrompt, userPrompt, eraRandomSeed.checked);
+                
+                if (response) {
+                    // Process response
+                    let musicalCharacteristics = "";
+                    let productionTechniques = "";
+                    let lyricalThemes = "";
+                    
+                    // Extract sections
+                    if (response.includes("MUSICAL CHARACTERISTICS:") && response.includes("PRODUCTION TECHNIQUES:") && response.includes("LYRICAL THEMES:")) {
+                        const parts1 = response.split("PRODUCTION TECHNIQUES:", 2);
+                        const musicalPart = parts1[0].replace("MUSICAL CHARACTERISTICS:", "").trim();
+                        
+                        const parts2 = parts1[1].split("LYRICAL THEMES:", 2);
+                        const productionPart = parts2[0].trim();
+                        const lyricalPart = parts2[1].trim();
+                        
+                        musicalCharacteristics = musicalPart;
+                        productionTechniques = productionPart;
+                        lyricalThemes = lyricalPart;
+                    } else {
+                        // Fallback
+                        const paragraphs = response.split("\n\n");
+                        if (paragraphs.length >= 3) {
+                            musicalCharacteristics = paragraphs[0];
+                            productionTechniques = paragraphs[1];
+                            lyricalThemes = paragraphs[2];
+                        } else {
+                            musicalCharacteristics = response;
+                            productionTechniques = "No specific production details provided.";
+                            lyricalThemes = "No specific lyrical analysis provided.";
+                        }
+                    }
+                    
+                    // Build cache key
+                    let cacheKey = era;
+                    if (genre) {
+                        cacheKey += ` (${genre}`;
+                        if (location) {
+                            cacheKey += `, ${location}`;
+                        }
+                        cacheKey += ")";
+                    } else if (location) {
+                        cacheKey += ` (${location})`;
+                    }
+                    
+                    // Store for potential saving
+                    currentEraResult = {
+                        name: cacheKey,
+                        musical_characteristics: musicalCharacteristics,
+                        production_techniques: productionTechniques,
+                        lyrical_themes: lyricalThemes,
+                        last_updated: new Date().toISOString()
+                    };
+                    
+                    // Display result
+                    displayEraResult(cacheKey, musicalCharacteristics, productionTechniques, lyricalThemes, false);
+                    
+                    // Auto-save if enabled
+                    if (eraAutoSave.checked) {
+                        setTimeout(saveEraResult, 100);
+                    }
+                } else {
+                    updateStatus(`Failed to get analysis for '${era}'`);
+                    eraIndicator.textContent = "ERROR";
+                    eraIndicator.className = "source-indicator indicator-error";
+                }
+            } catch (error) {
+                console.error("API call error:", error);
+                updateStatus(`Error: ${error.message}`);
+                eraIndicator.textContent = "ERROR";
+                eraIndicator.className = "source-indicator indicator-error";
+            }
+        }
+
+        // Display era result
+        function displayEraResult(name, musicalCharacteristics, productionTechniques, lyricalThemes, fromCache = false) {
+            // Update status indicator
+            if (fromCache) {
+                eraIndicator.textContent = "CACHED";
+                eraIndicator.className = "source-indicator indicator-cached";
+            } else {
+                eraIndicator.textContent = "LIVE API";
+                eraIndicator.className = "source-indicator indicator-live";
+            }
+            
+            // Display result
+            eraResults.innerHTML = `
+                <div class="results-title">${name}</div>
+                <div class="results-section">
+                    <h3>MUSICAL CHARACTERISTICS</h3>
+                    <p>${musicalCharacteristics}</p>
+                </div>
+                <div class="results-section">
+                    <h3>PRODUCTION TECHNIQUES</h3>
+                    <p>${productionTechniques}</p>
+                </div>
+                <div class="results-section">
+                    <h3>LYRICAL THEMES</h3>
+                    <p>${lyricalThemes}</p>
+                </div>
+            `;
+            
+            // Update status
+            if (fromCache) {
+                updateStatus(`Loaded cached entry for '${name}'`);
+            } else {
+                updateStatus(`Retrieved fresh analysis for '${name}' from API`);
+            }
+        }
+
+        // Save functions
+        function saveArtistResult() {
+            if (!currentArtistResult) {
+                alert("No results to save");
+                return;
+            }
+            
+            const result = currentArtistResult;
+            database.artists[result.name] = {
+                style_description: result.style_description,
+                lyrical_guidance: result.lyrical_guidance,
+                last_updated: new Date().toISOString()
+            };
+            
+            if (saveDatabase()) {
+                updateStatus(`Saved '${result.name}' to database`);
+                artistIndicator.textContent = "CACHED";
+                artistIndicator.className = "source-indicator indicator-cached";
+            } else {
+                alert("Failed to save to database");
+            }
+        }
+
+        function saveSongResult() {
+            if (!currentSongResult) {
+                alert("No results to save");
+                return;
+            }
+            
+            const result = currentSongResult;
+            database.songs[result.name] = {
+                musical_style: result.musical_style,
+                production_style: result.production_style,
+                lyrical_content: result.lyrical_content,
+                last_updated: new Date().toISOString()
+            };
+            
+            if (saveDatabase()) {
+                updateStatus(`Saved '${result.name}' to database`);
+                songIndicator.textContent = "CACHED";
+                songIndicator.className = "source-indicator indicator-cached";
+            } else {
+                alert("Failed to save to database");
+            }
+        }
+
+        function saveEraResult() {
+            if (!currentEraResult) {
+                alert("No results to save");
+                return;
+            }
+            
+            const result = currentEraResult;
+            database.eras[result.name] = {
+                musical_characteristics: result.musical_characteristics,
+                production_techniques: result.production_techniques,
+                lyrical_themes: result.lyrical_themes,
+                last_updated: new Date().toISOString()
+            };
+            
+            if (saveDatabase()) {
+                updateStatus(`Saved '${result.name}' to database`);
+                eraIndicator.textContent = "CACHED";
+                eraIndicator.className = "source-indicator indicator-cached";
+            } else {
+                alert("Failed to save to database");
+            }
+        }
+
+        // Remove functions
+        function removeArtistFromDb() {
+            if (!currentArtistQuery) {
+                alert("No current query to remove");
+                return;
+            }
+            
+            const query = currentArtistQuery;
+            const queryLower = query.toLowerCase();
+            
+            for (const name of Object.keys(database.artists)) {
+                if (name.toLowerCase() === queryLower) {
+                    if (confirm(`Remove '${name}' from database?`)) {
+                        delete database.artists[name];
+                        
+                        if (saveDatabase()) {
+                            updateStatus(`Removed '${query}' from database`);
+                            artistIndicator.textContent = "REMOVED";
+                            artistIndicator.className = "source-indicator indicator-error";
+                        } else {
+                            alert("Failed to save database after removal");
+                        }
+                    }
+                    return;
+                }
+            }
+            
+            updateStatus(`'${query}' not found in database`);
+        }
+
+        function removeSongFromDb() {
+            if (!currentSongQuery) {
+                alert("No current query to remove");
+                return;
+            }
+            
+            const query = currentSongQuery;
+            const queryLower = query.toLowerCase();
+            
+            for (const name of Object.keys(database.songs)) {
+                if (name.toLowerCase() === queryLower) {
+                    if (confirm(`Remove '${name}' from database?`)) {
+                        delete database.songs[name];
+                        
+                        if (saveDatabase()) {
+                            updateStatus(`Removed '${query}' from database`);
+                            songIndicator.textContent = "REMOVED";
+                            songIndicator.className = "source-indicator indicator-error";
+                        } else {
+                            alert("Failed to save database after removal");
+                        }
+                    }
+                    return;
+                }
+            }
+            
+            updateStatus(`'${query}' not found in database`);
+        }
+
+        function removeEraFromDb() {
+            if (!currentEraQuery) {
+                alert("No current query to remove");
+                return;
+            }
+            
+            const query = currentEraQuery;
+            const queryLower = query.toLowerCase();
+            
+            for (const name of Object.keys(database.eras)) {
+                if (name.toLowerCase() === queryLower) {
+                    if (confirm(`Remove '${name}' from database?`)) {
+                        delete database.eras[name];
+                        
+                        if (saveDatabase()) {
+                            updateStatus(`Removed '${query}' from database`);
+                            eraIndicator.textContent = "REMOVED";
+                            eraIndicator.className = "source-indicator indicator-error";
+                        } else {
+                            alert("Failed to save database after removal");
+                        }
+                    }
+                    return;
+                }
+            }
+            
+            updateStatus(`'${query}' not found in database`);
+        }
+
+        // Refresh functions
+        function refreshArtistResult() {
+            if (!currentArtistQuery) {
+                alert("No current query to refresh");
+                return;
+            }
+            
+            const oldForce = artistForceRefresh.checked;
+            artistForceRefresh.checked = true;
+            
+            const query = currentArtistQuery;
+            
+            if (query.includes("(") && query.includes(")")) {
+                const parts = query.split("(");
+                const artist = parts[0].trim();
+                const era = parts[1].replace(")", "").trim();
+                
+                artistSearch.value = artist;
+                artistEra.value = era;
+            } else {
+                artistSearch.value = query;
+                artistEra.value = "";
+            }
+            
+            findArtistStyle();
+            artistForceRefresh.checked = oldForce;
+        }
+
+        function refreshSongResult() {
+            if (!currentSongQuery) {
+                alert("No current query to refresh");
+                return;
+            }
+            
+            const oldForce = songForceRefresh.checked;
+            songForceRefresh.checked = true;
+            
+            const query = currentSongQuery;
+            
+            // Reset fields
+            songSearch.value = "";
+            songArtist.value = "";
+            songAlbum.value = "";
+            songYear.value = "";
+            
+            // Parse query
+            if (query.includes(" by ")) {
+                const parts = query.split(" by ");
+                songSearch.value = parts[0].trim();
+                
+                let remainder = parts[1];
+                if (remainder.includes(" (from ")) {
+                    const artistParts = remainder.split(" (from ");
+                    songArtist.value = artistParts[0].trim();
+                    
+                    let albumPart = artistParts[1];
+                    if (albumPart.includes(", ") && albumPart.includes(")")) {
+                        const albumParts = albumPart.split(", ");
+                        songAlbum.value = albumParts[0].trim();
+                        songYear.value = albumParts[1].replace(")", "").trim();
+                    } else {
+                        songAlbum.value = albumPart.replace(")", "").trim();
+                    }
+                } else {
+                    songArtist.value = remainder.trim();
+                }
+            } else {
+                songSearch.value = query;
+            }
+            
+            findSongStyle();
+            songForceRefresh.checked = oldForce;
+        }
+
+        function refreshEraResult() {
+            if (!currentEraQuery) {
+                alert("No current query to refresh");
+                return;
+            }
+            
+            const oldForce = eraForceRefresh.checked;
+            eraForceRefresh.checked = true;
+            
+            const query = currentEraQuery;
+            
+            // Reset fields
+            eraSearch.value = "";
+            eraGenre.value = "";
+            eraLocation.value = "";
+            
+            // Parse query
+            if (query.includes("(") && query.includes(")")) {
+                const parts = query.split("(");
+                eraSearch.value = parts[0].trim();
+                
+                const details = parts[1].replace(")", "").trim();
+                if (details.includes(", ")) {
+                    const detailParts = details.split(", ");
+                    eraGenre.value = detailParts[0].trim();
+                    eraLocation.value = detailParts[1].trim();
+                } else {
+                    // Determine if it's genre or location
+                    if (details.toLowerCase().includes("us") || details.toLowerCase().includes("uk") || 
+                        details.toLowerCase().includes("japan") || details.toLowerCase().includes("europe") ||
+                        details.toLowerCase().includes("australia") || details.toLowerCase().includes("canada") ||
+                        details.toLowerCase().includes("united") || details.toLowerCase().includes("north") ||
+                        details.toLowerCase().includes("south") || details.toLowerCase().includes("east") ||
+                        details.toLowerCase().includes("west")) {
+                        eraLocation.value = details;
+                    } else {
+                        eraGenre.value = details;
+                    }
+                }
+            } else {
+                eraSearch.value = query;
+            }
+            
+            findEraStyle();
+            eraForceRefresh.checked = oldForce;
+        }
+
+        // Clear functions
+        function clearArtistResults() {
+            artistSearch.value = "";
+            artistEra.value = "";
+            artistResults.innerHTML = '<div class="results-placeholder">Enter an artist or genre name to see its musical style</div>';
+            artistSearch.focus();
+            updateStatus("Enter an artist or genre name to get its musical style description");
+            
+            artistIndicator.textContent = "READY";
+            artistIndicator.className = "source-indicator indicator-ready";
+        }
+
+        function clearSongResults() {
+            songSearch.value = "";
+            songArtist.value = "";
+            songAlbum.value = "";
+            songYear.value = "";
+            songResults.innerHTML = '<div class="results-placeholder">Enter a song title to see its musical analysis</div>';
+            songSearch.focus();
+            updateStatus("Enter a song title to analyze its musical style");
+            
+            songIndicator.textContent = "READY";
+            songIndicator.className = "source-indicator indicator-ready";
+        }
+
+        function clearEraResults() {
+            eraSearch.value = "";
+            eraGenre.value = "";
+            eraLocation.value = "";
+            eraResults.innerHTML = '<div class="results-placeholder">Enter an era or period to see its musical characteristics</div>';
+            eraSearch.focus();
+            updateStatus("Enter an era or period to analyze its musical style");
+            
+            eraIndicator.textContent = "READY";
+            eraIndicator.className = "source-indicator indicator-ready";
+        }
+
+        // Copy functions (continued)
+       function copySection(resultsElement, sectionName) {
+           const content = resultsElement.innerHTML;
+           const tempDiv = document.createElement('div');
+           tempDiv.innerHTML = content;
+           
+           const sections = tempDiv.querySelectorAll('.results-section');
+           for (const section of sections) {
+               const heading = section.querySelector('h3');
+               if (heading && heading.textContent === sectionName) {
+                   const paragraph = section.querySelector('p');
+                   if (paragraph) {
+                       navigator.clipboard.writeText(paragraph.textContent).then(() => {
+                           updateStatus(`Copied ${sectionName} to clipboard`);
+                       }).catch(err => {
+                           console.error('Failed to copy text: ', err);
+                           updateStatus(`Failed to copy ${sectionName} to clipboard`);
+                       });
+                   }
+                   return;
+               }
+           }
+           
+           updateStatus(`Section '${sectionName}' not found in results`);
+       }
+
+       // Event listeners
+       artistSearchBtn.addEventListener('click', findArtistStyle);
+       artistClearBtn.addEventListener('click', clearArtistResults);
+       artistSaveBtn.addEventListener('click', saveArtistResult);
+       artistRemoveBtn.addEventListener('click', removeArtistFromDb);
+       artistRefreshBtn.addEventListener('click', refreshArtistResult);
+       artistCopyMusicalBtn.addEventListener('click', () => copySection(artistResults, 'MUSICAL STYLE'));
+       artistCopyLyricalBtn.addEventListener('click', () => copySection(artistResults, 'LYRICAL GUIDANCE'));
+
+       songSearchBtn.addEventListener('click', findSongStyle);
+       songClearBtn.addEventListener('click', clearSongResults);
+       songSaveBtn.addEventListener('click', saveSongResult);
+       songRemoveBtn.addEventListener('click', removeSongFromDb);
+       songRefreshBtn.addEventListener('click', refreshSongResult);
+       songCopyMusicalBtn.addEventListener('click', () => copySection(songResults, 'MUSICAL STYLE'));
+       songCopyProductionBtn.addEventListener('click', () => copySection(songResults, 'PRODUCTION STYLE'));
+       songCopyLyricalBtn.addEventListener('click', () => copySection(songResults, 'LYRICAL CONTENT'));
+
+       eraSearchBtn.addEventListener('click', findEraStyle);
+       eraClearBtn.addEventListener('click', clearEraResults);
+       eraSaveBtn.addEventListener('click', saveEraResult);
+       eraRemoveBtn.addEventListener('click', removeEraFromDb);
+       eraRefreshBtn.addEventListener('click', refreshEraResult);
+       eraCopyMusicalBtn.addEventListener('click', () => copySection(eraResults, 'MUSICAL CHARACTERISTICS'));
+       eraCopyProductionBtn.addEventListener('click', () => copySection(eraResults, 'PRODUCTION TECHNIQUES'));
+       eraCopyLyricalBtn.addEventListener('click', () => copySection(eraResults, 'LYRICAL THEMES'));
+
+       // Enter key support
+       artistSearch.addEventListener('keypress', (e) => {
+           if (e.key === 'Enter') findArtistStyle();
+       });
+
+       songSearch.addEventListener('keypress', (e) => {
+           if (e.key === 'Enter') findSongStyle();
+       });
+
+       eraSearch.addEventListener('keypress', (e) => {
+           if (e.key === 'Enter') findEraStyle();
+       });
+
+       // Initialize
+       loadDatabase();
+       
+       // Focus on first search field
+       artistSearch.focus();
+   </script>
+</body>
+</html>
