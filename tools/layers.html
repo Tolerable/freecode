@@ -51,9 +51,9 @@
 
         .main-content {
             display: grid;
-            grid-template-columns: 300px 1fr 280px;
+            grid-template-columns: 280px 1fr 260px;
             gap: 0;
-            height: calc(100vh - 200px);
+            height: calc(100vh - 140px);
             min-height: 600px;
         }
 
@@ -138,8 +138,9 @@
             border-radius: 12px;
             cursor: crosshair;
             transition: all 0.3s ease;
-            max-width: 100%;
-            max-height: 100%;
+            max-width: calc(100% - 40px);
+            max-height: calc(100% - 40px);
+            display: block;
         }
 
         #mainCanvas:hover {
@@ -340,7 +341,8 @@
 
         @media (max-width: 1200px) {
             .main-content {
-                grid-template-columns: 250px 1fr 250px;
+                grid-template-columns: 240px 1fr 240px;
+                height: calc(100vh - 140px);
             }
         }
 
@@ -348,11 +350,17 @@
             .main-content {
                 grid-template-columns: 1fr;
                 grid-template-rows: auto 1fr auto;
-                height: auto;
+                height: calc(100vh - 140px);
             }
             
             .sidebar, .layers-panel {
-                max-height: 300px;
+                max-height: 250px;
+                overflow-y: auto;
+            }
+
+            #mainCanvas {
+                max-width: calc(100% - 20px);
+                max-height: calc(100% - 20px);
             }
         }
     </style>
@@ -473,29 +481,44 @@
                     this.handleFiles(e.target.files);
                 });
 
-                // Drag and drop
+                // Drag and drop - Fixed implementation
+                const canvasContainer = document.querySelector('.canvas-container');
                 const dropZone = document.getElementById('dropZone');
                 
+                // Prevent default drag behaviors everywhere
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    this.canvas.addEventListener(eventName, this.preventDefaults);
-                    document.body.addEventListener(eventName, this.preventDefaults);
+                    document.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    });
                 });
 
+                // Handle drag enter/over on the canvas container
                 ['dragenter', 'dragover'].forEach(eventName => {
-                    this.canvas.addEventListener(eventName, () => {
-                        dropZone.classList.add('active');
+                    canvasContainer.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        if (e.dataTransfer.types.includes('Files')) {
+                            dropZone.classList.add('active');
+                        }
                     });
                 });
 
-                ['dragleave', 'drop'].forEach(eventName => {
-                    this.canvas.addEventListener(eventName, () => {
+                // Handle drag leave
+                canvasContainer.addEventListener('dragleave', (e) => {
+                    // Only hide if we're leaving the container entirely
+                    if (!canvasContainer.contains(e.relatedTarget)) {
                         dropZone.classList.remove('active');
-                    });
+                    }
                 });
 
-                this.canvas.addEventListener('drop', (e) => {
+                // Handle drop
+                canvasContainer.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('active');
                     const files = e.dataTransfer.files;
-                    this.handleFiles(files);
+                    if (files.length > 0) {
+                        this.handleFiles(files);
+                    }
                 });
 
                 // Mouse events for dragging and cropping
@@ -507,6 +530,10 @@
                 this.canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e));
                 this.canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e));
                 this.canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+
+                // Window resize handler
+                window.addEventListener('resize', () => this.adjustCanvasSize());
+                this.adjustCanvasSize();
             }
 
             preventDefaults(e) {
@@ -527,15 +554,23 @@
                 reader.onload = (e) => {
                     const img = new Image();
                     img.onload = () => {
+                        // Smart scaling - fit image to canvas while maintaining aspect ratio
+                        const maxWidth = this.canvas.width * 0.8; // Use 80% of canvas width
+                        const maxHeight = this.canvas.height * 0.8; // Use 80% of canvas height
+                        
+                        let { width, height } = this.scaleToFit(img.width, img.height, maxWidth, maxHeight);
+                        
                         const layer = {
                             id: Date.now() + Math.random(),
                             type: 'image',
                             name: file.name,
                             image: img,
-                            x: (this.canvas.width - img.width) / 2,
-                            y: (this.canvas.height - img.height) / 2,
-                            width: img.width,
-                            height: img.height,
+                            x: (this.canvas.width - width) / 2,
+                            y: (this.canvas.height - height) / 2,
+                            width: width,
+                            height: height,
+                            originalWidth: img.width,
+                            originalHeight: img.height,
                             visible: true,
                             opacity: 1
                         };
@@ -546,6 +581,41 @@
                     img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
+            }
+
+            scaleToFit(originalWidth, originalHeight, maxWidth, maxHeight) {
+                const aspectRatio = originalWidth / originalHeight;
+                let width = originalWidth;
+                let height = originalHeight;
+                
+                // Scale down if image is larger than max dimensions
+                if (width > maxWidth) {
+                    width = maxWidth;
+                    height = width / aspectRatio;
+                }
+                
+                if (height > maxHeight) {
+                    height = maxHeight;
+                    width = height * aspectRatio;
+                }
+                
+                return { width: Math.round(width), height: Math.round(height) };
+            }
+
+            adjustCanvasSize() {
+                // Dynamically adjust canvas size based on container
+                const container = document.querySelector('.canvas-container');
+                const containerRect = container.getBoundingClientRect();
+                const maxWidth = containerRect.width - 60; // Account for padding
+                const maxHeight = containerRect.height - 60;
+                
+                // Only adjust if the canvas is significantly different from container
+                if (this.canvas.width > maxWidth || this.canvas.height > maxHeight) {
+                    const { width, height } = this.scaleToFit(this.canvas.width, this.canvas.height, maxWidth, maxHeight);
+                    // Don't actually resize canvas content, just display size
+                    this.canvas.style.width = width + 'px';
+                    this.canvas.style.height = height + 'px';
+                }
             }
 
             addTextLayer() {
@@ -826,9 +896,12 @@
                 const width = prompt('Enter canvas width:', this.canvas.width);
                 const height = prompt('Enter canvas height:', this.canvas.height);
                 
-                if (width && height) {
+                if (width && height && !isNaN(width) && !isNaN(height)) {
                     this.canvas.width = parseInt(width);
                     this.canvas.height = parseInt(height);
+                    this.canvas.style.width = '';
+                    this.canvas.style.height = '';
+                    this.adjustCanvasSize();
                     this.render();
                 }
             }
