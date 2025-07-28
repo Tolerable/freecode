@@ -466,10 +466,13 @@
                 this.layers = [];
                 this.selectedLayer = null;
                 this.isDragging = false;
+                this.isResizing = false;
+                this.resizeHandle = null;
                 this.dragOffset = { x: 0, y: 0 };
                 this.cropMode = false;
                 this.cropStart = null;
                 this.cropEnd = null;
+                this.handleSize = 8;
                 
                 this.setupEventListeners();
                 this.render();
@@ -723,13 +726,26 @@
 
             handleMouseDown(e) {
                 const rect = this.canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
 
                 if (this.cropMode) {
                     this.cropStart = { x, y };
                     this.cropEnd = { x, y };
                     return;
+                }
+
+                // Check if clicking on a resize handle first
+                if (this.selectedLayer) {
+                    const handle = this.getResizeHandle(x, y, this.selectedLayer);
+                    if (handle) {
+                        this.isResizing = true;
+                        this.resizeHandle = handle;
+                        this.canvas.style.cursor = this.getResizeCursor(handle);
+                        return;
+                    }
                 }
 
                 // Find the topmost layer at this position
@@ -743,6 +759,7 @@
                             y: y - layer.y
                         };
                         this.updateLayersPanel();
+                        this.render();
                         break;
                     }
                 }
@@ -750,11 +767,19 @@
 
             handleMouseMove(e) {
                 const rect = this.canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
 
                 if (this.cropMode && this.cropStart) {
                     this.cropEnd = { x, y };
+                    this.render();
+                    return;
+                }
+
+                if (this.isResizing && this.selectedLayer) {
+                    this.handleResize(x, y);
                     this.render();
                     return;
                 }
@@ -763,7 +788,119 @@
                     this.selectedLayer.x = x - this.dragOffset.x;
                     this.selectedLayer.y = y - this.dragOffset.y;
                     this.render();
+                    return;
                 }
+
+                // Update cursor based on hover state
+                this.updateCursor(x, y);
+            }
+
+            handleResize(x, y) {
+                const layer = this.selectedLayer;
+                const handle = this.resizeHandle;
+                
+                if (layer.type === 'image') {
+                    const aspectRatio = layer.originalWidth / layer.originalHeight;
+                    
+                    switch (handle) {
+                        case 'nw': // Top-left
+                            const newWidth = layer.x + layer.width - x;
+                            const newHeight = layer.y + layer.height - y;
+                            if (newWidth > 10 && newHeight > 10) {
+                                layer.width = newWidth;
+                                layer.height = newWidth / aspectRatio;
+                                layer.x = x;
+                                layer.y = layer.y + (newHeight - layer.height);
+                            }
+                            break;
+                        case 'ne': // Top-right
+                            const newW = x - layer.x;
+                            const newH = layer.y + layer.height - y;
+                            if (newW > 10 && newH > 10) {
+                                layer.width = newW;
+                                layer.height = newW / aspectRatio;
+                                layer.y = layer.y + layer.height - (layer.width / aspectRatio);
+                            }
+                            break;
+                        case 'sw': // Bottom-left
+                            const nW = layer.x + layer.width - x;
+                            const nH = y - layer.y;
+                            if (nW > 10 && nH > 10) {
+                                layer.width = nW;
+                                layer.height = nW / aspectRatio;
+                                layer.x = x;
+                            }
+                            break;
+                        case 'se': // Bottom-right
+                            const w = x - layer.x;
+                            const h = y - layer.y;
+                            if (w > 10 && h > 10) {
+                                layer.width = w;
+                                layer.height = w / aspectRatio;
+                            }
+                            break;
+                        case 'n': // Top edge
+                            const heightChange = layer.y - y;
+                            if (layer.height + heightChange > 10) {
+                                layer.y = y;
+                                layer.height += heightChange;
+                                layer.width = layer.height * aspectRatio;
+                                layer.x = layer.x - (layer.width - (layer.height - heightChange) * aspectRatio) / 2;
+                            }
+                            break;
+                        case 's': // Bottom edge
+                            const newHeight2 = y - layer.y;
+                            if (newHeight2 > 10) {
+                                layer.height = newHeight2;
+                                layer.width = layer.height * aspectRatio;
+                            }
+                            break;
+                        case 'w': // Left edge
+                            const widthChange = layer.x - x;
+                            if (layer.width + widthChange > 10) {
+                                layer.x = x;
+                                layer.width += widthChange;
+                                layer.height = layer.width / aspectRatio;
+                            }
+                            break;
+                        case 'e': // Right edge
+                            const newWidth2 = x - layer.x;
+                            if (newWidth2 > 10) {
+                                layer.width = newWidth2;
+                                layer.height = layer.width / aspectRatio;
+                            }
+                            break;
+                    }
+                }
+            }
+
+            updateCursor(x, y) {
+                if (this.selectedLayer && !this.isDragging && !this.isResizing) {
+                    const handle = this.getResizeHandle(x, y, this.selectedLayer);
+                    if (handle) {
+                        this.canvas.style.cursor = this.getResizeCursor(handle);
+                    } else if (this.isPointInLayer(x, y, this.selectedLayer)) {
+                        this.canvas.style.cursor = 'move';
+                    } else {
+                        this.canvas.style.cursor = this.cropMode ? 'crosshair' : 'default';
+                    }
+                } else {
+                    this.canvas.style.cursor = this.cropMode ? 'crosshair' : 'default';
+                }
+            }
+
+            getResizeCursor(handle) {
+                const cursors = {
+                    'nw': 'nw-resize',
+                    'ne': 'ne-resize',
+                    'sw': 'sw-resize',
+                    'se': 'se-resize',
+                    'n': 'n-resize',
+                    's': 's-resize',
+                    'w': 'w-resize',
+                    'e': 'e-resize'
+                };
+                return cursors[handle] || 'default';
             }
 
             handleMouseUp(e) {
@@ -774,13 +911,23 @@
                     this.cropEnd = null;
                 }
                 this.isDragging = false;
+                this.isResizing = false;
+                this.resizeHandle = null;
+                this.canvas.style.cursor = this.cropMode ? 'crosshair' : 'default';
             }
 
             // Touch event handlers
             handleTouchStart(e) {
                 e.preventDefault();
                 const touch = e.touches[0];
-                this.handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY });
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                this.handleMouseDown({ 
+                    clientX: touch.clientX, 
+                    clientY: touch.clientY,
+                    target: this.canvas
+                });
             }
 
             handleTouchMove(e) {
@@ -806,6 +953,21 @@
                            y >= layer.y - textHeight && y <= layer.y;
                 }
                 return false;
+            }
+
+            drawResizeHandles(layer) {
+                const handles = this.getResizeHandles(layer);
+                
+                this.ctx.fillStyle = '#4f46e5';
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 2;
+                
+                for (let pos of Object.values(handles)) {
+                    // Draw handle background
+                    this.ctx.fillRect(pos.x - this.handleSize/2, pos.y - this.handleSize/2, this.handleSize, this.handleSize);
+                    // Draw handle border
+                    this.ctx.strokeRect(pos.x - this.handleSize/2, pos.y - this.handleSize/2, this.handleSize, this.handleSize);
+                }
             }
 
             render() {
@@ -834,14 +996,16 @@
                         this.ctx.setLineDash([5, 5]);
                         
                         if (layer.type === 'image') {
-                            this.ctx.strokeRect(layer.x - 5, layer.y - 5, layer.width + 10, layer.height + 10);
+                            this.ctx.strokeRect(layer.x - 2, layer.y - 2, layer.width + 4, layer.height + 4);
+                            this.ctx.setLineDash([]);
+                            // Draw resize handles
+                            this.drawResizeHandles(layer);
                         } else if (layer.type === 'text') {
                             const textWidth = layer.text.length * layer.fontSize * 0.6;
                             const textHeight = layer.fontSize;
                             this.ctx.strokeRect(layer.x - textWidth/2 - 5, layer.y - textHeight - 5, textWidth + 10, textHeight + 10);
+                            this.ctx.setLineDash([]);
                         }
-                        
-                        this.ctx.setLineDash([]);
                     }
                 });
                 
