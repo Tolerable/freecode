@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Layer Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr 280px;
+            gap: 0;
+            height: calc(100vh - 200px);
+            min-height: 600px;
+        }
+
+        .sidebar {
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+            padding: 25px;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tools {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .tool-group {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .tool-group h4 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .canvas-container {
+            background: #ffffff;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+        }
+
+        #mainCanvas {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            cursor: crosshair;
+            transition: all 0.3s ease;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        #mainCanvas:hover {
+            border-color: #4f46e5;
+            box-shadow: 0 0 30px rgba(79, 70, 229, 0.2);
+        }
+
+        .layers-panel {
+            background: #f8fafc;
+            border-left: 1px solid #e2e8f0;
+            padding: 25px;
+            overflow-y: auto;
+        }
+
+        .layers-panel h3 {
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        .layer-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .layer-item:hover {
+            border-color: #4f46e5;
+            transform: translateX(5px);
+        }
+
+        .layer-item.selected {
+            border-color: #4f46e5;
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+        }
+
+        .layer-preview {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            object-fit: cover;
+            border: 1px solid #e2e8f0;
+            float: left;
+            margin-right: 15px;
+        }
+
+        .layer-info {
+            overflow: hidden;
+        }
+
+        .layer-name {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .layer-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .layer-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .layer-btn.up {
+            background: #10b981;
+            color: white;
+        }
+
+        .layer-btn.down {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .layer-btn.delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .layer-btn:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .drop-zone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(79, 70, 229, 0.1);
+            border: 3px dashed #4f46e5;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            color: #4f46e5;
+            font-weight: 600;
+            z-index: 1000;
+        }
+
+        .drop-zone.active {
+            display: flex;
+        }
+
+        .text-input-container {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            min-width: 400px;
+        }
+
+        .text-input-container.active {
+            display: block;
+        }
+
+        .text-input-container input,
+        .text-input-container select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .color-input {
+            width: 60px !important;
+            height: 40px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .text-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1999;
+            display: none;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 250px 1fr 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto;
+                height: auto;
+            }
+            
+            .sidebar, .layers-panel {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Image Layer Studio</h1>
+            <p>Professional multi-layer image editor with drag & drop, cropping, and transparent PNG export</p>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h3>🛠️ Tools</h3>
+                <div class="tools">
+                    <div class="tool-group">
+                        <h4>Import</h4>
+                        <button class="btn" onclick="document.getElementById('imageInput').click()">📁 Add Image</button>
+                        <button class="btn" onclick="showTextInput()">📝 Add Text</button>
+                        <input type="file" id="imageInput" class="file-input" accept="image/*" multiple>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <h4>Canvas</h4>
+                        <button class="btn secondary" onclick="resizeCanvas()">📐 Resize Canvas</button>
+                        <button class="btn secondary" onclick="toggleCropMode()">✂️ Crop Mode</button>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <h4>Export</h4>
+                        <button class="btn" onclick="exportImage('png')">💾 Save as PNG</button>
+                        <button class="btn" onclick="exportImage('jpg')">💾 Save as JPG</button>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <h4>Project</h4>
+                        <button class="btn secondary" onclick="saveProject()">💼 Save Project</button>
+                        <button class="btn secondary" onclick="loadProject()">📂 Load Project</button>
+                        <button class="btn danger" onclick="clearAll()">🗑️ Clear All</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="mainCanvas" width="800" height="600"></canvas>
+                <div class="drop-zone" id="dropZone">
+                    Drop images here to add them as layers
+                </div>
+            </div>
+
+            <div class="layers-panel">
+                <h3>📚 Layers</h3>
+                <div id="layersContainer">
+                    <p style="color: #64748b; text-align: center; padding: 20px;">No layers yet. Add some images or text to get started!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="text-input-container" id="textInputContainer">
+        <h3 style="margin-bottom: 20px;">Add Text Layer</h3>
+        <input type="text" id="textContent" placeholder="Enter your text">
+        <div class="text-controls">
+            <div>
+                <label>Font Size:</label>
+                <input type="number" id="fontSize" value="32" min="10" max="200">
+            </div>
+            <div>
+                <label>Color:</label>
+                <input type="color" id="textColor" class="color-input" value="#000000">
+            </div>
+            <div>
+                <label>Font Family:</label>
+                <select id="fontFamily">
+                    <option value="Arial">Arial</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Verdana">Verdana</option>
+                </select>
+            </div>
+            <div>
+                <label>Style:</label>
+                <select id="fontStyle">
+                    <option value="normal">Normal</option>
+                    <option value="bold">Bold</option>
+                    <option value="italic">Italic</option>
+                </select>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn" onclick="addTextLayer()">Add Text</button>
+            <button class="btn secondary" onclick="hideTextInput()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        class LayerEditor {
+            constructor() {
+                this.canvas = document.getElementById('mainCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.layers = [];
+                this.selectedLayer = null;
+                this.isDragging = false;
+                this.dragOffset = { x: 0, y: 0 };
+                this.cropMode = false;
+                this.cropStart = null;
+                this.cropEnd = null;
+                
+                this.setupEventListeners();
+                this.render();
+            }
+
+            setupEventListeners() {
+                // File input
+                document.getElementById('imageInput').addEventListener('change', (e) => {
+                    this.handleFiles(e.target.files);
+                });
+
+                // Drag and drop
+                const dropZone = document.getElementById('dropZone');
+                
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    this.canvas.addEventListener(eventName, this.preventDefaults);
+                    document.body.addEventListener(eventName, this.preventDefaults);
+                });
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    this.canvas.addEventListener(eventName, () => {
+                        dropZone.classList.add('active');
+                    });
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    this.canvas.addEventListener(eventName, () => {
+                        dropZone.classList.remove('active');
+                    });
+                });
+
+                this.canvas.addEventListener('drop', (e) => {
+                    const files = e.dataTransfer.files;
+                    this.handleFiles(files);
+                });
+
+                // Mouse events for dragging and cropping
+                this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+                
+                // Touch events for mobile
+                this.canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+                this.canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e));
+                this.canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+            }
+
+            preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            handleFiles(files) {
+                Array.from(files).forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        this.addImageLayer(file);
+                    }
+                });
+            }
+
+            addImageLayer(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const layer = {
+                            id: Date.now() + Math.random(),
+                            type: 'image',
+                            name: file.name,
+                            image: img,
+                            x: (this.canvas.width - img.width) / 2,
+                            y: (this.canvas.height - img.height) / 2,
+                            width: img.width,
+                            height: img.height,
+                            visible: true,
+                            opacity: 1
+                        };
+                        this.layers.push(layer);
+                        this.updateLayersPanel();
+                        this.render();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            addTextLayer() {
+                const text = document.getElementById('textContent').value;
+                const fontSize = document.getElementById('fontSize').value;
+                const color = document.getElementById('textColor').value;
+                const fontFamily = document.getElementById('fontFamily').value;
+                const fontStyle = document.getElementById('fontStyle').value;
+
+                if (!text.trim()) return;
+
+                const layer = {
+                    id: Date.now() + Math.random(),
+                    type: 'text',
+                    name: `Text: ${text.substring(0, 20)}...`,
+                    text: text,
+                    x: this.canvas.width / 2,
+                    y: this.canvas.height / 2,
+                    fontSize: parseInt(fontSize),
+                    color: color,
+                    fontFamily: fontFamily,
+                    fontStyle: fontStyle,
+                    visible: true,
+                    opacity: 1
+                };
+
+                this.layers.push(layer);
+                this.updateLayersPanel();
+                this.render();
+                this.hideTextInput();
+            }
+
+            updateLayersPanel() {
+                const container = document.getElementById('layersContainer');
+                
+                if (this.layers.length === 0) {
+                    container.innerHTML = '<p style="color: #64748b; text-align: center; padding: 20px;">No layers yet. Add some images or text to get started!</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                
+                // Reverse order to show layers from top to bottom
+                [...this.layers].reverse().forEach((layer, index) => {
+                    const layerElement = document.createElement('div');
+                    layerElement.className = `layer-item ${this.selectedLayer === layer ? 'selected' : ''}`;
+                    layerElement.onclick = () => this.selectLayer(layer);
+                    
+                    let preview = '';
+                    if (layer.type === 'image') {
+                        preview = `<canvas class="layer-preview" width="50" height="50"></canvas>`;
+                    } else {
+                        preview = `<div class="layer-preview" style="background: ${layer.color}; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold;">T</div>`;
+                    }
+                    
+                    layerElement.innerHTML = `
+                        ${preview}
+                        <div class="layer-info">
+                            <div class="layer-name">${layer.name}</div>
+                            <div class="layer-controls">
+                                <button class="layer-btn up" onclick="event.stopPropagation(); layerEditor.moveLayer(${this.layers.length - 1 - index}, 'up')">↑</button>
+                                <button class="layer-btn down" onclick="event.stopPropagation(); layerEditor.moveLayer(${this.layers.length - 1 - index}, 'down')">↓</button>
+                                <button class="layer-btn delete" onclick="event.stopPropagation(); layerEditor.deleteLayer(${this.layers.length - 1 - index})">×</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(layerElement);
+                    
+                    // Draw preview for image layers
+                    if (layer.type === 'image') {
+                        const previewCanvas = layerElement.querySelector('.layer-preview');
+                        const previewCtx = previewCanvas.getContext('2d');
+                        const scale = Math.min(50 / layer.width, 50 / layer.height);
+                        const width = layer.width * scale;
+                        const height = layer.height * scale;
+                        previewCtx.drawImage(layer.image, (50 - width) / 2, (50 - height) / 2, width, height);
+                    }
+                });
+            }
+
+            selectLayer(layer) {
+                this.selectedLayer = layer;
+                this.updateLayersPanel();
+            }
+
+            moveLayer(index, direction) {
+                if (direction === 'up' && index < this.layers.length - 1) {
+                    [this.layers[index], this.layers[index + 1]] = [this.layers[index + 1], this.layers[index]];
+                } else if (direction === 'down' && index > 0) {
+                    [this.layers[index], this.layers[index - 1]] = [this.layers[index - 1], this.layers[index]];
+                }
+                this.updateLayersPanel();
+                this.render();
+            }
+
+            deleteLayer(index) {
+                if (this.selectedLayer === this.layers[index]) {
+                    this.selectedLayer = null;
+                }
+                this.layers.splice(index, 1);
+                this.updateLayersPanel();
+                this.render();
+            }
+
+            handleMouseDown(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                if (this.cropMode) {
+                    this.cropStart = { x, y };
+                    this.cropEnd = { x, y };
+                    return;
+                }
+
+                // Find the topmost layer at this position
+                for (let i = this.layers.length - 1; i >= 0; i--) {
+                    const layer = this.layers[i];
+                    if (this.isPointInLayer(x, y, layer)) {
+                        this.selectedLayer = layer;
+                        this.isDragging = true;
+                        this.dragOffset = {
+                            x: x - layer.x,
+                            y: y - layer.y
+                        };
+                        this.updateLayersPanel();
+                        break;
+                    }
+                }
+            }
+
+            handleMouseMove(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                if (this.cropMode && this.cropStart) {
+                    this.cropEnd = { x, y };
+                    this.render();
+                    return;
+                }
+
+                if (this.isDragging && this.selectedLayer) {
+                    this.selectedLayer.x = x - this.dragOffset.x;
+                    this.selectedLayer.y = y - this.dragOffset.y;
+                    this.render();
+                }
+            }
+
+            handleMouseUp(e) {
+                if (this.cropMode && this.cropStart && this.cropEnd) {
+                    this.applyCrop();
+                    this.cropMode = false;
+                    this.cropStart = null;
+                    this.cropEnd = null;
+                }
+                this.isDragging = false;
+            }
+
+            // Touch event handlers
+            handleTouchStart(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                this.handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY });
+            }
+
+            handleTouchMove(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                this.handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
+            }
+
+            handleTouchEnd(e) {
+                e.preventDefault();
+                this.handleMouseUp(e);
+            }
+
+            isPointInLayer(x, y, layer) {
+                if (layer.type === 'image') {
+                    return x >= layer.x && x <= layer.x + layer.width &&
+                           y >= layer.y && y <= layer.y + layer.height;
+                } else if (layer.type === 'text') {
+                    // Approximate text bounds
+                    const textWidth = layer.text.length * layer.fontSize * 0.6;
+                    const textHeight = layer.fontSize;
+                    return x >= layer.x - textWidth/2 && x <= layer.x + textWidth/2 &&
+                           y >= layer.y - textHeight && y <= layer.y;
+                }
+                return false;
+            }
+
+            render() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw all layers
+                this.layers.forEach(layer => {
+                    if (!layer.visible) return;
+                    
+                    this.ctx.globalAlpha = layer.opacity;
+                    
+                    if (layer.type === 'image') {
+                        this.ctx.drawImage(layer.image, layer.x, layer.y, layer.width, layer.height);
+                    } else if (layer.type === 'text') {
+                        this.ctx.font = `${layer.fontStyle} ${layer.fontSize}px ${layer.fontFamily}`;
+                        this.ctx.fillStyle = layer.color;
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText(layer.text, layer.x, layer.y);
+                    }
+                    
+                    // Draw selection border
+                    if (layer === this.selectedLayer) {
+                        this.ctx.globalAlpha = 1;
+                        this.ctx.strokeStyle = '#4f46e5';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.setLineDash([5, 5]);
+                        
+                        if (layer.type === 'image') {
+                            this.ctx.strokeRect(layer.x - 5, layer.y - 5, layer.width + 10, layer.height + 10);
+                        } else if (layer.type === 'text') {
+                            const textWidth = layer.text.length * layer.fontSize * 0.6;
+                            const textHeight = layer.fontSize;
+                            this.ctx.strokeRect(layer.x - textWidth/2 - 5, layer.y - textHeight - 5, textWidth + 10, textHeight + 10);
+                        }
+                        
+                        this.ctx.setLineDash([]);
+                    }
+                });
+                
+                this.ctx.globalAlpha = 1;
+                
+                // Draw crop selection
+                if (this.cropMode && this.cropStart && this.cropEnd) {
+                    this.ctx.strokeStyle = '#ef4444';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([3, 3]);
+                    const width = this.cropEnd.x - this.cropStart.x;
+                    const height = this.cropEnd.y - this.cropStart.y;
+                    this.ctx.strokeRect(this.cropStart.x, this.cropStart.y, width, height);
+                    this.ctx.setLineDash([]);
+                }
+            }
+
+            toggleCropMode() {
+                this.cropMode = !this.cropMode;
+                this.canvas.style.cursor = this.cropMode ? 'crosshair' : 'default';
+                if (!this.cropMode) {
+                    this.cropStart = null;
+                    this.cropEnd = null;
+                    this.render();
+                }
+            }
+
+            applyCrop() {
+                if (!this.cropStart || !this.cropEnd) return;
+                
+                const x = Math.min(this.cropStart.x, this.cropEnd.x);
+                const y = Math.min(this.cropStart.y, this.cropEnd.y);
+                const width = Math.abs(this.cropEnd.x - this.cropStart.x);
+                const height = Math.abs(this.cropEnd.y - this.cropStart.y);
+                
+                if (width < 10 || height < 10) return;
+                
+                // Adjust canvas size
+                this.canvas.width = width;
+                this.canvas.height = height;
+                
+                // Adjust all layer positions
+                this.layers.forEach(layer => {
+                    layer.x -= x;
+                    layer.y -= y;
+                });
+                
+                this.render();
+            }
+
+            resizeCanvas() {
+                const width = prompt('Enter canvas width:', this.canvas.width);
+                const height = prompt('Enter canvas height:', this.canvas.height);
+                
+                if (width && height) {
+                    this.canvas.width = parseInt(width);
+                    this.canvas.height = parseInt(height);
+                    this.render();
+                }
+            }
+
+            exportImage(format) {
+                const link = document.createElement('a');
+                link.download = `image-layer-export.${format}`;
+                
+                if (format === 'png') {
+                    link.href = this.canvas.toDataURL('image/png');
+                } else {
+                    // For JPG, create a white background
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = this.canvas.width;
+                    tempCanvas.height = this.canvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    tempCtx.fillStyle = 'white';
+                    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    tempCtx
