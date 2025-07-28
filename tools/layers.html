@@ -848,4 +848,133 @@
                     
                     tempCtx.fillStyle = 'white';
                     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                    tempCtx
+                    tempCtx.drawImage(this.canvas, 0, 0);
+                    
+                    link.href = tempCanvas.toDataURL('image/jpeg', 0.9);
+                }
+                
+                link.click();
+            }
+
+            saveProject() {
+                const projectData = {
+                    canvasWidth: this.canvas.width,
+                    canvasHeight: this.canvas.height,
+                    layers: this.layers.map(layer => {
+                        if (layer.type === 'image') {
+                            return {
+                                ...layer,
+                                image: this.canvas.toDataURL() // This is a simplified approach
+                            };
+                        }
+                        return layer;
+                    })
+                };
+                
+                const dataStr = JSON.stringify(projectData);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = 'layer-project.json';
+                link.click();
+            }
+
+            loadProject() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const projectData = JSON.parse(e.target.result);
+                                this.canvas.width = projectData.canvasWidth;
+                                this.canvas.height = projectData.canvasHeight;
+                                this.layers = projectData.layers;
+                                this.selectedLayer = null;
+                                this.updateLayersPanel();
+                                this.render();
+                            } catch (error) {
+                                alert('Error loading project file');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+                input.click();
+            }
+
+            clearAll() {
+                if (confirm('Are you sure you want to clear all layers? This cannot be undone.')) {
+                    this.layers = [];
+                    this.selectedLayer = null;
+                    this.updateLayersPanel();
+                    this.render();
+                }
+            }
+        }
+
+        // Global functions
+        function showTextInput() {
+            document.getElementById('overlay').classList.add('active');
+            document.getElementById('textInputContainer').classList.add('active');
+            document.getElementById('textContent').focus();
+        }
+
+        function hideTextInput() {
+            document.getElementById('overlay').classList.remove('active');
+            document.getElementById('textInputContainer').classList.remove('active');
+            document.getElementById('textContent').value = '';
+        }
+
+        function addTextLayer() {
+            layerEditor.addTextLayer();
+        }
+
+        function resizeCanvas() {
+            layerEditor.resizeCanvas();
+        }
+
+        function toggleCropMode() {
+            layerEditor.toggleCropMode();
+        }
+
+        function exportImage(format) {
+            layerEditor.exportImage(format);
+        }
+
+        function saveProject() {
+            layerEditor.saveProject();
+        }
+
+        function loadProject() {
+            layerEditor.loadProject();
+        }
+
+        function clearAll() {
+            layerEditor.clearAll();
+        }
+
+        // Initialize the editor
+        let layerEditor;
+        
+        window.addEventListener('load', () => {
+            layerEditor = new LayerEditor();
+        });
+
+        // Close text input with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideTextInput();
+            }
+        });
+
+        // Prevent default drag behavior on the entire page
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => e.preventDefault());
+    </script>
+</body>
+</html>
