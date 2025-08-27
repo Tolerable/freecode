@@ -243,6 +243,42 @@
             transform: scale(0.8);
         }
 
+        .sponsor-section {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 30px 0;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .sponsor-label {
+            background: #6c757d;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        .sponsor-content {
+            color: #495057;
+        }
+
+        .sponsor-content a {
+            color: #007bff;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+
+        .sponsor-content a:hover {
+            color: #0056b3;
+        }
+
         .footer {
             text-align: center;
             padding: 20px;
@@ -335,6 +371,14 @@
             <p id="breathing-text">Ready when you are!</p>
         </div>
 
+        <!-- Sponsor Content Section -->
+        <div class="sponsor-section">
+            <div class="sponsor-label">📢 Sponsored</div>
+            <div class="sponsor-content" id="sponsor-content">
+                <!-- Sponsor content will be loaded here -->
+            </div>
+        </div>
+
         <div class="footer">
             <p>Remember: You're doing better than you think! 💪</p>
             <p>Every parent has tough moments - what matters is how we handle them. 💜</p>
@@ -355,20 +399,52 @@
             const button = document.querySelector('.generate-btn');
             const loading = document.querySelector('.loading');
             const result = document.querySelector('.advice-result');
+            const sponsorSection = document.querySelector('.sponsor-section');
+            const sponsorContent = document.getElementById('sponsor-content');
             
             button.disabled = true;
             loading.style.display = 'block';
             result.style.display = 'none';
+            sponsorSection.style.display = 'none';
             
             try {
                 const prompt = encodeURIComponent(`Give 3 gentle, practical, and supportive parenting alternatives for this frustrated parent situation: "${input}". Be warm, understanding, and non-judgmental. Focus on healthy coping strategies and age-appropriate solutions.`);
                 const seed = Math.floor(Math.random() * 1000000);
                 
                 const response = await fetch(`https://text.pollinations.ai/${prompt}?referrer=www.ai-ministries.com&model=openai&temperature=0.7&seed=${seed}`);
-                const advice = await response.text();
+                const fullResponse = await response.text();
                 
+                // Split response to separate advice from sponsor content
+                let advice = fullResponse;
+                let sponsor = '';
+                
+                // Look for sponsor markers like "---", "**Sponsor**", or similar patterns
+                const sponsorMarkers = ['---\n', '\n---\n', '**Sponsor**', '*Sponsor*'];
+                
+                for (let marker of sponsorMarkers) {
+                    if (fullResponse.includes(marker)) {
+                        const parts = fullResponse.split(marker);
+                        advice = parts[0].trim();
+                        sponsor = parts.slice(1).join(marker).trim();
+                        break;
+                    }
+                }
+                
+                // Display the main advice
                 result.innerHTML = `<strong>💝 Here are some gentle alternatives:</strong><br><br>${advice.replace(/\n/g, '<br>')}`;
                 result.style.display = 'block';
+                
+                // Display sponsor content if found
+                if (sponsor) {
+                    // Format sponsor content: **text** to bold, [text](url) to links
+                    let formatted = sponsor
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+                        .replace(/\n/g, '<br>');
+                    
+                    sponsorContent.innerHTML = formatted;
+                    sponsorSection.style.display = 'block';
+                }
                 
             } catch (error) {
                 result.innerHTML = '❌ Oops! Our AI helper is taking a break. Try again in a moment, or just know that taking a deep breath and counting to 10 always works! 💙';
@@ -476,6 +552,18 @@
                 }, 3000);
             }
         }, 30000);
+
+        // Function to format sponsor content from API response
+        function formatSponsorContent(responseText) {
+            // This function is now integrated into generateAdvice()
+            // Keeping this as a helper if needed elsewhere
+        }
+
+        // Initialize page
+        window.addEventListener('load', () => {
+            // Hide sponsor section by default until there's actual sponsor content
+            document.querySelector('.sponsor-section').style.display = 'none';
+        });
 
         // Add CSS animation for toast
         const style = document.createElement('style');
