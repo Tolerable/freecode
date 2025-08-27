@@ -521,6 +521,28 @@
                 return;
             }
 
+            // Clear all previous story data first
+            storyData = {
+                text: '',
+                characters: [],
+                scenes: [],
+                worldContext: ''
+            };
+            
+            // Clear any open modals
+            closeChatModal();
+            closeSceneModal();
+            
+            // Reset UI to empty state
+            document.getElementById('characterCount').textContent = '0';
+            document.getElementById('sceneCount').textContent = '0';
+            document.getElementById('charactersGrid').innerHTML = '';
+            document.getElementById('scenesGrid').innerHTML = '';
+            document.getElementById('worldSummary').innerHTML = `
+                <h3>Analyzing...</h3>
+                <p>Processing your story to create an interactive world...</p>
+            `;
+
             const analyzeBtn = document.getElementById('analyzeBtn');
             analyzeBtn.innerHTML = '<div class="loading"></div> Analyzing...';
             analyzeBtn.disabled = true;
@@ -849,10 +871,29 @@ Respond as ${currentChatCharacter.name} would, staying in character. Be engaging
 
         function exploreSceneCharacters() {
             const sceneName = document.getElementById('sceneModalTitle').textContent;
-            const charactersInScene = storyData.characters.filter(char => 
-                storyData.text.toLowerCase().includes(sceneName.toLowerCase()) && 
-                storyData.text.toLowerCase().includes(char.name.toLowerCase())
-            );
+            
+            // Only look for characters that appear in the current story text AND are mentioned near this scene
+            const storyTextLower = storyData.text.toLowerCase();
+            const sceneNameLower = sceneName.toLowerCase();
+            
+            // Find characters that are actually mentioned in the current story
+            const validCharacters = storyData.characters.filter(char => {
+                const charNameLower = char.name.toLowerCase();
+                return storyTextLower.includes(charNameLower);
+            });
+            
+            // Of those valid characters, find ones mentioned in context with this scene
+            const charactersInScene = validCharacters.filter(char => {
+                const charNameLower = char.name.toLowerCase();
+                // Look for mentions of both character and scene in close proximity
+                const charIndex = storyTextLower.indexOf(charNameLower);
+                const sceneIndex = storyTextLower.indexOf(sceneNameLower);
+                
+                if (charIndex === -1 || sceneIndex === -1) return false;
+                
+                // If they're within 200 characters of each other, consider them related
+                return Math.abs(charIndex - sceneIndex) < 200;
+            });
             
             // Get the scene container to add characters section
             const sceneContainer = event.target.parentElement.parentElement;
@@ -929,7 +970,7 @@ Respond as ${currentChatCharacter.name} would, staying in character. Be engaging
             try {
                 const storyPrompt = `Write a short, immersive scene set in ${scene.name}. Location: ${scene.location}. Description: ${scene.description}. Mood: ${scene.mood}. 
 
-Write it as if the reader is experiencing this location firsthand. Include sensory details, atmosphere, and potential story moments. Keep it under 200 words and make it engaging.`;
+				Write it as if the reader is experiencing this location firsthand. Include sensory details, atmosphere, and potential story moments. Keep it under 200 words and make it engaging.`;
 
                 const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(storyPrompt)}?model=openai&referrer=ai-ministries.com`);
                 const sceneStory = await response.text();
