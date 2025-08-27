@@ -383,11 +383,12 @@
                 <h2>📖 Import Your Story</h2>
                 
                 <div class="file-upload" onclick="document.getElementById('fileInput').click()">
-                    <input type="file" id="fileInput" accept=".txt,.md,.doc,.docx" onchange="handleFile(event)">
+                    <input type="file" id="fileInput" accept=".txt,.md" onchange="handleFile(event)">
                     <div>
                         <div style="font-size: 2em; margin-bottom: 10px;">📄</div>
                         <div>Click to upload your story file</div>
-                        <div style="font-size: 0.9em; opacity: 0.7; margin-top: 5px;">Supports .txt, .md, .doc, .docx</div>
+                        <div style="font-size: 0.9em; opacity: 0.7; margin-top: 5px;">Supports .txt and .md files</div>
+                        <div style="font-size: 0.8em; opacity: 0.6; margin-top: 3px;">For Word docs: copy text and paste below</div>
                     </div>
                 </div>
 
@@ -481,13 +482,26 @@
 
         function handleFile(event) {
             const file = event.target.files[0];
-            if (file) {
+            if (!file) return;
+
+            const fileName = file.name.toLowerCase();
+            
+            // Check if it's a supported text file
+            if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('storyText').value = e.target.result;
                     updateWordCount(e.target.result);
                 };
                 reader.readAsText(file);
+            } else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
+                // Show helpful message for Word documents
+                alert('Word documents (.doc/.docx) need to be converted first.\n\nPlease:\n1. Open your document in Word\n2. Copy all the text (Ctrl+A, then Ctrl+C)\n3. Paste it into the text area below\n\nOr save it as a .txt file and upload that instead.');
+                // Clear the file input
+                event.target.value = '';
+            } else {
+                alert('Please upload a .txt or .md file, or paste your story text directly into the text area below.');
+                event.target.value = '';
             }
         }
 
