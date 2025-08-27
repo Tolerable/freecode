@@ -181,9 +181,15 @@
 
         .tips-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 20px;
             margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .tips-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .tip-card {
@@ -356,8 +362,9 @@
             
             try {
                 const prompt = encodeURIComponent(`Give 3 gentle, practical, and supportive parenting alternatives for this frustrated parent situation: "${input}". Be warm, understanding, and non-judgmental. Focus on healthy coping strategies and age-appropriate solutions.`);
+                const seed = Math.floor(Math.random() * 1000000);
                 
-                const response = await fetch(`https://text.pollinations.ai/${prompt}?referrer=www.ai-ministries.com&model=openai&temperature=0.7`);
+                const response = await fetch(`https://text.pollinations.ai/${prompt}?referrer=www.ai-ministries.com&model=openai&temperature=0.7&seed=${seed}`);
                 const advice = await response.text();
                 
                 result.innerHTML = `<strong>💝 Here are some gentle alternatives:</strong><br><br>${advice.replace(/\n/g, '<br>')}`;
@@ -379,8 +386,9 @@
             imageDisplay.innerHTML = '<div class="loading" style="display: block;">🎨 Creating your stress-relief image...</div>';
             
             try {
-                const encodedPrompt = encodeURIComponent(prompt);
-                const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?referrer=www.ai-ministries.com&width=400&height=300&model=flux`;
+                const encodedPrompt = encodeURIComponent(`${prompt} no text no words no letters simple clean`);
+                const seed = Math.floor(Math.random() * 1000000);
+                const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?referrer=www.ai-ministries.com&width=400&height=300&model=flux&seed=${seed}&safe=true`;
                 
                 imageEl.src = imageUrl;
                 imageEl.onload = function() {
