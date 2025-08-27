@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Cannabis Tweet Generator - StrainNavigator</title>
     <style>
         * {
@@ -16,11 +19,17 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            box-sizing: border-box;
+            /* Enable pull-to-refresh on mobile */
+            overscroll-behavior-y: contain;
         }
 
         .container {
             max-width: 800px;
-            margin: 0 auto;
+            width: 100%;
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
@@ -440,6 +449,42 @@
         };
 
         let currentTweets = [];
+        
+        // Enable pull-to-refresh functionality
+        let startY = 0;
+        let isPulling = false;
+        
+        document.addEventListener('touchstart', function(e) {
+            if (window.scrollY === 0) {
+                startY = e.touches[0].pageY;
+                isPulling = true;
+            }
+        });
+        
+        document.addEventListener('touchmove', function(e) {
+            if (isPulling && window.scrollY === 0) {
+                const currentY = e.touches[0].pageY;
+                const pullDistance = currentY - startY;
+                
+                if (pullDistance > 100) { // 100px threshold
+                    isPulling = false;
+                    // Add visual feedback
+                    document.body.style.transform = 'translateY(20px)';
+                    document.body.style.transition = 'transform 0.3s ease';
+                    
+                    // Refresh after a short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 300);
+                }
+            }
+        });
+        
+        document.addEventListener('touchend', function() {
+            isPulling = false;
+            document.body.style.transform = '';
+            document.body.style.transition = '';
+        });
 
         // Category selection handler
         document.getElementById('category').addEventListener('change', function() {
