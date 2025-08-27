@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story World Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .input-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .input-section h2 {
+            margin-bottom: 20px;
+            color: #ffd700;
+        }
+
+        .file-upload {
+            border: 2px dashed #fff;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .file-upload:hover {
+            border-color: #ffd700;
+            background: rgba(255,215,0,0.1);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .story-textarea {
+            width: 100%;
+            height: 200px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 15px;
+            padding: 15px;
+            color: #fff;
+            font-size: 16px;
+            resize: vertical;
+        }
+
+        .story-textarea::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+
+        .analyze-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ffd700);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .world-overview {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .world-overview h2 {
+            margin-bottom: 20px;
+            color: #ffd700;
+        }
+
+        .world-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .characters-section, .scenes-section {
+            margin-top: 30px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #ffd700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .characters-grid, .scenes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .character-card, .scene-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .character-card:hover, .scene-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255,255,255,0.2);
+            border-color: #ffd700;
+        }
+
+        .character-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .character-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #ffd700);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .character-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .character-role {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .character-description {
+            font-size: 0.95em;
+            line-height: 1.4;
+            opacity: 0.9;
+        }
+
+        .chat-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .chat-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .chat-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            margin-left: auto;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background: rgba(255,107,107,0.8);
+            margin-left: auto;
+        }
+
+        .message.character {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 25px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+
+        .chat-send {
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ffd700);
+            border: none;
+            border-radius: 25px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.6;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .characters-grid, .scenes-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chat-container {
+                width: 95%;
+                height: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌟 Story World Explorer</h1>
+            <p>Upload your story and step into an interactive world where you can chat with characters, explore scenes, and dive deeper into your narrative universe.</p>
+        </div>
+
+        <div class="main-content">
+            <div class="input-section">
+                <h2>📖 Import Your Story</h2>
+                
+                <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" accept=".txt,.md,.doc,.docx" onchange="handleFile(event)">
+                    <div>
+                        <div style="font-size: 2em; margin-bottom: 10px;">📄</div>
+                        <div>Click to upload your story file</div>
+                        <div style="font-size: 0.9em; opacity: 0.7; margin-top: 5px;">Supports .txt, .md, .doc, .docx</div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin: 20px 0; opacity: 0.7;">or</div>
+
+                <textarea 
+                    class="story-textarea" 
+                    id="storyText" 
+                    placeholder="Paste your story text here... Include character descriptions, plot details, world-building elements, and any narrative content you'd like to explore interactively."
+                ></textarea>
+
+                <button class="analyze-btn" onclick="analyzeStory()" id="analyzeBtn">
+                    ✨ Analyze & Create World
+                </button>
+            </div>
+
+            <div class="world-overview">
+                <h2>🌍 World Overview</h2>
+                
+                <div class="world-stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="characterCount">0</div>
+                        <div class="stat-label">Characters</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="sceneCount">0</div>
+                        <div class="stat-label">Scenes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="wordCount">0</div>
+                        <div class="stat-label">Words</div>
+                    </div>
+                </div>
+
+                <div id="worldSummary" class="empty-state">
+                    <h3>Ready to explore!</h3>
+                    <p>Upload or paste your story to begin the analysis and create an interactive world.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="characters-section">
+            <div class="section-title">
+                👥 Characters
+            </div>
+            <div class="characters-grid" id="charactersGrid">
+                <!-- Characters will be populated here -->
+            </div>
+        </div>
+
+        <div class="scenes-section">
+            <div class="section-title">
+                🎭 Scenes & Locations
+            </div>
+            <div class="scenes-grid" id="scenesGrid">
+                <!-- Scenes will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div class="chat-modal" id="chatModal">
+        <div class="chat-container">
+            <div class="chat-header">
+                <div>
+                    <strong id="chatCharacterName">Character Chat</strong>
+                    <div style="font-size: 0.9em; opacity: 0.8;" id="chatCharacterRole"></div>
+                </div>
+                <button class="chat-close" onclick="closeChatModal()">&times;</button>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <!-- Chat messages will appear here -->
+            </div>
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Type your message..." onkeypress="handleChatKeyPress(event)">
+                <button class="chat-send" onclick="sendChatMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let storyData = {
+            text: '',
+            characters: [],
+            scenes: [],
+            worldContext: ''
+        };
+
+        let currentChatCharacter = null;
+        let chatHistory = [];
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('storyText').value = e.target.result;
+                    updateWordCount(e.target.result);
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function updateWordCount(text) {
+            const wordCount = text.trim().split(/\s+/).length;
+            document.getElementById('wordCount').textContent = wordCount;
+        }
+
+        document.getElementById('storyText').addEventListener('input', function(e) {
+            updateWordCount(e.target.value);
+        });
+
+        async function analyzeStory() {
+            const storyText = document.getElementById('storyText').value.trim();
+            if (!storyText) {
+                alert('Please enter or upload a story first!');
+                return;
+            }
+
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.innerHTML = '<div class="loading"></div> Analyzing...';
+            analyzeBtn.disabled = true;
+
+            try {
+                // Analyze story content using Pollinations AI
+                const analysisPrompt = `Analyze this story and extract key information. Return a JSON object with:
+1. characters: array of {name, role, description, personality}  
+2. scenes: array of {name, location, description, mood}
+3. worldSummary: brief overview of the story world
+
+Story text: ${storyText.substring(0, 3000)}...`;
+
+                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(analysisPrompt)}?model=openai&json=true&referrer=ai-ministries.com`);
+                const analysisText = await response.text();
+                
+                // Try to parse JSON from response
+                let analysisData;
+                try {
+                    analysisData = JSON.parse(analysisText);
+                } catch (e) {
+                    // Fallback: create sample data if parsing fails
+                    analysisData = createSampleAnalysis(storyText);
+                }
+
+                storyData.text = storyText;
+                storyData.characters = analysisData.characters || [];
+                storyData.scenes = analysisData.scenes || [];
+                storyData.worldContext = analysisData.worldSummary || 'A rich story world ready to explore.';
+
+                updateUI();
+
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                // Create sample data as fallback
+                storyData = createSampleAnalysis(storyText);
+                storyData.text = storyText;
+                updateUI();
+            }
+
+            analyzeBtn.innerHTML = '✨ Analyze & Create World';
+            analyzeBtn.disabled = false;
+        }
+
+        function createSampleAnalysis(storyText) {
+            // Extract potential character names (capitalized words that appear multiple times)
+            const words = storyText.split(/\s+/);
+            const capitalizedWords = words.filter(word => /^[A-Z][a-z]+/.test(word));
+            const wordCounts = {};
+            
+            capitalizedWords.forEach(word => {
+                wordCounts[word] = (wordCounts[word] || 0) + 1;
+            });
+
+            const potentialCharacters = Object.entries(wordCounts)
+                .filter(([word, count]) => count >= 2 && word.length > 2)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 6)
+                .map(([name], index) => ({
+                    name,
+                    role: ['Protagonist', 'Antagonist', 'Supporting Character', 'Mentor', 'Guardian', 'Ally'][index],
+                    description: `A key character in the story with important connections to the main plot.`,
+                    personality: ['Brave and determined', 'Mysterious and complex', 'Loyal and trustworthy', 'Wise and experienced', 'Protective and caring', 'Resourceful and clever'][index]
+                }));
+
+            // Extract potential scenes/locations
+            const sceneKeywords = storyText.match(/\b(castle|forest|city|town|mountain|river|house|palace|temple|cave|desert|ocean|village|tower|library|garden)\b/gi) || [];
+            const uniqueScenes = [...new Set(sceneKeywords.map(s => s.toLowerCase()))];
+            
+            const scenes = uniqueScenes.slice(0, 4).map((location, index) => ({
+                name: location.charAt(0).toUpperCase() + location.slice(1),
+                location: `The ${location}`,
+                description: `An important location in the story where key events unfold.`,
+                mood: ['Mysterious', 'Peaceful', 'Dangerous', 'Magical'][index % 4]
+            }));
+
+            return {
+                characters: potentialCharacters,
+                scenes: scenes,
+                worldContext: 'A rich narrative world extracted from your story, ready for interactive exploration.'
+            };
+        }
+
+        function updateUI() {
+            // Update stats
+            document.getElementById('characterCount').textContent = storyData.characters.length;
+            document.getElementById('sceneCount').textContent = storyData.scenes.length;
+            document.getElementById('wordCount').textContent = storyData.text.trim().split(/\s+/).length;
+
+            // Update world summary
+            document.getElementById('worldSummary').innerHTML = `
+                <h3>World Created!</h3>
+                <p>${storyData.worldContext}</p>
+            `;
+
+            // Populate characters
+            const charactersGrid = document.getElementById('charactersGrid');
+            charactersGrid.innerHTML = storyData.characters.map(character => `
+                <div class="character-card" onclick="openChatModal('${character.name}')">
+                    <div class="character-header">
+                        <div class="character-avatar">${character.name.charAt(0)}</div>
+                        <div>
+                            <div class="character-name">${character.name}</div>
+                            <div class="character-role">${character.role}</div>
+                        </div>
+                    </div>
+                    <div class="character-description">
+                        <strong>Personality:</strong> ${character.personality}<br>
+                        <strong>Description:</strong> ${character.description}
+                    </div>
+                </div>
+            `).join('');
+
+            // Populate scenes
+            const scenesGrid = document.getElementById('scenesGrid');
+            scenesGrid.innerHTML = storyData.scenes.map(scene => `
+                <div class="scene-card" onclick="exploreScene('${scene.name}')">
+                    <div style="font-size: 1.2em; font-weight: bold; color: #ffd700; margin-bottom: 10px;">
+                        ${scene.name}
+                    </div>
+                    <div style="font-size: 0.9em; opacity: 0.8; margin-bottom: 8px;">
+                        📍 ${scene.location} • ${scene.mood}
+                    </div>
+                    <div style="font-size: 0.95em; line-height: 1.4;">
+                        ${scene.description}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openChatModal(characterName) {
+            const character = storyData.characters.find(c => c.name === characterName);
+            if (!character) return;
+
+            currentChatCharacter = character;
+            chatHistory = [];
+
+            document.getElementById('chatCharacterName').textContent = character.name;
+            document.getElementById('chatCharacterRole').textContent = character.role;
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="message character">
+                    Hello! I'm ${character.name}. ${character.description} What would you like to know about me or our world?
+                </div>
+            `;
+            document.getElementById('chatModal').style.display = 'flex';
+            document.getElementById('chatInput').focus();
+        }
+
+        function closeChatModal() {
+            document.getElementById('chatModal').style.display = 'none';
+            currentChatCharacter = null;
+            chatHistory = [];
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message || !currentChatCharacter) return;
+
+            // Add user message
+            addChatMessage(message, 'user');
+            input.value = '';
+
+            // Show typing indicator
+            const typingDiv = addChatMessage('Thinking...', 'character', true);
+
+            try {
+                // Create character prompt
+                const characterPrompt = `You are ${currentChatCharacter.name}, a character from this story. 
+                
+Character details:
+- Role: ${currentChatCharacter.role}
+- Personality: ${currentChatCharacter.personality}
+- Description: ${currentChatCharacter.description}
+
+Story context: ${storyData.worldContext}
+
+Recent conversation: ${chatHistory.slice(-4).map(msg => `${msg.sender}: ${msg.text}`).join('\n')}
+
+User just said: "${message}"
+
+Respond as ${currentChatCharacter.name} would, staying in character. Be engaging, refer to story events, and maintain your personality. Keep responses conversational and under 150 words.`;
+
+                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(characterPrompt)}?model=openai&referrer=ai-ministries.com`);
+                const characterResponse = await response.text();
+
+                // Remove typing indicator and add real response
+                typingDiv.remove();
+                addChatMessage(characterResponse, 'character');
+
+                // Update chat history
+                chatHistory.push({sender: 'user', text: message});
+                chatHistory.push({sender: currentChatCharacter.name, text: characterResponse});
+
+                // Keep only last 10 messages
+                if (chatHistory.length > 10) {
+                    chatHistory = chatHistory.slice(-10);
+                }
+
+            } catch (error) {
+                typingDiv.textContent = "I'm having trouble responding right now. Please try again!";
+                setTimeout(() => typingDiv.remove(), 3000);
+            }
+        }
+
+        function addChatMessage(message, sender, isTemporary = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.textContent = message;
+            
+            if (isTemporary) {
+                messageDiv.style.opacity = '0.7';
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        function exploreScene(sceneName) {
+            const scene = storyData.scenes.find(s => s.name === sceneName);
+            if (!scene) return;
+
+            // For now, just show an alert. Could be expanded to a scene exploration modal
+            alert(`🎭 Exploring ${scene.name}\n\n📍 ${scene.location}\n\n${scene.description}\n\nMood: ${scene.mood}\n\n(Scene exploration feature coming soon!)`);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial empty state
+            updateWordCount('');
+        });
+    </script>
+</body>
+</html>
