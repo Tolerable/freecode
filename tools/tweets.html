@@ -284,7 +284,27 @@
             font-size: 0.95rem;
         }
 
-        @media (max-width: 768px) {
+        input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            transform: scale(1.2);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .checkbox-help {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+            font-weight: normal;
+        }
             .container {
                 margin: 10px;
                 border-radius: 15px;
@@ -337,6 +357,16 @@
                 <div id="categoryInfo" class="category-info" style="display: none;">
                     <h3 id="categoryTitle"></h3>
                     <p id="categoryDescription"></p>
+                </div>
+
+                <div class="form-group">
+                    <label for="includeHashtags" class="checkbox-label">
+                        <input type="checkbox" id="includeHashtags">
+                        Include hashtags in tweets
+                    </label>
+                    <div class="checkbox-help">
+                        When unchecked, we'll use the full 280 characters for your message content
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -456,20 +486,33 @@
 
         async function generateTweets(category, content) {
             const categoryData = categoryInfo[category];
+            const includeHashtags = document.getElementById('includeHashtags').checked;
+            
+            let hashtagInstructions = '';
+            let lengthInstructions = '';
+            
+            if (includeHashtags) {
+                hashtagInstructions = '- Use relevant cannabis industry hashtags (2-3 per tweet)';
+                lengthInstructions = '- Each tweet must be under 280 characters (including hashtags)';
+            } else {
+                hashtagInstructions = '- DO NOT include any hashtags - use the full character count for content';
+                lengthInstructions = '- Each tweet must be under 280 characters - maximize the content without hashtags';
+            }
             
             const prompt = `As a social media expert for the cannabis industry, create exactly 3 professional, engaging tweets for a ${categoryData.title.toLowerCase()}. 
 
 Content to work with: "${content}"
 
 Requirements:
-- Each tweet must be under 280 characters
-- Use relevant cannabis industry hashtags (2-3 per tweet)
+${lengthInstructions}
+${hashtagInstructions}
 - Make them engaging and professional
 - Include emojis where appropriate
 - Focus on ${categoryData.description.toLowerCase()}
 - Make sure each tweet is unique and offers different value
 - Keep language compliant and professional
 - Number each tweet (1., 2., 3.)
+- Use the full 280 character limit effectively
 
 Format: Return only the 3 tweets, each on a new line, numbered 1-3.`;
 
