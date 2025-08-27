@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Persona Development System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .disclaimer {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            backdrop-filter: blur(10px);
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .question {
+            margin-bottom: 20px;
+        }
+
+        .question h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .question-options {
+            display: grid;
+            gap: 10px;
+        }
+
+        .option {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
+        }
+
+        .option:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .option.selected {
+            border-color: #667eea;
+            background: #e8f0ff;
+        }
+
+        .textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-right: 10px;
+        }
+
+        .persona-display {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+
+        .persona-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: block;
+            object-fit: cover;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 18px;
+            border-radius: 20px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.ai {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            outline: none;
+        }
+
+        .chat-input button {
+            border-radius: 25px;
+            padding: 15px 25px;
+        }
+
+        .progress-section {
+            background: #e8f5e8;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .progress-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #d0e7d0;
+        }
+
+        .progress-item:last-child {
+            border-bottom: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .controls button {
+            margin: 5px;
+            padding: 8px 15px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button class="btn btn-secondary" onclick="clearAllData()">Clear Data</button>
+        <button class="btn btn-secondary" onclick="exportData()">Export</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>AI Persona Development System</h1>
+            <p>Discover your ideal self through AI-powered personality analysis</p>
+        </div>
+
+        <div class="disclaimer">
+            <strong>Important Disclaimer:</strong> This system is designed for entertainment and self-reflection purposes only. 
+            AI systems can make mistakes and should not be considered professional psychological advice. Results are generated 
+            by artificial intelligence and may not accurately reflect reality. Please consult qualified professionals for 
+            serious personal development needs.
+        </div>
+
+        <div class="card">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <!-- Step 1: Welcome & Introduction -->
+            <div class="step active" id="step1">
+                <h2>Welcome to Your Persona Journey</h2>
+                <p>This system will analyze your personality, goals, and aspirations to create an AI persona representing your ideal self. This persona will serve as a supportive coach and guide for your personal development journey.</p>
+                
+                <h3>How it works:</h3>
+                <ol>
+                    <li><strong>Psychological Assessment</strong> - Answer questions about your personality, values, and goals</li>
+                    <li><strong>Persona Generation</strong> - AI creates your ideal self persona with visual representation</li>
+                    <li><strong>Interactive Coaching</strong> - Chat with your persona for guidance and motivation</li>
+                    <li><strong>Progress Tracking</strong> - Monitor your growth and development over time</li>
+                </ol>
+
+                <p style="margin-top: 20px;"><strong>Time Required:</strong> 10-15 minutes for assessment, then ongoing interaction</p>
+                
+                <button class="btn" onclick="nextStep()">Begin Assessment</button>
+            </div>
+
+            <!-- Step 2: Basic Profile -->
+            <div class="step" id="step2">
+                <h2>Basic Profile</h2>
+                
+                <div class="question">
+                    <h3>What's your name? (or preferred name)</h3>
+                    <input type="text" id="userName" placeholder="Enter your name" style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px;">
+                </div>
+
+                <div class="question">
+                    <h3>What's your primary focus area for growth?</h3>
+                    <div class="question-options">
+                        <div class="option" onclick="selectOption(this, 'focus', 'career')">Career & Professional Development</div>
+                        <div class="option" onclick="selectOption(this, 'focus', 'health')">Health & Fitness</div>
+                        <div class="option" onclick="selectOption(this, 'focus', 'relationships')">Relationships & Social Skills</div>
+                        <div class="option" onclick="selectOption(this, 'focus', 'creativity')">Creativity & Self-Expression</div>
+                        <div class="option" onclick="selectOption(this, 'focus', 'spirituality')">Personal Growth & Spirituality</div>
+                        <div class="option" onclick="selectOption(this, 'focus', 'learning')">Learning & Knowledge</div>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+                <button class="btn" onclick="nextStep()">Continue</button>
+            </div>
+
+            <!-- Step 3: Personality Assessment -->
+            <div class="step" id="step3">
+                <h2>Personality Assessment</h2>
+                
+                <div class="question">
+                    <h3>How do you typically handle challenges?</h3>
+                    <div class="question-options">
+                        <div class="option" onclick="selectOption(this, 'challenges', 'analytical')">I analyze the problem systematically and create detailed plans</div>
+                        <div class="option" onclick="selectOption(this, 'challenges', 'intuitive')">I trust my instincts and adapt as I go</div>
+                        <div class="option" onclick="selectOption(this, 'challenges', 'collaborative')">I seek advice and work with others to find solutions</div>
+                        <div class="option" onclick="selectOption(this, 'challenges', 'persistent')">I push through with determination and persistence</div>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h3>What motivates you most?</h3>
+                    <div class="question-options">
+                        <div class="option" onclick="selectOption(this, 'motivation', 'achievement')">Personal achievement and recognition</div>
+                        <div class="option" onclick="selectOption(this, 'motivation', 'helping')">Helping others and making a difference</div>
+                        <div class="option" onclick="selectOption(this, 'motivation', 'growth')">Learning and personal growth</div>
+                        <div class="option" onclick="selectOption(this, 'motivation', 'freedom')">Independence and freedom</div>
+                        <div class="option" onclick="selectOption(this, 'motivation', 'security')">Stability and security</div>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h3>Describe your biggest aspiration in your own words:</h3>
+                    <textarea id="aspiration" class="textarea" placeholder="What do you ultimately want to achieve or become? Be as specific as possible..."></textarea>
+                </div>
+
+                <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+                <button class="btn" onclick="nextStep()">Continue</button>
+            </div>
+
+            <!-- Step 4: Values & Behavioral Patterns -->
+            <div class="step" id="step4">
+                <h2>Values & Behavioral Patterns</h2>
+                
+                <div class="question">
+                    <h3>What values are most important to you? (Select up to 3)</h3>
+                    <div class="question-options">
+                        <div class="option" onclick="toggleMultiSelect(this, 'values', 'integrity')">Integrity & Honesty</div>
+                        <div class="option" onclick="toggleMultiSelect(this, 'values', 'compassion')">Compassion & Empathy</div>
+                        <div class="option" onclick="toggleMultiSelect(this, 'values', 'excellence')">Excellence & Quality</div>
+                        <div class="option" onclick="toggleMultiSelect(this, 'values', 'innovation')">Innovation & Creativity</div>
+                        <div class="option" onclick="toggleMultiSelect(this, 'values', 'justice')">Justice & Fairness</div>
+                        <div class="option" onclick="toggleMultiSelect(this, 'values', 'wisdom')">Wisdom & Knowledge</div>
+                        <div class="option" onclick="toggleMultiSelect(this, 'values', 'courage')">Courage & Bravery</div>
+                        <div class="option" onclick="toggleMultiSelect(this, 'values', 'balance')">Balance & Harmony</div>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h3>What's your biggest obstacle to growth?</h3>
+                    <div class="question-options">
+                        <div class="option" onclick="selectOption(this, 'obstacle', 'fear')">Fear of failure or judgment</div>
+                        <div class="option" onclick="selectOption(this, 'obstacle', 'time')">Lack of time or energy</div>
+                        <div class="option" onclick="selectOption(this, 'obstacle', 'motivation')">Difficulty staying motivated</div>
+                        <div class="option" onclick="selectOption(this, 'obstacle', 'clarity')">Uncertainty about what I really want</div>
+                        <div class="option" onclick="selectOption(this, 'obstacle', 'habits')">Bad habits or negative patterns</div>
+                        <div class="option" onclick="selectOption(this, 'obstacle', 'support')">Lack of support or resources</div>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <h3>Describe a version of yourself that you would look up to:</h3>
+                    <textarea id="idealSelf" class="textarea" placeholder="What qualities, achievements, or characteristics would your ideal self have?"></textarea>
+                </div>
+
+                <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+                <button class="btn" onclick="generatePersona()">Generate My Persona</button>
+            </div>
+
+            <!-- Step 5: Persona Generation -->
+            <div class="step" id="step5">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing your responses and generating your ideal self persona...</p>
+                    <p><small>This may take a moment as we create your personalized AI coach.</small></p>
+                </div>
+
+                <div id="personaResult" style="display: none;">
+                    <h2>Meet Your Ideal Self Persona</h2>
+                    
+                    <div class="persona-display" id="personaDisplay">
+                        <img id="personaAvatar" class="persona-avatar" alt="Your Persona Avatar">
+                        <h3 id="personaName">Your Ideal Self</h3>
+                        <p id="personaDescription">Loading persona description...</p>
+                    </div>
+
+                    <button class="btn" onclick="nextStep()">Start Coaching Session</button>
+                    <button class="btn btn-secondary" onclick="regeneratePersona()">Regenerate Persona</button>
+                </div>
+            </div>
+
+            <!-- Step 6: Interactive Coaching -->
+            <div class="step" id="step6">
+                <h2>Coaching Session with Your Ideal Self</h2>
+                
+                <div class="persona-display" style="padding: 15px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <img id="coachAvatar" style="width: 60px; height: 60px; border-radius: 50%;" alt="Coach Avatar">
+                        <div>
+                            <h4 id="coachName">Your Coach</h4>
+                            <p style="margin: 0; opacity: 0.9;">Ready to guide you toward your goals</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-container" id="chatContainer">
+                    <div class="message ai">
+                        <strong>Your Ideal Self:</strong> Hello! I'm here to support you on your journey. What would you like to work on today?
+                    </div>
+                </div>
+
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Ask your ideal self for guidance..." onkeypress="handleChatKeyPress(event)">
+                    <button class="btn" onclick="sendMessage()">Send</button>
+                </div>
+
+                <button class="btn btn-secondary" style="margin-top: 20px;" onclick="nextStep()">View Progress</button>
+            </div>
+
+            <!-- Step 7: Progress Tracking -->
+            <div class="step" id="step7">
+                <h2>Your Development Progress</h2>
+                
+                <div class="progress-section">
+                    <h3>Session Summary</h3>
+                    <div id="progressSummary">
+                        <div class="progress-item">
+                            <span>Sessions Completed:</span>
+                            <span id="sessionCount">1</span>
+                        </div>
+                        <div class="progress-item">
+                            <span>Messages Exchanged:</span>
+                            <span id="messageCount">0</span>
+                        </div>
+                        <div class="progress-item">
+                            <span>Focus Area:</span>
+                            <span id="focusArea">-</span>
+                        </div>
+                        <div class="progress-item">
+                            <span>Last Session:</span>
+                            <span id="lastSession">Today</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-section">
+                    <h3>Key Insights from Your Persona</h3>
+                    <div id="keyInsights">
+                        <p>Your insights will appear here as you interact with your persona...</p>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="goToStep(6)">Continue Coaching</button>
+                <button class="btn btn-secondary" onclick="goToStep(1)">Start Over</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state management
+        let currentStep = 1;
+        let userData = {};
+        let persona = {};
+        let chatHistory = [];
+        let sessionData = {
+            sessions: 1,
+            messageCount: 0,
+            startDate: new Date().toISOString()
+        };
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+            updateProgress();
+            
+            // Show return user interface if data exists
+            if(localStorage.getItem('personaUserData')) {
+                showReturningUserOptions();
+            }
+        });
+
+        // Load saved data from localStorage
+        function loadUserData() {
+            const saved = localStorage.getItem('personaUserData');
+            if(saved) {
+                const data = JSON.parse(saved);
+                userData = data.userData || {};
+                persona = data.persona || {};
+                chatHistory = data.chatHistory || [];
+                sessionData = data.sessionData || sessionData;
+                
+                // Update UI if persona exists
+                if(persona.name) {
+                    populatePersonaDisplay();
+                    populateChatHistory();
+                    updateProgressDisplay();
+                }
+            }
+        }
+
+        // Save data to localStorage
+        function saveUserData() {
+            const dataToSave = {
+                userData: userData,
+                persona: persona,
+                chatHistory: chatHistory,
+                sessionData: sessionData,
+                lastUpdated: new Date().toISOString()
+            };
+            localStorage.setItem('personaUserData', JSON.stringify(dataToSave));
+        }
+
+        // Show options for returning users
+        function showReturningUserOptions() {
+            const step1 = document.getElementById('step1');
+            step1.innerHTML = `
+                <h2>Welcome Back!</h2>
+                <p>We found your previous persona session. What would you like to do?</p>
+                
+                <div style="display: flex; gap: 15px; margin-top: 30px; flex-wrap: wrap;">
+                    <button class="btn" onclick="continueExistingSession()">Continue with My Persona</button>
+                    <button class="btn btn-secondary" onclick="startFresh()">Start Fresh Assessment</button>
+                    <button class="btn btn-secondary" onclick="clearAllData()">Clear All Data</button>
+                </div>
+            `;
+        }
+
+        function continueExistingSession() {
+            if(persona.name) {
+                goToStep(6); // Go to coaching
+            } else {
+                goToStep(2); // Continue assessment
+            }
+        }
+
+        function startFresh() {
+            clearAllData();
+            location.reload();
+        }
+
+        // Navigation functions
+        function nextStep() {
+            if(validateCurrentStep()) {
+                currentStep++;
+                showStep(currentStep);
+                updateProgress();
+                saveUserData();
+            }
+        }
+
+        function prevStep() {
+            currentStep--;
+            showStep(currentStep);
+            updateProgress();
+        }
+
+        function goToStep(step) {
+            currentStep = step;
+            showStep(currentStep);
+            updateProgress();
+        }
+
+        function showStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            
+            // Show current step
+            document.getElementById(`step${step}`).classList.add('active');
+        }
+
+        function updateProgress() {
+            const progress = ((currentStep - 1) / 6) * 100;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+        }
+
+        // Validation
+        function validateCurrentStep() {
+            switch(currentStep) {
+                case 2:
+                    const name = document.getElementById('userName').value.trim();
+                    if(!name) {
+                        alert('Please enter your name');
+                        return false;
+                    }
+                    userData.name = name;
+                    
+                    if(!userData.focus) {
+                        alert('Please select your primary focus area');
+                        return false;
+                    }
+                    break;
+                    
+                case 3:
+                    if(!userData.challenges || !userData.motivation) {
+                        alert('Please answer all questions');
+                        return false;
+                    }
+                    
+                    const aspiration = document.getElementById('aspiration').value.trim();
+                    if(!aspiration) {
+                        alert('Please describe your biggest aspiration');
+                        return false;
+                    }
+                    userData.aspiration = aspiration;
+                    break;
+                    
+                case 4:
+                    if(!userData.values || userData.values.length === 0) {
+                        alert('Please select at least one value');
+                        return false;
+                    }
+                    
+                    if(!userData.obstacle) {
+                        alert('Please select your biggest obstacle');
+                        return false;
+                    }
+                    
+                    const idealSelf = document.getElementById('idealSelf').value.trim();
+                    if(!idealSelf) {
+                        alert('Please describe your ideal self');
+                        return false;
+                    }
+                    userData.idealSelf = idealSelf;
+                    break;
+            }
+            return true;
+        }
+
+        // Selection handlers
+        function selectOption(element, category, value) {
+            // Remove previous selections in this category
+            element.parentNode.querySelectorAll('.option').forEach(opt => 
+                opt.classList.remove('selected')
+            );
+            
+            // Select current option
+            element.classList.add('selected');
+            userData[category] = value;
+        }
+
+        function toggleMultiSelect(element, category, value) {
+            if(!userData[category]) userData[category] = [];
+            
+            if(element.classList.contains('selected')) {
+                element.classList.remove('selected');
+                userData[category] = userData[category].filter(v => v !== value);
+            } else {
+                // Limit to 3 selections for values
+                if(category === 'values' && userData[category].length >= 3) {
+                    alert('Please select no more than 3 values');
+                    return;
+                }
+                
+                element.classList.add('selected');
+                userData[category].push(value);
+            }
+        }
+
+        // Persona generation
+        async function generatePersona() {
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                // Create persona prompt based on user data
+                const personaPrompt = createPersonaPrompt();
+                
+                // Generate persona description using Pollinations AI
+                const personaText = await generatePersonaText(personaPrompt);
+                
+                // Generate persona avatar
+                const avatarPrompt = createAvatarPrompt(personaText);
+                const avatarUrl = await generatePersonaAvatar(avatarPrompt);
+                
+                // Store persona data
+                persona = {
+                    name: `Ideal ${userData.name}`,
+                    description: personaText,
+                    avatar: avatarUrl,
+                    created: new Date().toISOString()
+                };
+                
+                // Display the persona
+                populatePersonaDisplay();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('personaResult').style.display = 'block';
+                
+                saveUserData();
+                
+            } catch(error) {
+                console.error('Error generating persona:', error);
+                document.getElementById('loading').innerHTML = `
+                    <p>Sorry, there was an error generating your persona. Please try again.</p>
+                    <button class="btn" onclick="generatePersona()">Retry</button>
+                `;
+            }
+        }
+
+        function createPersonaPrompt() {
+            return `Create an inspiring ideal self persona based on this profile:
+
+Name: ${userData.name}
+Focus Area: ${userData.focus}
+Challenge Approach: ${userData.challenges}
+Motivation: ${userData.motivation}
+Core Values: ${userData.values ? userData.values.join(', ') : 'Not specified'}
+Main Obstacle: ${userData.obstacle}
+Aspiration: ${userData.aspiration}
+Ideal Self Description: ${userData.idealSelf}
+
+Create a supportive, wise version of this person who has overcome their obstacles and achieved their aspirations. The persona should be encouraging, insightful, and speak as if they are the user's future successful self. Include specific advice and motivation relevant to their focus area. Keep the response to 2-3 paragraphs, written in first person as the ideal self speaking directly to the user.`;
+        }
+
+        function createAvatarPrompt(personaText) {
+            const focusKeywords = {
+                career: 'professional, confident, business attire',
+                health: 'fit, energetic, athletic wear',
+                relationships: 'warm, approachable, friendly',
+                creativity: 'artistic, expressive, creative',
+                spirituality: 'peaceful, serene, wise',
+                learning: 'scholarly, intellectual, thoughtful'
+            };
+            
+            const keywords = focusKeywords[userData.focus] || 'confident, successful, approachable';
+            
+            return `Professional portrait of an ideal, successful person, ${keywords}, inspiring, optimistic expression, soft lighting, high quality, realistic style`;
+        }
+
+        async function generatePersonaText(prompt) {
+            const encodedPrompt = encodeURIComponent(prompt);
+            const url = `https://text.pollinations.ai/${encodedPrompt}?model=openai&referrer=www.ai-ministries.com`;
+            
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to generate persona text');
+            
+            return await response.text();
+        }
+
+        async function generatePersonaAvatar(prompt) {
+            const encodedPrompt = encodeURIComponent(prompt);
+            const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=400&height=400&model=flux&referrer=www.ai-ministries.com`;
+            
+            return url;
+        }
+
+        function populatePersonaDisplay() {
+            document.getElementById('personaName').textContent = persona.name;
+            document.getElementById('personaDescription').textContent = persona.description;
+            document.getElementById('personaAvatar').src = persona.avatar;
+            
+            // Also update coaching display
+            document.getElementById('coachName').textContent = persona.name;
+            document.getElementById('coachAvatar').src = persona.avatar;
+        }
+
+        async function regeneratePersona() {
+            persona = {};
+            await generatePersona();
+        }
+
+        // Chat functionality
+        function handleChatKeyPress(event) {
+            if(event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if(!message) return;
+            
+            // Add user message to chat
+            addMessageToChat('user', message);
+            input.value = '';
+            
+            // Generate AI response
+            try {
+                const response = await generatePersonaResponse(message);
+                addMessageToChat('ai', response);
+                
+                sessionData.messageCount++;
+                saveUserData();
+                updateProgressDisplay();
+                
+            } catch(error) {
+                addMessageToChat('ai', "I'm sorry, I'm having trouble responding right now. Please try again in a moment.");
+            }
+        }
+
+        function addMessageToChat(sender, message) {
+            const chatContainer = document.getElementById('chatContainer');
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            if(sender === 'ai') {
+                messageDiv.innerHTML = `<strong>${persona.name}:</strong> ${message}`;
+            } else {
+                messageDiv.textContent = message;
+            }
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Save to chat history
+            chatHistory.push({
+                sender: sender,
+                message: message,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        async function generatePersonaResponse(userMessage) {
+            const context = createChatContext(userMessage);
+            const encodedPrompt = encodeURIComponent(context);
+            const url = `https://text.pollinations.ai/${encodedPrompt}?model=openai&referrer=www.ai-ministries.com&temperature=0.7`;
+            
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to generate response');
+            
+            return await response.text();
+        }
+
+        function createChatContext(userMessage) {
+            return `You are ${persona.name}, the ideal future self of ${userData.name}. You have successfully overcome their obstacles and achieved their aspirations in ${userData.focus}. 
+
+Your personality is based on:
+- Values: ${userData.values ? userData.values.join(', ') : 'Not specified'}
+- Overcame: ${userData.obstacle}
+- Achieved: ${userData.aspiration}
+- Ideal qualities: ${userData.idealSelf}
+
+The user just said: "${userMessage}"
+
+Respond as their wise, successful future self with encouragement, specific advice, and motivation. Keep responses conversational, supportive, and under 150 words. Reference their specific goals and challenges when relevant.`;
+        }
+
+        function populateChatHistory() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.innerHTML = '<div class="message ai"><strong>Your Ideal Self:</strong> Hello! I\'m here to support you on your journey. What would you like to work on today?</div>';
+            
+            chatHistory.forEach(chat => {
+                addMessageToChat(chat.sender, chat.message);
+            });
+        }
+
+        function updateProgressDisplay() {
+            document.getElementById('sessionCount').textContent = sessionData.sessions;
+            document.getElementById('messageCount').textContent = sessionData.messageCount;
+            document.getElementById('focusArea').textContent = userData.focus || '-';
+            
+            const lastSession = new Date(sessionData.startDate).toLocaleDateString();
+            document.getElementById('lastSession').textContent = lastSession;
+        }
+
+        // Data management
+        function clearAllData() {
+            if(confirm('This will permanently delete all your persona data and progress. Are you sure?')) {
+                localStorage.removeItem('personaUserData');
+                location.reload();
+            }
+        }
+
+        function exportData() {
+            const dataToExport = {
+                userData: userData,
+                persona: persona,
+                chatHistory: chatHistory,
+                sessionData: sessionData,
+                exportDate: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
+                type: 'application/json'
+            });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `persona-data-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Periodic disclaimer reminder
+        setInterval(() => {
+            if(currentStep === 6 && chatHistory.length > 0 && chatHistory.length % 10 === 0) {
+                const disclaimer = document.createElement('div');
+                disclaimer.className = 'message ai';
+                disclaimer.innerHTML = '<small><em>Reminder: I\'m an AI assistant created for guidance and motivation. Please consult professionals for serious personal or health decisions.</em></small>';
+                disclaimer.style.opacity = '0.7';
+                disclaimer.style.fontSize = '12px';
+                
+                const chatContainer = document.getElementById('chatContainer');
+                chatContainer.appendChild(disclaimer);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }, 30000); // Every 30 seconds during active chat
+
+        // Enhanced error handling
+        window.addEventListener('error', function(e) {
+            console.error('Application error:', e.error);
+            // You could send error reports to a logging service here
+        });
+
+        // Prevent data loss on page unload
+        window.addEventListener('beforeunload', function() {
+            saveUserData();
+        });
+
+        // Auto-save every 30 seconds
+        setInterval(saveUserData, 30000);
+    </script>
+</body>
+</html>
