@@ -748,12 +748,158 @@ Respond as ${currentChatCharacter.name} would, staying in character. Be engaging
             return messageDiv;
         }
 
-        function exploreScene(sceneName) {
+        async function exploreScene(sceneName) {
             const scene = storyData.scenes.find(s => s.name === sceneName);
             if (!scene) return;
 
-            // For now, just show an alert. Could be expanded to a scene exploration modal
-            alert(`🎭 Exploring ${scene.name}\n\n📍 ${scene.location}\n\n${scene.description}\n\nMood: ${scene.mood}\n\n(Scene exploration feature coming soon!)`);
+            // Open scene exploration modal
+            openSceneModal(scene);
+        }
+
+        async function openSceneModal(scene) {
+            // Create scene modal if it doesn't exist
+            let sceneModal = document.getElementById('sceneModal');
+            if (!sceneModal) {
+                sceneModal = createSceneModal();
+                document.body.appendChild(sceneModal);
+            }
+
+            // Update modal content
+            document.getElementById('sceneModalTitle').textContent = scene.name;
+            document.getElementById('sceneModalLocation').textContent = scene.location;
+            document.getElementById('sceneModalDescription').textContent = scene.description;
+            document.getElementById('sceneModalMood').textContent = scene.mood;
+
+            // Show loading state for image
+            const sceneImage = document.getElementById('sceneImage');
+            sceneImage.innerHTML = '<div class="loading" style="margin: 40px auto;"></div><p style="text-align: center; margin-top: 20px;">Generating scene visualization...</p>';
+
+            // Show modal
+            sceneModal.style.display = 'flex';
+
+            try {
+                // Generate scene image
+                const imagePrompt = `${scene.description}, ${scene.mood} atmosphere, fantasy art style, detailed digital painting, cinematic lighting`;
+                const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=512&height=384&model=flux&referrer=ai-ministries.com&enhance=true`;
+                
+                // Load image
+                const img = new Image();
+                img.onload = function() {
+                    sceneImage.innerHTML = `<img src="${imageUrl}" alt="${scene.name}" style="width: 100%; height: 300px; object-fit: cover; border-radius: 15px;">`;
+                };
+                img.onerror = function() {
+                    sceneImage.innerHTML = `<div style="background: rgba(255,255,255,0.1); height: 300px; border-radius: 15px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                        <div style="font-size: 3em; margin-bottom: 15px;">🎭</div>
+                        <div>Image generation unavailable</div>
+                    </div>`;
+                };
+                img.src = imageUrl;
+
+            } catch (error) {
+                sceneImage.innerHTML = `<div style="background: rgba(255,255,255,0.1); height: 300px; border-radius: 15px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                    <div style="font-size: 3em; margin-bottom: 15px;">🎭</div>
+                    <div>Scene visualization unavailable</div>
+                </div>`;
+            }
+        }
+
+        function createSceneModal() {
+            const modal = document.createElement('div');
+            modal.id = 'sceneModal';
+            modal.className = 'chat-modal';
+            modal.innerHTML = `
+                <div class="chat-container" style="max-width: 700px;">
+                    <div class="chat-header">
+                        <div>
+                            <strong id="sceneModalTitle">Scene</strong>
+                            <div style="font-size: 0.9em; opacity: 0.8;">
+                                📍 <span id="sceneModalLocation"></span> • <span id="sceneModalMood"></span>
+                            </div>
+                        </div>
+                        <button class="chat-close" onclick="closeSceneModal()">&times;</button>
+                    </div>
+                    <div style="padding: 20px; flex: 1; overflow-y: auto;">
+                        <div id="sceneImage" style="margin-bottom: 20px;">
+                            <!-- Scene image will be loaded here -->
+                        </div>
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                            <h3 style="color: #ffd700; margin-bottom: 15px;">📖 Scene Description</h3>
+                            <p id="sceneModalDescription" style="line-height: 1.6; opacity: 0.9;"></p>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <button onclick="exploreSceneCharacters()" style="padding: 15px; background: linear-gradient(45deg, #ff6b6b, #ffd700); border: none; border-radius: 15px; color: white; font-weight: bold; cursor: pointer;">
+                                👥 Characters Here
+                            </button>
+                            <button onclick="generateSceneStory()" style="padding: 15px; background: linear-gradient(45deg, #667eea, #764ba2); border: none; border-radius: 15px; color: white; font-weight: bold; cursor: pointer;">
+                                ✨ Generate Scene Story
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return modal;
+        }
+
+        function closeSceneModal() {
+            const sceneModal = document.getElementById('sceneModal');
+            if (sceneModal) {
+                sceneModal.style.display = 'none';
+            }
+        }
+
+        function exploreSceneCharacters() {
+            const sceneName = document.getElementById('sceneModalTitle').textContent;
+            const charactersInScene = storyData.characters.filter(char => 
+                storyData.text.toLowerCase().includes(sceneName.toLowerCase()) && 
+                storyData.text.toLowerCase().includes(char.name.toLowerCase())
+            );
+            
+            if (charactersInScene.length > 0) {
+                alert(`Characters found in ${sceneName}:\n\n${charactersInScene.map(c => `• ${c.name} (${c.role})`).join('\n')}\n\nClick on character cards in the main view to chat with them!`);
+            } else {
+                alert(`No specific characters identified in ${sceneName}. Try chatting with characters from the main view to learn more about this location!`);
+            }
+        }
+
+        async function generateSceneStory() {
+            const sceneName = document.getElementById('sceneModalTitle').textContent;
+            const scene = storyData.scenes.find(s => s.name === sceneName);
+            if (!scene) return;
+
+            const button = event.target;
+            const originalText = button.textContent;
+            button.innerHTML = '<div class="loading" style="display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin-right: 8px;"></div>Generating...';
+            button.disabled = true;
+
+            try {
+                const storyPrompt = `Write a short, immersive scene set in ${scene.name}. Location: ${scene.location}. Description: ${scene.description}. Mood: ${scene.mood}. 
+
+Write it as if the reader is experiencing this location firsthand. Include sensory details, atmosphere, and potential story moments. Keep it under 200 words and make it engaging.`;
+
+                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(storyPrompt)}?model=openai&referrer=ai-ministries.com`);
+                const sceneStory = await response.text();
+
+                // Show the generated story in a new section
+                const sceneContainer = button.parentElement.parentElement;
+                let storySection = document.getElementById('generatedSceneStory');
+                if (!storySection) {
+                    storySection = document.createElement('div');
+                    storySection.id = 'generatedSceneStory';
+                    storySection.style.cssText = 'background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-top: 15px;';
+                    sceneContainer.appendChild(storySection);
+                }
+
+                storySection.innerHTML = `
+                    <h3 style="color: #ffd700; margin-bottom: 15px;">✨ Generated Scene</h3>
+                    <p style="line-height: 1.6; opacity: 0.9; font-style: italic;">${sceneStory}</p>
+                `;
+
+            } catch (error) {
+                alert('Unable to generate scene story right now. Please try again!');
+            }
+
+            button.textContent = originalText;
+            button.disabled = false;
         }
 
         // Initialize
