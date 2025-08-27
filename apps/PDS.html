@@ -583,8 +583,61 @@
         }
 
         function startFresh() {
-            clearAllData();
-            location.reload();
+            if(confirm('This will delete all your current persona data and start a completely new assessment. Are you sure?')) {
+                // Clear all data
+                userData = {};
+                persona = {};
+                chatHistory = [];
+                sessionData = {
+                    sessions: 1,
+                    messageCount: 0,
+                    startDate: new Date().toISOString()
+                };
+                
+                // Clear localStorage
+                localStorage.removeItem('personaUserData');
+                
+                // Reset all form inputs
+                const nameInput = document.getElementById('userName');
+                if(nameInput) nameInput.value = '';
+                
+                const aspirationInput = document.getElementById('aspiration');
+                if(aspirationInput) aspirationInput.value = '';
+                
+                const idealSelfInput = document.getElementById('idealSelf');
+                if(idealSelfInput) idealSelfInput.value = '';
+                
+                // Clear all selected options
+                document.querySelectorAll('.option.selected').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                // Reset to step 1 with original welcome content
+                currentStep = 1;
+                resetWelcomeStep();
+                showStep(1);
+                updateProgress();
+            }
+        }
+        
+        function resetWelcomeStep() {
+            const step1 = document.getElementById('step1');
+            step1.innerHTML = `
+                <h2>Welcome to Your Persona Journey</h2>
+                <p>This system will analyze your personality, goals, and aspirations to create an AI persona representing your ideal self. This persona will serve as a supportive coach and guide for your personal development journey.</p>
+                
+                <h3>How it works:</h3>
+                <ol>
+                    <li><strong>Psychological Assessment</strong> - Answer questions about your personality, values, and goals</li>
+                    <li><strong>Persona Generation</strong> - AI creates your ideal self persona with visual representation</li>
+                    <li><strong>Interactive Coaching</strong> - Chat with your persona for guidance and motivation</li>
+                    <li><strong>Progress Tracking</strong> - Monitor your growth and development over time</li>
+                </ol>
+
+                <p style="margin-top: 20px;"><strong>Time Required:</strong> 10-15 minutes for assessment, then ongoing interaction</p>
+                
+                <button class="btn" onclick="nextStep()">Begin Assessment</button>
+            `;
         }
 
         // Navigation functions
@@ -993,7 +1046,35 @@ Respond as their wise, successful future self with encouragement, specific advic
         // Data management
         function clearAllData() {
             if(confirm('This will permanently delete all your persona data and progress. Are you sure?')) {
+                // Clear all data
+                userData = {};
+                persona = {};
+                chatHistory = [];
+                sessionData = {
+                    sessions: 1,
+                    messageCount: 0,
+                    startDate: new Date().toISOString()
+                };
+                
+                // Clear localStorage
                 localStorage.removeItem('personaUserData');
+                
+                // Reset all form inputs
+                const nameInput = document.getElementById('userName');
+                if(nameInput) nameInput.value = '';
+                
+                const aspirationInput = document.getElementById('aspiration');
+                if(aspirationInput) aspirationInput.value = '';
+                
+                const idealSelfInput = document.getElementById('idealSelf');
+                if(idealSelfInput) idealSelfInput.value = '';
+                
+                // Clear all selected options
+                document.querySelectorAll('.option.selected').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                // Force reload to completely reset the page
                 location.reload();
             }
         }
