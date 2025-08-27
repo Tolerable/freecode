@@ -854,11 +854,66 @@ Respond as ${currentChatCharacter.name} would, staying in character. Be engaging
                 storyData.text.toLowerCase().includes(char.name.toLowerCase())
             );
             
-            if (charactersInScene.length > 0) {
-                alert(`Characters found in ${sceneName}:\n\n${charactersInScene.map(c => `• ${c.name} (${c.role})`).join('\n')}\n\nClick on character cards in the main view to chat with them!`);
-            } else {
-                alert(`No specific characters identified in ${sceneName}. Try chatting with characters from the main view to learn more about this location!`);
+            // Get the scene container to add characters section
+            const sceneContainer = event.target.parentElement.parentElement;
+            let charactersSection = document.getElementById('sceneCharacters');
+            
+            if (charactersSection) {
+                charactersSection.remove(); // Remove existing section to refresh
             }
+            
+            charactersSection = document.createElement('div');
+            charactersSection.id = 'sceneCharacters';
+            charactersSection.style.cssText = 'background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-top: 15px;';
+            
+            if (charactersInScene.length > 0) {
+                charactersSection.innerHTML = `
+                    <h3 style="color: #ffd700; margin-bottom: 15px;">👥 Characters in ${sceneName}</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        ${charactersInScene.map(character => `
+                            <div class="character-card" onclick="openChatModalFromScene('${character.name}')" style="cursor: pointer; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 15px; border: 1px solid rgba(255,255,255,0.2); transition: all 0.3s ease;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(45deg, #ff6b6b, #ffd700); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                        ${character.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: bold; color: #ffd700;">${character.name}</div>
+                                        <div style="font-size: 0.9em; opacity: 0.8;">${character.role}</div>
+                                    </div>
+                                </div>
+                                <div style="font-size: 0.9em; opacity: 0.9;">
+                                    ${character.description.length > 80 ? character.description.substring(0, 80) + '...' : character.description}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                charactersSection.innerHTML = `
+                    <h3 style="color: #ffd700; margin-bottom: 15px;">👥 Characters</h3>
+                    <p style="opacity: 0.8; margin-bottom: 15px;">No characters specifically mentioned in this scene, but you can chat with any character about this location!</p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+                        ${storyData.characters.slice(0, 4).map(character => `
+                            <button onclick="openChatModalFromScene('${character.name}')" style="padding: 10px 15px; background: linear-gradient(45deg, #667eea, #764ba2); border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; transition: all 0.3s ease;">
+                                Chat with ${character.name}
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            sceneContainer.appendChild(charactersSection);
+            
+            // Update button text to show it's been activated
+            event.target.textContent = '👥 Characters Shown Below';
+            event.target.style.opacity = '0.7';
+        }
+
+        function openChatModalFromScene(characterName) {
+            // Close scene modal first
+            closeSceneModal();
+            // Then open character chat
+            setTimeout(() => openChatModal(characterName), 100);
         }
 
         async function generateSceneStory() {
