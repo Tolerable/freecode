@@ -39,9 +39,29 @@
       transform: scale(1.05);
       box-shadow: 0 0 60px rgba(255,0,0,0.9);
     }
-    #status {
+    #speechBox {
       margin-top: 30px;
-      font-size: 20px;
+      display: inline-block;
+      background: #222;
+      border-radius: 15px;
+      padding: 15px 20px;
+      font-size: 18px;
+      line-height: 1.4em;
+      position: relative;
+      text-align: left;
+      max-width: 500px;
+    }
+    #speechBox::after {
+      content: "";
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 10px;
+      border-style: solid;
+      border-color: transparent transparent #222 transparent;
+    }
+    #status {
       min-height: 40px;
     }
     #loadingDots {
@@ -52,15 +72,27 @@
 <body>
   <div id="container">
     <button id="bigButton">FIX THE WORLD</button>
-    <div id="status"></div>
+    <div id="speechBox"><span id="status"></span></div>
   </div>
 
   <script>
     const button = document.getElementById("bigButton");
     const statusDiv = document.getElementById("status");
 
+    const prompts = [
+      "Give a funny instant fix for the Ukraine-Russia war.",
+      "Suggest a hilarious way to stop climate change overnight.",
+      "Provide a short, silly solution to end world hunger.",
+      "Invent a comedic instant fix for the global economy.",
+      "Come up with a playful way to guarantee world peace."
+    ];
+
+    function getRandomPrompt() {
+      return prompts.splice(Math.floor(Math.random() * prompts.length), 1)[0];
+    }
+
     function showLoading() {
-      statusDiv.innerHTML = "Calculating impossible solution<span id='loadingDots'></span>";
+      statusDiv.innerHTML = "Calculating<span id='loadingDots'></span>";
       let dots = 0;
       return setInterval(() => {
         dots = (dots + 1) % 4;
@@ -68,31 +100,33 @@
       }, 500);
     }
 
-    async function getWorldFix() {
-      const impossiblePrompts = [
-        "Propose a humorous way to solve the Ukraine-Russia war instantly.",
-        "Come up with a silly solution to stop climate change overnight.",
-        "Suggest how world hunger could be ended by everyone pressing a big red button.",
-        "Explain how the economy could be fixed instantly in a funny way.",
-        "Invent a ridiculous but hopeful way AI could make world peace happen today."
-      ];
-      const prompt = impossiblePrompts[Math.floor(Math.random() * impossiblePrompts.length)];
+    async function getWorldFix(prompt) {
       const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai&temperature=1&referrer=www.ai-ministries.com`;
       try {
         const response = await fetch(url);
-        return await response.text();
-      } catch (err) {
-        return "Oops, the AI button jammed. Please try again!";
+        let text = await response.text();
+        // keep it short
+        return text.split(/[\.\n]/).slice(0,2).join(".") + ".";
+      } catch {
+        return "Oops, the button jammed. Try again!";
       }
     }
 
     button.addEventListener("click", async () => {
       button.disabled = true;
       let loadingInterval = showLoading();
-      const result = await getWorldFix();
+      const prompt = getRandomPrompt() || "Give a quick, funny fix for a random world problem.";
+      const result = await getWorldFix(prompt);
       clearInterval(loadingInterval);
-      statusDiv.innerHTML = `<strong>Result:</strong> ${result}`;
+      statusDiv.innerHTML = result;
       button.disabled = false;
+      if (prompts.length === 0) {
+        prompts.push(
+          "Suggest another short funny solution for the world economy.",
+          "Give a silly instant fix for poverty.",
+          "Come up with a joke solution for healthcare worldwide."
+        );
+      }
     });
   </script>
 </body>
