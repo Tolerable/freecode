@@ -1,133 +1,251 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>World Fix Button</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root {
+      --bg1:#0a0a0a;
+      --bg2:#111;
+      --text:#f2f2f2;
+      --bubble:#222;
+      --bubbleBorder:#333;
+      --accent:#ff2d2d;
+    }
     html, body {
-      margin: 0;
-      padding: 0;
       height: 100%;
-      width: 100%;
+      margin: 0;
+    }
+    body {
+      background: radial-gradient(circle at 50% 30%, var(--bg2), var(--bg1) 70%);
+      color: var(--text);
+      font: 500 18px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    /* Layout: fixed column so the bubble never shifts position */
+    .app {
+      min-height: 100%;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      background: radial-gradient(circle at center, #111 0%, #000 100%);
-      font-family: Arial, sans-serif;
-      color: white;
-    }
-    #container {
+      justify-content: center;
+      gap: 28px;
+      padding: 24px;
       text-align: center;
-      max-width: 600px;
-      padding: 20px;
     }
+    /* Big red button */
     #bigButton {
-      background: red;
+      appearance: none;
       border: none;
+      width: min(34vmin, 240px);
+      height: min(34vmin, 240px);
       border-radius: 50%;
-      width: 200px;
-      height: 200px;
-      font-size: 24px;
-      font-weight: bold;
-      color: white;
+      background: radial-gradient(circle at 35% 35%, #ff6b6b, var(--accent));
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: .5px;
+      font-size: clamp(14px, 2.4vmin, 22px);
+      text-transform: uppercase;
+      box-shadow: 0 0 0 6px rgba(255,45,45,.15), 0 20px 60px rgba(255,45,45,.35);
       cursor: pointer;
-      box-shadow: 0 0 40px rgba(255,0,0,0.6);
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform .08s ease-out, box-shadow .12s ease-out, filter .12s;
+      will-change: transform, box-shadow;
     }
-    #bigButton:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 60px rgba(255,0,0,0.9);
-    }
+    #bigButton:hover { transform: translateY(-2px) scale(1.03); }
+    #bigButton:active { transform: translateY(1px) scale(.98); }
+    #bigButton:disabled { filter: grayscale(.35) brightness(.85); cursor: wait; }
+
+    /* Speech bubble stays under the button at all times */
     #speechBox {
-      margin-top: 30px;
-      display: inline-block;
-      background: #222;
-      border-radius: 15px;
-      padding: 15px 20px;
-      font-size: 18px;
-      line-height: 1.4em;
       position: relative;
+      width: min(92vw, 720px);
+      min-height: 88px;                /* reserves space so nothing jumps */
+      background: var(--bubble);
+      border: 1px solid var(--bubbleBorder);
+      border-radius: 18px;
+      padding: 16px 18px;
+      margin: 0 auto;
       text-align: left;
-      max-width: 500px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.45);
     }
-    #speechBox::after {
+    /* Arrow pointing up to the button */
+    #speechBox::before {
       content: "";
       position: absolute;
-      top: -20px;
+      top: -16px;
       left: 50%;
       transform: translateX(-50%);
-      border-width: 10px;
-      border-style: solid;
-      border-color: transparent transparent #222 transparent;
+      width: 0; height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-bottom: 16px solid var(--bubble);
+      filter: drop-shadow(0 -1px 0 var(--bubbleBorder));
     }
-    #status {
-      min-height: 40px;
+    #result {
+      white-space: pre-line; /* allow up to two lines */
+      margin: 0;
+      font-size: clamp(16px, 2.2vmin, 20px);
     }
-    #loadingDots {
-      display: inline-block;
-    }
+    .muted { opacity:.7 }
+    .dots { display:inline-block; width:2ch; text-align:left }
   </style>
 </head>
+
 <body>
-  <div id="container">
-    <button id="bigButton">FIX THE WORLD</button>
-    <div id="speechBox"><span id="status"></span></div>
-  </div>
+  <main class="app" id="app">
+    <button id="bigButton" aria-label="Fix the world">FIX THE WORLD</button>
+
+    <!-- Bubble is rendered from the start and never moves -->
+    <section id="speechBox" aria-live="polite" aria-atomic="true">
+      <p id="result" class="muted"> </p>
+    </section>
+  </main>
 
   <script>
-    const button = document.getElementById("bigButton");
-    const statusDiv = document.getElementById("status");
+    const btn = document.getElementById('bigButton');
+    const resultEl = document.getElementById('result');
 
-    const prompts = [
-      "Give a funny instant fix for the Ukraine-Russia war.",
-      "Suggest a hilarious way to stop climate change overnight.",
-      "Provide a short, silly solution to end world hunger.",
-      "Invent a comedic instant fix for the global economy.",
-      "Come up with a playful way to guarantee world peace."
+    // Topics to randomize without repeats; refills when exhausted.
+    const BASE_TOPICS = [
+      "Ukraine–Russia war ends peacefully; lasting treaty signed.",
+      "Climate crisis reversed; net-zero tech scales overnight.",
+      "Global hunger solved; logistics unlock surplus to every child.",
+      "Cancer cure approved; mortality plummets worldwide.",
+      "Pandemics stopped at source; 48-hour response ends outbreaks.",
+      "Clean water universal; filtration deployed to every village.",
+      "Affordable fusion online; fossil fuel demand collapses.",
+      "Debt relief pact resets economies; services protected.",
+      "Ceasefires cascade across conflict zones; refugees return safely.",
+      "Oceans cleared of plastic; reefs begin recovering."
     ];
+    let topicPool = [...BASE_TOPICS];
 
-    function getRandomPrompt() {
-      return prompts.splice(Math.floor(Math.random() * prompts.length), 1)[0];
+    function nextTopic() {
+      if (topicPool.length === 0) topicPool = [...BASE_TOPICS];
+      const i = Math.floor(Math.random() * topicPool.length);
+      return topicPool.splice(i, 1)[0];
     }
 
-    function showLoading() {
-      statusDiv.innerHTML = "Calculating<span id='loadingDots'></span>";
-      let dots = 0;
-      return setInterval(() => {
-        dots = (dots + 1) % 4;
-        document.getElementById("loadingDots").innerText = ".".repeat(dots);
-      }, 500);
+    // Build a strict prompt to force 1–2 lines only.
+    function buildPrompt(topic) {
+      return (
+        "Return ONLY the final outcome in 1–2 short lines, no preface, no story, no emojis. " +
+        "Style: terse headline/announcement. " +
+        "Each line must be under 120 characters. " +
+        "Topic: " + topic
+      );
     }
 
-    async function getWorldFix(prompt) {
-      const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai&temperature=1&referrer=www.ai-ministries.com`;
+    // Remove chatter; enforce <= 2 lines; trim length.
+    function clean(text) {
+      if (!text) return "";
+      let t = String(text)
+        .replace(/[`*_>#"-]{2,}/g, " ")
+        .replace(/\b(Alright|Okay|Here('|’)s|Let('|’)s|Imagine|Picture this|Well|So,?)\b.*?\b(:|-)\s*/gi, "")
+        .replace(/\b(As an AI|I cannot|I can't|I won't).*$/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      // Split by sentence boundaries, keep up to 2 sentences
+      const parts = t.split(/(?<=[.!?])\s+/).slice(0, 2);
+      t = parts.join("\n");
+
+      // Hard cap: 2 lines, each <= 120 chars
+      t = t.split("\n").slice(0, 2).map(s => {
+        s = s.replace(/^["'«»]+|["'«»]+$/g, "").trim();
+        return s.length > 120 ? s.slice(0, 117).trimEnd() + "…" : s;
+      }).join("\n");
+
+      // If the model ignored instructions, fallback later
+      return t;
+    }
+
+    // Local crisp fallbacks by topic (mapped loosely via keyword checks)
+    const FALLBACKS = {
+      war: "War ends today; borders settled and prisoners home.\nMonitors confirm ceasefire holding.",
+      climate: "Global cooling begins.\nUltra-cheap renewables outcompete everything overnight.",
+      hunger: "No child goes to bed hungry.\nDistribution unlocked in every region.",
+      cancer: "Universal cancer vaccine deployed.\nMortality drops by 90%.",
+      pandemic: "Outbreaks end in 48 hours.\nOpen-source antivirals shipped worldwide.",
+      water: "Safe water on tap for all.\nBoil notices vanish.",
+      fusion: "Affordable fusion online.\nPower bills crater.",
+      debt: "Debt reset pact signed.\nServices protected, small businesses flourish.",
+      ceasefires: "Ceasefires ripple across conflicts.\nRefugees return with safety guarantees.",
+      oceans: "Oceans cleared of plastic.\nReefs show early recovery."
+    };
+
+    function pickFallback(topic) {
+      const key =
+        /war|Russia|Ukraine/i.test(topic) ? "war" :
+        /climate|net-?zero|netzero/i.test(topic) ? "climate" :
+        /hunger|child/i.test(topic) ? "hunger" :
+        /cancer/i.test(topic) ? "cancer" :
+        /pandemic|outbreak/i.test(topic) ? "pandemic" :
+        /water/i.test(topic) ? "water" :
+        /fusion|fossil/i.test(topic) ? "fusion" :
+        /debt|econom/i.test(topic) ? "debt" :
+        /ceasefire|conflict|refugee/i.test(topic) ? "ceasefires" :
+        /ocean|plastic|reef/i.test(topic) ? "oceans" :
+        "climate";
+      return FALLBACKS[key];
+    }
+
+    // Minimal suspense (dots) inside the bubble; bubble never moves.
+    let dotTimer = null;
+    function startDots() {
+      resultEl.innerHTML = 'Calculating<span class="dots">.</span>';
+      let d = 1;
+      dotTimer = setInterval(() => {
+        d = (d % 3) + 1;
+        const span = resultEl.querySelector('.dots');
+        if (span) span.textContent = ".".repeat(d);
+      }, 400);
+    }
+    function stopDots() { if (dotTimer) { clearInterval(dotTimer); dotTimer = null; } }
+
+    async function fetchResult(prompt) {
+      const system =
+        "Respond ONLY with the outcome in 1–2 short lines (headline style). No preface. No explanation. No emojis.";
+      const url =
+        "https://text.pollinations.ai/" +
+        encodeURIComponent(prompt) +
+        "?model=openai&temperature=0.8&system=" +
+        encodeURIComponent(system) +
+        "&referrer=www.ai-ministries.com";
+
       try {
-        const response = await fetch(url);
-        let text = await response.text();
-        // keep it short
-        return text.split(/[\.\n]/).slice(0,2).join(".") + ".";
+        const r = await fetch(url, { cache: "no-store" });
+        const txt = await r.text();
+        return clean(txt);
       } catch {
-        return "Oops, the button jammed. Try again!";
+        return "";
       }
     }
 
-    button.addEventListener("click", async () => {
-      button.disabled = true;
-      let loadingInterval = showLoading();
-      const prompt = getRandomPrompt() || "Give a quick, funny fix for a random world problem.";
-      const result = await getWorldFix(prompt);
-      clearInterval(loadingInterval);
-      statusDiv.innerHTML = result;
-      button.disabled = false;
-      if (prompts.length === 0) {
-        prompts.push(
-          "Suggest another short funny solution for the world economy.",
-          "Give a silly instant fix for poverty.",
-          "Come up with a joke solution for healthcare worldwide."
-        );
+    async function runOnce() {
+      btn.disabled = true;
+      startDots();
+
+      const topic = nextTopic();
+      const prompt = buildPrompt(topic);
+      let out = await fetchResult(prompt);
+      stopDots();
+
+      // Fallback or enforce brevity if the model rambles
+      if (!out || out.length < 12 || out.split("\n").length > 2) {
+        out = pickFallback(topic);
       }
-    });
+      resultEl.classList.remove('muted');
+      resultEl.textContent = out;
+
+      // Respect API rate limit (1 request / ~3s). Keep UX snappy but safe.
+      setTimeout(() => (btn.disabled = false), 3200);
+    }
+
+    // Initial reserved space; no commentary.
+    resultEl.textContent = " ";
+
+    btn.addEventListener('click', runOnce, { passive: true });
   </script>
 </body>
 </html>
