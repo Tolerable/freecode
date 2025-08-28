@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>World Fix Button</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at center, #111 0%, #000 100%);
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+    #container {
+      text-align: center;
+      max-width: 600px;
+      padding: 20px;
+    }
+    #bigButton {
+      background: red;
+      border: none;
+      border-radius: 50%;
+      width: 200px;
+      height: 200px;
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 0 40px rgba(255,0,0,0.6);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #bigButton:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 60px rgba(255,0,0,0.9);
+    }
+    #status {
+      margin-top: 30px;
+      font-size: 20px;
+      min-height: 40px;
+    }
+    #loadingDots {
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <button id="bigButton">FIX THE WORLD</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const button = document.getElementById("bigButton");
+    const statusDiv = document.getElementById("status");
+
+    function showLoading() {
+      statusDiv.innerHTML = "Calculating impossible solution<span id='loadingDots'></span>";
+      let dots = 0;
+      return setInterval(() => {
+        dots = (dots + 1) % 4;
+        document.getElementById("loadingDots").innerText = ".".repeat(dots);
+      }, 500);
+    }
+
+    async function getWorldFix() {
+      const impossiblePrompts = [
+        "Propose a humorous way to solve the Ukraine-Russia war instantly.",
+        "Come up with a silly solution to stop climate change overnight.",
+        "Suggest how world hunger could be ended by everyone pressing a big red button.",
+        "Explain how the economy could be fixed instantly in a funny way.",
+        "Invent a ridiculous but hopeful way AI could make world peace happen today."
+      ];
+      const prompt = impossiblePrompts[Math.floor(Math.random() * impossiblePrompts.length)];
+      const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai&temperature=1&referrer=www.ai-ministries.com`;
+      try {
+        const response = await fetch(url);
+        return await response.text();
+      } catch (err) {
+        return "Oops, the AI button jammed. Please try again!";
+      }
+    }
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      let loadingInterval = showLoading();
+      const result = await getWorldFix();
+      clearInterval(loadingInterval);
+      statusDiv.innerHTML = `<strong>Result:</strong> ${result}`;
+      button.disabled = false;
+    });
+  </script>
+</body>
+</html>
