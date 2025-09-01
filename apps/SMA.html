@@ -1101,13 +1101,26 @@
         }
 
         async function copyFormattedPost(content, button = null) {
-            // Clean and format the content for copying
-            const cleanContent = content
+            // Clean and format the content for copying with proper line breaks
+            let cleanContent = content
                 .replace(/^\s+|\s+$/g, '') // Remove leading/trailing whitespace
                 .replace(/\n\s*\n/g, '\n\n') // Clean up multiple line breaks
                 .replace(/\s+/g, ' ') // Replace multiple spaces with single space
                 .replace(/ \n/g, '\n') // Remove spaces before line breaks
                 .trim();
+
+            // Add strategic line breaks for better social media formatting
+            cleanContent = cleanContent
+                // Break after emojis followed by text
+                .replace(/([🌟🚀✨🌱🔥💥🌿💎🎯🎉⚡🌈💪🔥]+)\s*([A-Z][^.!?]*[.!?])/g, '$1\n\n$2')
+                // Break after sentences ending with punctuation + emoji
+                .replace(/([.!?])\s*([🌟🚀✨🌱🔥💥🌿💎🎯🎉⚡🌈💪🔥]+)\s*([A-Z])/g, '$1 $2\n\n$3')
+                // Break before "Don't miss out" type phrases
+                .replace(/\s+(Don't miss|Limited time|Perfect for|Share your)/g, '\n\n$1')
+                // Break before hashtag sections (when 3+ hashtags in a row)
+                .replace(/\s+(#\w+\s+#\w+\s+#\w+)/g, '\n\n$1')
+                // Clean up any triple line breaks
+                .replace(/\n\n\n+/g, '\n\n');
 
             try {
                 await navigator.clipboard.writeText(cleanContent);
