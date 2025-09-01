@@ -384,6 +384,7 @@ Examples:
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
             
+            // Handle TTS - trigger speaking which will handle continuous mode properly
             if (speak && role === 'ai') {
                 speakText(messageDiv.querySelector('.speak-btn'));
             }
@@ -470,13 +471,8 @@ Examples:
                 // Add AI response to history first
                 chatHistory.push({ role: 'assistant', content: aiResponse });
                 
-                // Add message and handle speech properly
-                addMessage('ai', aiResponse, false);
-                
-                // Handle speech in proper sequence
-                if (autoSpeak || continuousMode) {
-                    await speakResponse(aiResponse);
-                }
+                // Add message with proper speech handling
+                addMessage('ai', aiResponse, autoSpeak || continuousMode);
                 
             } catch (error) {
                 removeLoadingMessage();
