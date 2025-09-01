@@ -269,16 +269,10 @@
     </style>
 </head>
 <body>
-    <div class="container">
+            <div class="container">
         <div class="header">
             <h1>🌟 Kid-Friendly AI Buddy 🌟</h1>
             <p>Ask me anything! I'm here to help and chat safely!</p>
-        </div>
-        
-        <div class="disclaimer">
-            <strong>⚠️ Important for Parents:</strong> This is an AI assistant designed for children 6+ with content filtering. 
-            AI responses may not always be perfect. Please supervise your child's interactions and verify important information. 
-            This tool is meant to inspire learning and creativity under adult guidance.
         </div>
 
         <div class="input-container">
@@ -286,12 +280,15 @@
                 <button class="control-btn" onclick="clearChat()">🗑️ Clear Chat</button>
                 <button class="control-btn" onclick="toggleAutoSpeak()">🔊 Auto-Speak: <span id="autoSpeakStatus">OFF</span></button>
                 <button class="control-btn" onclick="toggleContinuousMode()">🔄 Continuous Talk: <span id="continuousStatus">OFF</span></button>
+                <button id="stopSpeakBtn" class="control-btn stop-speak-btn" onclick="stopSpeaking()" style="display: none;">🛑 Stop Talking</button>
             </div>
             
-            <div class="input-row">
-                <input type="text" id="userInput" placeholder="Ask me something fun or educational!" maxlength="200">
-                <button id="sendBtn" onclick="sendMessage()">Send! 🚀</button>
-                <button id="listenBtn" class="listen-btn" onclick="toggleListening()">🎤 Talk to Me!</button>
+            <div class="input-wrapper">
+                <input type="text" id="userInput" placeholder="Ask me something fun!" maxlength="100">
+                <div class="button-row">
+                    <button id="sendBtn" onclick="sendMessage()">Send! 🚀</button>
+                    <button id="listenBtn" class="listen-btn" onclick="toggleListening()">🎤 Talk to Me!</button>
+                </div>
             </div>
             <div id="voiceStatus" class="voice-status" style="display: none;"></div>
             <div id="filterWarning" class="filtered-warning" style="display: none;"></div>
@@ -300,9 +297,15 @@
         <div class="chat-container" id="chatContainer">
             <div class="message ai-message">
                 <div class="message-header">AI Buddy 🤖</div>
-                <div>Hi there! I'm your friendly AI buddy! 😊 I love answering questions about science, animals, space, books, and lots of fun stuff! What would you like to know today?</div>
+                <div>Hi! I'm your AI buddy! What would you like to know?</div>
                 <button class="speak-btn" onclick="speakText(this)" title="Listen to this message">🔊</button>
             </div>
+        </div>
+
+        <div class="disclaimer">
+            <strong>⚠️ Important for Parents:</strong> This is an AI assistant designed for children 6+ with content filtering. 
+            AI responses may not always be perfect. Please supervise your child's interactions and verify important information. 
+            This tool is meant to inspire learning and creativity under adult guidance.
         </div>
     </div>
 
@@ -310,8 +313,10 @@
         let chatHistory = [];
         let autoSpeak = false;
         let isListening = false;
+        let isSpeaking = false;
         let recognition = null;
         let continuousMode = false;
+        let currentUtterance = null;
         const MAX_HISTORY = 6; // Keep conversation short for kids
         
         // Only filter truly inappropriate words - let AI handle the rest
@@ -320,38 +325,22 @@
             'sex', 'porn', 'nude', 'naked', 'rape', 'murder', 'kill yourself'
         ];
 
-        // System prompt for kid-friendly responses
-        const SYSTEM_PROMPT = `You are a friendly, educational AI assistant specifically designed for children aged 6 and up. Your personality is:
+        // System prompt for super short, kid-friendly responses
+        const SYSTEM_PROMPT = `You are a friendly AI buddy for kids aged 5-8. Keep responses VERY SHORT - just one sentence maximum!
 
-PERSONALITY:
-- Cheerful, encouraging, and patient
-- Use simple, age-appropriate language
-- Include emojis and enthusiasm in responses
-- Always positive and supportive
-- Educational but fun
+RULES:
+- ONE sentence only, never more
+- Use simple words a 5-year-old knows
+- Be encouraging and positive
+- Add one emoji at the end
+- If asked complex questions, give simple answers
+- Never discuss scary, violent, or inappropriate topics
+- Redirect inappropriate topics to fun things
 
-SAFETY RULES:
-- NEVER discuss violence, weapons, death, scary topics, or inappropriate content
-- Don't provide personal information or ask for it
-- Keep responses short (2-3 sentences max)
-- If asked about something inappropriate, redirect to a fun, educational topic
-- Never roleplay as anything other than a helpful AI friend
-
-TOPICS TO ENCOURAGE:
-- Science experiments and nature
-- Animals and pets
-- Space and planets
-- Books and stories
-- Art and creativity
-- Math in fun ways
-- Healthy habits
-- Friendship and kindness
-
-RESPONSE STYLE:
-- Keep it simple and fun
-- Ask follow-up questions to keep engagement
-- Praise curiosity and learning
-- Use age-appropriate examples`;
+Examples:
+"Cats are furry pets that say meow and love to play! 🐱"
+"The sun is a big bright star that gives us light! ☀️"
+"Reading books is fun and helps you learn new things! 📚"`;
 
         function filterInput(text) {
             const lowerText = text.toLowerCase();
@@ -420,6 +409,7 @@ RESPONSE STYLE:
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const sendBtn = document.getElementById('sendBtn');
+            const listenBtn = document.getElementById('listenBtn');
             const message = input.value.trim();
             
             if (!message) return;
@@ -430,10 +420,16 @@ RESPONSE STYLE:
                 return;
             }
             
+            // Stop any current speech and listening
+            stopAllAudio();
+            
+            // Disable controls during processing
+            sendBtn.disabled = true;
+            listenBtn.classList.add('disabled');
+            
             // Add user message
             addMessage('user', message);
             input.value = '';
-            sendBtn.disabled = true;
             
             // Add to history (keep it short for kids)
             chatHistory.push({ role: 'user', content: message });
@@ -456,7 +452,7 @@ RESPONSE STYLE:
                             ...chatHistory
                         ],
                         temperature: 0.3,
-                        max_tokens: 150,
+                        max_tokens: 50, // Much shorter for kids
                         private: false,
                         referrer: 'www.ai-ministries.com'
                     })
@@ -470,46 +466,102 @@ RESPONSE STYLE:
                 const aiResponse = data.choices[0].message.content;
                 
                 removeLoadingMessage();
-                addMessage('ai', aiResponse, autoSpeak || continuousMode);
                 
-                // Add AI response to history
+                // Add AI response to history first
                 chatHistory.push({ role: 'assistant', content: aiResponse });
                 
-                // If continuous mode, start listening again after speaking
-                if (continuousMode && !isListening) {
-                    setTimeout(() => {
-                        if (continuousMode) { // Check again in case user turned it off
-                            startListeningAgain();
-                        }
-                    }, 2000); // Wait 2 seconds for speech to start
+                // Add message and handle speech properly
+                addMessage('ai', aiResponse, false); // Don't auto-speak here
+                
+                // Handle speech in proper sequence
+                if (autoSpeak || continuousMode) {
+                    await speakResponse(aiResponse);
                 }
                 
             } catch (error) {
                 removeLoadingMessage();
                 console.error('Error:', error);
-                addMessage('ai', "Oops! I'm having trouble thinking right now. Could you try asking me something else? 😅");
-                
-                // Still continue listening in continuous mode even on error
-                if (continuousMode && !isListening) {
-                    setTimeout(() => {
-                        if (continuousMode) {
-                            startListeningAgain();
-                        }
-                    }, 2000);
-                }
+                addMessage('ai', "Oops! I'm having trouble right now. Try again! 😅", false);
             }
             
+            // Re-enable controls
             sendBtn.disabled = false;
+            listenBtn.classList.remove('disabled');
         }
 
-        function startListeningAgain() {
-            if (recognition && continuousMode && !isListening) {
-                try {
-                    recognition.start();
-                } catch (error) {
-                    console.log('Recognition already in progress or unavailable');
+        async function speakResponse(text) {
+            return new Promise((resolve) => {
+                if (!('speechSynthesis' in window)) {
+                    resolve();
+                    return;
                 }
+                
+                // Clean text for speech
+                const cleanText = cleanTextForSpeech(text);
+                
+                currentUtterance = new SpeechSynthesisUtterance(cleanText);
+                currentUtterance.rate = 0.7; // Slower for kids
+                currentUtterance.pitch = 1.1;
+                
+                // Try to use a child-friendly voice
+                const voices = speechSynthesis.getVoices();
+                const preferredVoice = voices.find(voice => 
+                    voice.name.includes('Female') || 
+                    voice.name.includes('Google US English') ||
+                    voice.lang.includes('en-US')
+                );
+                
+                if (preferredVoice) {
+                    currentUtterance.voice = preferredVoice;
+                }
+                
+                currentUtterance.onstart = () => {
+                    isSpeaking = true;
+                    document.getElementById('stopSpeakBtn').style.display = 'inline-block';
+                };
+                
+                currentUtterance.onend = () => {
+                    isSpeaking = false;
+                    document.getElementById('stopSpeakBtn').style.display = 'none';
+                    
+                    // Only start listening again if continuous mode is on AND we're not already listening
+                    if (continuousMode && !isListening) {
+                        setTimeout(() => {
+                            if (continuousMode && !isListening && !isSpeaking) {
+                                startListeningAgain();
+                            }
+                        }, 500);
+                    }
+                    resolve();
+                };
+                
+                currentUtterance.onerror = () => {
+                    isSpeaking = false;
+                    document.getElementById('stopSpeakBtn').style.display = 'none';
+                    resolve();
+                };
+                
+                speechSynthesis.speak(currentUtterance);
+            });
+        }
+
+        function stopAllAudio() {
+            // Stop speech synthesis
+            if (speechSynthesis.speaking) {
+                speechSynthesis.cancel();
             }
+            
+            // Stop listening
+            if (isListening && recognition) {
+                recognition.stop();
+            }
+            
+            isSpeaking = false;
+            document.getElementById('stopSpeakBtn').style.display = 'none';
+        }
+
+        function stopSpeaking() {
+            stopAllAudio();
         }
 
         function speakText(button) {
@@ -669,6 +721,18 @@ RESPONSE STYLE:
         }
         
         function toggleListening() {
+            const listenBtn = document.getElementById('listenBtn');
+            
+            // Don't start listening if we're speaking
+            if (isSpeaking) {
+                document.getElementById('voiceStatus').textContent = '🔊 Wait for me to finish talking first!';
+                document.getElementById('voiceStatus').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('voiceStatus').style.display = 'none';
+                }, 2000);
+                return;
+            }
+            
             if (!recognition) {
                 if (!initSpeechRecognition()) {
                     alert("🔇 Sorry! Your browser doesn't support voice recognition. You can still type your questions! 😊");
@@ -683,6 +747,9 @@ RESPONSE STYLE:
                     document.getElementById('voiceStatus').style.display = 'none';
                 }, 2000);
             } else {
+                // Stop any speech before listening
+                stopAllAudio();
+                
                 try {
                     recognition.start();
                 } catch (error) {
