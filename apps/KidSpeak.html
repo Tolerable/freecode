@@ -440,57 +440,34 @@ Examples:
             addLoadingMessage();
             
             try {
-                // Try POST first, then fallback to GET if it fails (common on mobile)
-                let response;
-                let aiResponse;
+                const response = await fetch('https://text.pollinations.ai/openai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'openai',
+                        messages: [
+                            { role: 'system', content: SYSTEM_PROMPT },
+                            ...chatHistory
+                        ],
+                        temperature: 0.3,
+                        max_tokens: 50,
+                        private: false,
+                        referrer: 'www.ai-ministries.com'
+                    })
+                });
                 
-                try {
-                    response = await fetch('https://text.pollinations.ai/openai', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            model: 'openai',
-                            messages: [
-                                { role: 'system', content: SYSTEM_PROMPT },
-                                ...chatHistory
-                            ],
-                            temperature: 0.3,
-                            max_tokens: 50,
-                            private: false,
-                            referrer: 'www.ai-ministries.com'
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('POST failed');
-                    }
-                    
-                    const data = await response.json();
-                    aiResponse = data.choices[0].message.content;
-                    
-                } catch (postError) {
-                    console.log('POST failed, trying GET fallback:', postError);
-                    
-                    // Fallback to GET endpoint (often works better on mobile)
-                    const prompt = `You are a friendly AI for kids 5-8. Give ONE short sentence answer with simple words and one emoji at the end. Question: ${message}`;
-                    const encodedPrompt = encodeURIComponent(prompt);
-                    
-                    response = await fetch(`https://text.pollinations.ai/${encodedPrompt}?model=openai&temperature=0.3&max_tokens=50&referrer=www.ai-ministries.com`, {
-                        method: 'GET'
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`GET also failed: ${response.status}`);
-                    }
-                    
-                    aiResponse = await response.text();
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
                 
                 removeLoadingMessage();
                 
-                // Add AI response to history
+                // Add AI response to history first
                 chatHistory.push({ role: 'assistant', content: aiResponse });
                 
                 // Add message and handle speech properly
@@ -503,8 +480,8 @@ Examples:
                 
             } catch (error) {
                 removeLoadingMessage();
-                console.error('Both POST and GET failed:', error);
-                addMessage('ai', "Sorry, I can't connect right now. Check your internet! 📱", false);
+                console.error('Error:', error);
+                addMessage('ai', "Oops! I'm having trouble right now. Try again! 😅", false);
             }
             
             // Re-enable controls
