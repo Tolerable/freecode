@@ -702,11 +702,11 @@
                     <p class="premium-header">🚀 Premium Features Include:</p>
                     <ul class="premium-features">
                         <li>✨ Unlimited posts per day</li>
-                        <li>🎯 Advanced targeting suggestions</li>
-                        <li>📊 Multiple post variations</li>
-                        <li>🖼️ Image generation integration</li>
-                        <li>📅 Scheduling recommendations</li>
-                        <li>🎨 Custom brand voice training</li>
+                        <li>💾 Extended conversation history (10 vs 4 messages)</li>
+                        <li>🧠 Enhanced AI responses (1000 vs 500 tokens)</li>
+                        <li>📚 Access to previous conversations</li>
+                        <li>⚡ Priority processing</li>
+                        <li>🎯 No daily usage limits</li>
                     </ul>
                     <p class="premium-note">Get your free unlock code to access all features!</p>
                 </div>
@@ -824,7 +824,16 @@
             const existingUsage = document.querySelector('.usage-limit');
             if (existingUsage) existingUsage.remove();
             
-            if (!isRegistered && dailyUsageCount >= DAILY_LIMIT) {
+            if (isRegistered) {
+                // Show premium status instead of usage limits
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'usage-limit';
+                statusDiv.style.background = '#e8f5e8';
+                statusDiv.style.color = '#2e7d32';
+                statusDiv.style.borderColor = '#4CAF50';
+                statusDiv.innerHTML = `✨ Premium Active - Unlimited posts & enhanced features`;
+                conversationArea.appendChild(statusDiv);
+            } else if (dailyUsageCount >= DAILY_LIMIT) {
                 const usageDiv = document.createElement('div');
                 usageDiv.className = 'usage-limit';
                 usageDiv.innerHTML = `
@@ -834,7 +843,7 @@
                     </a>
                 `;
                 conversationArea.appendChild(usageDiv);
-            } else if (!isRegistered) {
+            } else {
                 const usageDiv = document.createElement('div');
                 usageDiv.className = 'usage-limit';
                 usageDiv.innerHTML = `📊 Free plan: ${dailyUsageCount}/${DAILY_LIMIT} posts used today`;
@@ -937,9 +946,8 @@
                 codeInput.value = '';
                 errorText.textContent = '';
                 
-                // Remove usage display
-                const usageLimit = document.querySelector('.usage-limit');
-                if (usageLimit) usageLimit.remove();
+                // Update usage display immediately
+                updateUsageDisplay();
                 
                 // Show success message
                 const conversationArea = document.getElementById('conversationArea');
@@ -947,7 +955,7 @@
                 successMsg.className = 'message ai-message';
                 successMsg.innerHTML = `
                     <div class="message-header">Assistant</div>
-                    <div>🎉 Premium features unlocked! You now have unlimited posts and access to all advanced features. Thank you for supporting this project!</div>
+                    <div>🎉 Premium features unlocked! You now have unlimited posts and enhanced AI responses. Thank you for supporting this project!</div>
                 `;
                 conversationArea.appendChild(successMsg);
                 conversationArea.scrollTop = conversationArea.scrollHeight;
