@@ -476,7 +476,7 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
                             ...chatHistory
                         ],
                         temperature: 0.3,
-                        max_tokens: sentenceLength === 1 ? 50 : sentenceLength === 2 ? 80 : 120,
+                        max_tokens: sentenceLength === 1 ? 50 : sentenceLength === 2 ? 100 : 180,
                         private: false,
                         referrer: 'www.ai-ministries.com'
                     })
@@ -791,7 +791,15 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
                     isListening = false;
                     updateListenButton();
                     
-                    if (!continuousMode) {
+                    // If in continuous mode and we didn't get a result, restart listening
+                    if (continuousMode && !isSpeaking) {
+                        setTimeout(() => {
+                            if (continuousMode && !isListening && !isSpeaking) {
+                                console.log('Restarting listening after onend in continuous mode');
+                                startListeningForNext();
+                            }
+                        }, 1000);
+                    } else if (!continuousMode) {
                         setTimeout(() => {
                             if (!document.getElementById('voiceStatus').textContent.includes('I heard:')) {
                                 document.getElementById('voiceStatus').style.display = 'none';
