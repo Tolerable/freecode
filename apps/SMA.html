@@ -825,14 +825,16 @@
             if (existingUsage) existingUsage.remove();
             
             if (isRegistered) {
-                // Show premium status instead of usage limits
+                // Show premium status at the TOP of conversation area
                 const statusDiv = document.createElement('div');
                 statusDiv.className = 'usage-limit';
                 statusDiv.style.background = '#e8f5e8';
                 statusDiv.style.color = '#2e7d32';
                 statusDiv.style.borderColor = '#4CAF50';
                 statusDiv.innerHTML = `✨ Premium Active - Unlimited posts & enhanced features`;
-                conversationArea.appendChild(statusDiv);
+                
+                // Insert at the beginning instead of appending
+                conversationArea.insertBefore(statusDiv, conversationArea.firstChild);
             } else if (dailyUsageCount >= DAILY_LIMIT) {
                 const usageDiv = document.createElement('div');
                 usageDiv.className = 'usage-limit';
@@ -842,12 +844,12 @@
                         Unlock unlimited posts
                     </a>
                 `;
-                conversationArea.appendChild(usageDiv);
+                conversationArea.insertBefore(usageDiv, conversationArea.firstChild);
             } else {
                 const usageDiv = document.createElement('div');
                 usageDiv.className = 'usage-limit';
                 usageDiv.innerHTML = `📊 Free plan: ${dailyUsageCount}/${DAILY_LIMIT} posts used today`;
-                conversationArea.appendChild(usageDiv);
+                conversationArea.insertBefore(usageDiv, conversationArea.firstChild);
             }
         }
 
@@ -1078,19 +1080,82 @@
             document.getElementById('hashtagsDisplay').textContent = hashtags.slice(0, 5).join(' ');
             
             updateCharacterCount();
+            
+            // Add mobile copy button to conversation area
+            addMobileCopyButton(content);
+        }
+
+        function addMobileCopyButton(postContent) {
+            // Remove existing mobile copy button
+            const existingBtn = document.querySelector('.mobile-copy-btn');
+            if (existingBtn) existingBtn.remove();
+            
+            const conversationArea = document.getElementById('conversationArea');
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'mobile-copy-btn';
+            copyBtn.textContent = '📋 Copy Post';
+            copyBtn.onclick = () => copyFormattedPost(postContent, copyBtn);
+            
+            conversationArea.appendChild(copyBtn);
+            conversationArea.scrollTop = conversationArea.scrollHeight;
+        }
+
+        async function copyFormattedPost(content, button = null) {
+            // Clean and format the content for copying
+            const cleanContent = content
+                .replace(/^\s+|\s+$/g, '') // Remove leading/trailing whitespace
+                .replace(/\n\s*\n/g, '\n\n') // Clean up multiple line breaks
+                .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                .replace(/ \n/g, '\n') // Remove spaces before line breaks
+                .trim();
+
+            try {
+                await navigator.clipboard.writeText(cleanContent);
+                
+                if (button) {
+                    const originalText = button.textContent;
+                    button.textContent = '✅ Copied!';
+                    button.classList.add('copy-success');
+                    
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.classList.remove('copy-success');
+                    }, 2000);
+                }
+                
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = cleanContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                if (button) {
+                    const originalText = button.textContent;
+                    button.textContent = '✅ Copied!';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                    }, 2000);
+                }
+            }
         }
 
         function getSystemPrompt() {
             const platform = platformLimits[currentPlatform];
             return `You are a social media content creation assistant. Create posts specifically for ${platform.name} with a ${platform.chars} character limit.
 
-IMPORTANT GUIDELINES:
-- Always create ready-to-post content in your response
+DO NOT include ANY commentary, remarks, or meta-text like "Here's your post", "Ready to copy", "Final post content", or similar phrases. 
+
+RESPOND WITH ONLY THE POST CONTENT - NOTHING ELSE.
+
+Guidelines:
 - For ${platform.name}, keep under ${platform.chars} characters
 - Include relevant hashtags when appropriate
 - Match the platform's typical tone and format
 - Make content engaging and actionable
-- If user asks for changes, provide the full revised post
 
 Platform-specific considerations:
 - Instagram: Use engaging captions with strategic hashtags, encourage interaction
@@ -1100,7 +1165,7 @@ Platform-specific considerations:
 - TikTok: Trendy, fun, include popular hashtags
 - General: Balanced approach suitable for multiple platforms
 
-Always end your response with the final post content that's ready to copy and use.`;
+IMPORTANT: Your response should be the social media post itself - no introductions, no explanations, no "copy ready" messages.`;
         }
 
         async function processUserInput(userInput) {
@@ -1151,7 +1216,17 @@ Always end your response with the final post content that's ready to copy and us
                 }
                 
                 const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
+                let aiResponse = data.choices[0].message.content;
+                
+                // Clean up the AI response by removing common meta-text
+                aiResponse = aiResponse
+                    .replace(/^.*?ready to copy[!.]?\s*/i, '')
+                    .replace(/.*?here's your post[!.]?\s*/i, '')
+                    .replace(/.*?final post[!.]?\s*/i, '')
+                    .replace(/.*?content ready[!.]?\s*/i, '')
+                    .replace(/^.*?here it is[!.]?\s*/i, '')
+                    .replace(/^.*?here you go[!.]?\s*/i, '')
+                    .trim();
                 
                 removeLoadingMessage();
                 addMessage('ai', aiResponse);
@@ -1164,7 +1239,7 @@ Always end your response with the final post content that's ready to copy and us
                 incrementUsage();
                 updateUsageDisplay();
                 
-                // Speak the response
+                // Speak the response (keep the audio feedback)
                 if (window.speechSynthesis) {
                     const utterance = new SpeechSynthesisUtterance("I've created your post! Check the preview on the right.");
                     utterance.rate = 0.9;
@@ -1307,31 +1382,7 @@ Always end your response with the final post content that's ready to copy and us
         }
 
         async function copyToClipboard() {
-            try {
-                await navigator.clipboard.writeText(currentPost);
-                
-                // Visual feedback
-                const btn = event.target;
-                const originalText = btn.textContent;
-                btn.textContent = 'Copied!';
-                btn.style.background = '#4CAF50';
-                
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                    btn.style.background = '#667eea';
-                }, 2000);
-                
-            } catch (err) {
-                console.error('Failed to copy: ', err);
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = currentPost;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert('Post copied to clipboard!');
-            }
+            await copyFormattedPost(currentPost, event.target);
         }
 
         function regeneratePost() {
