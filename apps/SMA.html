@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta viewport="width=device-width, initial-scale=1.0">
+    <title>Voice Social Media Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .conversation-panel {
+            padding: 30px;
+            background: #f8f9ff;
+            border-right: 2px solid #e1e5e9;
+        }
+
+        .preview-panel {
+            padding: 30px;
+            background: white;
+        }
+
+        .voice-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .voice-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .voice-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .voice-btn.listening {
+            background: #ff9800;
+            animation: pulse 1.5s infinite;
+        }
+
+        .voice-btn.speaking {
+            background: #4CAF50;
+        }
+
+        .voice-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .platform-selector {
+            margin-bottom: 25px;
+        }
+
+        .platform-selector h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .platform-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+        }
+
+        .platform-btn {
+            background: #f1f3f4;
+            border: 2px solid #e1e5e9;
+            padding: 12px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: #666;
+        }
+
+        .platform-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .platform-btn:hover:not(.active) {
+            background: #e8eaed;
+            border-color: #dadce0;
+        }
+
+        .conversation-area {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e1e5e9;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            border-radius: 15px;
+            max-width: 85%;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .user-message {
+            background: #e3f2fd;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .ai-message {
+            background: #f1f8e9;
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-header {
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 6px;
+            opacity: 0.8;
+        }
+
+        .voice-status {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+
+        .voice-status.active {
+            display: block;
+        }
+
+        .manual-input {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #e1e5e9;
+        }
+
+        .manual-input input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .manual-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .preview-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            min-height: 300px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .preview-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .post-preview {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e1e5e9;
+        }
+
+        .post-content {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-wrap;
+            margin-bottom: 15px;
+            min-height: 120px;
+        }
+
+        .post-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid #e1e5e9;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .hashtags {
+            color: #1da1f2;
+            font-weight: 500;
+        }
+
+        .char-count {
+            font-weight: 600;
+        }
+
+        .char-count.warning {
+            color: #ff9800;
+        }
+
+        .char-count.error {
+            color: #f44336;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .action-btn.secondary {
+            background: #6c757d;
+        }
+
+        .action-btn.secondary:hover {
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .tips {
+            background: #e8f5e8;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #2e7d32;
+        }
+
+        .tips h4 {
+            margin-bottom: 8px;
+            color: #1b5e20;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .conversation-panel {
+                border-right: none;
+                border-bottom: 2px solid #e1e5e9;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .voice-controls {
+                flex-direction: column;
+            }
+            
+            .voice-btn {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Voice Social Media Assistant</h1>
+            <p>Talk to create perfect posts for any platform - no typing required!</p>
+        </div>
+
+        <div class="main-content">
+            <div class="conversation-panel">
+                <div class="voice-controls">
+                    <button id="startBtn" class="voice-btn" onclick="startConversation()">Start Talking</button>
+                    <button id="stopBtn" class="voice-btn" onclick="stopEverything()" disabled>Stop</button>
+                    <button id="clearBtn" class="voice-btn secondary" onclick="clearConversation()">Clear All</button>
+                </div>
+
+                <div class="platform-selector">
+                    <h3>Choose Your Platform:</h3>
+                    <div class="platform-buttons">
+                        <button class="platform-btn active" onclick="selectPlatform('instagram')">Instagram</button>
+                        <button class="platform-btn" onclick="selectPlatform('twitter')">Twitter</button>
+                        <button class="platform-btn" onclick="selectPlatform('facebook')">Facebook</button>
+                        <button class="platform-btn" onclick="selectPlatform('linkedin')">LinkedIn</button>
+                        <button class="platform-btn" onclick="selectPlatform('tiktok')">TikTok</button>
+                        <button class="platform-btn" onclick="selectPlatform('general')">General</button>
+                    </div>
+                </div>
+
+                <div id="voiceStatus" class="voice-status"></div>
+
+                <div class="tips">
+                    <h4>Quick Tips:</h4>
+                    • Say "create a post about..." to start<br>
+                    • Mention your target audience<br>
+                    • Include your main message or call to action<br>
+                    • Say "make it more casual" or "make it professional" to adjust tone
+                </div>
+
+                <div class="conversation-area" id="conversationArea">
+                    <div class="message ai-message">
+                        <div class="message-header">Assistant</div>
+                        <div>Hi! I'm here to help you create amazing social media posts using just your voice. Tell me what kind of post you want to create, and I'll help you craft it perfectly for your chosen platform!</div>
+                    </div>
+                </div>
+
+                <div class="manual-input">
+                    <input type="text" id="manualInput" placeholder="Or type your message here..." maxlength="500">
+                    <button class="voice-btn" onclick="sendManualMessage()" style="width: 100%; margin-top: 10px;">Send Message</button>
+                </div>
+            </div>
+
+            <div class="preview-panel">
+                <div class="preview-container">
+                    <div class="preview-header">
+                        <div class="preview-title" id="previewTitle">Instagram Post Preview</div>
+                    </div>
+                    
+                    <div class="post-preview">
+                        <div class="post-content" id="postContent">Your generated post will appear here. Start by telling me what you'd like to post about!</div>
+                        <div class="post-meta">
+                            <div class="hashtags" id="hashtagsDisplay"></div>
+                            <div class="char-count" id="charCount">0 characters</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="copyToClipboard()">Copy Post</button>
+                    <button class="action-btn secondary" onclick="regeneratePost()">Regenerate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPlatform = 'instagram';
+        let conversationHistory = [];
+        let isListening = false;
+        let isSpeaking = false;
+        let recognition = null;
+        let currentPost = '';
+        let lastUserInput = '';
+
+        const platformLimits = {
+            instagram: { chars: 2200, name: 'Instagram' },
+            twitter: { chars: 280, name: 'Twitter' },
+            facebook: { chars: 63206, name: 'Facebook' },
+            linkedin: { chars: 3000, name: 'LinkedIn' },
+            tiktok: { chars: 300, name: 'TikTok' },
+            general: { chars: 1000, name: 'General' }
+        };
+
+        function updateVoiceStatus(message, isActive = true) {
+            const statusEl = document.getElementById('voiceStatus');
+            statusEl.textContent = message;
+            statusEl.className = isActive ? 'voice-status active' : 'voice-status';
+        }
+
+        function selectPlatform(platform) {
+            currentPlatform = platform;
+            
+            // Update button states
+            document.querySelectorAll('.platform-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update preview title
+            document.getElementById('previewTitle').textContent = `${platformLimits[platform].name} Post Preview`;
+            
+            // Update character count
+            updateCharacterCount();
+        }
+
+        function updateCharacterCount() {
+            const content = document.getElementById('postContent').textContent;
+            const count = content.length;
+            const limit = platformLimits[currentPlatform].chars;
+            const charCountEl = document.getElementById('charCount');
+            
+            charCountEl.textContent = `${count}/${limit} characters`;
+            charCountEl.className = 'char-count';
+            
+            if (count > limit * 0.9) {
+                charCountEl.classList.add('warning');
+            }
+            if (count > limit) {
+                charCountEl.classList.add('error');
+            }
+        }
+
+        function addMessage(role, content) {
+            const conversationArea = document.getElementById('conversationArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
+            
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'message-header';
+            headerDiv.textContent = role === 'user' ? 'You' : 'Assistant';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(headerDiv);
+            messageDiv.appendChild(contentDiv);
+            conversationArea.appendChild(messageDiv);
+            conversationArea.scrollTop = conversationArea.scrollHeight;
+        }
+
+        function addLoadingMessage() {
+            const conversationArea = document.getElementById('conversationArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai-message loading';
+            messageDiv.id = 'loadingMessage';
+            messageDiv.textContent = 'Creating your post';
+            conversationArea.appendChild(messageDiv);
+            conversationArea.scrollTop = conversationArea.scrollHeight;
+        }
+
+        function removeLoadingMessage() {
+            const loadingMsg = document.getElementById('loadingMessage');
+            if (loadingMsg) {
+                loadingMsg.remove();
+            }
+        }
+
+        function updatePostPreview(content) {
+            const postContentEl = document.getElementById('postContent');
+            postContentEl.textContent = content;
+            currentPost = content;
+            
+            // Extract hashtags for display
+            const hashtags = content.match(/#\w+/g) || [];
+            document.getElementById('hashtagsDisplay').textContent = hashtags.slice(0, 5).join(' ');
+            
+            updateCharacterCount();
+        }
+
+        function getSystemPrompt() {
+            const platform = platformLimits[currentPlatform];
+            return `You are a social media content creation assistant. Create posts specifically for ${platform.name} with a ${platform.chars} character limit.
+
+IMPORTANT GUIDELINES:
+- Always create ready-to-post content in your response
+- For ${platform.name}, keep under ${platform.chars} characters
+- Include relevant hashtags when appropriate
+- Match the platform's typical tone and format
+- Make content engaging and actionable
+- If user asks for changes, provide the full revised post
+
+Platform-specific considerations:
+- Instagram: Use engaging captions with strategic hashtags, encourage interaction
+- Twitter: Be concise, use trending hashtags, include calls to action
+- Facebook: Longer form content okay, encourage comments and shares
+- LinkedIn: Professional tone, industry insights, networking focus
+- TikTok: Trendy, fun, include popular hashtags
+- General: Balanced approach suitable for multiple platforms
+
+Always end your response with the final post content that's ready to copy and use.`;
+        }
+
+        async function processUserInput(userInput) {
+            if (!userInput.trim()) return;
+            
+            lastUserInput = userInput;
+            addMessage('user', userInput);
+            conversationHistory.push({ role: 'user', content: userInput });
+            
+            // Keep conversation history manageable
+            if (conversationHistory.length > 10) {
+                conversationHistory = conversationHistory.slice(-8);
+            }
+            
+            addLoadingMessage();
+            
+            try {
+                const response = await fetch('https://text.pollinations.ai/openai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'openai',
+                        messages: [
+                            { role: 'system', content: getSystemPrompt() },
+                            ...conversationHistory
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 1000,
+                        private: false,
+                        referrer: 'www.ai-ministries.com'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+                
+                removeLoadingMessage();
+                addMessage('ai', aiResponse);
+                conversationHistory.push({ role: 'assistant', content: aiResponse });
+                
+                // Update post preview with the generated content
+                updatePostPreview(aiResponse);
+                
+                // Speak the response
+                if (window.speechSynthesis) {
+                    const utterance = new SpeechSynthesisUtterance("I've created your post! Check the preview on the right.");
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1;
+                    window.speechSynthesis.speak(utterance);
+                }
+                
+            } catch (error) {
+                removeLoadingMessage();
+                console.error('Error:', error);
+                addMessage('ai', "Sorry, I'm having trouble right now. Please try again!");
+                updateVoiceStatus("Error occurred. Please try again.", false);
+            }
+        }
+
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+                recognition.maxAlternatives = 1;
+                
+                recognition.onstart = function() {
+                    isListening = true;
+                    updateButtons();
+                    updateVoiceStatus('🎤 Listening... Speak now!');
+                };
+                
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    updateVoiceStatus(`I heard: "${transcript}"`);
+                    
+                    setTimeout(() => {
+                        processUserInput(transcript);
+                    }, 1000);
+                };
+                
+                recognition.onerror = function(event) {
+                    isListening = false;
+                    updateButtons();
+                    
+                    let errorMessage = "Sorry, I couldn't hear you clearly. ";
+                    switch(event.error) {
+                        case 'network':
+                            errorMessage += "Check your internet connection.";
+                            break;
+                        case 'not-allowed':
+                            errorMessage += "Please allow microphone access.";
+                            break;
+                        case 'no-speech':
+                            errorMessage += "I didn't hear anything.";
+                            break;
+                        default:
+                            errorMessage += "Please try again.";
+                    }
+                    
+                    updateVoiceStatus(errorMessage, false);
+                };
+                
+                recognition.onend = function() {
+                    isListening = false;
+                    updateButtons();
+                };
+                
+                return true;
+            }
+            return false;
+        }
+
+        function startConversation() {
+            if (!recognition) {
+                if (!initSpeechRecognition()) {
+                    alert("Voice recognition not available in your browser. You can use the text input below!");
+                    return;
+                }
+            }
+            
+            if (isListening) {
+                recognition.stop();
+            } else {
+                try {
+                    recognition.start();
+                } catch (error) {
+                    console.error('Error starting recognition:', error);
+                    updateVoiceStatus('Microphone is busy. Try again!', false);
+                }
+            }
+        }
+
+        function stopEverything() {
+            if (recognition && isListening) {
+                recognition.stop();
+            }
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+            isListening = false;
+            isSpeaking = false;
+            updateButtons();
+            updateVoiceStatus('', false);
+        }
+
+        function updateButtons() {
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            
+            if (isListening) {
+                startBtn.textContent = 'Stop Listening';
+                startBtn.classList.add('listening');
+                stopBtn.disabled = false;
+            } else {
+                startBtn.textContent = 'Start Talking';
+                startBtn.classList.remove('listening');
+                stopBtn.disabled = true;
+            }
+        }
+
+        function sendManualMessage() {
+            const input = document.getElementById('manualInput');
+            const message = input.value.trim();
+            if (message) {
+                processUserInput(message);
+                input.value = '';
+            }
+        }
+
+        function clearConversation() {
+            document.getElementById('conversationArea').innerHTML = `
+                <div class="message ai-message">
+                    <div class="message-header">Assistant</div>
+                    <div>Hi! I'm here to help you create amazing social media posts using just your voice. Tell me what kind of post you want to create, and I'll help you craft it perfectly for your chosen platform!</div>
+                </div>
+            `;
+            conversationHistory = [];
+            updatePostPreview("Your generated post will appear here. Start by telling me what you'd like to post about!");
+            stopEverything();
+        }
+
+        async function copyToClipboard() {
+            try {
+                await navigator.clipboard.writeText(currentPost);
+                
+                // Visual feedback
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#4CAF50';
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#667eea';
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = currentPost;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Post copied to clipboard!');
+            }
+        }
+
+        function regeneratePost() {
+            if (lastUserInput) {
+                processUserInput(`Please create a different version: ${lastUserInput}`);
+            } else {
+                addMessage('ai', 'Please tell me what kind of post you want to create first!');
+            }
+        }
+
+        // Enter key for manual input
+        document.getElementById('manualInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendManualMessage();
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initSpeechRecognition();
+            updateButtons();
+        });
+    </script>
+</body>
+</html>
