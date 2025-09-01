@@ -442,30 +442,26 @@ RESPONSE STYLE:
             
             addLoadingMessage();
             
+            // Try POST endpoint first, fallback to GET if CORS issues
             try {
-                const response = await fetch('https://text.pollinations.ai/openai', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'openai',
-                        messages: [
-                            { role: 'system', content: SYSTEM_PROMPT },
-                            ...chatHistory
-                        ],
-                        temperature: 0.3, // Lower temperature for more predictable, kid-safe responses
-                        max_tokens: 150, // Keep responses short
-                        referrer: 'www.ai-ministries.com'
-                    })
-                });
+                let response = await tryPostRequest(message);
+                if (!response.ok && response.status === 0) {
+                    // CORS issue, try GET endpoint instead
+                    response = await tryGetRequest(message);
+                }
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
+                let aiResponse;
+                if (response.headers.get('content-type')?.includes('application/json')) {
+                    const data = await response.json();
+                    aiResponse = data.choices[0].message.content;
+                } else {
+                    // GET endpoint returns plain text
+                    aiResponse = await response.text();
+                }
                 
                 removeLoadingMessage();
                 addMessage('ai', aiResponse, autoSpeak);
@@ -480,6 +476,34 @@ RESPONSE STYLE:
             }
             
             sendBtn.disabled = false;
+        }
+
+        async function tryPostRequest(message) {
+            return fetch('https://text.pollinations.ai/openai', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'openai',
+                    messages: [
+                        { role: 'system', content: SYSTEM_PROMPT },
+                        { role: 'user', content: message }
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 150,
+                    private: false,
+                    referrer: 'www.ai-ministries.com'
+                })
+            });
+        }
+
+        async function tryGetRequest(message) {
+            // Create a kid-friendly prompt combining system instructions with user message
+            const combinedPrompt = `You are a friendly AI buddy for children aged 6+. Be cheerful, educational, and safe. Keep responses short and fun with emojis. Child asks: "${message}"`;
+            const encodedPrompt = encodeURIComponent(combinedPrompt);
+            
+            return fetch(`https://text.pollinations.ai/${encodedPrompt}?model=openai&temperature=0.3&referrer=www.ai-ministries.com&private=false`);
         }
 
         function speakText(button) {
