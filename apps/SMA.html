@@ -742,10 +742,145 @@
         let currentPost = '';
         let lastUserInput = '';
         let dailyUsageCount = 0;
+        let currentUserQuery = '';
 
-        const DAILY_LIMIT = 10; // Free users get 10 posts per day
+        const DAILY_LIMIT = 10;
         const USAGE_KEY = 'socialMediaUsage';
         const LAST_RESET_KEY = 'lastUsageReset';
+        const SAVED_POSTS_KEY = 'savedSocialPosts';
+
+        // Saved posts management
+        function getSavedPosts() {
+            return JSON.parse(localStorage.getItem(SAVED_POSTS_KEY) || '[]');
+        }
+
+        function savePosts(posts) {
+            localStorage.setItem(SAVED_POSTS_KEY, JSON.stringify(posts));
+            updateSavedPostsDisplay();
+        }
+
+        function getMaxSavedPosts() {
+            return localStorage.getItem('registered') === 'true' ? 20 : 3;
+        }
+
+        function toggleSavePost(query, content, button) {
+            const savedPosts = getSavedPosts();
+            const postId = Date.now().toString();
+            
+            // Check if already saved
+            const existingIndex = savedPosts.findIndex(post => 
+                post.query === query && post.content === content
+            );
+            
+            if (existingIndex >= 0) {
+                // Remove from saved
+                savedPosts.splice(existingIndex, 1);
+                button.innerHTML = '💾';
+                button.classList.remove('saved');
+                button.title = 'Save this post';
+            } else {
+                // Check limits
+                const maxPosts = getMaxSavedPosts();
+                if (savedPosts.length >= maxPosts) {
+                    const isRegistered = localStorage.getItem('registered') === 'true';
+                    if (!isRegistered) {
+                        openRegistrationModal();
+                        return;
+                    } else {
+                        // Remove oldest for premium users
+                        savedPosts.shift();
+                    }
+                }
+                
+                // Add to saved
+                savedPosts.push({
+                    id: postId,
+                    query: query,
+                    content: content,
+                    platform: currentPlatform,
+                    timestamp: Date.now(),
+                    date: new Date().toLocaleDateString()
+                });
+                
+                button.innerHTML = '💾';
+                button.classList.add('saved');
+                button.title = 'Saved! Click to unsave';
+            }
+            
+            savePosts(savedPosts);
+        }
+
+        function updateSavedPostsDisplay() {
+            const savedPosts = getSavedPosts();
+            const toggleBtn = document.getElementById('savedPostsToggle');
+            const panel = document.getElementById('savedPostsPanel');
+            
+            // Check if elements exist before accessing them
+            if (!toggleBtn || !panel) {
+                return;
+            }
+            
+            toggleBtn.textContent = `📁 Saved Posts (${savedPosts.length})`;
+            
+            if (savedPosts.length === 0) {
+                panel.innerHTML = `
+                    <div style="text-align: center; color: #666; font-size: 14px; padding: 20px;">
+                        No saved posts yet. Click the 💾 button next to posts you want to save!
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = savedPosts.map(post => `
+                <div class="saved-post-item" onclick="restoreSavedPost('${post.id}')">
+                    <div class="saved-post-query">"${post.query.length > 50 ? post.query.substring(0, 50) + '...' : post.query}"</div>
+                    <div class="saved-post-preview">${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</div>
+                    <div class="saved-post-meta">
+                        <span>${post.platform.charAt(0).toUpperCase() + post.platform.slice(1)} • ${post.date}</span>
+                        <button class="delete-saved-btn" onclick="deleteSavedPost(event, '${post.id}')">×</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            panel.innerHTML = html;
+        }
+
+        function restoreSavedPost(postId) {
+            const savedPosts = getSavedPosts();
+            const post = savedPosts.find(p => p.id === postId);
+            
+            if (post) {
+                // Update post preview
+                updatePostPreview(post.content);
+                
+                // Add to conversation
+                addMessage('user', post.query);
+                addMessage('ai', post.content, post.query);
+                
+                // Set platform
+                selectPlatformById(post.platform);
+            }
+        }
+
+        function deleteSavedPost(event, postId) {
+            event.stopPropagation();
+            const savedPosts = getSavedPosts();
+            const filteredPosts = savedPosts.filter(post => post.id !== postId);
+            savePosts(filteredPosts);
+        }
+
+        function selectPlatformById(platform) {
+            const buttons = document.querySelectorAll('.platform-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.toLowerCase() === platform) {
+                    btn.classList.add('active');
+                }
+            });
+            currentPlatform = platform;
+            document.getElementById('previewTitle').textContent = `${platformLimits[platform].name} Post Preview`;
+            updateCharacterCount();
+        }
 
         // Premium restriction system
         const DEMO_RESTRICTIONS = {
@@ -872,11 +1007,42 @@
         // Initialize registration system on page load
         document.addEventListener('DOMContentLoaded', function() {
             // Update copyright year automatically
-            document.getElementById('current-year').textContent = new Date().getFullYear();
+            const yearElement = document.getElementById('current-year');
+            if (yearElement) {
+                yearElement.textContent = new Date().getFullYear();
+            }
+            
+            // Initialize saved posts
+            updateSavedPostsDisplay();
+            
+            // Saved posts toggle - with null check
+            const savedPostsToggle = document.getElementById('savedPostsToggle');
+            if (savedPostsToggle) {
+                savedPostsToggle.onclick = () => {
+                    const panel = document.getElementById('savedPostsPanel');
+                    if (panel) {
+                        panel.classList.toggle('active');
+                    }
+                };
+            }
             
             checkDailyUsage();
             const isRegistered = localStorage.getItem('registered') === 'true';
             const registerBtn = document.getElementById('register-btn');
+            
+            if (!registerBtn) {
+                console.warn('Register button not found');
+                return;
+            }
+            
+            if (isRegistered) {
+                registerBtn.textContent = 'PREMIUM ACTIVE';
+                registerBtn.classList.add('registered');
+                registerBtn.onclick = openRegistrationModal;
+            } else {
+                registerBtn.onclick = openRegistrationModal;
+                updateUsageDisplay();
+            }
             
             if (isRegistered) {
                 registerBtn.textContent = 'PREMIUM ACTIVE';
@@ -1035,7 +1201,7 @@
             }
         }
 
-        function addMessage(role, content) {
+        function addMessage(role, content, userQuery = null) {
             const conversationArea = document.getElementById('conversationArea');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
@@ -1049,6 +1215,17 @@
             
             messageDiv.appendChild(headerDiv);
             messageDiv.appendChild(contentDiv);
+            
+            // Add save button for AI responses
+            if (role === 'ai' && userQuery) {
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'save-btn';
+                saveBtn.innerHTML = '💾';
+                saveBtn.title = 'Save this post';
+                saveBtn.onclick = () => toggleSavePost(userQuery, content, saveBtn);
+                messageDiv.appendChild(saveBtn);
+            }
+            
             conversationArea.appendChild(messageDiv);
             conversationArea.scrollTop = conversationArea.scrollHeight;
         }
@@ -1194,6 +1371,7 @@ IMPORTANT: Your response should be the social media post itself - no introductio
             }
             
             lastUserInput = userInput;
+            currentUserQuery = userInput; // Store for saving functionality
             addMessage('user', userInput);
             conversationHistory.push({ role: 'user', content: userInput });
             
@@ -1242,7 +1420,7 @@ IMPORTANT: Your response should be the social media post itself - no introductio
                     .trim();
                 
                 removeLoadingMessage();
-                addMessage('ai', aiResponse);
+                addMessage('ai', aiResponse, currentUserQuery); // Pass user query for save functionality
                 conversationHistory.push({ role: 'assistant', content: aiResponse });
                 
                 // Update post preview with the generated content
