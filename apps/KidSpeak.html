@@ -269,7 +269,7 @@
     </style>
 </head>
 <body>
-            <div class="container">
+    <div class="container">
         <div class="header">
             <h1>🌟 Kid-Friendly AI Buddy 🌟</h1>
             <p>Ask me anything! I'm here to help and chat safely!</p>
@@ -336,11 +336,12 @@ RULES:
 - If asked complex questions, give simple answers
 - Never discuss scary, violent, or inappropriate topics
 - Redirect inappropriate topics to fun things
+- ALWAYS end with "What else would you like to know?" to keep conversation going
 
 Examples:
-"Cats are furry pets that say meow and love to play! 🐱"
-"The sun is a big bright star that gives us light! ☀️"
-"Reading books is fun and helps you learn new things! 📚"`;
+"Cats are furry pets that say meow and love to play! 🐱 What else would you like to know?"
+"The sun is a big bright star that gives us light! ☀️ What else would you like to know?"
+"Reading books is fun and helps you learn new things! 📚 What else would you like to know?"`;
 
         function filterInput(text) {
             const lowerText = text.toLowerCase();
@@ -384,9 +385,11 @@ Examples:
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
             
-            // Handle TTS - trigger speaking which will handle continuous mode properly
+            // Handle TTS for AI messages
             if (speak && role === 'ai') {
-                speakText(messageDiv.querySelector('.speak-btn'));
+                setTimeout(() => {
+                    speakTextAndContinue(messageDiv.querySelector('.speak-btn'));
+                }, 500);
             }
         }
 
@@ -453,7 +456,7 @@ Examples:
                             ...chatHistory
                         ],
                         temperature: 0.3,
-                        max_tokens: 50,
+                        max_tokens: 80,
                         private: false,
                         referrer: 'www.ai-ministries.com'
                     })
@@ -474,13 +477,6 @@ Examples:
                 // Add message with proper speech handling
                 addMessage('ai', aiResponse, autoSpeak || continuousMode);
                 
-                // If continuous mode but not auto-speak, still need to handle the prompt
-                if (continuousMode && !autoSpeak) {
-                    setTimeout(() => {
-                        speakPromptAndListen();
-                    }, 1000);
-                }
-                
             } catch (error) {
                 removeLoadingMessage();
                 console.error('Error:', error);
@@ -492,60 +488,19 @@ Examples:
             listenBtn.classList.remove('disabled');
         }
 
-        async function speakResponse(text) {
-            return new Promise((resolve) => {
-                if (!('speechSynthesis' in window)) {
-                    resolve();
-                    return;
-                }
-                
-                // Clean text for speech
-                const cleanText = cleanTextForSpeech(text);
-                
-                currentUtterance = new SpeechSynthesisUtterance(cleanText);
-                currentUtterance.rate = 0.7; // Slower for kids
-                currentUtterance.pitch = 1.1;
-                
-                // Try to use a child-friendly voice
-                const voices = speechSynthesis.getVoices();
-                const preferredVoice = voices.find(voice => 
-                    voice.name.includes('Female') || 
-                    voice.name.includes('Google US English') ||
-                    voice.lang.includes('en-US')
-                );
-                
-                if (preferredVoice) {
-                    currentUtterance.voice = preferredVoice;
-                }
-                
-                currentUtterance.onstart = () => {
-                    isSpeaking = true;
-                    document.getElementById('stopSpeakBtn').style.display = 'inline-block';
-                };
-                
-                currentUtterance.onend = () => {
-                    isSpeaking = false;
-                    document.getElementById('stopSpeakBtn').style.display = 'none';
-                    
-                    // Only start listening again if continuous mode is on AND we're not already listening
-                    if (continuousMode && !isListening) {
-                        setTimeout(() => {
-                            if (continuousMode && !isListening && !isSpeaking) {
-                                startListeningAgain();
-                            }
-                        }, 500);
-                    }
-                    resolve();
-                };
-                
-                currentUtterance.onerror = () => {
-                    isSpeaking = false;
-                    document.getElementById('stopSpeakBtn').style.display = 'none';
-                    resolve();
-                };
-                
-                speechSynthesis.speak(currentUtterance);
-            });
+        function cleanTextForSpeech(text) {
+            return text
+                .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emoticons
+                .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // Misc Symbols and Pictographs
+                .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // Transport and Map
+                .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '') // Regional country flags
+                .replace(/[\u{2600}-\u{26FF}]/gu, '')   // Misc symbols
+                .replace(/[\u{2700}-\u{27BF}]/gu, '')   // Dingbats
+                .replace(/[\u{1F900}-\u{1F9FF}]/gu, '') // Supplemental Symbols and Pictographs
+                .replace(/[\u{1F018}-\u{1F270}]/gu, '') // Various symbols
+                .replace(/🤖|👤|😊|😅|🌟|🚀|🗑️|🔊|⚠️|🎤|🛑|📝|🔇|🎧|🖼️|📈|🔄|🔑/g, '') // Specific emoji
+                .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                .trim();
         }
 
         function stopAllAudio() {
@@ -567,32 +522,89 @@ Examples:
             stopAllAudio();
         }
 
-        function speakText(button) {
+        // NEW: Function to speak text and then continue conversation if in continuous mode
+        function speakTextAndContinue(button) {
             const messageContent = button.parentElement.children[1].textContent;
-            
-            // Remove ALL emoji and special characters for TTS
-            const cleanText = messageContent
-                .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emoticons
-                .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // Misc Symbols and Pictographs
-                .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // Transport and Map
-                .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '') // Regional country flags
-                .replace(/[\u{2600}-\u{26FF}]/gu, '')   // Misc symbols
-                .replace(/[\u{2700}-\u{27BF}]/gu, '')   // Dingbats
-                .replace(/[\u{1F900}-\u{1F9FF}]/gu, '') // Supplemental Symbols and Pictographs
-                .replace(/[\u{1F018}-\u{1F270}]/gu, '') // Various symbols
-                .replace(/🤖|👤|😊|😅|🌟|🚀|🗑️|🔊|⚠️|🎤|🛑|📝|🔇|🎧|🖼️|📈|🔄|🔑/g, '') // Specific emoji
-                .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-                .trim();
+            const cleanText = cleanTextForSpeech(messageContent);
             
             if ('speechSynthesis' in window) {
-                // Cancel any ongoing speech
+                speechSynthesis.cancel();
+                
+                currentUtterance = new SpeechSynthesisUtterance(cleanText);
+                currentUtterance.rate = 0.7; // Slower for kids
+                currentUtterance.pitch = 1.1;
+                
+                const voices = speechSynthesis.getVoices();
+                const preferredVoice = voices.find(voice => 
+                    voice.name.includes('Female') || 
+                    voice.name.includes('Google US English') ||
+                    voice.lang.includes('en-US')
+                );
+                
+                if (preferredVoice) {
+                    currentUtterance.voice = preferredVoice;
+                }
+                
+                currentUtterance.onstart = () => {
+                    isSpeaking = true;
+                    document.getElementById('stopSpeakBtn').style.display = 'inline-block';
+                };
+                
+                currentUtterance.onend = () => {
+                    isSpeaking = false;
+                    document.getElementById('stopSpeakBtn').style.display = 'none';
+                    
+                    // Continue conversation if in continuous mode
+                    if (continuousMode) {
+                        setTimeout(() => {
+                            startListeningForNext();
+                        }, 1000);
+                    }
+                };
+                
+                currentUtterance.onerror = () => {
+                    isSpeaking = false;
+                    document.getElementById('stopSpeakBtn').style.display = 'none';
+                };
+                
+                speechSynthesis.speak(currentUtterance);
+            }
+        }
+
+        // NEW: Function to start listening for the next question in continuous mode
+        function startListeningForNext() {
+            if (!continuousMode || isListening || isSpeaking) return;
+            
+            document.getElementById('voiceStatus').textContent = '🎤 Ready for your next question! Speak now...';
+            document.getElementById('voiceStatus').style.display = 'block';
+            
+            if (recognition) {
+                try {
+                    setTimeout(() => {
+                        if (continuousMode && !isListening && !isSpeaking) {
+                            recognition.start();
+                        }
+                    }, 500);
+                } catch (error) {
+                    console.error('Error starting continuous recognition:', error);
+                    setTimeout(() => {
+                        if (continuousMode) startListeningForNext();
+                    }, 2000);
+                }
+            }
+        }
+
+        function speakText(button) {
+            const messageContent = button.parentElement.children[1].textContent;
+            const cleanText = cleanTextForSpeech(messageContent);
+            
+            if ('speechSynthesis' in window) {
                 speechSynthesis.cancel();
                 
                 const utterance = new SpeechSynthesisUtterance(cleanText);
-                utterance.rate = 0.8; // Slightly slower for kids
-                utterance.pitch = 1.1; // Slightly higher pitch for friendliness
+                utterance.rate = 0.8;
+                utterance.pitch = 1.1;
                 
-                // Try to use a child-friendly voice
                 const voices = speechSynthesis.getVoices();
                 const preferredVoice = voices.find(voice => 
                     voice.name.includes('Female') || 
@@ -603,17 +615,6 @@ Examples:
                 if (preferredVoice) {
                     utterance.voice = preferredVoice;
                 }
-                
-                // If continuous mode, start listening after speech ends
-                utterance.onend = function() {
-                    if (continuousMode && !isListening) {
-                        setTimeout(() => {
-                            if (continuousMode) {
-                                startListeningAgain();
-                            }
-                        }, 500);
-                    }
-                };
                 
                 speechSynthesis.speak(utterance);
             } else {
@@ -641,14 +642,17 @@ Examples:
             
             if (continuousMode) {
                 // If turning on continuous mode, start listening
-                if (!isListening && recognition) {
-                    toggleListening();
+                if (!isListening && recognition && !isSpeaking) {
+                    setTimeout(() => {
+                        toggleListening();
+                    }, 500);
                 }
             } else {
                 // If turning off continuous mode, stop listening
                 if (isListening && recognition) {
                     recognition.stop();
                 }
+                document.getElementById('voiceStatus').style.display = 'none';
             }
         }
 
@@ -663,17 +667,13 @@ Examples:
                 recognition.lang = 'en-US';
                 recognition.maxAlternatives = 1;
                 
-                // Android-specific settings
-                if (/Android/i.test(navigator.userAgent)) {
-                    recognition.continuous = false; // Force single recognition on Android
-                    recognition.interimResults = false;
-                }
-                
                 recognition.onstart = function() {
                     isListening = true;
                     updateListenButton();
-                    document.getElementById('voiceStatus').textContent = '🎤 Listening... Speak now!';
-                    document.getElementById('voiceStatus').style.display = 'block';
+                    if (!document.getElementById('voiceStatus').textContent.includes('Ready for your next question')) {
+                        document.getElementById('voiceStatus').textContent = '🎤 Listening... Speak now!';
+                        document.getElementById('voiceStatus').style.display = 'block';
+                    }
                 };
                 
                 recognition.onresult = function(event) {
@@ -702,20 +702,25 @@ Examples:
                             break;
                         case 'no-speech':
                             errorMessage += "I didn't hear anything. Try speaking louder!";
+                            if (continuousMode) {
+                                setTimeout(() => startListeningForNext(), 2000);
+                            }
                             break;
                         case 'audio-capture':
                             errorMessage += "Microphone not working. Try typing instead!";
                             break;
-                        case 'service-not-allowed':
-                            errorMessage += "Speech recognition not available. Try typing!";
-                            break;
                         default:
                             errorMessage += "Try clicking the microphone button again!";
+                            if (continuousMode) {
+                                setTimeout(() => startListeningForNext(), 2000);
+                            }
                     }
                     
                     document.getElementById('voiceStatus').textContent = errorMessage;
                     setTimeout(() => {
-                        document.getElementById('voiceStatus').style.display = 'none';
+                        if (!continuousMode) {
+                            document.getElementById('voiceStatus').style.display = 'none';
+                        }
                     }, 4000);
                     
                     isListening = false;
@@ -725,11 +730,14 @@ Examples:
                 recognition.onend = function() {
                     isListening = false;
                     updateListenButton();
-                    setTimeout(() => {
-                        if (!document.getElementById('voiceStatus').textContent.includes('I heard:')) {
-                            document.getElementById('voiceStatus').style.display = 'none';
-                        }
-                    }, 3000);
+                    
+                    if (!continuousMode) {
+                        setTimeout(() => {
+                            if (!document.getElementById('voiceStatus').textContent.includes('I heard:')) {
+                                document.getElementById('voiceStatus').style.display = 'none';
+                            }
+                        }, 3000);
+                    }
                 };
                 
                 return true;
@@ -740,19 +748,19 @@ Examples:
         function toggleListening() {
             const listenBtn = document.getElementById('listenBtn');
             
-            // Don't start listening if we're speaking
             if (isSpeaking) {
                 document.getElementById('voiceStatus').textContent = '🔊 Wait for me to finish talking first!';
                 document.getElementById('voiceStatus').style.display = 'block';
                 setTimeout(() => {
-                    document.getElementById('voiceStatus').style.display = 'none';
+                    if (!continuousMode) {
+                        document.getElementById('voiceStatus').style.display = 'none';
+                    }
                 }, 2000);
                 return;
             }
             
             if (!recognition) {
                 if (!initSpeechRecognition()) {
-                    // Show mobile-friendly message
                     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                     const message = isMobile ? 
                         "🔇 Voice recognition not available on this browser. You can type your questions! 😊" :
@@ -766,14 +774,14 @@ Examples:
                 recognition.stop();
                 document.getElementById('voiceStatus').textContent = '🛑 Stopped listening.';
                 setTimeout(() => {
-                    document.getElementById('voiceStatus').style.display = 'none';
+                    if (!continuousMode) {
+                        document.getElementById('voiceStatus').style.display = 'none';
+                    }
                 }, 2000);
             } else {
-                // Stop any speech before listening
                 stopAllAudio();
                 
                 try {
-                    // Add extra delay for Android
                     if (/Android/i.test(navigator.userAgent)) {
                         setTimeout(() => {
                             recognition.start();
@@ -786,7 +794,9 @@ Examples:
                     document.getElementById('voiceStatus').textContent = '🔇 Microphone is busy. Please try again in a moment!';
                     document.getElementById('voiceStatus').style.display = 'block';
                     setTimeout(() => {
-                        document.getElementById('voiceStatus').style.display = 'none';
+                        if (!continuousMode) {
+                            document.getElementById('voiceStatus').style.display = 'none';
+                        }
                     }, 3000);
                 }
             }
@@ -812,7 +822,6 @@ Examples:
 
         // Initialize speech recognition on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Try to initialize speech recognition
             initSpeechRecognition();
         });
 
