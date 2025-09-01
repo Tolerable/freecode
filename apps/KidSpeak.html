@@ -575,7 +575,7 @@ Examples:
         function startListeningForNext() {
             if (!continuousMode || isListening || isSpeaking) return;
             
-            document.getElementById('voiceStatus').textContent = '🎤 Ready for your next question! Speak now...';
+            document.getElementById('voiceStatus').textContent = '🎤 Ready for your next question! Take your time...';
             document.getElementById('voiceStatus').style.display = 'block';
             
             if (recognition) {
@@ -583,6 +583,19 @@ Examples:
                     setTimeout(() => {
                         if (continuousMode && !isListening && !isSpeaking) {
                             recognition.start();
+                            
+                            // Set a longer timeout for kids - restart listening if it stops too soon
+                            setTimeout(() => {
+                                if (continuousMode && !isListening && !isSpeaking) {
+                                    console.log('Restarting listening session for continuous mode');
+                                    try {
+                                        recognition.start();
+                                    } catch(e) {
+                                        console.log('Recognition restart failed, will try again');
+                                        setTimeout(() => startListeningForNext(), 1000);
+                                    }
+                                }
+                            }, 8000); // Restart after 8 seconds if no speech detected
                         }
                     }, 500);
                 } catch (error) {
@@ -662,8 +675,8 @@ Examples:
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 recognition = new SpeechRecognition();
                 
-                recognition.continuous = false;
-                recognition.interimResults = false;
+                recognition.continuous = true;  // Changed to true for longer listening
+                recognition.interimResults = true;  // Changed to true to detect speech sooner
                 recognition.lang = 'en-US';
                 recognition.maxAlternatives = 1;
                 
@@ -677,16 +690,25 @@ Examples:
                 };
                 
                 recognition.onresult = function(event) {
-                    const transcript = event.results[0][0].transcript;
-                    document.getElementById('userInput').value = transcript;
-                    document.getElementById('voiceStatus').textContent = `📝 I heard: "${transcript}"`;
+                    // Get the latest result (final or interim)
+                    const lastResultIndex = event.results.length - 1;
+                    const result = event.results[lastResultIndex];
+                    const transcript = result[0].transcript.trim();
                     
-                    // Auto-send the message after a short delay
-                    setTimeout(() => {
-                        if (transcript.trim()) {
+                    if (result.isFinal && transcript) {
+                        // Only process final results with actual content
+                        recognition.stop(); // Stop listening to process the message
+                        document.getElementById('userInput').value = transcript;
+                        document.getElementById('voiceStatus').textContent = `📝 I heard: "${transcript}"`;
+                        
+                        // Auto-send the message after a short delay
+                        setTimeout(() => {
                             sendMessage();
-                        }
-                    }, 1000);
+                        }, 1000);
+                    } else if (transcript) {
+                        // Show interim results to give feedback that it's hearing
+                        document.getElementById('voiceStatus').textContent = `🎤 Hearing: "${transcript}..."`;
+                    }
                 };
                 
                 recognition.onerror = function(event) {
