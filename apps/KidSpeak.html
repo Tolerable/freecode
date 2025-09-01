@@ -206,18 +206,18 @@
         }
 
         .sentence-length-btn {
-            background: #4CAF50 !important; /* Green for 1 sentence */
+            background: #4CAF50 !important;
             color: white;
             font-weight: bold;
             min-width: 45px;
         }
 
         .sentence-length-btn.two-sentences {
-            background: #ff9800 !important; /* Orange for 2 sentences */
+            background: #ff9800 !important;
         }
 
         .sentence-length-btn.three-sentences {
-            background: #9c27b0 !important; /* Purple for 3 sentences */
+            background: #9c27b0 !important;
         }
 
         .listen-btn {
@@ -239,8 +239,16 @@
         }
 
         .listen-btn.listening {
-            background: #ff4444;
+            background: #ff9800;
             animation: pulse 1.5s infinite;
+        }
+
+        .listen-btn.speaking {
+            background: #ff4444;
+        }
+
+        .listen-btn.speaking:hover {
+            background: #ff3333;
         }
 
         @keyframes pulse {
@@ -296,7 +304,6 @@
                 <button class="control-btn" onclick="toggleAutoSpeak()">🔊 Auto-Speak: <span id="autoSpeakStatus">OFF</span></button>
                 <button class="control-btn" onclick="toggleContinuousMode()">🔄 Continuous Talk: <span id="continuousStatus">OFF</span></button>
                 <button id="sentenceLengthBtn" class="control-btn sentence-length-btn" onclick="toggleSentenceLength()">📝 1</button>
-                <button id="stopSpeakBtn" class="control-btn stop-speak-btn" onclick="stopSpeaking()" style="display: none;">🛑 Stop Talking</button>
             </div>
             
             <div class="input-wrapper">
@@ -333,33 +340,25 @@
         let recognition = null;
         let continuousMode = false;
         let currentUtterance = null;
-        let sentenceLength = 1; // 1, 2, or 3 sentences
-        const MAX_HISTORY = 6; // Keep conversation short for kids
+        let sentenceLength = 1;
+        const MAX_HISTORY = 6;
         
-        // Only filter truly inappropriate words - let AI handle the rest
         const inappropriateWords = [
             'fuck', 'shit', 'bitch', 'damn', 'hell', 'ass', 'asshole', 'bastard',
             'sex', 'porn', 'nude', 'naked', 'rape', 'murder', 'kill yourself'
         ];
 
-        // System prompt for adjustable response length
         function getSystemPrompt() {
             const basePROMPT = `You are a friendly AI buddy for kids. Be encouraging and positive, add one emoji at the end, use simple words, never discuss scary/violent topics, and redirect inappropriate topics to fun things.
 
 ALWAYS end with "What else would you like to know?" to keep conversation going.`;
 
             if (sentenceLength === 1) {
-                return basePROMPT + `\n\nIMPORTANT: Keep responses to ONE sentence maximum!
-
-Example: "Cats are furry pets that say meow and love to play! 🐱 What else would you like to know?"`;
+                return basePROMPT + `\n\nIMPORTANT: Keep responses to ONE sentence maximum!`;
             } else if (sentenceLength === 2) {
-                return basePROMPT + `\n\nIMPORTANT: Keep responses to TWO sentences maximum!
-
-Example: "Cats are furry pets that say meow and love to play! They like to chase toys and sleep in sunny spots. 🐱 What else would you like to know?"`;
+                return basePROMPT + `\n\nIMPORTANT: Keep responses to TWO sentences maximum!`;
             } else {
-                return basePROMPT + `\n\nIMPORTANT: Keep responses to THREE sentences maximum!
-
-Example: "Cats are furry pets that say meow and love to play! They like to chase toys and sleep in sunny spots. Cats have excellent night vision and can see in the dark much better than humans can. 🐱 What else would you like to know?"`;
+                return basePROMPT + `\n\nIMPORTANT: Keep responses to THREE sentences maximum!`;
             }
         }
 
@@ -378,48 +377,39 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
             return true;
         }
 
-		function addMessage(role, content, speak = false) {
-			const chatContainer = document.getElementById('chatContainer');
-			const messageDiv = document.createElement('div');
-			messageDiv.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
-			
-			const headerDiv = document.createElement('div');
-			headerDiv.className = 'message-header';
-			headerDiv.textContent = role === 'user' ? 'You 👤' : 'AI Buddy 🤖';
-			
-			const contentDiv = document.createElement('div');
-			contentDiv.textContent = content;
-			
-			messageDiv.appendChild(headerDiv);
-			messageDiv.appendChild(contentDiv);
-			
-			if (role === 'ai') {
-				const speakBtn = document.createElement('button');
-				speakBtn.className = 'speak-btn';
-				speakBtn.innerHTML = '🔊';
-				speakBtn.title = 'Listen to this message';
-				speakBtn.onclick = () => speakText(speakBtn);
-				messageDiv.appendChild(speakBtn);
-			}
-			
-			chatContainer.appendChild(messageDiv);
-			chatContainer.scrollTop = chatContainer.scrollHeight;
-			
-			// FIXED: Handle TTS for AI messages - ensure we're not already speaking
-			if (speak && role === 'ai' && !isSpeaking) {
-				// Stop any current listening before speaking
-				if (isListening && recognition) {
-					recognition.stop();
-				}
-				
-				setTimeout(() => {
-					// Double-check we're not speaking before starting
-					if (!isSpeaking && !speechSynthesis.speaking) {
-						speakTextAndContinue(messageDiv.querySelector('.speak-btn'));
-					}
-				}, 1000); // Increased delay
-			}
-		}
+        function addMessage(role, content, speak = false) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
+            
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'message-header';
+            headerDiv.textContent = role === 'user' ? 'You 👤' : 'AI Buddy 🤖';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(headerDiv);
+            messageDiv.appendChild(contentDiv);
+            
+            if (role === 'ai') {
+                const speakBtn = document.createElement('button');
+                speakBtn.className = 'speak-btn';
+                speakBtn.innerHTML = '🔊';
+                speakBtn.title = 'Listen to this message';
+                speakBtn.onclick = () => speakText(speakBtn);
+                messageDiv.appendChild(speakBtn);
+            }
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            if (speak && role === 'ai') {
+                setTimeout(() => {
+                    speakMessage(messageDiv.querySelector('.speak-btn'));
+                }, 500);
+            }
+        }
 
         function addLoadingMessage() {
             const chatContainer = document.getElementById('chatContainer');
@@ -441,29 +431,21 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const sendBtn = document.getElementById('sendBtn');
-            const listenBtn = document.getElementById('listenBtn');
             const message = input.value.trim();
             
             if (!message) return;
-            
-            // Filter only truly inappropriate content
             if (!filterInput(message)) {
                 input.value = '';
                 return;
             }
             
-            // Stop any current speech and listening
-            stopAllAudio();
+            // Stop everything
+            stopEverything();
             
-            // Disable controls during processing
             sendBtn.disabled = true;
-            listenBtn.classList.add('disabled');
-            
-            // Add user message
             addMessage('user', message);
             input.value = '';
             
-            // Add to history (keep it short for kids)
             chatHistory.push({ role: 'user', content: message });
             if (chatHistory.length > MAX_HISTORY) {
                 chatHistory = chatHistory.slice(-MAX_HISTORY);
@@ -498,11 +480,7 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
                 const aiResponse = data.choices[0].message.content;
                 
                 removeLoadingMessage();
-                
-                // Add AI response to history first
                 chatHistory.push({ role: 'assistant', content: aiResponse });
-                
-                // Add message with proper speech handling
                 addMessage('ai', aiResponse, autoSpeak || continuousMode);
                 
             } catch (error) {
@@ -511,120 +489,83 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
                 addMessage('ai', "Oops! I'm having trouble right now. Try again! 😅", false);
             }
             
-            // Re-enable controls
             sendBtn.disabled = false;
-            listenBtn.classList.remove('disabled');
         }
 
         function cleanTextForSpeech(text) {
             return text
-                .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emoticons
-                .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // Misc Symbols and Pictographs
-                .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // Transport and Map
-                .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '') // Regional country flags
-                .replace(/[\u{2600}-\u{26FF}]/gu, '')   // Misc symbols
-                .replace(/[\u{2700}-\u{27BF}]/gu, '')   // Dingbats
-                .replace(/[\u{1F900}-\u{1F9FF}]/gu, '') // Supplemental Symbols and Pictographs
-                .replace(/[\u{1F018}-\u{1F270}]/gu, '') // Various symbols
-                .replace(/🤖|👤|😊|😅|🌟|🚀|🗑️|🔊|⚠️|🎤|🛑|📝|🔇|🎧|🖼️|📈|🔄|🔑/g, '') // Specific emoji
-                .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
+                .replace(/[\u{1F300}-\u{1F5FF}]/gu, '')
+                .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
+                .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
+                .replace(/[\u{2600}-\u{26FF}]/gu, '')
+                .replace(/[\u{2700}-\u{27BF}]/gu, '')
+                .replace(/[\u{1F900}-\u{1F9FF}]/gu, '')
+                .replace(/[\u{1F018}-\u{1F270}]/gu, '')
+                .replace(/🤖|👤|😊|😅|🌟|🚀|🗑️|🔊|⚠️|🎤|🛑|📝|🔇|🎧|🖼️|📈|🔄/g, '')
+                .replace(/\s+/g, ' ')
                 .trim();
         }
 
-        function stopAllAudio() {
-            // Stop speech synthesis
+        function stopEverything() {
             if (speechSynthesis.speaking) {
                 speechSynthesis.cancel();
             }
-            
-            // Stop listening
             if (isListening && recognition) {
                 recognition.stop();
             }
-            
             isSpeaking = false;
-            document.getElementById('stopSpeakBtn').style.display = 'none';
+            updateListenButton();
+            document.getElementById('voiceStatus').style.display = 'none';
         }
 
-        function stopSpeaking() {
-            stopAllAudio();
-        }
-
-        // NEW: Function to speak text and then continue conversation if in continuous mode
-		function speakTextAndContinue(button) {
-			const messageContent = button.parentElement.children[1].textContent;
-			const cleanText = cleanTextForSpeech(messageContent);
-			
-			if ('speechSynthesis' in window) {
-				speechSynthesis.cancel();
-				
-				currentUtterance = new SpeechSynthesisUtterance(cleanText);
-				currentUtterance.rate = 0.7; // Slower for kids
-				currentUtterance.pitch = 1.1;
-				
-				const voices = speechSynthesis.getVoices();
-				const preferredVoice = voices.find(voice => 
-					voice.name.includes('Female') || 
-					voice.name.includes('Google US English') ||
-					voice.lang.includes('en-US')
-				);
-				
-				if (preferredVoice) {
-					currentUtterance.voice = preferredVoice;
-				}
-				
-				currentUtterance.onstart = () => {
-					isSpeaking = true;
-					document.getElementById('stopSpeakBtn').style.display = 'inline-block';
-				};
-				
-				currentUtterance.onend = () => {
-					isSpeaking = false;
-					document.getElementById('stopSpeakBtn').style.display = 'none';
-					
-					// FIXED: Only continue conversation if in continuous mode AND not already listening
-					if (continuousMode && !isListening) {
-						// Wait longer to ensure everything is properly finished
-						setTimeout(() => {
-							// Double-check we're still in continuous mode and not listening
-							if (continuousMode && !isListening && !isSpeaking && !speechSynthesis.speaking) {
-								startListeningForNext();
-							}
-						}, 2000); // Increased delay to 2 seconds
-					}
-				};
-				
-				currentUtterance.onerror = () => {
-					isSpeaking = false;
-					document.getElementById('stopSpeakBtn').style.display = 'none';
-				};
-				
-				speechSynthesis.speak(currentUtterance);
-			}
-		}
-
-        // NEW: Function to start listening for the next question in continuous mode
-        function startListeningForNext() {
-            if (!continuousMode || isListening || isSpeaking) return;
+        function speakMessage(button) {
+            const messageContent = button.parentElement.children[1].textContent;
+            const cleanText = cleanTextForSpeech(messageContent);
             
-            document.getElementById('voiceStatus').textContent = '🎤 Ready for your next question! Speak when ready...';
-            document.getElementById('voiceStatus').style.display = 'block';
-            
-            if (recognition) {
-                // Simple approach - just restart listening with longer intervals
-                const attemptListen = () => {
-                    if (!continuousMode || isListening || isSpeaking) return;
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                
+                currentUtterance = new SpeechSynthesisUtterance(cleanText);
+                currentUtterance.rate = 0.7;
+                currentUtterance.pitch = 1.1;
+                
+                const voices = speechSynthesis.getVoices();
+                const preferredVoice = voices.find(voice => 
+                    voice.name.includes('Female') || 
+                    voice.name.includes('Google US English') ||
+                    voice.lang.includes('en-US')
+                );
+                
+                if (preferredVoice) {
+                    currentUtterance.voice = preferredVoice;
+                }
+                
+                currentUtterance.onstart = () => {
+                    isSpeaking = true;
+                    updateListenButton();
+                };
+                
+                currentUtterance.onend = () => {
+                    isSpeaking = false;
+                    updateListenButton();
                     
-                    try {
-                        recognition.start();
-                    } catch (error) {
-                        console.error('Recognition start error:', error);
-                        // Try again in 2 seconds if it fails
-                        setTimeout(attemptListen, 2000);
+                    // Only start listening in continuous mode after AI finishes speaking
+                    if (continuousMode) {
+                        setTimeout(() => {
+                            if (continuousMode && !isListening && !isSpeaking) {
+                                toggleListening();
+                            }
+                        }, 1000);
                     }
                 };
                 
-                setTimeout(attemptListen, 500);
+                currentUtterance.onerror = () => {
+                    isSpeaking = false;
+                    updateListenButton();
+                };
+                
+                speechSynthesis.speak(currentUtterance);
             }
         }
 
@@ -634,7 +575,6 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
             
             if ('speechSynthesis' in window) {
                 speechSynthesis.cancel();
-                
                 const utterance = new SpeechSynthesisUtterance(cleanText);
                 utterance.rate = 0.8;
                 utterance.pitch = 1.1;
@@ -651,8 +591,6 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
                 }
                 
                 speechSynthesis.speak(utterance);
-            } else {
-                alert("Sorry! Your browser doesn't support text-to-speech. 😔");
             }
         }
 
@@ -660,8 +598,8 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
             const chatContainer = document.getElementById('chatContainer');
             chatContainer.innerHTML = '';
             chatHistory = [];
+            stopEverything();
             
-            // Add welcome message back
             addMessage('ai', "Hi there! I'm your friendly AI buddy! 😊 I love answering questions about science, animals, space, books, and lots of fun stuff! What would you like to know today?");
         }
 
@@ -676,61 +614,38 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
             const btn = document.getElementById('sentenceLengthBtn');
             btn.textContent = `📝 ${sentenceLength}`;
             
-            // Update button color based on sentence length
             btn.className = 'control-btn sentence-length-btn';
             if (sentenceLength === 2) {
                 btn.classList.add('two-sentences');
             } else if (sentenceLength === 3) {
                 btn.classList.add('three-sentences');
             }
-            
-            // Update button title for accessibility
-            const labels = {
-                1: 'Short answers (1 sentence)',
-                2: 'Medium answers (2 sentences)', 
-                3: 'Longer answers (3 sentences)'
-            };
-            btn.title = labels[sentenceLength];
         }
 
         function toggleContinuousMode() {
             continuousMode = !continuousMode;
             document.getElementById('continuousStatus').textContent = continuousMode ? 'ON' : 'OFF';
             
-            if (continuousMode) {
-                // If turning on continuous mode, start listening
-                if (!isListening && recognition && !isSpeaking) {
-                    setTimeout(() => {
-                        toggleListening();
-                    }, 500);
-                }
-            } else {
-                // If turning off continuous mode, stop listening
-                if (isListening && recognition) {
-                    recognition.stop();
-                }
-                document.getElementById('voiceStatus').style.display = 'none';
+            if (!continuousMode) {
+                stopEverything();
             }
         }
 
-        // Speech Recognition Functions
         function initSpeechRecognition() {
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 recognition = new SpeechRecognition();
                 
-                recognition.continuous = false;  // Back to false - this was correct
-                recognition.interimResults = false;  // Back to false - this was correct  
+                recognition.continuous = false;
+                recognition.interimResults = false;
                 recognition.lang = 'en-US';
                 recognition.maxAlternatives = 1;
                 
                 recognition.onstart = function() {
                     isListening = true;
                     updateListenButton();
-                    if (!document.getElementById('voiceStatus').textContent.includes('Ready for your next question')) {
-                        document.getElementById('voiceStatus').textContent = '🎤 Listening... Speak now!';
-                        document.getElementById('voiceStatus').style.display = 'block';
-                    }
+                    document.getElementById('voiceStatus').textContent = '🎤 Listening... Speak now!';
+                    document.getElementById('voiceStatus').style.display = 'block';
                 };
                 
                 recognition.onresult = function(event) {
@@ -738,7 +653,6 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
                     document.getElementById('userInput').value = transcript;
                     document.getElementById('voiceStatus').textContent = `📝 I heard: "${transcript}"`;
                     
-                    // Auto-send the message after a short delay
                     setTimeout(() => {
                         if (transcript.trim()) {
                             sendMessage();
@@ -747,78 +661,40 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
                 };
                 
                 recognition.onerror = function(event) {
-                    console.error('Speech recognition error:', event.error);
-                    
                     isListening = false;
                     updateListenButton();
                     
-                    // Handle 'no-speech' differently in continuous mode - just restart quietly
-                    if (event.error === 'no-speech' && continuousMode) {
-                        document.getElementById('voiceStatus').textContent = '🎤 Still listening... speak when ready!';
-                        setTimeout(() => {
-                            if (continuousMode && !isListening && !isSpeaking) {
-                                startListeningForNext();
-                            }
-                        }, 1000);
-                        return;
-                    }
-                    
-                    // For other errors, show messages
                     let errorMessage = "🔇 Sorry, I couldn't hear you clearly. ";
                     
                     switch(event.error) {
                         case 'network':
-                            errorMessage += "Check your internet connection and try again!";
+                            errorMessage += "Check your internet connection!";
                             break;
                         case 'not-allowed':
-                            errorMessage += "Please allow microphone access to talk to me!";
+                            errorMessage += "Please allow microphone access!";
                             break;
                         case 'no-speech':
                             errorMessage += "I didn't hear anything. Try speaking louder!";
                             break;
-                        case 'audio-capture':
-                            errorMessage += "Microphone not working. Try typing instead!";
-                            break;
                         default:
-                            errorMessage += "Try clicking the microphone button again!";
+                            errorMessage += "Try again!";
                     }
                     
                     document.getElementById('voiceStatus').textContent = errorMessage;
-                    
-                    // Auto-restart for any error in continuous mode (except not-allowed)
-                    if (continuousMode && event.error !== 'not-allowed') {
-                        setTimeout(() => {
-                            if (continuousMode && !isListening && !isSpeaking) {
-                                startListeningForNext();
-                            }
-                        }, 3000);
-                    } else {
-                        setTimeout(() => {
-                            document.getElementById('voiceStatus').style.display = 'none';
-                        }, 4000);
-                    }
+                    setTimeout(() => {
+                        document.getElementById('voiceStatus').style.display = 'none';
+                    }, 3000);
                 };
                 
                 recognition.onend = function() {
                     isListening = false;
                     updateListenButton();
                     
-                    // ONLY restart if we're in continuous mode AND not currently speaking
-                    if (continuousMode && !isSpeaking) {
-                        // Wait longer to ensure speech has completely finished
-                        setTimeout(() => {
-                            if (continuousMode && !isListening && !isSpeaking && !speechSynthesis.speaking) {
-                                console.log('Restarting listening after onend in continuous mode');
-                                startListeningForNext();
-                            }
-                        }, 2000); // Increased delay to 2 seconds
-                    } else if (!continuousMode) {
-                        setTimeout(() => {
-                            if (!document.getElementById('voiceStatus').textContent.includes('I heard:')) {
-                                document.getElementById('voiceStatus').style.display = 'none';
-                            }
-                        }, 3000);
-                    }
+                    setTimeout(() => {
+                        if (!document.getElementById('voiceStatus').textContent.includes('I heard:')) {
+                            document.getElementById('voiceStatus').style.display = 'none';
+                        }
+                    }, 3000);
                 };
                 
                 return true;
@@ -827,70 +703,48 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
         }
         
         function toggleListening() {
-            const listenBtn = document.getElementById('listenBtn');
-            
             if (isSpeaking) {
-                document.getElementById('voiceStatus').textContent = '🔊 Wait for me to finish talking first!';
-                document.getElementById('voiceStatus').style.display = 'block';
-                setTimeout(() => {
-                    if (!continuousMode) {
-                        document.getElementById('voiceStatus').style.display = 'none';
-                    }
-                }, 2000);
+                stopEverything();
                 return;
             }
             
             if (!recognition) {
                 if (!initSpeechRecognition()) {
-                    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                    const message = isMobile ? 
-                        "🔇 Voice recognition not available on this browser. You can type your questions! 😊" :
-                        "🔇 Sorry! Your browser doesn't support voice recognition. You can still type your questions! 😊";
-                    alert(message);
+                    alert("🔇 Voice recognition not available. You can type your questions! 😊");
                     return;
                 }
             }
             
             if (isListening) {
                 recognition.stop();
-                document.getElementById('voiceStatus').textContent = '🛑 Stopped listening.';
-                setTimeout(() => {
-                    if (!continuousMode) {
-                        document.getElementById('voiceStatus').style.display = 'none';
-                    }
-                }, 2000);
             } else {
-                stopAllAudio();
-                
                 try {
-                    if (/Android/i.test(navigator.userAgent)) {
-                        setTimeout(() => {
-                            recognition.start();
-                        }, 100);
-                    } else {
-                        recognition.start();
-                    }
+                    recognition.start();
                 } catch (error) {
                     console.error('Error starting recognition:', error);
-                    document.getElementById('voiceStatus').textContent = '🔇 Microphone is busy. Please try again in a moment!';
+                    document.getElementById('voiceStatus').textContent = '🔇 Microphone is busy. Try again!';
                     document.getElementById('voiceStatus').style.display = 'block';
-                    setTimeout(() => {
-                        if (!continuousMode) {
-                            document.getElementById('voiceStatus').style.display = 'none';
-                        }
-                    }, 3000);
                 }
             }
         }
         
         function updateListenButton() {
             const btn = document.getElementById('listenBtn');
-            if (isListening) {
+            
+            if (isSpeaking) {
+                btn.classList.remove('listening');
+                btn.classList.add('speaking');
+                btn.textContent = '🛑 Stop Talking';
+                btn.onclick = stopEverything;
+            } else if (isListening) {
+                btn.classList.remove('speaking');
                 btn.classList.add('listening');
                 btn.textContent = '🛑 Stop Listening';
+                btn.onclick = toggleListening;
             } else {
-                btn.classList.remove('listening');
+                btn.classList.remove('listening', 'speaking');
                 btn.textContent = '🎤 Talk to Me!';
+                btn.onclick = toggleListening;
             }
         }
 
