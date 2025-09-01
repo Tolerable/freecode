@@ -664,9 +664,17 @@
             </div>
 
             <div class="preview-panel">
+                <button id="savedPostsToggle" class="saved-posts-toggle">📁 Saved Posts (0)</button>
+                <div id="savedPostsPanel" class="saved-posts-panel">
+                    <div style="text-align: center; color: #666; font-size: 14px; padding: 20px;">
+                        No saved posts yet. Click the 💾 button to save posts you like!
+                    </div>
+                </div>
+
                 <div class="preview-container">
                     <div class="preview-header">
                         <div class="preview-title" id="previewTitle">Instagram Post Preview</div>
+                        <button id="saveCurrentPost" class="save-btn" title="Save this post">💾</button>
                     </div>
                     
                     <div class="post-preview">
@@ -1026,6 +1034,16 @@
                 };
             }
             
+            // Save current post button
+            const saveCurrentPostBtn = document.getElementById('saveCurrentPost');
+            if (saveCurrentPostBtn) {
+                saveCurrentPostBtn.onclick = () => {
+                    if (currentPost && currentUserQuery) {
+                        toggleSavePost(currentUserQuery, currentPost, saveCurrentPostBtn);
+                    }
+                };
+            }
+            
             checkDailyUsage();
             const isRegistered = localStorage.getItem('registered') === 'true';
             const registerBtn = document.getElementById('register-btn');
@@ -1201,7 +1219,7 @@
             }
         }
 
-        function addMessage(role, content, userQuery = null) {
+        function addMessage(role, content) {
             const conversationArea = document.getElementById('conversationArea');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
@@ -1215,16 +1233,6 @@
             
             messageDiv.appendChild(headerDiv);
             messageDiv.appendChild(contentDiv);
-            
-            // Add save button for AI responses
-            if (role === 'ai' && userQuery) {
-                const saveBtn = document.createElement('button');
-                saveBtn.className = 'save-btn';
-                saveBtn.innerHTML = '💾';
-                saveBtn.title = 'Save this post';
-                saveBtn.onclick = () => toggleSavePost(userQuery, content, saveBtn);
-                messageDiv.appendChild(saveBtn);
-            }
             
             conversationArea.appendChild(messageDiv);
             conversationArea.scrollTop = conversationArea.scrollHeight;
