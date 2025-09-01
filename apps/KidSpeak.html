@@ -791,14 +791,15 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
                     isListening = false;
                     updateListenButton();
                     
-                    // If in continuous mode and we didn't get a result, restart listening
+                    // ONLY restart if we're in continuous mode AND not currently speaking
                     if (continuousMode && !isSpeaking) {
+                        // Wait longer to ensure speech has completely finished
                         setTimeout(() => {
-                            if (continuousMode && !isListening && !isSpeaking) {
+                            if (continuousMode && !isListening && !isSpeaking && !speechSynthesis.speaking) {
                                 console.log('Restarting listening after onend in continuous mode');
                                 startListeningForNext();
                             }
-                        }, 1000);
+                        }, 2000); // Increased delay to 2 seconds
                     } else if (!continuousMode) {
                         setTimeout(() => {
                             if (!document.getElementById('voiceStatus').textContent.includes('I heard:')) {
