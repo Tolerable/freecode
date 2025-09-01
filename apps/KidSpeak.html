@@ -378,40 +378,48 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
             return true;
         }
 
-        function addMessage(role, content, speak = false) {
-            const chatContainer = document.getElementById('chatContainer');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
-            
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'message-header';
-            headerDiv.textContent = role === 'user' ? 'You 👤' : 'AI Buddy 🤖';
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.textContent = content;
-            
-            messageDiv.appendChild(headerDiv);
-            messageDiv.appendChild(contentDiv);
-            
-            if (role === 'ai') {
-                const speakBtn = document.createElement('button');
-                speakBtn.className = 'speak-btn';
-                speakBtn.innerHTML = '🔊';
-                speakBtn.title = 'Listen to this message';
-                speakBtn.onclick = () => speakText(speakBtn);
-                messageDiv.appendChild(speakBtn);
-            }
-            
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            
-            // Handle TTS for AI messages
-            if (speak && role === 'ai') {
-                setTimeout(() => {
-                    speakTextAndContinue(messageDiv.querySelector('.speak-btn'));
-                }, 500);
-            }
-        }
+		function addMessage(role, content, speak = false) {
+			const chatContainer = document.getElementById('chatContainer');
+			const messageDiv = document.createElement('div');
+			messageDiv.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
+			
+			const headerDiv = document.createElement('div');
+			headerDiv.className = 'message-header';
+			headerDiv.textContent = role === 'user' ? 'You 👤' : 'AI Buddy 🤖';
+			
+			const contentDiv = document.createElement('div');
+			contentDiv.textContent = content;
+			
+			messageDiv.appendChild(headerDiv);
+			messageDiv.appendChild(contentDiv);
+			
+			if (role === 'ai') {
+				const speakBtn = document.createElement('button');
+				speakBtn.className = 'speak-btn';
+				speakBtn.innerHTML = '🔊';
+				speakBtn.title = 'Listen to this message';
+				speakBtn.onclick = () => speakText(speakBtn);
+				messageDiv.appendChild(speakBtn);
+			}
+			
+			chatContainer.appendChild(messageDiv);
+			chatContainer.scrollTop = chatContainer.scrollHeight;
+			
+			// FIXED: Handle TTS for AI messages - ensure we're not already speaking
+			if (speak && role === 'ai' && !isSpeaking) {
+				// Stop any current listening before speaking
+				if (isListening && recognition) {
+					recognition.stop();
+				}
+				
+				setTimeout(() => {
+					// Double-check we're not speaking before starting
+					if (!isSpeaking && !speechSynthesis.speaking) {
+						speakTextAndContinue(messageDiv.querySelector('.speak-btn'));
+					}
+				}, 1000); // Increased delay
+			}
+		}
 
         function addLoadingMessage() {
             const chatContainer = document.getElementById('chatContainer');
@@ -543,53 +551,57 @@ Example: "Cats are furry pets that say meow and love to play! They like to chase
         }
 
         // NEW: Function to speak text and then continue conversation if in continuous mode
-        function speakTextAndContinue(button) {
-            const messageContent = button.parentElement.children[1].textContent;
-            const cleanText = cleanTextForSpeech(messageContent);
-            
-            if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
-                
-                currentUtterance = new SpeechSynthesisUtterance(cleanText);
-                currentUtterance.rate = 0.7; // Slower for kids
-                currentUtterance.pitch = 1.1;
-                
-                const voices = speechSynthesis.getVoices();
-                const preferredVoice = voices.find(voice => 
-                    voice.name.includes('Female') || 
-                    voice.name.includes('Google US English') ||
-                    voice.lang.includes('en-US')
-                );
-                
-                if (preferredVoice) {
-                    currentUtterance.voice = preferredVoice;
-                }
-                
-                currentUtterance.onstart = () => {
-                    isSpeaking = true;
-                    document.getElementById('stopSpeakBtn').style.display = 'inline-block';
-                };
-                
-                currentUtterance.onend = () => {
-                    isSpeaking = false;
-                    document.getElementById('stopSpeakBtn').style.display = 'none';
-                    
-                    // Continue conversation if in continuous mode
-                    if (continuousMode) {
-                        setTimeout(() => {
-                            startListeningForNext();
-                        }, 1000);
-                    }
-                };
-                
-                currentUtterance.onerror = () => {
-                    isSpeaking = false;
-                    document.getElementById('stopSpeakBtn').style.display = 'none';
-                };
-                
-                speechSynthesis.speak(currentUtterance);
-            }
-        }
+		function speakTextAndContinue(button) {
+			const messageContent = button.parentElement.children[1].textContent;
+			const cleanText = cleanTextForSpeech(messageContent);
+			
+			if ('speechSynthesis' in window) {
+				speechSynthesis.cancel();
+				
+				currentUtterance = new SpeechSynthesisUtterance(cleanText);
+				currentUtterance.rate = 0.7; // Slower for kids
+				currentUtterance.pitch = 1.1;
+				
+				const voices = speechSynthesis.getVoices();
+				const preferredVoice = voices.find(voice => 
+					voice.name.includes('Female') || 
+					voice.name.includes('Google US English') ||
+					voice.lang.includes('en-US')
+				);
+				
+				if (preferredVoice) {
+					currentUtterance.voice = preferredVoice;
+				}
+				
+				currentUtterance.onstart = () => {
+					isSpeaking = true;
+					document.getElementById('stopSpeakBtn').style.display = 'inline-block';
+				};
+				
+				currentUtterance.onend = () => {
+					isSpeaking = false;
+					document.getElementById('stopSpeakBtn').style.display = 'none';
+					
+					// FIXED: Only continue conversation if in continuous mode AND not already listening
+					if (continuousMode && !isListening) {
+						// Wait longer to ensure everything is properly finished
+						setTimeout(() => {
+							// Double-check we're still in continuous mode and not listening
+							if (continuousMode && !isListening && !isSpeaking && !speechSynthesis.speaking) {
+								startListeningForNext();
+							}
+						}, 2000); // Increased delay to 2 seconds
+					}
+				};
+				
+				currentUtterance.onerror = () => {
+					isSpeaking = false;
+					document.getElementById('stopSpeakBtn').style.display = 'none';
+				};
+				
+				speechSynthesis.speak(currentUtterance);
+			}
+		}
 
         // NEW: Function to start listening for the next question in continuous mode
         function startListeningForNext() {
