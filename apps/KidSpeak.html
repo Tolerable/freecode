@@ -440,38 +440,61 @@ Examples:
             addLoadingMessage();
             
             try {
-                const response = await fetch('https://text.pollinations.ai/openai', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'openai',
-                        messages: [
-                            { role: 'system', content: SYSTEM_PROMPT },
-                            ...chatHistory
-                        ],
-                        temperature: 0.3,
-                        max_tokens: 50, // Much shorter for kids
-                        private: false,
-                        referrer: 'www.ai-ministries.com'
-                    })
-                });
+                // Try POST first, then fallback to GET if it fails (common on mobile)
+                let response;
+                let aiResponse;
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                try {
+                    response = await fetch('https://text.pollinations.ai/openai', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: 'openai',
+                            messages: [
+                                { role: 'system', content: SYSTEM_PROMPT },
+                                ...chatHistory
+                            ],
+                            temperature: 0.3,
+                            max_tokens: 50,
+                            private: false,
+                            referrer: 'www.ai-ministries.com'
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('POST failed');
+                    }
+                    
+                    const data = await response.json();
+                    aiResponse = data.choices[0].message.content;
+                    
+                } catch (postError) {
+                    console.log('POST failed, trying GET fallback:', postError);
+                    
+                    // Fallback to GET endpoint (often works better on mobile)
+                    const prompt = `You are a friendly AI for kids 5-8. Give ONE short sentence answer with simple words and one emoji at the end. Question: ${message}`;
+                    const encodedPrompt = encodeURIComponent(prompt);
+                    
+                    response = await fetch(`https://text.pollinations.ai/${encodedPrompt}?model=openai&temperature=0.3&max_tokens=50&referrer=www.ai-ministries.com`, {
+                        method: 'GET'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`GET also failed: ${response.status}`);
+                    }
+                    
+                    aiResponse = await response.text();
                 }
-                
-                const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
                 
                 removeLoadingMessage();
                 
-                // Add AI response to history first
+                // Add AI response to history
                 chatHistory.push({ role: 'assistant', content: aiResponse });
                 
                 // Add message and handle speech properly
-                addMessage('ai', aiResponse, false); // Don't auto-speak here
+                addMessage('ai', aiResponse, false);
                 
                 // Handle speech in proper sequence
                 if (autoSpeak || continuousMode) {
@@ -480,8 +503,8 @@ Examples:
                 
             } catch (error) {
                 removeLoadingMessage();
-                console.error('Error:', error);
-                addMessage('ai', "Oops! I'm having trouble right now. Try again! 😅", false);
+                console.error('Both POST and GET failed:', error);
+                addMessage('ai', "Sorry, I can't connect right now. Check your internet! 📱", false);
             }
             
             // Re-enable controls
@@ -660,6 +683,12 @@ Examples:
                 recognition.lang = 'en-US';
                 recognition.maxAlternatives = 1;
                 
+                // Android-specific settings
+                if (/Android/i.test(navigator.userAgent)) {
+                    recognition.continuous = false; // Force single recognition on Android
+                    recognition.interimResults = false;
+                }
+                
                 recognition.onstart = function() {
                     isListening = true;
                     updateListenButton();
@@ -694,6 +723,12 @@ Examples:
                         case 'no-speech':
                             errorMessage += "I didn't hear anything. Try speaking louder!";
                             break;
+                        case 'audio-capture':
+                            errorMessage += "Microphone not working. Try typing instead!";
+                            break;
+                        case 'service-not-allowed':
+                            errorMessage += "Speech recognition not available. Try typing!";
+                            break;
                         default:
                             errorMessage += "Try clicking the microphone button again!";
                     }
@@ -701,7 +736,7 @@ Examples:
                     document.getElementById('voiceStatus').textContent = errorMessage;
                     setTimeout(() => {
                         document.getElementById('voiceStatus').style.display = 'none';
-                    }, 3000);
+                    }, 4000);
                     
                     isListening = false;
                     updateListenButton();
@@ -711,7 +746,9 @@ Examples:
                     isListening = false;
                     updateListenButton();
                     setTimeout(() => {
-                        document.getElementById('voiceStatus').style.display = 'none';
+                        if (!document.getElementById('voiceStatus').textContent.includes('I heard:')) {
+                            document.getElementById('voiceStatus').style.display = 'none';
+                        }
                     }, 3000);
                 };
                 
@@ -735,7 +772,12 @@ Examples:
             
             if (!recognition) {
                 if (!initSpeechRecognition()) {
-                    alert("🔇 Sorry! Your browser doesn't support voice recognition. You can still type your questions! 😊");
+                    // Show mobile-friendly message
+                    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    const message = isMobile ? 
+                        "🔇 Voice recognition not available on this browser. You can type your questions! 😊" :
+                        "🔇 Sorry! Your browser doesn't support voice recognition. You can still type your questions! 😊";
+                    alert(message);
                     return;
                 }
             }
@@ -751,7 +793,14 @@ Examples:
                 stopAllAudio();
                 
                 try {
-                    recognition.start();
+                    // Add extra delay for Android
+                    if (/Android/i.test(navigator.userAgent)) {
+                        setTimeout(() => {
+                            recognition.start();
+                        }, 100);
+                    } else {
+                        recognition.start();
+                    }
                 } catch (error) {
                     console.error('Error starting recognition:', error);
                     document.getElementById('voiceStatus').textContent = '🔇 Microphone is busy. Please try again in a moment!';
