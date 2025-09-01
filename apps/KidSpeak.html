@@ -205,6 +205,21 @@
             transform: translateY(-1px);
         }
 
+        .sentence-length-btn {
+            background: #4CAF50 !important; /* Green for 1 sentence */
+            color: white;
+            font-weight: bold;
+            min-width: 45px;
+        }
+
+        .sentence-length-btn.two-sentences {
+            background: #ff9800 !important; /* Orange for 2 sentences */
+        }
+
+        .sentence-length-btn.three-sentences {
+            background: #9c27b0 !important; /* Purple for 3 sentences */
+        }
+
         .listen-btn {
             background: #4CAF50;
             color: white;
@@ -271,8 +286,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌟 AI Buddy 🌟</h1>
-            <p>Ask me anything! I'm here to help and chat!</p>
+            <h1>🌟 Kid-Friendly AI Buddy 🌟</h1>
+            <p>Ask me anything! I'm here to help and chat safely!</p>
         </div>
 
         <div class="input-container">
@@ -280,6 +295,7 @@
                 <button class="control-btn" onclick="clearChat()">🗑️ Clear Chat</button>
                 <button class="control-btn" onclick="toggleAutoSpeak()">🔊 Auto-Speak: <span id="autoSpeakStatus">OFF</span></button>
                 <button class="control-btn" onclick="toggleContinuousMode()">🔄 Continuous Talk: <span id="continuousStatus">OFF</span></button>
+                <button id="sentenceLengthBtn" class="control-btn sentence-length-btn" onclick="toggleSentenceLength()">📝 1</button>
                 <button id="stopSpeakBtn" class="control-btn stop-speak-btn" onclick="stopSpeaking()" style="display: none;">🛑 Stop Talking</button>
             </div>
             
@@ -303,9 +319,9 @@
         </div>
 
         <div class="disclaimer">
-            <strong>⚠️ Important for Parents:</strong> This is an AI assistant designed for parents of children 6+ with content filtering. 
-            AI responses may not always be perfect. Please supervise your child's interactions at all times and verify important information. 
-            This tool is meant to inspire learning and creativity under adult guidance ONLY and is never intended for use by children alone.
+            <strong>⚠️ Important for Parents:</strong> This is an AI assistant designed for children 6+ with content filtering. 
+            AI responses may not always be perfect. Please supervise your child's interactions and verify important information. 
+            This tool is meant to inspire learning and creativity under adult guidance.
         </div>
     </div>
 
@@ -317,6 +333,7 @@
         let recognition = null;
         let continuousMode = false;
         let currentUtterance = null;
+        let sentenceLength = 1; // 1, 2, or 3 sentences
         const MAX_HISTORY = 6; // Keep conversation short for kids
         
         // Only filter truly inappropriate words - let AI handle the rest
@@ -325,23 +342,26 @@
             'sex', 'porn', 'nude', 'naked', 'rape', 'murder', 'kill yourself'
         ];
 
-        // System prompt for super short, kid-friendly responses
-        const SYSTEM_PROMPT = `You are a friendly AI buddy for kids aged 5-8. Keep responses VERY SHORT - just one sentence maximum!
+        // System prompt for adjustable response length
+        function getSystemPrompt() {
+            const basePROMPT = `You are a friendly AI buddy for kids. Be encouraging and positive, add one emoji at the end, use simple words, never discuss scary/violent topics, and redirect inappropriate topics to fun things.
 
-RULES:
-- ONE sentence only, never more
-- Use simple words a 5-year-old knows
-- Be encouraging and positive
-- Add one emoji at the end
-- If asked complex questions, give simple answers
-- Never discuss scary, violent, or inappropriate topics
-- Redirect inappropriate topics to fun things
-- ALWAYS end with "What else would you like to know?" to keep conversation going
+ALWAYS end with "What else would you like to know?" to keep conversation going.`;
 
-Examples:
-"Cats are furry pets that say meow and love to play! 🐱 What else would you like to know?"
-"The sun is a big bright star that gives us light! ☀️ What else would you like to know?"
-"Reading books is fun and helps you learn new things! 📚 What else would you like to know?"`;
+            if (sentenceLength === 1) {
+                return basePROMPT + `\n\nIMPORTANT: Keep responses to ONE sentence maximum!
+
+Example: "Cats are furry pets that say meow and love to play! 🐱 What else would you like to know?"`;
+            } else if (sentenceLength === 2) {
+                return basePROMPT + `\n\nIMPORTANT: Keep responses to TWO sentences maximum!
+
+Example: "Cats are furry pets that say meow and love to play! They like to chase toys and sleep in sunny spots. 🐱 What else would you like to know?"`;
+            } else {
+                return basePROMPT + `\n\nIMPORTANT: Keep responses to THREE sentences maximum!
+
+Example: "Cats are furry pets that say meow and love to play! They like to chase toys and sleep in sunny spots. Cats have excellent night vision and can see in the dark much better than humans can. 🐱 What else would you like to know?"`;
+            }
+        }
 
         function filterInput(text) {
             const lowerText = text.toLowerCase();
@@ -452,11 +472,11 @@ Examples:
                     body: JSON.stringify({
                         model: 'openai',
                         messages: [
-                            { role: 'system', content: SYSTEM_PROMPT },
+                            { role: 'system', content: getSystemPrompt() },
                             ...chatHistory
                         ],
                         temperature: 0.3,
-                        max_tokens: 80,
+                        max_tokens: sentenceLength === 1 ? 50 : sentenceLength === 2 ? 80 : 120,
                         private: false,
                         referrer: 'www.ai-ministries.com'
                     })
@@ -638,6 +658,29 @@ Examples:
             document.getElementById('autoSpeakStatus').textContent = autoSpeak ? 'ON' : 'OFF';
         }
 
+        function toggleSentenceLength() {
+            sentenceLength = sentenceLength === 3 ? 1 : sentenceLength + 1;
+            
+            const btn = document.getElementById('sentenceLengthBtn');
+            btn.textContent = `📝 ${sentenceLength}`;
+            
+            // Update button color based on sentence length
+            btn.className = 'control-btn sentence-length-btn';
+            if (sentenceLength === 2) {
+                btn.classList.add('two-sentences');
+            } else if (sentenceLength === 3) {
+                btn.classList.add('three-sentences');
+            }
+            
+            // Update button title for accessibility
+            const labels = {
+                1: 'Short answers (1 sentence)',
+                2: 'Medium answers (2 sentences)', 
+                3: 'Longer answers (3 sentences)'
+            };
+            btn.title = labels[sentenceLength];
+        }
+
         function toggleContinuousMode() {
             continuousMode = !continuousMode;
             document.getElementById('continuousStatus').textContent = continuousMode ? 'ON' : 'OFF';
@@ -693,6 +736,22 @@ Examples:
                 
                 recognition.onerror = function(event) {
                     console.error('Speech recognition error:', event.error);
+                    
+                    isListening = false;
+                    updateListenButton();
+                    
+                    // Handle 'no-speech' differently in continuous mode - just restart quietly
+                    if (event.error === 'no-speech' && continuousMode) {
+                        document.getElementById('voiceStatus').textContent = '🎤 Still listening... speak when ready!';
+                        setTimeout(() => {
+                            if (continuousMode && !isListening && !isSpeaking) {
+                                startListeningForNext();
+                            }
+                        }, 1000);
+                        return;
+                    }
+                    
+                    // For other errors, show messages
                     let errorMessage = "🔇 Sorry, I couldn't hear you clearly. ";
                     
                     switch(event.error) {
@@ -704,29 +763,28 @@ Examples:
                             break;
                         case 'no-speech':
                             errorMessage += "I didn't hear anything. Try speaking louder!";
-                            if (continuousMode) {
-                                setTimeout(() => startListeningForNext(), 2000);
-                            }
                             break;
                         case 'audio-capture':
                             errorMessage += "Microphone not working. Try typing instead!";
                             break;
                         default:
                             errorMessage += "Try clicking the microphone button again!";
-                            if (continuousMode) {
-                                setTimeout(() => startListeningForNext(), 2000);
-                            }
                     }
                     
                     document.getElementById('voiceStatus').textContent = errorMessage;
-                    setTimeout(() => {
-                        if (!continuousMode) {
-                            document.getElementById('voiceStatus').style.display = 'none';
-                        }
-                    }, 4000);
                     
-                    isListening = false;
-                    updateListenButton();
+                    // Auto-restart for any error in continuous mode (except not-allowed)
+                    if (continuousMode && event.error !== 'not-allowed') {
+                        setTimeout(() => {
+                            if (continuousMode && !isListening && !isSpeaking) {
+                                startListeningForNext();
+                            }
+                        }, 3000);
+                    } else {
+                        setTimeout(() => {
+                            document.getElementById('voiceStatus').style.display = 'none';
+                        }, 4000);
+                    }
                 };
                 
                 recognition.onend = function() {
