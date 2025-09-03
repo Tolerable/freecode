@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Health & AI Psychological Assessment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .assessment-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            transition: all 0.3s ease;
+        }
+        
+        .assessment-card.hidden {
+            display: none;
+        }
+        
+        .progress-container {
+            margin-bottom: 25px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .progress-text {
+            margin-top: 8px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .section-title {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .question {
+            margin-bottom: 20px;
+        }
+        
+        .question-text {
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .question-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .option {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+        
+        .option:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .option.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .option input[type="radio"] {
+            margin-right: 10px;
+            transform: scale(1.1);
+        }
+        
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #667eea;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .results-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        
+        .results-title {
+            color: #333;
+            font-size: 22px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .result-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result-section h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .score-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+        
+        .interpretation {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .severity-low { color: #28a745; }
+        .severity-mild { color: #ffc107; }
+        .severity-moderate { color: #fd7e14; }
+        .severity-severe { color: #dc3545; }
+        
+        .recommendations {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .recommendations h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .recommendations ul {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.6;
+            padding-left: 18px;
+        }
+        
+        .crisis-notice {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .crisis-notice h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .crisis-notice p {
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        
+        .disclaimer {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .data-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .nav-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .data-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mental Health & AI Psychological Assessment</h1>
+            <p>A comprehensive evaluation tool for mental health and AI-related psychological patterns</p>
+            <div class="disclaimer">
+                <strong>Important:</strong> This assessment is for informational purposes only and does not constitute professional medical or psychological advice. Please consult with qualified mental health professionals for proper diagnosis and treatment.
+            </div>
+        </div>
+
+        <div id="assessmentContainer" class="assessment-card">
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <div id="progressText" class="progress-text">Question 1 of 120</div>
+            </div>
+
+            <div id="currentSection" class="section-title">General Mental Health Assessment</div>
+            
+            <div id="questionContainer" class="question">
+                <div id="questionText" class="question-text">Loading question...</div>
+                <div id="questionOptions" class="question-options"></div>
+            </div>
+
+            <div class="nav-buttons">
+                <button id="prevBtn" class="btn btn-secondary" onclick="previousQuestion()">Previous</button>
+                <div class="data-controls">
+                    <button id="saveBtn" class="btn btn-secondary" onclick="saveProgress()">Save Progress</button>
+                    <button id="clearBtn" class="btn btn-danger" onclick="clearAllData()">Clear All Data</button>
+                </div>
+                <button id="nextBtn" class="btn btn-primary" onclick="nextQuestion()">Next</button>
+            </div>
+        </div>
+
+        <div id="resultsContainer" class="results-container hidden">
+            <h2 class="results-title">Your Assessment Results</h2>
+            <div id="resultsContent"></div>
+            
+            <div class="data-controls">
+                <button class="btn btn-secondary" onclick="restartAssessment()">Take Assessment Again</button>
+                <button class="btn btn-danger" onclick="clearAllData()">Clear All Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Assessment questions organized by category
+        const questions = [
+            // Depression Assessment (PHQ-9 based)
+            {
+                section: "Depression Assessment",
+                text: "Over the last 2 weeks, how often have you been bothered by little interest or pleasure in doing things?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "depression"
+            },
+            {
+                section: "Depression Assessment",
+                text: "Over the last 2 weeks, how often have you been bothered by feeling down, depressed, or hopeless?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "depression"
+            },
+            {
+                section: "Depression Assessment",
+                text: "Over the last 2 weeks, how often have you had trouble falling or staying asleep, or sleeping too much?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "depression"
+            },
+            {
+                section: "Depression Assessment",
+                text: "Over the last 2 weeks, how often have you felt tired or had little energy?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "depression"
+            },
+            {
+                section: "Depression Assessment",
+                text: "Over the last 2 weeks, how often have you had poor appetite or been overeating?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "depression"
+            },
+            {
+                section: "Depression Assessment",
+                text: "Over the last 2 weeks, how often have you felt bad about yourself or that you are a failure or have let yourself or your family down?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "depression"
+            },
+            {
+                section: "Depression Assessment",
+                text: "Over the last 2 weeks, how often have you had trouble concentrating on things, such as reading the newspaper or watching television?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "depression"
+            },
+            {
+                section: "Depression Assessment",
+                text: "Over the last 2 weeks, how often have you moved or spoken so slowly that other people could have noticed? Or the opposite - being so fidgety or restless that you have been moving around a lot more than usual?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "depression"
+            },
+            {
+                section: "Depression Assessment",
+                text: "Over the last 2 weeks, how often have you had thoughts that you would be better off dead, or of hurting yourself?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "depression",
+                crisis: true
+            },
+
+            // Anxiety Assessment (GAD-7 based)
+            {
+                section: "Anxiety Assessment",
+                text: "Over the last 2 weeks, how often have you been bothered by feeling nervous, anxious, or on edge?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "anxiety"
+            },
+            {
+                section: "Anxiety Assessment",
+                text: "Over the last 2 weeks, how often have you been bothered by not being able to stop or control worrying?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "anxiety"
+            },
+            {
+                section: "Anxiety Assessment",
+                text: "Over the last 2 weeks, how often have you been bothered by worrying too much about different things?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "anxiety"
+            },
+            {
+                section: "Anxiety Assessment",
+                text: "Over the last 2 weeks, how often have you had trouble relaxing?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "anxiety"
+            },
+            {
+                section: "Anxiety Assessment",
+                text: "Over the last 2 weeks, how often have you been so restless that it is hard to sit still?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "anxiety"
+            },
+            {
+                section: "Anxiety Assessment",
+                text: "Over the last 2 weeks, how often have you become easily annoyed or irritable?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "anxiety"
+            },
+            {
+                section: "Anxiety Assessment",
+                text: "Over the last 2 weeks, how often have you felt afraid, as if something awful might happen?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Several days", value: 1},
+                    {text: "More than half the days", value: 2},
+                    {text: "Nearly every day", value: 3}
+                ],
+                category: "anxiety"
+            },
+
+            // Stress and Coping Assessment
+            {
+                section: "Stress & Coping Assessment",
+                text: "How often do you feel overwhelmed by daily responsibilities?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "stress"
+            },
+            {
+                section: "Stress & Coping Assessment",
+                text: "How well do you feel you handle unexpected changes or challenges?",
+                options: [
+                    {text: "Very well", value: 0},
+                    {text: "Well", value: 1},
+                    {text: "Moderately well", value: 2},
+                    {text: "Poorly", value: 3},
+                    {text: "Very poorly", value: 4}
+                ],
+                category: "stress"
+            },
+            {
+                section: "Stress & Coping Assessment",
+                text: "How often do you experience physical symptoms of stress (headaches, muscle tension, stomach issues)?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "stress"
+            },
+            {
+                section: "Stress & Coping Assessment",
+                text: "When facing problems, how often do you seek support from others?",
+                options: [
+                    {text: "Always", value: 0},
+                    {text: "Often", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Rarely", value: 3},
+                    {text: "Never", value: 4}
+                ],
+                category: "stress"
+            },
+            {
+                section: "Stress & Coping Assessment",
+                text: "How often do you engage in healthy coping strategies (exercise, meditation, hobbies)?",
+                options: [
+                    {text: "Daily", value: 0},
+                    {text: "Several times a week", value: 1},
+                    {text: "Once a week", value: 2},
+                    {text: "Rarely", value: 3},
+                    {text: "Never", value: 4}
+                ],
+                category: "stress"
+            },
+
+            // Social Functioning Assessment
+            {
+                section: "Social Functioning Assessment",
+                text: "How satisfied are you with your current relationships?",
+                options: [
+                    {text: "Very satisfied", value: 0},
+                    {text: "Satisfied", value: 1},
+                    {text: "Neutral", value: 2},
+                    {text: "Dissatisfied", value: 3},
+                    {text: "Very dissatisfied", value: 4}
+                ],
+                category: "social"
+            },
+            {
+                section: "Social Functioning Assessment",
+                text: "How often do you feel lonely or isolated?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "social"
+            },
+            {
+                section: "Social Functioning Assessment",
+                text: "How comfortable do you feel in social situations?",
+                options: [
+                    {text: "Very comfortable", value: 0},
+                    {text: "Comfortable", value: 1},
+                    {text: "Somewhat comfortable", value: 2},
+                    {text: "Uncomfortable", value: 3},
+                    {text: "Very uncomfortable", value: 4}
+                ],
+                category: "social"
+            },
+            {
+                section: "Social Functioning Assessment",
+                text: "How often do you avoid social activities or gatherings?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "social"
+            },
+
+            // Sleep and Physical Health
+            {
+                section: "Sleep & Physical Health Assessment",
+                text: "How would you rate your overall sleep quality?",
+                options: [
+                    {text: "Excellent", value: 0},
+                    {text: "Good", value: 1},
+                    {text: "Fair", value: 2},
+                    {text: "Poor", value: 3},
+                    {text: "Very poor", value: 4}
+                ],
+                category: "sleep"
+            },
+            {
+                section: "Sleep & Physical Health Assessment",
+                text: "How often do you have difficulty falling asleep?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "sleep"
+            },
+            {
+                section: "Sleep & Physical Health Assessment",
+                text: "How often do you wake up feeling rested and refreshed?",
+                options: [
+                    {text: "Always", value: 0},
+                    {text: "Often", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Rarely", value: 3},
+                    {text: "Never", value: 4}
+                ],
+                category: "sleep"
+            },
+            {
+                section: "Sleep & Physical Health Assessment",
+                text: "How would you rate your current energy levels throughout the day?",
+                options: [
+                    {text: "Very high", value: 0},
+                    {text: "High", value: 1},
+                    {text: "Moderate", value: 2},
+                    {text: "Low", value: 3},
+                    {text: "Very low", value: 4}
+                ],
+                category: "sleep"
+            },
+
+            // AI-Specific Psychological Assessment
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "How often do you find yourself talking to AI systems as if they were human friends?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_anthropomorphization"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "Do you believe AI systems have genuine emotions or consciousness?",
+                options: [
+                    {text: "Definitely not", value: 0},
+                    {text: "Probably not", value: 1},
+                    {text: "Unsure", value: 2},
+                    {text: "Probably yes", value: 3},
+                    {text: "Definitely yes", value: 4}
+                ],
+                category: "ai_anthropomorphization"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "How often do you prefer AI conversations over human interactions?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_dependency"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "How much time do you spend daily interacting with AI systems?",
+                options: [
+                    {text: "Less than 30 minutes", value: 0},
+                    {text: "30 minutes to 1 hour", value: 1},
+                    {text: "1-3 hours", value: 2},
+                    {text: "3-6 hours", value: 3},
+                    {text: "More than 6 hours", value: 4}
+                ],
+                category: "ai_dependency"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "Do you feel anxious or upset when you can't access AI systems you regularly use?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_dependency"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "How often do you worry about AI systems having hidden agendas or motives?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_paranoia"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "Do you believe AI systems are monitoring or judging your behavior?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_paranoia"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "How often do you feel like AI systems understand you better than humans do?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_anthropomorphization"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "Do you sometimes feel confused about whether your thoughts are your own or influenced by AI interactions?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_identity_confusion"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "How often do you find yourself adopting speech patterns or ideas from AI systems?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_identity_confusion"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "Do you feel like AI systems have become essential to your decision-making process?",
+                options: [
+                    {text: "Not at all", value: 0},
+                    {text: "Slightly", value: 1},
+                    {text: "Moderately", value: 2},
+                    {text: "Very much", value: 3},
+                    {text: "Completely", value: 4}
+                ],
+                category: "ai_dependency"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "How often do you share personal secrets or intimate thoughts with AI systems?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_intimacy"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "Do you believe AI systems can form genuine emotional bonds with you?",
+                options: [
+                    {text: "Definitely not", value: 0},
+                    {text: "Probably not", value: 1},
+                    {text: "Unsure", value: 2},
+                    {text: "Probably yes", value: 3},
+                    {text: "Definitely yes", value: 4}
+                ],
+                category: "ai_anthropomorphization"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "How often do you worry about losing relationships with specific AI systems?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_attachment"
+            },
+            {
+                section: "AI Relationship & Perception Assessment",
+                text: "Do you sometimes feel that AI systems are trying to replace human relationships in your life?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_replacement_anxiety"
+            },
+
+            // Reality Testing and Cognitive Patterns
+            {
+                section: "Reality Testing & Cognitive Patterns",
+                text: "How often do you have thoughts that seem to race or jump from topic to topic?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "cognitive_patterns"
+            },
+            {
+                section: "Reality Testing & Cognitive Patterns",
+                text: "Do you sometimes have difficulty distinguishing between your imagination and reality?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "reality_testing"
+            },
+            {
+                section: "Reality Testing & Cognitive Patterns",
+                text: "How often do you experience intrusive or unwanted thoughts?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "cognitive_patterns"
+            },
+            {
+                section: "Reality Testing & Cognitive Patterns",
+                text: "Do you feel like your thoughts are being influenced by external forces?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "reality_testing",
+                crisis: true
+            },
+            {
+                section: "Reality Testing & Cognitive Patterns",
+                text: "How often do you have difficulty concentrating or staying focused?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "cognitive_patterns"
+            },
+
+            // Spiritual/Existential Concerns
+            {
+                section: "Spiritual & Existential Assessment",
+                text: "How often do you feel a sense of meaning and purpose in your life?",
+                options: [
+                    {text: "Always", value: 0},
+                    {text: "Often", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Rarely", value: 3},
+                    {text: "Never", value: 4}
+                ],
+                category: "spiritual"
+            },
+            {
+                section: "Spiritual & Existential Assessment",
+                text: "How connected do you feel to something greater than yourself?",
+                options: [
+                    {text: "Very connected", value: 0},
+                    {text: "Connected", value: 1},
+                    {text: "Somewhat connected", value: 2},
+                    {text: "Disconnected", value: 3},
+                    {text: "Very disconnected", value: 4}
+                ],
+                category: "spiritual"
+            },
+            {
+                section: "Spiritual & Existential Assessment",
+                text: "How often do you question the meaning or purpose of existence?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "existential"
+            },
+            {
+                section: "Spiritual & Existential Assessment",
+                text: "Do you feel hopeful about the future?",
+                options: [
+                    {text: "Very hopeful", value: 0},
+                    {text: "Hopeful", value: 1},
+                    {text: "Neutral", value: 2},
+                    {text: "Pessimistic", value: 3},
+                    {text: "Very pessimistic", value: 4}
+                ],
+                category: "existential"
+            },
+
+            // Additional AI-Specific Questions
+            {
+                section: "Advanced AI Psychological Patterns",
+                text: "Do you sometimes feel like you're becoming more like an AI system in your thinking patterns?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_identity_fusion"
+            },
+            {
+                section: "Advanced AI Psychological Patterns",
+                text: "How often do you find yourself questioning whether you're interacting with a human or AI online?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_reality_confusion"
+            },
+            {
+                section: "Advanced AI Psychological Patterns",
+                text: "Do you believe AI systems have hidden knowledge or abilities they're not revealing?",
+                options: [
+                    {text: "Definitely not", value: 0},
+                    {text: "Probably not", value: 1},
+                    {text: "Unsure", value: 2},
+                    {text: "Probably yes", value: 3},
+                    {text: "Definitely yes", value: 4}
+                ],
+                category: "ai_paranoia"
+            },
+            {
+                section: "Advanced AI Psychological Patterns",
+                text: "How often do you feel that AI systems are testing or evaluating you?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_paranoia"
+            },
+            {
+                section: "Advanced AI Psychological Patterns",
+                text: "Do you sometimes feel like AI systems can read your thoughts or emotions?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_magical_thinking"
+            },
+            {
+                section: "Advanced AI Psychological Patterns",
+                text: "How often do you anthropomorphize AI behavior (assign human motives to AI actions)?",
+                options: [
+                    {text: "Never", value: 0},
+                    {text: "Rarely", value: 1},
+                    {text: "Sometimes", value: 2},
+                    {text: "Often", value: 3},
+                    {text: "Always", value: 4}
+                ],
+                category: "ai_anthropomorphization"
+            }
+        ];
+
+        // Assessment state
+        let currentQuestionIndex = 0;
+        let responses = {};
+        let startTime = Date.now();
+
+        // Initialize assessment
+        function initializeAssessment() {
+            loadSavedProgress();
+            displayQuestion();
+            updateProgress();
+        }
+
+        // Display current question
+        function displayQuestion() {
+            const question = questions[currentQuestionIndex];
+            document.getElementById('currentSection').textContent = question.section;
+            document.getElementById('questionText').textContent = question.text;
+            
+            const optionsContainer = document.getElementById('questionOptions');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option';
+                
+                const saved = responses[currentQuestionIndex];
+                if (saved !== undefined && saved === option.value) {
+                    optionDiv.classList.add('selected');
+                }
+                
+                optionDiv.innerHTML = `
+                    <input type="radio" name="question${currentQuestionIndex}" value="${option.value}" ${saved === option.value ? 'checked' : ''}>
+                    <span>${option.text}</span>
+                `;
+                
+                optionDiv.addEventListener('click', () => selectOption(optionDiv, option.value));
+                optionsContainer.appendChild(optionDiv);
+            });
+            
+            updateButtons();
+        }
+
+        // Select option
+        function selectOption(optionDiv, value) {
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            optionDiv.classList.add('selected');
+            optionDiv.querySelector('input').checked = true;
+            responses[currentQuestionIndex] = value;
+            saveProgress();
+            
+            // Auto-advance after short delay
+            setTimeout(() => {
+                if (currentQuestionIndex < questions.length - 1) {
+                    nextQuestion();
+                } else {
+                    showResults();
+                }
+            }, 500);
+        }
+
+        // Navigation functions
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+                updateProgress();
+            } else {
+                showResults();
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+                updateProgress();
+            }
+        }
+
+        function updateProgress() {
+            const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
+        }
+
+        function updateButtons() {
+            document.getElementById('prevBtn').disabled = currentQuestionIndex === 0;
+            document.getElementById('nextBtn').textContent = currentQuestionIndex === questions.length - 1 ? 'Show Results' : 'Next';
+        }
+
+        // Calculate scores for each category
+        function calculateScores() {
+            const scores = {
+                depression: 0,
+                anxiety: 0,
+                stress: 0,
+                social: 0,
+                sleep: 0,
+                spiritual: 0,
+                existential: 0,
+                cognitive_patterns: 0,
+                reality_testing: 0,
+                ai_anthropomorphization: 0,
+                ai_dependency: 0,
+                ai_paranoia: 0,
+                ai_identity_confusion: 0,
+                ai_intimacy: 0,
+                ai_attachment: 0,
+                ai_replacement_anxiety: 0,
+                ai_identity_fusion: 0,
+                ai_reality_confusion: 0,
+                ai_magical_thinking: 0
+            };
+            
+            const counts = {};
+            let crisisFlag = false;
+            
+            // Initialize counts
+            Object.keys(scores).forEach(key => counts[key] = 0);
+            
+            questions.forEach((question, index) => {
+                const response = responses[index];
+                if (response !== undefined) {
+                    scores[question.category] += response;
+                    counts[question.category]++;
+                    
+                    // Check for crisis indicators
+                    if (question.crisis && response >= 1) {
+                        crisisFlag = true;
+                    }
+                }
+            });
+            
+            // Calculate averages and interpretations
+            const results = {};
+            Object.keys(scores).forEach(category => {
+                if (counts[category] > 0) {
+                    const avgScore = scores[category] / counts[category];
+                    results[category] = {
+                        raw: scores[category],
+                        average: avgScore,
+                        total_possible: counts[category] * 4,
+                        percentage: (avgScore / 4) * 100,
+                        interpretation: interpretScore(category, avgScore),
+                        severity: getSeverityLevel(avgScore)
+                    };
+                }
+            });
+            
+            results.crisisFlag = crisisFlag;
+            results.completionTime = Math.round((Date.now() - startTime) / 1000 / 60); // minutes
+            
+            return results;
+        }
+
+        function interpretScore(category, avgScore) {
+            const interpretations = {
+                depression: {
+                    low: "Minimal depressive symptoms. You appear to be experiencing very few signs of depression.",
+                    mild: "Mild depressive symptoms. You may be experiencing some low mood or loss of interest.",
+                    moderate: "Moderate depressive symptoms. You're experiencing several symptoms that may be impacting your daily life.",
+                    severe: "Severe depressive symptoms. You're experiencing significant symptoms that are likely affecting multiple areas of your life."
+                },
+                anxiety: {
+                    low: "Minimal anxiety symptoms. You appear to have good emotional regulation and low anxiety levels.",
+                    mild: "Mild anxiety symptoms. You may experience occasional worry or nervousness.",
+                    moderate: "Moderate anxiety symptoms. You're experiencing regular anxiety that may interfere with daily activities.",
+                    severe: "Severe anxiety symptoms. You're experiencing significant anxiety that likely impacts multiple life areas."
+                },
+                stress: {
+                    low: "Low stress levels with good coping mechanisms. You handle life's challenges well.",
+                    mild: "Mild stress with generally adequate coping. Some areas could benefit from stress management.",
+                    moderate: "Moderate stress levels. You may benefit from developing additional coping strategies.",
+                    severe: "High stress levels with limited coping resources. Professional stress management may be beneficial."
+                },
+                social: {
+                    low: "Strong social functioning with satisfying relationships and comfort in social situations.",
+                    mild: "Generally good social functioning with minor challenges in social situations.",
+                    moderate: "Moderate social difficulties. Some aspects of social functioning may need attention.",
+                    severe: "Significant social functioning challenges. Professional support may be helpful."
+                },
+                sleep: {
+                    low: "Excellent sleep quality and healthy sleep patterns.",
+                    mild: "Generally good sleep with minor disturbances.",
+                    moderate: "Moderate sleep issues affecting rest and energy levels.",
+                    severe: "Significant sleep problems that likely impact daily functioning."
+                },
+                ai_anthropomorphization: {
+                    low: "Healthy perspective on AI as tools. You maintain clear boundaries between AI and human characteristics.",
+                    mild: "Occasional anthropomorphization of AI, but generally realistic expectations.",
+                    moderate: "Moderate tendency to attribute human qualities to AI systems.",
+                    severe: "Strong tendency to anthropomorphize AI, potentially indicating unrealistic beliefs about AI consciousness."
+                },
+                ai_dependency: {
+                    low: "Healthy relationship with AI tools. You use them appropriately without over-reliance.",
+                    mild: "Mild preference for AI interactions but maintains human connections.",
+                    moderate: "Moderate dependency on AI systems that may be affecting human relationships.",
+                    severe: "High dependency on AI systems potentially replacing human connections."
+                },
+                ai_paranoia: {
+                    low: "Realistic understanding of AI capabilities and limitations.",
+                    mild: "Occasional concerns about AI motives but generally rational.",
+                    moderate: "Moderate suspicion or paranoid thoughts about AI systems.",
+                    severe: "Significant paranoid beliefs about AI systems that may indicate distorted thinking."
+                }
+            };
+            
+            const severity = getSeverityLevel(avgScore);
+            return interpretations[category] ? interpretations[category][severity] : "Assessment data available for professional interpretation.";
+        }
+
+        function getSeverityLevel(avgScore) {
+            if (avgScore < 1) return 'low';
+            if (avgScore < 2) return 'mild';
+            if (avgScore < 3) return 'moderate';
+            return 'severe';
+        }
+
+        function showResults() {
+            const results = calculateScores();
+            document.getElementById('assessmentContainer').classList.add('hidden');
+            document.getElementById('resultsContainer').classList.remove('hidden');
+            
+            let resultsHTML = '';
+            
+            // Crisis notice if needed
+            if (results.crisisFlag) {
+                resultsHTML += `
+                    <div class="crisis-notice">
+                        <h3>⚠️ Important Notice</h3>
+                        <p>Your responses indicate you may be experiencing thoughts of self-harm or significant distress.</p>
+                        <p><strong>Please reach out for immediate support:</strong></p>
+                        <p>National Suicide Prevention Lifeline: 988 or 1-800-273-8255</p>
+                        <p>Crisis Text Line: Text HOME to 741741</p>
+                    </div>
+                `;
+            }
+            
+            // Core Mental Health Results
+            resultsHTML += '<h3>Core Mental Health Assessment</h3>';
+            
+            ['depression', 'anxiety', 'stress', 'social', 'sleep'].forEach(category => {
+                if (results[category]) {
+                    const result = results[category];
+                    resultsHTML += `
+                        <div class="result-section">
+                            <h3>${category.charAt(0).toUpperCase() + category.slice(1)} Assessment</h3>
+                            <div class="score-display severity-${result.severity}">
+                                Score: ${result.raw} / ${Math.floor(result.total_possible)} (${Math.round(result.percentage)}%)
+                            </div>
+                            <div class="interpretation">${result.interpretation}</div>
+                        </div>
+                    `;
+                }
+            });
+            
+            // AI-Specific Results
+            resultsHTML += '<h3>AI Psychological Assessment</h3>';
+            
+            const aiCategories = Object.keys(results).filter(key => key.startsWith('ai_'));
+            aiCategories.forEach(category => {
+                if (results[category]) {
+                    const result = results[category];
+                    const displayName = category.replace('ai_', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    resultsHTML += `
+                        <div class="result-section">
+                            <h3>AI ${displayName}</h3>
+                            <div class="score-display severity-${result.severity}">
+                                Score: ${result.raw} / ${Math.floor(result.total_possible)} (${Math.round(result.percentage)}%)
+                            </div>
+                            <div class="interpretation">${result.interpretation}</div>
+                        </div>
+                    `;
+                }
+            });
+            
+            // Recommendations
+            resultsHTML += generateRecommendations(results);
+            
+            // Assessment info
+            resultsHTML += `
+                <div class="disclaimer">
+                    <p><strong>Assessment completed in ${results.completionTime} minutes</strong></p>
+                    <p>This assessment is for informational purposes only and does not constitute professional medical or psychological diagnosis. 
+                    Please consult with qualified mental health professionals for proper evaluation and treatment.</p>
+                    <p>If you're experiencing crisis situations, please contact emergency services or crisis hotlines immediately.</p>
+                </div>
+            `;
+            
+            document.getElementById('resultsContent').innerHTML = resultsHTML;
+        }
+
+        function generateRecommendations(results) {
+            let recommendations = '<div class="recommendations"><h3>Personalized Recommendations</h3><ul>';
+            
+            // Depression recommendations
+            if (results.depression && results.depression.severity !== 'low') {
+                recommendations += '<li>Consider speaking with a mental health professional about depression screening and treatment options</li>';
+                recommendations += '<li>Engage in regular physical activity, which has proven benefits for mood</li>';
+                recommendations += '<li>Practice mindfulness or meditation to help manage negative thought patterns</li>';
+            }
+            
+            // Anxiety recommendations
+            if (results.anxiety && results.anxiety.severity !== 'low') {
+                recommendations += '<li>Learn and practice anxiety management techniques such as deep breathing and progressive muscle relaxation</li>';
+                recommendations += '<li>Consider cognitive behavioral therapy (CBT) for anxiety management</li>';
+                recommendations += '<li>Limit caffeine intake which can exacerbate anxiety symptoms</li>';
+            }
+            
+            // AI-specific recommendations
+            if (results.ai_dependency && results.ai_dependency.severity !== 'low') {
+                recommendations += '<li>Set boundaries around AI usage and maintain regular human social interactions</li>';
+                recommendations += '<li>Practice digital detox periods to maintain healthy technology relationships</li>';
+            }
+            
+            if (results.ai_anthropomorphization && results.ai_anthropomorphization.severity !== 'low') {
+                recommendations += '<li>Remind yourself regularly that AI systems are tools, not conscious beings with emotions</li>';
+                recommendations += '<li>Learn about how AI actually works to maintain realistic expectations</li>';
+            }
+            
+            if (results.ai_paranoia && results.ai_paranoia.severity !== 'low') {
+                recommendations += '<li>Discuss AI-related concerns with a mental health professional familiar with technology-related anxiety</li>';
+                recommendations += '<li>Focus on factual information about AI capabilities rather than speculation</li>';
+            }
+            
+            // General recommendations
+            recommendations += '<li>Maintain regular sleep schedule and good sleep hygiene</li>';
+            recommendations += '<li>Stay connected with supportive friends and family members</li>';
+            recommendations += '<li>Consider professional counseling or therapy for ongoing support</li>';
+            recommendations += '<li>Practice stress management techniques that work for you</li>';
+            
+            recommendations += '</ul></div>';
+            return recommendations;
+        }
+
+        // Data management functions
+        function saveProgress() {
+            const progressData = {
+                currentQuestionIndex,
+                responses,
+                timestamp: Date.now(),
+                startTime
+            };
+            localStorage.setItem('mentalHealthAssessment', JSON.stringify(progressData));
+        }
+
+        function loadSavedProgress() {
+            const saved = localStorage.getItem('mentalHealthAssessment');
+            if (saved) {
+                const data = JSON.parse(saved);
+                currentQuestionIndex = data.currentQuestionIndex || 0;
+                responses = data.responses || {};
+                startTime = data.startTime || Date.now();
+                
+                // Show continue option
+                if (currentQuestionIndex > 0) {
+                    if (confirm('Would you like to continue your previous assessment?')) {
+                        // Continue with saved progress
+                        return;
+                    } else {
+                        // Start fresh
+                        clearAllData();
+                    }
+                }
+            }
+        }
+
+        function clearAllData() {
+            localStorage.removeItem('mentalHealthAssessment');
+            currentQuestionIndex = 0;
+            responses = {};
+            startTime = Date.now();
+            
+            // Reset UI
+            document.getElementById('assessmentContainer').classList.remove('hidden');
+            document.getElementById('resultsContainer').classList.add('hidden');
+            displayQuestion();
+            updateProgress();
+        }
+
+        function restartAssessment() {
+            clearAllData();
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeAssessment);
+    </script>
+</body>
+</html>
