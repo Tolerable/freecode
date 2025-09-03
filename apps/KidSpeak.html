@@ -596,69 +596,71 @@ ALWAYS end with "What else would you like to know?" to keep conversation going.`
             }
         }
 
-        async function sendMessage() {
-            const input = document.getElementById('userInput');
-            const sendBtn = document.getElementById('sendBtn');
-            const message = input.value.trim();
-            
-            if (!message) return;
-            if (!filterInput(message)) {
-                input.value = '';
-                return;
-            }
-            
-            // Stop everything
-            stopEverything();
-            
-            sendBtn.disabled = true;
-            addMessage('user', message);
-            input.value = '';
-            
-            chatHistory.push({ role: 'user', content: message });
-            if (chatHistory.length > MAX_HISTORY) {
-                chatHistory = chatHistory.slice(-MAX_HISTORY);
-            }
-            
-            addLoadingMessage();
-            
-            try {
-                const response = await fetch('https://text.pollinations.ai/openai', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'openai',
-                        messages: [
-                            { role: 'system', content: getSystemPrompt() },
-                            ...chatHistory
-                        ],
-                        temperature: 0.3,
-                        max_tokens: sentenceLength === 1 ? 50 : sentenceLength === 2 ? 100 : 180,
-                        private: false,
-                        referrer: 'www.ai-ministries.com'
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
-                
-                removeLoadingMessage();
-                chatHistory.push({ role: 'assistant', content: aiResponse });
-                addMessage('ai', aiResponse, autoSpeak || continuousMode);
-                
-            } catch (error) {
-                removeLoadingMessage();
-                console.error('Error:', error);
-                addMessage('ai', "Oops! I'm having trouble right now. Try again! 😅", false);
-            }
-            
-            sendBtn.disabled = false;
-        }
+		async function sendMessage() {
+			const input = document.getElementById('userInput');
+			const sendBtn = document.getElementById('sendBtn');
+			const message = input.value.trim();
+			
+			if (!message) return;
+			if (!filterInput(message)) {
+				input.value = '';
+				return;
+			}
+			
+			// Stop everything
+			stopEverything();
+			
+			sendBtn.disabled = true;
+			addMessage('user', message);
+			input.value = '';
+			
+			chatHistory.push({ role: 'user', content: message });
+			if (chatHistory.length > MAX_HISTORY) {
+				chatHistory = chatHistory.slice(-MAX_HISTORY);
+			}
+			
+			addLoadingMessage();
+			
+			try {
+				// Build the conversation context
+				const systemPrompt = getSystemPrompt();
+				let conversationContext = systemPrompt + "\n\n";
+				
+				// Add recent chat history for context
+				chatHistory.slice(-4).forEach(msg => {
+					if (msg.role === 'user') {
+						conversationContext += `Human: ${msg.content}\n`;
+					} else {
+						conversationContext += `Assistant: ${msg.content}\n`;
+					}
+				});
+				
+				conversationContext += "Assistant: ";
+				
+				// URL encode the prompt
+				const encodedPrompt = encodeURIComponent(conversationContext);
+				
+				// Use the GET endpoint with a valid model from your list
+				const response = await fetch(`https://text.pollinations.ai/${encodedPrompt}?model=openai&temperature=0.3&referrer=www.ai-ministries.com`);
+				
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+				
+				const aiResponse = await response.text();
+				
+				removeLoadingMessage();
+				chatHistory.push({ role: 'assistant', content: aiResponse.trim() });
+				addMessage('ai', aiResponse.trim(), autoSpeak || continuousMode);
+				
+			} catch (error) {
+				removeLoadingMessage();
+				console.error('Error:', error);
+				addMessage('ai', "Oops! I'm having trouble right now. Try again!", false);
+			}
+			
+			sendBtn.disabled = false;
+		}
 
         function cleanTextForSpeech(text) {
             return text
