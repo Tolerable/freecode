@@ -443,7 +443,7 @@
         const MAX_HISTORY = 6;
         
         const inappropriateWords = [
-            'fuck', 'shit', 'bitch', 'damn', 'hell', 'ass', 'asshole', 'bastard',
+            'fuck', 'shit', 'bitch', 'damn', 'ass', 'asshole', 'bastard',
             'sex', 'porn', 'nude', 'naked', 'rape', 'murder', 'kill yourself'
         ];
 
@@ -501,20 +501,26 @@ ALWAYS end with "What else would you like to know?" to keep conversation going.`
             document.querySelector(`[onclick="selectKidName('${name}')"]`).classList.add('selected');
         }
 
-        function filterInput(text) {
-            const lowerText = text.toLowerCase();
-            const foundWords = inappropriateWords.filter(word => lowerText.includes(word));
-            
-            if (foundWords.length > 0) {
-                document.getElementById('filterWarning').textContent = 
-                    `Let's use kind words instead! Try asking about something fun like animals, space, or science! 😊`;
-                document.getElementById('filterWarning').style.display = 'block';
-                return false;
-            }
-            
-            document.getElementById('filterWarning').style.display = 'none';
-            return true;
-        }
+		function filterInput(text) {
+			const words = text.toLowerCase().split(/\s+/);
+			const badWords = ['fuck', 'shit', 'bitch', 'damn', 'asshole', 'bastard', 'sex', 'porn', 'nude', 'naked', 'rape', 'murder'];
+			
+			const foundBadWords = words.filter(word => {
+				// Remove punctuation and check exact match
+				const cleanWord = word.replace(/[^\w]/g, '');
+				return badWords.includes(cleanWord);
+			});
+			
+			if (foundBadWords.length > 0) {
+				document.getElementById('filterWarning').textContent = 
+					`Let's use kind words instead! Try asking about something fun like animals, space, or science! 😊`;
+				document.getElementById('filterWarning').style.display = 'block';
+				return false;
+			}
+			
+			document.getElementById('filterWarning').style.display = 'none';
+			return true;
+		}
 
         function addMessage(role, content, speak = false) {
             const chatContainer = document.getElementById('chatContainer');
