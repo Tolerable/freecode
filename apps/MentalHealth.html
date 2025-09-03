@@ -2360,26 +2360,34 @@
             localStorage.setItem('mentalHealthAssessment', JSON.stringify(progressData));
         }
 
-        function loadSavedProgress() {
-            const saved = localStorage.getItem('mentalHealthAssessment');
-            if (saved) {
-                const data = JSON.parse(saved);
-                currentQuestionIndex = data.currentQuestionIndex || 0;
-                responses = data.responses || {};
-                startTime = data.startTime || Date.now();
-                
-                // Show continue option
-                if (currentQuestionIndex > 0) {
-                    if (confirm('Would you like to continue your previous assessment?')) {
-                        // Continue with saved progress
-                        return;
-                    } else {
-                        // Start fresh
-                        clearAllData();
-                    }
-                }
-            }
-        }
+		function loadSavedProgress() {
+			const saved = localStorage.getItem('mentalHealthAssessment');
+			if (saved) {
+				const data = JSON.parse(saved);
+				currentQuestionIndex = data.currentQuestionIndex || 0;
+				responses = data.responses || {};
+				startTime = data.startTime || Date.now();
+				
+				// Check if assessment is actually complete
+				const completedQuestions = Object.keys(responses).length;
+				if (completedQuestions >= questions.length) {
+					// Assessment is complete - go straight to results
+					showResults();
+					return;
+				}
+				
+				// Show continue option for incomplete assessments
+				if (currentQuestionIndex > 0) {
+					if (confirm('Would you like to continue your previous assessment?')) {
+						// Continue with saved progress
+						return;
+					} else {
+						// Start fresh
+						clearAllData();
+					}
+				}
+			}
+		}
 
         function clearAllData() {
             localStorage.removeItem('mentalHealthAssessment');
@@ -2423,14 +2431,15 @@
 			crisisWarningGiven = false;
 			messagesSinceCrisisWarning = 0;
 			
-			const welcomeMessage = generateWelcomeMessage(results);
-			addMessageToChat('ai', welcomeMessage);
-			
-			// Add crisis warning if needed
+			// Add crisis warning FIRST if needed
 			if (results.crisisFlag && !crisisWarningGiven) {
 				addCrisisWarning();
 				crisisWarningGiven = true;
 			}
+			
+			// Then add welcome message below the crisis warning
+			const welcomeMessage = generateWelcomeMessage(results);
+			addMessageToChat('ai', welcomeMessage);
 		}
 
 		function addCrisisWarning() {
