@@ -1961,6 +1961,11 @@
         let responses = {};
         let startTime = Date.now();
 
+		// Crisis warning tracking
+		let crisisWarningGiven = false;
+		let messagesSinceCrisisWarning = 0;
+		const CRISIS_WARNING_INTERVAL = 4; // Show again every 4 messages
+
         // Initialize assessment
         function initializeAssessment() {
             loadSavedProgress();
@@ -2411,8 +2416,35 @@
 		let chatMessages = [];
 
 		function initializeAIChat(results) {
+			// Clear previous messages
+			document.getElementById('chatMessages').innerHTML = '';
+			
+			// Reset crisis warning tracking
+			crisisWarningGiven = false;
+			messagesSinceCrisisWarning = 0;
+			
 			const welcomeMessage = generateWelcomeMessage(results);
 			addMessageToChat('ai', welcomeMessage);
+			
+			// Add crisis warning if needed
+			if (results.crisisFlag && !crisisWarningGiven) {
+				addCrisisWarning();
+				crisisWarningGiven = true;
+			}
+		}
+
+		function addCrisisWarning() {
+			const crisisDiv = document.createElement('div');
+			crisisDiv.className = 'crisis-warning-chat';
+			crisisDiv.innerHTML = `
+				<div style="background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 15px; border-radius: 10px; margin: 10px 0; text-align: center;">
+					<strong>⚠️ Crisis Support Available</strong><br>
+					If you're having thoughts of self-harm: <strong>Call 988</strong> or text <strong>HOME to 741741</strong><br>
+					<small>You don't have to face this alone - professional help is available 24/7</small>
+				</div>
+			`;
+			document.getElementById('chatMessages').appendChild(crisisDiv);
+			document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
 		}
 
 		function generateWelcomeMessage(results) {
@@ -2472,6 +2504,11 @@
 			addMessageToChat('user', message);
 			input.value = '';
 			
+			// Track messages for crisis warning
+			if (window.assessmentResults && window.assessmentResults.crisisFlag) {
+				messagesSinceCrisisWarning++;
+			}
+			
 			const typingDiv = document.createElement('div');
 			typingDiv.className = 'typing-indicator';
 			typingDiv.textContent = 'AI is typing...';
@@ -2479,9 +2516,9 @@
 			typingDiv.style.display = 'block';
 			
 			try {
-				// Prepare system message with actual results
-				let systemContent = "You are a friendly, conversational AI discussing someone's mental health assessment results. Keep responses SHORT (2-3 sentences max), casual, and specific to their scores. Don't be overly clinical or give long lists. Be supportive but natural.";
-
+				// Prepare system message (remove crisis handling from AI)
+				let systemContent = "You are a friendly, conversational AI discussing someone's mental health assessment results. Keep responses SHORT (2-3 sentences max), casual, and specific to their scores. Don't be overly clinical or give long lists. Be supportive but natural. DO NOT mention crisis numbers or emergency services - that's handled separately.";
+				
 				if (window.assessmentResults) {
 					const results = window.assessmentResults;
 					
@@ -2489,14 +2526,10 @@
 					const concerns = Object.keys(results)
 						.filter(key => results[key] && (results[key].severity === 'moderate' || results[key].severity === 'severe'))
 						.map(key => `${key.replace('ai_', '').replace('_', ' ')}: ${results[key].severity}`)
-						.slice(0, 3); // Only top 3
+						.slice(0, 3);
 					
 					if (concerns.length > 0) {
 						systemContent += ` Their main areas of concern: ${concerns.join(', ')}.`;
-					}
-					
-					if (results.crisisFlag) {
-						systemContent += " Crisis indicators present - be gentle but mention professional help.";
 					}
 					
 					systemContent += " Be conversational, not clinical. Reference their specific scores when relevant.";
@@ -2527,6 +2560,16 @@
 				
 				if (data.choices && data.choices[0] && data.choices[0].message) {
 					addMessageToChat('ai', data.choices[0].message.content);
+					
+					// Show crisis warning again if enough messages have passed
+					if (window.assessmentResults && window.assessmentResults.crisisFlag && 
+						messagesSinceCrisisWarning >= CRISIS_WARNING_INTERVAL) {
+						setTimeout(() => {
+							addCrisisWarning();
+							messagesSinceCrisisWarning = 0;
+						}, 1000); // Small delay so it appears after AI response
+					}
+					
 				} else {
 					addMessageToChat('ai', "I had trouble processing that. Could you try again?");
 				}
