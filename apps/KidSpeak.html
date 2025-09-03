@@ -271,6 +271,74 @@
             font-style: italic;
         }
 
+        .name-picker-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .name-picker-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .name-picker-content h3 {
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .name-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .name-option {
+            background: #f0f8ff;
+            border: 2px solid #667eea;
+            border-radius: 15px;
+            padding: 10px 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .name-option:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .name-option.selected {
+            background: #667eea;
+            color: white;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
         @media (max-width: 600px) {
             .container {
                 margin: 10px;
@@ -294,16 +362,17 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌟 AI Buddy 🌟</h1>
+            <h1>🌟 <span id="aiName">Rainbow</span> 🌟</h1>
             <p>Ask me anything! I'm here to help and chat!</p>
         </div>
 
         <div class="input-container">
             <div class="controls">
                 <button class="control-btn" onclick="clearChat()">🗑️ Clear Chat</button>
+                <button class="control-btn" onclick="showNamePicker()">👤 Names</button>
                 <button class="control-btn" onclick="toggleAutoSpeak()">🔊 Auto-Speak: <span id="autoSpeakStatus">OFF</span></button>
                 <button class="control-btn" onclick="toggleContinuousMode()">🔄 Continuous Talk: <span id="continuousStatus">OFF</span></button>
-                <button id="sentenceLengthBtn" class="control-btn sentence-length-btn" onclick="toggleSentenceLength()">📝 1</button>
+                <button id="sentenceLengthBtn" class="control-btn sentence-length-btn" onclick="toggleSentenceLength()">📏 1</button>
             </div>
             
             <div class="input-wrapper">
@@ -319,7 +388,7 @@
 
         <div class="chat-container" id="chatContainer">
             <div class="message ai-message">
-                <div class="message-header">AI Buddy 🤖</div>
+                <div class="message-header">Rainbow 🤖</div>
                 <div>Hi! I'm your AI buddy! What would you like to know?</div>
                 <button class="speak-btn" onclick="speakText(this)" title="Listen to this message">🔊</button>
             </div>
@@ -332,6 +401,34 @@
         </div>
     </div>
 
+    <div id="namePickerModal" class="name-picker-modal">
+        <div class="name-picker-content">
+            <button class="close-modal" onclick="closeNamePicker()">×</button>
+            
+            <h3>Choose Your AI Friend's Name:</h3>
+            <div class="name-options" id="aiNameOptions">
+                <div class="name-option selected" onclick="selectAIName('Rainbow')">🌈 Rainbow</div>
+                <div class="name-option" onclick="selectAIName('Spark')">⚡ Spark</div>
+                <div class="name-option" onclick="selectAIName('Buddy')">😊 Buddy</div>
+                <div class="name-option" onclick="selectAIName('Nova')">⭐ Nova</div>
+                <div class="name-option" onclick="selectAIName('Sunny')">☀️ Sunny</div>
+                <div class="name-option" onclick="selectAIName('Echo')">🎵 Echo</div>
+            </div>
+            
+            <h3 style="margin-top: 25px;">What Should I Call You?</h3>
+            <div class="name-options" id="kidNameOptions">
+                <div class="name-option selected" onclick="selectKidName('Friend')">👋 Friend</div>
+                <div class="name-option" onclick="selectKidName('Explorer')">🔍 Explorer</div>
+                <div class="name-option" onclick="selectKidName('Scientist')">🔬 Scientist</div>
+                <div class="name-option" onclick="selectKidName('Artist')">🎨 Artist</div>
+                <div class="name-option" onclick="selectKidName('Captain')">🚀 Captain</div>
+                <div class="name-option" onclick="selectKidName('Star')">⭐ Star</div>
+            </div>
+            
+            <button class="control-btn" onclick="closeNamePicker()" style="margin-top: 20px; background: #4CAF50;">Done! 🎉</button>
+        </div>
+    </div>
+
     <script>
         let chatHistory = [];
         let autoSpeak = false;
@@ -341,6 +438,8 @@
         let continuousMode = false;
         let currentUtterance = null;
         let sentenceLength = 1;
+        let aiName = 'Rainbow';
+        let kidName = 'Friend';
         const MAX_HISTORY = 6;
         
         const inappropriateWords = [
@@ -349,7 +448,7 @@
         ];
 
         function getSystemPrompt() {
-            const basePROMPT = `You are a friendly AI buddy for kids. Be encouraging and positive, add one emoji at the end, use simple words, never discuss scary/violent topics, and redirect inappropriate topics to fun things.
+            const basePROMPT = `You are ${aiName}, a friendly AI buddy for kids. Address the child as "${kidName}" when appropriate. Be encouraging and positive, add one emoji at the end, use simple words, never discuss scary/violent topics, and redirect inappropriate topics to fun things.
 
 ALWAYS end with "What else would you like to know?" to keep conversation going.`;
 
@@ -360,6 +459,46 @@ ALWAYS end with "What else would you like to know?" to keep conversation going.`
             } else {
                 return basePROMPT + `\n\nIMPORTANT: Keep responses to THREE sentences maximum!`;
             }
+        }
+
+        function showNamePicker() {
+            document.getElementById('namePickerModal').style.display = 'block';
+            
+            // Highlight current selections
+            document.querySelectorAll('.name-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            const currentAIOption = document.querySelector(`[onclick="selectAIName('${aiName}')"]`);
+            const currentKidOption = document.querySelector(`[onclick="selectKidName('${kidName}')"]`);
+            
+            if (currentAIOption) currentAIOption.classList.add('selected');
+            if (currentKidOption) currentKidOption.classList.add('selected');
+        }
+
+        function closeNamePicker() {
+            document.getElementById('namePickerModal').style.display = 'none';
+        }
+
+        function selectAIName(name) {
+            aiName = name;
+            document.getElementById('aiName').textContent = name;
+            
+            // Update visual selection
+            document.querySelectorAll('#aiNameOptions .name-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelector(`[onclick="selectAIName('${name}')"]`).classList.add('selected');
+        }
+
+        function selectKidName(name) {
+            kidName = name;
+            
+            // Update visual selection
+            document.querySelectorAll('#kidNameOptions .name-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelector(`[onclick="selectKidName('${name}')"]`).classList.add('selected');
         }
 
         function filterInput(text) {
@@ -384,7 +523,7 @@ ALWAYS end with "What else would you like to know?" to keep conversation going.`
             
             const headerDiv = document.createElement('div');
             headerDiv.className = 'message-header';
-            headerDiv.textContent = role === 'user' ? 'You 👤' : 'AI Buddy 🤖';
+            headerDiv.textContent = role === 'user' ? `${kidName} 👤` : `${aiName} 🤖`;
             
             const contentDiv = document.createElement('div');
             contentDiv.textContent = content;
@@ -416,7 +555,7 @@ ALWAYS end with "What else would you like to know?" to keep conversation going.`
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ai-message loading';
             messageDiv.id = 'loadingMessage';
-            messageDiv.textContent = 'AI Buddy is thinking';
+            messageDiv.textContent = `${aiName} is thinking`;
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
@@ -502,7 +641,7 @@ ALWAYS end with "What else would you like to know?" to keep conversation going.`
                 .replace(/[\u{2700}-\u{27BF}]/gu, '')
                 .replace(/[\u{1F900}-\u{1F9FF}]/gu, '')
                 .replace(/[\u{1F018}-\u{1F270}]/gu, '')
-                .replace(/🤖|👤|😊|😅|🌟|🚀|🗑️|🔊|⚠️|🎤|🛑|📝|🔇|🎧|🖼️|📈|🔄/g, '')
+                .replace(/🤖|👤|😊|😅|🌟|🚀|🗑️|🔊|⚠️|🎤|🛑|📏|🔇|🎧|🖼️|📈|🔄/g, '')
                 .replace(/\s+/g, ' ')
                 .trim();
         }
@@ -600,7 +739,7 @@ ALWAYS end with "What else would you like to know?" to keep conversation going.`
             chatHistory = [];
             stopEverything();
             
-            addMessage('ai', "Hi there! I'm your friendly AI buddy! 😊 I love answering questions about science, animals, space, books, and lots of fun stuff! What would you like to know today?");
+            addMessage('ai', `Hi there! I'm your friendly ${aiName}! 😊 I love answering questions about science, animals, space, books, and lots of fun stuff! What would you like to know today?`);
         }
 
         function toggleAutoSpeak() {
@@ -612,7 +751,7 @@ ALWAYS end with "What else would you like to know?" to keep conversation going.`
             sentenceLength = sentenceLength === 3 ? 1 : sentenceLength + 1;
             
             const btn = document.getElementById('sentenceLengthBtn');
-            btn.textContent = `📝 ${sentenceLength}`;
+            btn.textContent = `📏 ${sentenceLength}`;
             
             btn.className = 'control-btn sentence-length-btn';
             if (sentenceLength === 2) {
@@ -733,44 +872,51 @@ ALWAYS end with "What else would you like to know?" to keep conversation going.`
             }
         }
         
-        function updateListenButton() {
-            const btn = document.getElementById('listenBtn');
-            
-            if (isSpeaking) {
-                btn.classList.remove('listening');
-                btn.classList.add('speaking');
-                btn.textContent = '🛑 Stop Talking';
-                btn.onclick = stopEverything;
-            } else if (isListening) {
-                btn.classList.remove('speaking');
-                btn.classList.add('listening');
-                btn.textContent = '🛑 Stop Listening';
-                btn.onclick = toggleListening;
-            } else {
-                btn.classList.remove('listening', 'speaking');
-                btn.textContent = '🎤 Talk to Me!';
-                btn.onclick = toggleListening;
-            }
-        }
+		function updateListenButton() {
+			const btn = document.getElementById('listenBtn');
+			
+			if (isSpeaking) {
+				btn.classList.remove('listening');
+				btn.classList.add('speaking');
+				btn.textContent = '🛑 Stop Talking';
+				btn.onclick = stopEverything;
+			} else if (isListening) {
+				btn.classList.remove('speaking');
+				btn.classList.add('listening');
+				btn.textContent = '🛑 Stop Listening';
+				btn.onclick = toggleListening;
+			} else {
+				btn.classList.remove('listening', 'speaking');
+				btn.textContent = '🎤 Talk to Me!';
+				btn.onclick = toggleListening;
+			}
+		}
 
-        // Enter key to send message
-        document.getElementById('userInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
+       // Enter key to send message
+       document.getElementById('userInput').addEventListener('keypress', function(e) {
+           if (e.key === 'Enter') {
+               sendMessage();
+           }
+       });
 
-        // Initialize speech recognition on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            initSpeechRecognition();
-        });
+       // Initialize speech recognition on page load
+       document.addEventListener('DOMContentLoaded', function() {
+           initSpeechRecognition();
+       });
 
-        // Load voices when they become available
-        if ('speechSynthesis' in window) {
-            speechSynthesis.addEventListener('voiceschanged', function() {
-                // Voices are now loaded
-            });
-        }
-    </script>
+       // Load voices when they become available
+       if ('speechSynthesis' in window) {
+           speechSynthesis.addEventListener('voiceschanged', function() {
+               // Voices are now loaded
+           });
+       }
+
+       // Close modal when clicking outside
+       document.getElementById('namePickerModal').addEventListener('click', function(e) {
+           if (e.target === this) {
+               closeNamePicker();
+           }
+       });
+   </script>
 </body>
-</html>
+</html>				
