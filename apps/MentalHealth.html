@@ -2471,85 +2471,80 @@
 				// Prepare context for AI
 				const context = prepareAIContext(message);
 				
+				const requestBody = {
+					model: 'openai',
+					messages: context,
+					temperature: 0.7,
+					max_tokens: 500
+				};
+				
+				console.log('Sending request:', requestBody);
+				
 				// Call Pollinations API
 				const response = await fetch('https://text.pollinations.ai/openai?referrer=ai-ministries.com', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
 					},
-					body: JSON.stringify({
-						model: 'openai',
-						messages: context,
-						temperature: 0.7,
-						max_tokens: 500
-					})
+					body: JSON.stringify(requestBody)
 				});
 				
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+				}
+				
 				const data = await response.json();
-				const aiResponse = data.choices[0].message.content;
+				console.log('API Response:', data);
 				
 				// Remove typing indicator
 				typingDiv.remove();
+				
+				// Extract the AI response
+				let aiResponse;
+				if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+					aiResponse = data.choices[0].message.content;
+				} else if (data.content) {
+					aiResponse = data.content;
+				} else if (typeof data === 'string') {
+					aiResponse = data;
+				} else {
+					console.error('Unexpected response format:', data);
+					aiResponse = "I received an unexpected response. Let me try to help you anyway. How are you feeling about your assessment results?";
+				}
 				
 				// Add AI response to chat
 				addMessageToChat('ai', aiResponse);
 				
 			} catch (error) {
-				console.error('Error calling AI:', error);
+				console.error('Full error details:', error);
 				typingDiv.remove();
-				addMessageToChat('ai', "I'm sorry, I'm having trouble connecting right now. Please try again in a moment, or consider reaching out to a mental health professional for support.");
+				addMessageToChat('ai', "I'm experiencing technical difficulties. Please try again, or consider reaching out to a mental health professional for support with your assessment results.");
 			}
 		}
 
 		function prepareAIContext(userMessage) {
 			const results = window.assessmentResults;
 			
-			// Handle case where results aren't available yet
-			if (!results) {
-				const systemPrompt = `You are a compassionate AI assistant helping someone with mental health questions. 
-
-		IMPORTANT GUIDELINES:
-		- You are NOT a therapist or medical professional
-		- Always encourage professional help for serious concerns
-		- Be empathetic, non-judgmental, and supportive
-		- Provide general information and coping strategies
-		- Focus on hope, resilience, and available support
-
-		The user has taken a mental health assessment but results aren't available in this context. Provide supportive responses while encouraging professional consultation.`;
+			let systemMessage = "You are a compassionate AI assistant helping someone understand their mental health assessment results. You are NOT a therapist or medical professional. Always encourage professional help for serious concerns. Be empathetic, non-judgmental, and supportive.";
+			
+			if (results) {
+				// Add basic results context
+				const highScores = Object.keys(results)
+					.filter(key => results[key] && results[key].severity && ['moderate', 'severe'].includes(results[key].severity))
+					.map(key => `${key}: ${results[key].severity}`)
+					.slice(0, 3); // Limit to prevent overly long context
 				
-				return [
-					{ role: 'system', content: systemPrompt },
-					{ role: 'user', content: userMessage }
-				];
+				if (highScores.length > 0) {
+					systemMessage += ` The user's assessment showed: ${highScores.join(', ')}.`;
+				}
+				
+				if (results.crisisFlag) {
+					systemMessage += " IMPORTANT: Crisis indicators present - gently encourage professional help.";
+				}
 			}
 			
-			// Create a summary of results for context
-			let resultsSummary = "User's assessment results:\n";
-			Object.keys(results).forEach(key => {
-				if (results[key] && results[key].severity) {
-					resultsSummary += `${key}: ${results[key].severity} (${Math.round(results[key].percentage)}%)\n`;
-				}
-			});
-			
-			const systemPrompt = `You are a compassionate AI assistant helping someone understand their mental health assessment results. 
-
-		IMPORTANT GUIDELINES:
-		- You are NOT a therapist or medical professional
-		- Always encourage professional help for serious concerns
-		- Be empathetic, non-judgmental, and supportive
-		- Provide general information and coping strategies
-		- If crisis indicators are present, gently redirect to professional resources
-		- Never dismiss concerns, but don't amplify anxiety
-		- Focus on hope, resilience, and available support
-
-		${resultsSummary}
-
-		Crisis flag: ${results.crisisFlag ? 'YES - redirect to professional help' : 'NO'}
-
-		Provide supportive, informative responses while encouraging professional consultation when appropriate.`;
-			
 			return [
-				{ role: 'system', content: systemPrompt },
+				{ role: 'system', content: systemMessage },
 				{ role: 'user', content: userMessage }
 			];
 		}
