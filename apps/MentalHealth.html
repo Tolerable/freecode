@@ -2199,8 +2199,12 @@
 		function showResults() {
 			const results = calculateScores();
 			
-			// Store results for AI chat FIRST
+			// Store results IMMEDIATELY and verify
 			window.assessmentResults = results;
+			console.log('Stored results:', window.assessmentResults);
+			
+			// Also store in localStorage for persistence
+			localStorage.setItem('lastAssessmentResults', JSON.stringify(results));
 			
 			document.getElementById('assessmentContainer').classList.add('hidden');
 			document.getElementById('resultsContainer').classList.remove('hidden');
@@ -2292,8 +2296,9 @@
 			
 			// Initialize AI chat with results summary - use setTimeout to ensure DOM is ready
 			setTimeout(() => {
+				console.log('Initializing chat with results:', window.assessmentResults);
 				initializeAIChat(results);
-			}, 100);
+			}, 200);
 		}
 
         function generateRecommendations(results) {
@@ -2456,11 +2461,18 @@
 			
 			if (!message) return;
 			
-			// Add user message to chat
+			// Verify we have results
+			if (!window.assessmentResults) {
+				// Try to restore from localStorage
+				const stored = localStorage.getItem('lastAssessmentResults');
+				if (stored) {
+					window.assessmentResults = JSON.parse(stored);
+				}
+			}
+			
 			addMessageToChat('user', message);
 			input.value = '';
 			
-			// Show typing indicator
 			const typingDiv = document.createElement('div');
 			typingDiv.className = 'typing-indicator';
 			typingDiv.textContent = 'AI is typing...';
@@ -2468,6 +2480,9 @@
 			typingDiv.style.display = 'block';
 			
 			try {
+				const context = prepareAIContext(message);
+				console.log('Sending context:', context);
+				
 				const response = await fetch('https://text.pollinations.ai/openai', {
 					method: 'POST',
 					headers: {
@@ -2475,71 +2490,94 @@
 					},
 					body: JSON.stringify({
 						model: "openai",
-						messages: [
-							{
-								role: "system",
-								content: "You are a helpful assistant discussing mental health assessment results. Be supportive and encourage professional help when appropriate."
-							},
-							{
-								role: "user", 
-								content: message
-							}
-						],						
+						messages: context,
 						referrer: "ai-ministries.com"
 					})
 				});
 				
+				if (!response.ok) {
+					throw new Error(`API Error: ${response.status}`);
+				}
+				
 				const data = await response.json();
+				console.log('API Response:', data);
 				
 				typingDiv.remove();
 				
 				if (data.choices && data.choices[0] && data.choices[0].message) {
 					addMessageToChat('ai', data.choices[0].message.content);
 				} else {
-					addMessageToChat('ai', "Sorry, I had trouble processing that. Please try again.");
+					addMessageToChat('ai', "I had trouble processing that response. Could you try rephrasing your question?");
 				}
 				
 			} catch (error) {
-				console.error('Error:', error);
+				console.error('Chat error:', error);
 				typingDiv.remove();
-				addMessageToChat('ai', "I'm having technical difficulties. Please try again.");
+				addMessageToChat('ai', "I'm having technical difficulties right now. Your assessment results show some areas we could discuss - would you like me to try again?");
 			}
 		}
 
 		function prepareAIContext(userMessage) {
 			const results = window.assessmentResults;
 			
-			let systemMessage = "You are a compassionate AI assistant helping someone understand their mental health assessment results. You are NOT a therapist or medical professional. Always encourage professional help for serious concerns. Be empathetic, non-judgmental, and supportive.";
-			
-			if (results) {
-				// Add basic results context
-				const highScores = Object.keys(results)
-					.filter(key => results[key] && results[key].severity && ['moderate', 'severe'].includes(results[key].severity))
-					.map(key => `${key}: ${results[key].severity}`)
-					.slice(0, 3); // Limit to prevent overly long context
-				
-				if (highScores.length > 0) {
-					systemMessage += ` The user's assessment showed: ${highScores.join(', ')}.`;
-				}
-				
-				if (results.crisisFlag) {
-					systemMessage += " IMPORTANT: Crisis indicators present - gently encourage professional help.";
-				}
+			if (!results) {
+				return [
+					{ role: 'system', content: 'You are a helpful assistant. The user has taken a mental health assessment but the results are not available. Ask them to describe their results or concerns.' },
+					{ role: 'user', content: userMessage }
+				];
 			}
 			
+			// Create detailed results summary
+			let resultsText = "User's Assessment Results:\n";
+			
+			['depression', 'anxiety', 'stress', 'social', 'sleep', 'trauma', 'ocd'].forEach(category => {
+				if (results[category]) {
+					resultsText += `${category}: ${results[category].raw}/${Math.floor(results[category].total_possible)} (${results[category].severity})\n`;
+				}
+			});
+			
+			// AI categories
+			Object.keys(results).filter(key => key.startsWith('ai_')).forEach(category => {
+				if (results[category]) {
+					resultsText += `${category}: ${results[category].raw}/${Math.floor(results[category].total_possible)} (${results[category].severity})\n`;
+				}
+			});
+			
+			resultsText += `\nCrisis indicators: ${results.crisisFlag ? 'YES' : 'NO'}`;
+			
+			const systemPrompt = `You are discussing specific mental health assessment results with this user. Here are their actual scores:
+
+		${resultsText}
+
+		Be specific about their results. Don't give generic advice - reference their actual scores. For example, if they scored high in depression, mention that specifically. If they have low anxiety but high stress, acknowledge that pattern.
+
+		Keep responses concise and focused on their specific situation. Don't be overly clinical but be helpful and specific to what they actually scored.`;
+
 			return [
-				{ role: 'system', content: systemMessage },
+				{ role: 'system', content: systemPrompt },
 				{ role: 'user', content: userMessage }
 			];
 		}
 
+		function loadStoredResults() {
+			if (!window.assessmentResults) {
+				const stored = localStorage.getItem('lastAssessmentResults');
+				if (stored) {
+					window.assessmentResults = JSON.parse(stored);
+					console.log('Loaded stored results:', window.assessmentResults);
+				}
+			}
+		}
+
 		// Add Enter key support for chat
 		document.addEventListener('DOMContentLoaded', function() {
-			document.addEventListener('keydown', function(e) {
-				if (e.key === 'Enter' && document.getElementById('chatInput') === document.activeElement) {
-					sendMessage();
-				}
-			});
+		   loadStoredResults();
+		   
+		   document.addEventListener('keydown', function(e) {
+			   if (e.key === 'Enter' && document.getElementById('chatInput') === document.activeElement) {
+				   sendMessage();
+			   }
+		   });
 		});
 
     </script>
