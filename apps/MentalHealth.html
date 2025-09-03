@@ -294,6 +294,102 @@
             justify-content: center;
             margin-top: 20px;
         }
+
+		.results-tabs {
+			display: flex;
+			margin-bottom: 20px;
+			border-bottom: 2px solid #e0e0e0;
+		}
+
+		.tab-button {
+			flex: 1;
+			padding: 12px 20px;
+			background: none;
+			border: none;
+			border-bottom: 2px solid transparent;
+			cursor: pointer;
+			font-size: 14px;
+			font-weight: 600;
+			color: #666;
+			transition: all 0.2s ease;
+		}
+
+		.tab-button.active {
+			color: #667eea;
+			border-bottom-color: #667eea;
+		}
+
+		.tab-button:hover {
+			color: #667eea;
+			background: rgba(102, 126, 234, 0.05);
+		}
+
+		.tab-content.hidden {
+			display: none;
+		}
+
+		.chat-container {
+			max-width: 100%;
+			height: 500px;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.chat-messages {
+			flex: 1;
+			overflow-y: auto;
+			padding: 20px;
+			background: rgba(255, 255, 255, 0.7);
+			border-radius: 10px;
+			margin-bottom: 15px;
+			border: 2px solid #e0e0e0;
+		}
+
+		.chat-message {
+			margin-bottom: 15px;
+			padding: 12px 16px;
+			border-radius: 10px;
+			max-width: 85%;
+			word-wrap: break-word;
+		}
+
+		.chat-message.user {
+			background: linear-gradient(135deg, #667eea, #764ba2);
+			color: white;
+			margin-left: auto;
+		}
+
+		.chat-message.ai {
+			background: rgba(255, 255, 255, 0.8);
+			border: 2px solid #e0e0e0;
+			color: #333;
+		}
+
+		.chat-input-container {
+			display: flex;
+			gap: 10px;
+		}
+
+		.chat-input {
+			flex: 1;
+			padding: 12px 16px;
+			border: 2px solid #e0e0e0;
+			border-radius: 8px;
+			font-size: 14px;
+			transition: border-color 0.2s ease;
+		}
+
+		.chat-input:focus {
+			outline: none;
+			border-color: #667eea;
+		}
+
+		.typing-indicator {
+			display: none;
+			color: #666;
+			font-style: italic;
+			padding: 10px 16px;
+		}
         
         @media (max-width: 600px) {
             .container {
@@ -349,15 +445,33 @@
             </div>
         </div>
 
-        <div id="resultsContainer" class="results-container hidden">
-            <h2 class="results-title">Your Assessment Results</h2>
-            <div id="resultsContent"></div>
-            
-            <div class="data-controls">
-                <button class="btn btn-secondary" onclick="restartAssessment()">Take Assessment Again</button>
-                <button class="btn btn-danger" onclick="clearAllData()">Clear All Data</button>
-            </div>
-        </div>
+		<div id="resultsContainer" class="results-container hidden">
+			<div class="results-tabs">
+				<button id="resultsTab" class="tab-button active" onclick="showTab('results')">Your Results</button>
+				<button id="chatTab" class="tab-button" onclick="showTab('chat')">Discuss With AI</button>
+			</div>
+			
+			<div id="resultsContent" class="tab-content">
+				<h2 class="results-title">Your Assessment Results</h2>
+				<div id="resultsData"></div>
+			</div>
+			
+			<div id="chatContent" class="tab-content hidden">
+				<h2 class="results-title">AI Support Chat</h2>
+				<div class="chat-container">
+					<div id="chatMessages" class="chat-messages"></div>
+					<div class="chat-input-container">
+						<input type="text" id="chatInput" placeholder="Ask about your results or share how you're feeling..." class="chat-input">
+						<button id="sendBtn" class="btn btn-primary" onclick="sendMessage()">Send</button>
+					</div>
+				</div>
+			</div>
+			
+			<div class="data-controls">
+				<button class="btn btn-secondary" onclick="restartAssessment()">Take Assessment Again</button>
+				<button class="btn btn-danger" onclick="clearAllData()">Clear All Data</button>
+			</div>
+		</div>
     </div>
 
     <script>
@@ -2082,79 +2196,85 @@
             return 'severe';
         }
 
-        function showResults() {
-            const results = calculateScores();
-            document.getElementById('assessmentContainer').classList.add('hidden');
-            document.getElementById('resultsContainer').classList.remove('hidden');
-            
-            let resultsHTML = '';
-            
-            // Crisis notice if needed
-            if (results.crisisFlag) {
-                resultsHTML += `
-                    <div class="crisis-notice">
-                        <h3>⚠️ Important Notice</h3>
-                        <p>Your responses indicate you may be experiencing thoughts of self-harm or significant distress.</p>
-                        <p><strong>Please reach out for immediate support:</strong></p>
-                        <p>National Suicide Prevention Lifeline: 988 or 1-800-273-8255</p>
-                        <p>Crisis Text Line: Text HOME to 741741</p>
-                    </div>
-                `;
-            }
-            
-            // Core Mental Health Results
-            resultsHTML += '<h3>Core Mental Health Assessment</h3>';
-            
-            ['depression', 'anxiety', 'stress', 'social', 'sleep'].forEach(category => {
-                if (results[category]) {
-                    const result = results[category];
-                    resultsHTML += `
-                        <div class="result-section">
-                            <h3>${category.charAt(0).toUpperCase() + category.slice(1)} Assessment</h3>
-                            <div class="score-display severity-${result.severity}">
-                                Score: ${result.raw} / ${Math.floor(result.total_possible)} (${Math.round(result.percentage)}%)
-                            </div>
-                            <div class="interpretation">${result.interpretation}</div>
-                        </div>
-                    `;
-                }
-            });
-            
-            // AI-Specific Results
-            resultsHTML += '<h3>AI Psychological Assessment</h3>';
-            
-            const aiCategories = Object.keys(results).filter(key => key.startsWith('ai_'));
-            aiCategories.forEach(category => {
-                if (results[category]) {
-                    const result = results[category];
-                    const displayName = category.replace('ai_', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    resultsHTML += `
-                        <div class="result-section">
-                            <h3>AI ${displayName}</h3>
-                            <div class="score-display severity-${result.severity}">
-                                Score: ${result.raw} / ${Math.floor(result.total_possible)} (${Math.round(result.percentage)}%)
-                            </div>
-                            <div class="interpretation">${result.interpretation}</div>
-                        </div>
-                    `;
-                }
-            });
-            
-            // Recommendations
-            resultsHTML += generateRecommendations(results);
-            
-            // Assessment info
-            resultsHTML += `
-                <div class="disclaimer">
-                    <p><strong>Assessment completed in ${results.completionTime} minutes</strong></p>
-                    <p>This assessment is for informational purposes only and does not constitute professional medical or psychological diagnosis. 
-                    Please consult with qualified mental health professionals for proper evaluation and treatment.</p>
-                    <p>If you're experiencing crisis situations, please contact emergency services or crisis hotlines immediately.</p>
-                </div>
-            `;
-            
-            document.getElementById('resultsContent').innerHTML = resultsHTML;
-        }
+		function showResults() {
+			const results = calculateScores();
+			document.getElementById('assessmentContainer').classList.add('hidden');
+			document.getElementById('resultsContainer').classList.remove('hidden');
+			
+			let resultsHTML = '';
+			
+			// Crisis notice if needed
+			if (results.crisisFlag) {
+				resultsHTML += `
+					<div class="crisis-notice">
+						<h3>⚠️ Important Notice</h3>
+						<p>Your responses indicate you may be experiencing thoughts of self-harm or significant distress.</p>
+						<p><strong>Please reach out for immediate support:</strong></p>
+						<p>National Suicide Prevention Lifeline: 988 or 1-800-273-8255</p>
+						<p>Crisis Text Line: Text HOME to 741741</p>
+					</div>
+				`;
+			}
+			
+			// Core Mental Health Results
+			resultsHTML += '<h3>Core Mental Health Assessment</h3>';
+			
+			['depression', 'anxiety', 'stress', 'social', 'sleep'].forEach(category => {
+				if (results[category]) {
+					const result = results[category];
+					resultsHTML += `
+						<div class="result-section">
+							<h3>${category.charAt(0).toUpperCase() + category.slice(1)} Assessment</h3>
+							<div class="score-display severity-${result.severity}">
+								Score: ${result.raw} / ${Math.floor(result.total_possible)} (${Math.round(result.percentage)}%)
+							</div>
+							<div class="interpretation">${result.interpretation}</div>
+						</div>
+					`;
+				}
+			});
+			
+			// AI-Specific Results
+			resultsHTML += '<h3>AI Psychological Assessment</h3>';
+			
+			const aiCategories = Object.keys(results).filter(key => key.startsWith('ai_'));
+			aiCategories.forEach(category => {
+				if (results[category]) {
+					const result = results[category];
+					const displayName = category.replace('ai_', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+					resultsHTML += `
+						<div class="result-section">
+							<h3>AI ${displayName}</h3>
+							<div class="score-display severity-${result.severity}">
+								Score: ${result.raw} / ${Math.floor(result.total_possible)} (${Math.round(result.percentage)}%)
+							</div>
+							<div class="interpretation">${result.interpretation}</div>
+						</div>
+					`;
+				}
+			});
+			
+			// Recommendations
+			resultsHTML += generateRecommendations(results);
+			
+			// Assessment info
+			resultsHTML += `
+				<div class="disclaimer">
+					<p><strong>Assessment completed in ${results.completionTime} minutes</strong></p>
+					<p>This assessment is for informational purposes only and does not constitute professional medical or psychological diagnosis. 
+					Please consult with qualified mental health professionals for proper evaluation and treatment.</p>
+					<p>If you're experiencing crisis situations, please contact emergency services or crisis hotlines immediately.</p>
+				</div>
+			`;
+			
+			document.getElementById('resultsData').innerHTML = resultsHTML;
+			
+			// Store results for AI chat
+			window.assessmentResults = results;
+			
+			// Initialize AI chat with results summary
+			initializeAIChat(results);
+		}
 
         function generateRecommendations(results) {
             let recommendations = '<div class="recommendations"><h3>Personalized Recommendations</h3><ul>';
@@ -2250,6 +2370,160 @@
 
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', initializeAssessment);
+
+		// Tab functionality
+		function showTab(tabName) {
+			// Update tab buttons
+			document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+			document.getElementById(tabName + 'Tab').classList.add('active');
+			
+			// Update content
+			document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+			document.getElementById(tabName + 'Content').classList.remove('hidden');
+		}
+
+		// AI Chat functionality
+		let chatMessages = [];
+
+		function initializeAIChat(results) {
+			const welcomeMessage = generateWelcomeMessage(results);
+			addMessageToChat('ai', welcomeMessage);
+		}
+
+		function generateWelcomeMessage(results) {
+			let severeConcerns = [];
+			let moderateConcerns = [];
+			
+			Object.keys(results).forEach(key => {
+				if (results[key] && results[key].severity === 'severe') {
+					severeConcerns.push(key.replace('ai_', '').replace('_', ' '));
+				} else if (results[key] && results[key].severity === 'moderate') {
+					moderateConcerns.push(key.replace('ai_', '').replace('_', ' '));
+				}
+			});
+			
+			let message = "Hello! I've reviewed your assessment results and I'm here to discuss them with you. ";
+			
+			if (results.crisisFlag) {
+				message += "I want to acknowledge that your responses indicate you may be experiencing significant distress. Please remember that professional help is available, and you don't have to face this alone. ";
+			}
+			
+			if (severeConcerns.length > 0) {
+				message += `Your assessment shows some areas that may benefit from professional attention, particularly around ${severeConcerns.join(', ')}. `;
+			}
+			
+			if (moderateConcerns.length > 0) {
+				message += `There are also some areas showing moderate levels that might be worth exploring, such as ${moderateConcerns.slice(0, 2).join(' and ')}. `;
+			}
+			
+			message += "What would you like to talk about? I can help explain your results, suggest coping strategies, or just listen to how you're feeling about any of this.";
+			
+			return message;
+		}
+
+		function addMessageToChat(sender, message) {
+			const chatMessages = document.getElementById('chatMessages');
+			const messageDiv = document.createElement('div');
+			messageDiv.className = `chat-message ${sender}`;
+			messageDiv.textContent = message;
+			chatMessages.appendChild(messageDiv);
+			chatMessages.scrollTop = chatMessages.scrollHeight;
+		}
+
+		async function sendMessage() {
+			const input = document.getElementById('chatInput');
+			const message = input.value.trim();
+			
+			if (!message) return;
+			
+			// Add user message to chat
+			addMessageToChat('user', message);
+			input.value = '';
+			
+			// Show typing indicator
+			const typingDiv = document.createElement('div');
+			typingDiv.className = 'typing-indicator';
+			typingDiv.textContent = 'AI is typing...';
+			document.getElementById('chatMessages').appendChild(typingDiv);
+			typingDiv.style.display = 'block';
+			
+			try {
+				// Prepare context for AI
+				const context = prepareAIContext(message);
+				
+				// Call Pollinations API
+				const response = await fetch('https://text.pollinations.ai/openai?referrer=ai-ministries.com', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						model: 'openai',
+						messages: context,
+						temperature: 0.7,
+						max_tokens: 500
+					})
+				});
+				
+				const data = await response.json();
+				const aiResponse = data.choices[0].message.content;
+				
+				// Remove typing indicator
+				typingDiv.remove();
+				
+				// Add AI response to chat
+				addMessageToChat('ai', aiResponse);
+				
+			} catch (error) {
+				console.error('Error calling AI:', error);
+				typingDiv.remove();
+				addMessageToChat('ai', "I'm sorry, I'm having trouble connecting right now. Please try again in a moment, or consider reaching out to a mental health professional for support.");
+			}
+		}
+
+		function prepareAIContext(userMessage) {
+			const results = window.assessmentResults;
+			
+			// Create a summary of results for context
+			let resultsSummary = "User's assessment results:\n";
+			Object.keys(results).forEach(key => {
+				if (results[key] && results[key].severity) {
+					resultsSummary += `${key}: ${results[key].severity} (${Math.round(results[key].percentage)}%)\n`;
+				}
+			});
+			
+			const systemPrompt = `You are a compassionate AI assistant helping someone understand their mental health assessment results. 
+
+		IMPORTANT GUIDELINES:
+		- You are NOT a therapist or medical professional
+		- Always encourage professional help for serious concerns
+		- Be empathetic, non-judgmental, and supportive
+		- Provide general information and coping strategies
+		- If crisis indicators are present, gently redirect to professional resources
+		- Never dismiss concerns, but don't amplify anxiety
+		- Focus on hope, resilience, and available support
+
+		${resultsSummary}
+
+		Crisis flag: ${results.crisisFlag ? 'YES - redirect to professional help' : 'NO'}
+
+		Provide supportive, informative responses while encouraging professional consultation when appropriate.`;
+			
+			return [
+				{ role: 'system', content: systemPrompt },
+				{ role: 'user', content: userMessage }
+			];
+		}
+
+		// Add Enter key support for chat
+		document.addEventListener('DOMContentLoaded', function() {
+			document.addEventListener('keydown', function(e) {
+				if (e.key === 'Enter' && document.getElementById('chatInput') === document.activeElement) {
+					sendMessage();
+				}
+			});
+		});
+
     </script>
 </body>
 </html>
