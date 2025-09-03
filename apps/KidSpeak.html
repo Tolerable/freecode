@@ -480,26 +480,49 @@ ALWAYS end with "What else would you like to know?" to keep conversation going.`
             document.getElementById('namePickerModal').style.display = 'none';
         }
 
-        function selectAIName(name) {
-            aiName = name;
-            document.getElementById('aiName').textContent = name;
-            
-            // Update visual selection
-            document.querySelectorAll('#aiNameOptions .name-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-            document.querySelector(`[onclick="selectAIName('${name}')"]`).classList.add('selected');
-        }
+		function saveNames() {
+			localStorage.setItem('kidspeak_ai_name', aiName);
+			localStorage.setItem('kidspeak_kid_name', kidName);
+		}
 
-        function selectKidName(name) {
-            kidName = name;
-            
-            // Update visual selection
-            document.querySelectorAll('#kidNameOptions .name-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-            document.querySelector(`[onclick="selectKidName('${name}')"]`).classList.add('selected');
-        }
+		function loadNames() {
+			const savedAiName = localStorage.getItem('kidspeak_ai_name');
+			const savedKidName = localStorage.getItem('kidspeak_kid_name');
+			
+			if (savedAiName) {
+				aiName = savedAiName;
+				document.getElementById('aiName').textContent = aiName;
+			}
+			
+			if (savedKidName) {
+				kidName = savedKidName;
+			}
+		}
+
+		// Update the selectAIName function:
+		function selectAIName(name) {
+			aiName = name;
+			document.getElementById('aiName').textContent = name;
+			saveNames(); // Add this line
+			
+			// Update visual selection
+			document.querySelectorAll('#aiNameOptions .name-option').forEach(option => {
+				option.classList.remove('selected');
+			});
+			document.querySelector(`[onclick="selectAIName('${name}')"]`).classList.add('selected');
+		}
+
+		// Update the selectKidName function:
+		function selectKidName(name) {
+			kidName = name;
+			saveNames(); // Add this line
+			
+			// Update visual selection
+			document.querySelectorAll('#kidNameOptions .name-option').forEach(option => {
+				option.classList.remove('selected');
+			});
+			document.querySelector(`[onclick="selectKidName('${name}')"]`).classList.add('selected');
+		}
 
 		function filterInput(text) {
 			const words = text.toLowerCase().split(/\s+/);
@@ -902,6 +925,7 @@ ALWAYS end with "What else would you like to know?" to keep conversation going.`
        document.getElementById('userInput').addEventListener('keypress', function(e) {
            if (e.key === 'Enter') {
                sendMessage();
+			   loadNames();
            }
        });
 
