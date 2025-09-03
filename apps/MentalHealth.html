@@ -2198,6 +2198,10 @@
 
 		function showResults() {
 			const results = calculateScores();
+			
+			// Store results for AI chat FIRST
+			window.assessmentResults = results;
+			
 			document.getElementById('assessmentContainer').classList.add('hidden');
 			document.getElementById('resultsContainer').classList.remove('hidden');
 			
@@ -2254,6 +2258,23 @@
 				}
 			});
 			
+			// Other categories (trauma, ocd, etc.)
+			['trauma', 'ocd', 'ai_psychosis', 'cognitive_patterns', 'reality_testing', 'spiritual', 'existential'].forEach(category => {
+				if (results[category]) {
+					const result = results[category];
+					const displayName = category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+					resultsHTML += `
+						<div class="result-section">
+							<h3>${displayName} Assessment</h3>
+							<div class="score-display severity-${result.severity}">
+								Score: ${result.raw} / ${Math.floor(result.total_possible)} (${Math.round(result.percentage)}%)
+							</div>
+							<div class="interpretation">${result.interpretation}</div>
+						</div>
+					`;
+				}
+			});
+			
 			// Recommendations
 			resultsHTML += generateRecommendations(results);
 			
@@ -2269,11 +2290,10 @@
 			
 			document.getElementById('resultsData').innerHTML = resultsHTML;
 			
-			// Store results for AI chat
-			window.assessmentResults = results;
-			
-			// Initialize AI chat with results summary
-			initializeAIChat(results);
+			// Initialize AI chat with results summary - use setTimeout to ensure DOM is ready
+			setTimeout(() => {
+				initializeAIChat(results);
+			}, 100);
 		}
 
         function generateRecommendations(results) {
@@ -2483,6 +2503,25 @@
 
 		function prepareAIContext(userMessage) {
 			const results = window.assessmentResults;
+			
+			// Handle case where results aren't available yet
+			if (!results) {
+				const systemPrompt = `You are a compassionate AI assistant helping someone with mental health questions. 
+
+		IMPORTANT GUIDELINES:
+		- You are NOT a therapist or medical professional
+		- Always encourage professional help for serious concerns
+		- Be empathetic, non-judgmental, and supportive
+		- Provide general information and coping strategies
+		- Focus on hope, resilience, and available support
+
+		The user has taken a mental health assessment but results aren't available in this context. Provide supportive responses while encouraging professional consultation.`;
+				
+				return [
+					{ role: 'system', content: systemPrompt },
+					{ role: 'user', content: userMessage }
+				];
+			}
 			
 			// Create a summary of results for context
 			let resultsSummary = "User's assessment results:\n";
