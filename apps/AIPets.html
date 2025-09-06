@@ -642,11 +642,11 @@
             localStorage.setItem('aiPetGame', JSON.stringify(gameState));
         }
 
-        function startGame() {
-            document.getElementById('welcomeScreen').style.display = 'none';
-            document.getElementById('gameUI').style.display = 'grid';
-            loadGame();
-        }
+		function startGame() {
+			document.getElementById('welcomeScreen').style.display = 'none';
+			document.getElementById('gameUI').style.display = 'grid';
+			updateMainContent();
+		}
 
         function updateUI() {
             document.getElementById('credits').textContent = gameState.credits;
@@ -935,13 +935,22 @@
             }, 3000);
         }
 
-        // Auto-save every 30 seconds
-        setInterval(saveGame, 30000);
+		// Auto-save every 30 seconds
+		setInterval(saveGame, 30000);
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            // Game starts with welcome screen
-        });
+		// Initialize on page load
+		document.addEventListener('DOMContentLoaded', () => {
+			loadGame();
+			
+			// Check if player has already started the game
+			if (gameState.starterPackPurchased || gameState.activePet || gameState.ownedTraits.length > 0) {
+				// Skip welcome screen, go straight to game
+				document.getElementById('welcomeScreen').style.display = 'none';
+				document.getElementById('gameUI').style.display = 'grid';
+				updateMainContent();
+			}
+			// Otherwise show welcome screen (default)
+		});
     </script>
 </body>
 </html>
