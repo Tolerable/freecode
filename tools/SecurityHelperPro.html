@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Helper Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #4facfe;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+
+        .question-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .question-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .question-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #4facfe;
+        }
+
+        .question-card.selected {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-color: #4facfe;
+        }
+
+        .question-card .check-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            background: #28a745;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        .question-card.selected .check-icon {
+            display: flex;
+        }
+
+        .selected-questions {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .answer-group {
+            margin-bottom: 20px;
+        }
+
+        .answer-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .answer-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .answer-group input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .tips {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .tips h3 {
+            color: #2d3436;
+            margin-bottom: 10px;
+        }
+
+        .tips ul {
+            color: #2d3436;
+            margin-left: 20px;
+        }
+
+        .tips li {
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .question-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🔐 Security Helper Pro</h1>
+            <p>Create strong, memorable security questions to protect your accounts</p>
+        </header>
+
+        <main class="content">
+            <div id="statusMessage"></div>
+
+            <section class="section">
+                <h2>Step 1: Choose 3 Security Questions</h2>
+                <p>Select 3 questions from the list below. Choose questions with answers that are memorable to you but difficult for others to guess.</p>
+                
+                <div class="question-grid" id="questionGrid">
+                    <!-- Questions will be populated by JavaScript -->
+                </div>
+
+                <div id="selectedCount" class="status-message status-warning" style="display: none;">
+                    <span id="countText">You have selected 0 of 3 questions.</span>
+                </div>
+            </section>
+
+            <section class="section" id="answersSection" style="display: none;">
+                <h2>Step 2: Provide Your Answers</h2>
+                <p>Enter your answers for the selected questions. Make them specific enough that you'll remember them later.</p>
+                
+                <div class="selected-questions" id="selectedQuestions">
+                    <!-- Selected questions and answer inputs will appear here -->
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="saveAnswers()">💾 Save Security Questions</button>
+                    <button class="btn btn-secondary" onclick="clearSelection()">🔄 Start Over</button>
+                </div>
+            </section>
+
+            <section class="section" id="savedSection" style="display: none;">
+                <h2>Your Saved Security Questions</h2>
+                <div id="savedQuestions">
+                    <!-- Saved questions will appear here -->
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="editAnswers()">✏️ Edit Answers</button>
+                    <button class="btn btn-danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+                </div>
+            </section>
+
+            <div class="tips">
+                <h3>💡 Tips for Strong Security Questions</h3>
+                <ul>
+                    <li>Choose questions with answers that won't change over time</li>
+                    <li>Avoid questions with answers easily found on social media</li>
+                    <li>Use specific details (e.g., "1995 Blue Honda Civic" vs "Honda")</li>
+                    <li>Consider using intentional misspellings or codes only you know</li>
+                    <li>Don't use the same answers across multiple accounts</li>
+                </ul>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const securityQuestions = [
+            "What was the name of your first pet?",
+            "In what city were you born?",
+            "What was your childhood nickname?",
+            "What is the name of your favorite childhood friend?",
+            "What street did you live on in third grade?",
+            "What is your oldest sibling's birthday month and year?",
+            "What was the make and model of your first car?",
+            "In what city or town did your mother and father meet?",
+            "What was the name of the first school you attended?",
+            "What is the middle name of your oldest child?",
+            "What was your favorite food as a child?",
+            "What is the first name of the boy or girl that you first kissed?",
+            "What was the name of your first stuffed animal?",
+            "In what year did you meet your spouse/significant other?",
+            "What is the name of your favorite childhood teacher?",
+            "What was your childhood phone number (including area code)?",
+            "What was the name of your first boss?",
+            "What was the name of the first company where you worked?",
+            "What was your favorite book as a child?",
+            "What was the name of the street where you first lived?",
+            "What was your mother's maiden name?",
+            "What was the name of your elementary school mascot?",
+            "In what city did you meet your best friend?",
+            "What is your spouse's mother's maiden name?"
+        ];
+
+        let selectedQuestions = [];
+        let savedData = null;
+
+        // Load saved data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedData();
+            renderQuestions();
+            updateDisplay();
+        });
+
+        function renderQuestions() {
+            const grid = document.getElementById('questionGrid');
+            grid.innerHTML = '';
+
+            securityQuestions.forEach((question, index) => {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                card.innerHTML = `
+                    ${question}
+                    <div class="check-icon">✓</div>
+                `;
+                card.onclick = () => toggleQuestion(index, question);
+                grid.appendChild(card);
+            });
+        }
+
+        function toggleQuestion(index, question) {
+            const questionIndex = selectedQuestions.findIndex(q => q.question === question);
+            
+            if (questionIndex > -1) {
+                selectedQuestions.splice(questionIndex, 1);
+            } else if (selectedQuestions.length < 3) {
+                selectedQuestions.push({ question, answer: '' });
+            } else {
+                showStatusMessage('You can only select 3 questions. Please deselect one first.', 'warning');
+                return;
+            }
+            
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            updateQuestionCards();
+            updateSelectedCount();
+            updateAnswersSection();
+            updateSavedSection();
+        }
+
+        function updateQuestionCards() {
+            const cards = document.querySelectorAll('.question-card');
+            cards.forEach((card, index) => {
+                const question = securityQuestions[index];
+                const isSelected = selectedQuestions.some(q => q.question === question);
+                card.classList.toggle('selected', isSelected);
+            });
+        }
+
+        function updateSelectedCount() {
+            const countElement = document.getElementById('selectedCount');
+            const countText = document.getElementById('countText');
+            
+            if (selectedQuestions.length > 0) {
+                countElement.style.display = 'block';
+                countText.textContent = `You have selected ${selectedQuestions.length} of 3 questions.`;
+                
+                if (selectedQuestions.length === 3) {
+                    countElement.className = 'status-message status-success';
+                } else {
+                    countElement.className = 'status-message status-warning';
+                }
+            } else {
+                countElement.style.display = 'none';
+            }
+        }
+
+        function updateAnswersSection() {
+            const section = document.getElementById('answersSection');
+            const container = document.getElementById('selectedQuestions');
+            
+            if (selectedQuestions.length === 3 && !savedData) {
+                section.style.display = 'block';
+                container.innerHTML = '';
+                
+                selectedQuestions.forEach((item, index) => {
+                    const answerGroup = document.createElement('div');
+                    answerGroup.className = 'answer-group';
+                    answerGroup.innerHTML = `
+                        <label for="answer${index}">Question ${index + 1}: ${item.question}</label>
+                        <input type="text" id="answer${index}" value="${item.answer}" 
+                               onchange="updateAnswer(${index}, this.value)" 
+                               placeholder="Enter your answer here...">
+                    `;
+                    container.appendChild(answerGroup);
+                });
+            } else {
+                section.style.display = 'none';
+            }
+        }
+
+        function updateSavedSection() {
+            const section = document.getElementById('savedSection');
+            const container = document.getElementById('savedQuestions');
+            
+            if (savedData) {
+                section.style.display = 'block';
+                container.innerHTML = '';
+                
+                savedData.forEach((item, index) => {
+                    const questionDiv = document.createElement('div');
+                    questionDiv.className = 'answer-group';
+                    questionDiv.innerHTML = `
+                        <label>Question ${index + 1}: ${item.question}</label>
+                        <input type="text" value="${item.answer}" readonly style="background: #f8f9fa;">
+                    `;
+                    container.appendChild(questionDiv);
+                });
+            } else {
+                section.style.display = 'none';
+            }
+        }
+
+        function updateAnswer(index, value) {
+            if (selectedQuestions[index]) {
+                selectedQuestions[index].answer = value;
+            }
+        }
+
+        function saveAnswers() {
+            // Check if all answers are provided
+            const emptyAnswers = selectedQuestions.filter(q => !q.answer.trim());
+            if (emptyAnswers.length > 0) {
+                showStatusMessage('Please provide answers for all selected questions.', 'warning');
+                return;
+            }
+
+            // Save to localStorage
+            localStorage.setItem('securityHelperPro', JSON.stringify(selectedQuestions));
+            savedData = [...selectedQuestions];
+            selectedQuestions = [];
+            
+            showStatusMessage('Security questions saved successfully! 🎉', 'success');
+            updateDisplay();
+        }
+
+        function editAnswers() {
+            if (savedData) {
+                selectedQuestions = [...savedData];
+                savedData = null;
+                localStorage.removeItem('securityHelperPro');
+                showStatusMessage('You can now edit your answers. Don\'t forget to save when done!', 'warning');
+                updateDisplay();
+            }
+        }
+
+        function clearSelection() {
+            selectedQuestions = [];
+            showStatusMessage('Selection cleared. You can start over.', 'success');
+            updateDisplay();
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all your security question data? This action cannot be undone.')) {
+                localStorage.removeItem('securityHelperPro');
+                selectedQuestions = [];
+                savedData = null;
+                showStatusMessage('All data has been cleared successfully.', 'success');
+                updateDisplay();
+            }
+        }
+
+        function loadSavedData() {
+            const saved = localStorage.getItem('securityHelperPro');
+            if (saved) {
+                try {
+                    savedData = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Error loading saved data:', e);
+                    localStorage.removeItem('securityHelperPro');
+                }
+            }
+        }
+
+        function showStatusMessage(message, type) {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.innerHTML = message;
+            statusElement.className = `status-message status-${type}`;
+            statusElement.style.display = 'block';
+            
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
