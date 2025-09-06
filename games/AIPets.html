@@ -531,12 +531,10 @@
                         <div class="starter-pack" id="starterPack">
                             <h4>🎁 Starter Pack - 400 Credits</h4>
                             <p>Perfect for your first companion!</p>
-                            <div class="starter-traits">
-                                <div class="trait-preview">Curious</div>
-                                <div class="trait-preview">Friendly</div>
-                                <div class="trait-preview">Playful</div>
-                                <div class="trait-preview">Loyal</div>
-                            </div>
+							<div class="starter-traits">
+								<div class="trait-preview">Curious</div>
+								<div class="trait-preview">Friendly</div>
+							</div>
                             <button class="buy-starter-btn" onclick="buyStarterPack()" id="starterBtn">
                                 Buy Starter Pack
                             </button>
@@ -602,7 +600,7 @@
     <div class="overlay" id="overlay"></div>
     <div class="trait-selection" id="traitSelection">
         <h3>Create Your AI Companion</h3>
-        <p>Select 3-4 traits to define your companion's personality:</p>
+        <p>Select 2-4 traits to define your companion's personality:</p>
         <div class="trait-grid" id="traitGrid">
             <!-- Filled by JavaScript -->
         </div>
@@ -790,23 +788,23 @@
         function updateCreateButton() {
             const createBtn = document.getElementById('createPetBtn');
             const availableTraits = gameState.ownedTraits.filter(trait => !gameState.usedTraits.includes(trait));
-            createBtn.disabled = availableTraits.length < 3 || gameState.activePet !== null;
+            createBtn.disabled = availableTraits.length < 2 || gameState.activePet !== null;
         }
 
-        function buyStarterPack() {
-            if (gameState.credits < 400) {
-                showNotification('Not enough credits!', 'error');
-                return;
-            }
+		function buyStarterPack() {
+			if (gameState.credits < 400) {
+				showNotification('Not enough credits!', 'error');
+				return;
+			}
 
-            gameState.credits -= 400;
-            gameState.starterPackPurchased = true;
-            gameState.ownedTraits.push('curious', 'friendly', 'playful', 'loyal');
-            
-            showNotification('Starter pack purchased! 🎉');
-            updateUI();
-            saveGame();
-        }
+			gameState.credits -= 400;
+			gameState.starterPackPurchased = true;
+			gameState.ownedTraits.push('curious', 'friendly');
+			
+			showNotification('Starter pack purchased! 🎉');
+			updateUI();
+			saveGame();
+		}
 
         function buyTrait(traitName, cost) {
             if (gameState.credits < cost) {
@@ -860,7 +858,7 @@
 
         function updateSelectionUI() {
             document.getElementById('selectedCount').textContent = selectedTraits.length;
-            document.getElementById('confirmCreate').disabled = selectedTraits.length < 3;
+            document.getElementById('confirmCreate').disabled = selectedTraits.length < 2;
         }
 
         function closeTraitSelection() {
@@ -870,10 +868,10 @@
         }
 
         function createPet() {
-            if (selectedTraits.length < 3) {
-                showNotification('Select at least 3 traits!', 'error');
-                return;
-            }
+			if (selectedTraits.length < 2) {
+				showNotification('Select at least 2 traits!', 'error');
+				return;
+			}
 
             // Mark traits as used
             selectedTraits.forEach(trait => {
@@ -903,14 +901,14 @@
             return names[Math.floor(Math.random() * names.length)];
         }
 
-		function careAction(type) {
+		async function careAction(type) {
 			if (!gameState.activePet) return;
 			
 			const actions = {
-				feed: { energy: 15, happiness: 5, credits: 25 },
-				play: { happiness: 20, energy: -5, credits: 30 },
-				train: { intelligence: 10, energy: -10, credits: 35 },
-				sleep: { energy: 25, happiness: 10, credits: 20 }
+				feed: { energy: 15, happiness: 5, credits: 25, message: "fed you some energy cubes" },
+				play: { happiness: 20, energy: -5, credits: 30, message: "played games with you" },
+				train: { intelligence: 10, energy: -10, credits: 35, message: "gave you a training exercise" },
+				sleep: { energy: 25, happiness: 10, credits: 20, message: "let you rest and recharge" }
 			};
 
 			const action = actions[type];
@@ -920,6 +918,23 @@
 			
 			gameState.credits += action.credits;
 			showNotification(`+${action.credits} credits earned!`);
+			
+			// Add AI response to care action
+			if (!gameState.activePet.chatHistory) {
+				gameState.activePet.chatHistory = [];
+			}
+			
+			try {
+				const response = await getAIResponse(`Your human just ${action.message}. React to this care action.`);
+				gameState.activePet.chatHistory.push({
+					role: 'assistant',
+					content: response
+				});
+				updateChatDisplay();
+			} catch (error) {
+				console.error('Care response error:', error);
+			}
+			
 			updateUI();
 			saveGame();
 		}
@@ -1010,7 +1025,7 @@
 			
 			const systemPrompt = `You are ${petName}, an AI companion pet. Your personality traits are: ${traits.map(t => traitDescriptions[t] || t).join(', ')}. 
 
-		Respond as ${petName} would, incorporating these personality traits naturally. Keep responses conversational and under 100 words. Show your personality through your word choice and topics you're interested in.
+			Respond as ${petName} would, incorporating these personality traits naturally. Keep responses conversational and under 50 words maximum. Show your personality through your word choice and topics you're interested in.
 
 		Current stats affect your mood:
 		- Energy: ${gameState.activePet.energy}% ${gameState.activePet.energy < 30 ? '(feeling tired)' : ''}
