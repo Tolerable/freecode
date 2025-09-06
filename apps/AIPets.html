@@ -710,65 +710,78 @@
             });
         }
 
-        function updatePetArea() {
-            const petArea = document.getElementById('petArea');
-            
-            if (gameState.activePet) {
-                petArea.innerHTML = `
-                    <div class="pet-stats">
-                        <div class="status-bar">
-                            <span>Energy</span>
-                            <div class="bar">
-                                <div class="bar-fill energy" style="width: ${gameState.activePet.energy}%"></div>
-                            </div>
-                        </div>
-                        <div class="status-bar">
-                            <span>Happy</span>
-                            <div class="bar">
-                                <div class="bar-fill happiness" style="width: ${gameState.activePet.happiness}%"></div>
-                            </div>
-                        </div>
-                        <div class="status-bar">
-                            <span>Smart</span>
-                            <div class="bar">
-                                <div class="bar-fill intelligence" style="width: ${gameState.activePet.intelligence}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                petArea.innerHTML = '<p style="text-align: center; color: #666;">Create your first companion to see stats here!</p>';
-            }
-        }
+		function updatePetArea() {
+			const petArea = document.getElementById('petArea');
+			
+			if (gameState.activePet) {
+				petArea.innerHTML = `
+					<div class="pet-stats">
+						<div class="status-bar">
+							<span>Energy</span>
+							<div class="bar">
+								<div class="bar-fill energy" style="width: ${gameState.activePet.energy}%"></div>
+							</div>
+						</div>
+						<div class="status-bar">
+							<span>Happy</span>
+							<div class="bar">
+								<div class="bar-fill happiness" style="width: ${gameState.activePet.happiness}%"></div>
+							</div>
+						</div>
+						<div class="status-bar">
+							<span>Smart</span>
+							<div class="bar">
+								<div class="bar-fill intelligence" style="width: ${gameState.activePet.intelligence}%"></div>
+							</div>
+						</div>
+					</div>
+					<div class="care-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+						<button onclick="careAction('feed')" style="padding: 10px; border: none; border-radius: 8px; background: #4CAF50; color: white; font-weight: bold; cursor: pointer;">🍎 Feed</button>
+						<button onclick="careAction('play')" style="padding: 10px; border: none; border-radius: 8px; background: #FF9800; color: white; font-weight: bold; cursor: pointer;">🎮 Play</button>
+						<button onclick="careAction('train')" style="padding: 10px; border: none; border-radius: 8px; background: #2196F3; color: white; font-weight: bold; cursor: pointer;">🧠 Train</button>
+						<button onclick="careAction('sleep')" style="padding: 10px; border: none; border-radius: 8px; background: #9C27B0; color: white; font-weight: bold; cursor: pointer;">😴 Rest</button>
+					</div>
+				`;
+			} else {
+				petArea.innerHTML = '<p style="text-align: center; color: #666;">Create your first companion to see stats here!</p>';
+			}
+		}
 
-        function updateMainContent() {
-            const mainContent = document.getElementById('mainContent');
-            
-            if (gameState.activePet) {
-                mainContent.innerHTML = `
-                    <div class="pet-display">
-                        <div class="pet-image">🐾</div>
-                        <div class="pet-name">${gameState.activePet.name}</div>
-                        <div class="pet-traits">
-                            ${gameState.activePet.traits.map(trait => 
-                                `<span class="trait-tag">${capitalizeFirst(trait)}</span>`
-                            ).join('')}
-                        </div>
-                    </div>
-                    <div style="text-align: center; padding: 20px;">
-                        <p>Your companion is ready! Chat functionality and care actions would be implemented here.</p>
-                    </div>
-                `;
-            } else {
-                mainContent.innerHTML = `
-                    <div class="no-pet-state">
-                        <h2>No Active Companion</h2>
-                        <p>Purchase traits from the shop and create your first AI companion to begin your journey!</p>
-                        <p>🎁 <strong>Tip:</strong> Start with the Starter Pack for your first pet!</p>
-                    </div>
-                `;
-            }
-        }
+		function updateMainContent() {
+			const mainContent = document.getElementById('mainContent');
+			
+			if (gameState.activePet) {
+				mainContent.innerHTML = `
+					<div class="pet-display">
+						<div class="pet-image">🐾</div>
+						<div class="pet-name">${gameState.activePet.name}</div>
+						<div class="pet-traits">
+							${gameState.activePet.traits.map(trait => 
+								`<span class="trait-tag">${capitalizeFirst(trait)}</span>`
+							).join('')}
+						</div>
+					</div>
+					<div style="background: white; border-radius: 15px; padding: 20px; margin-top: 20px;">
+						<h4 style="margin-bottom: 15px; text-align: center;">Chat with ${gameState.activePet.name}</h4>
+						<div style="height: 200px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; overflow-y: auto; background: #f9f9f9;">
+							<p style="color: #666; text-align: center;">Chat system would connect to Pollinations API here using traits: ${gameState.activePet.traits.join(', ')}</p>
+						</div>
+						<div style="margin-top: 10px; display: flex; gap: 10px;">
+							<input type="text" placeholder="Type your message..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+							<button style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">Send</button>
+						</div>
+					</div>
+				`;
+			} else {
+				mainContent.innerHTML = `
+					<div class="no-pet-state">
+						<h2>No Active Companion</h2>
+						<p>Purchase traits from the shop and create your first AI companion to begin your journey!</p>
+						<p>🎁 <strong>Tip:</strong> Start with the Starter Pack for your first pet!</p>
+					</div>
+				`;
+			}
+		}
 
         function updateCreateButton() {
             const createBtn = document.getElementById('createPetBtn');
@@ -885,6 +898,27 @@
             const names = ['Zara', 'Luna', 'Nova', 'Echo', 'Pixel', 'Sage', 'Iris', 'Cosmos', 'Aurora', 'Phoenix'];
             return names[Math.floor(Math.random() * names.length)];
         }
+
+		function careAction(type) {
+			if (!gameState.activePet) return;
+			
+			const actions = {
+				feed: { energy: 15, happiness: 5, credits: 25 },
+				play: { happiness: 20, energy: -5, credits: 30 },
+				train: { intelligence: 10, energy: -10, credits: 35 },
+				sleep: { energy: 25, happiness: 10, credits: 20 }
+			};
+
+			const action = actions[type];
+			gameState.activePet.energy = Math.max(0, Math.min(100, gameState.activePet.energy + (action.energy || 0)));
+			gameState.activePet.happiness = Math.max(0, Math.min(100, gameState.activePet.happiness + (action.happiness || 0)));
+			gameState.activePet.intelligence = Math.max(0, Math.min(100, gameState.activePet.intelligence + (action.intelligence || 0)));
+			
+			gameState.credits += action.credits;
+			showNotification(`+${action.credits} credits earned!`);
+			updateUI();
+			saveGame();
+		}
 
         function capitalizeFirst(str) {
             return str.charAt(0).toUpperCase() + str.slice(1);
