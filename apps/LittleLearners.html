@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Little Learners Academy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #5a67d8;
+        }
+
+        .mode-toggle {
+            background: #5a67d8;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .mode-toggle:hover {
+            background: #4c51bf;
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Kid Mode Styles */
+        body.kid-mode .grade-selector {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        body.kid-mode .grade-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            color: white;
+            border: none;
+            padding: 1.5rem 3rem;
+            margin: 1rem;
+            border-radius: 20px;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transform: scale(1);
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+
+        body.kid-mode .grade-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.2);
+        }
+
+        body.kid-mode .grade-btn.kindergarten {
+            background: linear-gradient(45deg, #ff9a9e, #fecfef);
+        }
+
+        body.kid-mode .grade-btn.first-grade {
+            background: linear-gradient(45deg, #a8edea, #fed6e3);
+        }
+
+        body.kid-mode .subjects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        body.kid-mode .subject-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform: scale(1);
+        }
+
+        body.kid-mode .subject-card:hover {
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        body.kid-mode .subject-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        body.kid-mode .subject-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Parent Mode Styles */
+        body.parent-mode {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        body.parent-mode .grade-selector {
+            margin-bottom: 2rem;
+        }
+
+        body.parent-mode .grade-dropdown {
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background: white;
+            cursor: pointer;
+        }
+
+        body.parent-mode .parent-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        body.parent-mode .parent-btn {
+            background: #4a5568;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        body.parent-mode .parent-btn:hover {
+            background: #2d3748;
+        }
+
+        body.parent-mode .subjects-list {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        body.parent-mode .subject-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        body.parent-mode .subject-item:hover {
+            background: #f7fafc;
+        }
+
+        .lesson-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .activity-area {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .draggable {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.5rem;
+            background: #ffd93d;
+            border-radius: 10px;
+            cursor: move;
+            user-select: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .drop-zone {
+            min-height: 60px;
+            border: 3px dashed #ccc;
+            border-radius: 10px;
+            margin: 1rem;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #5a67d8;
+            background: rgba(90, 103, 216, 0.1);
+        }
+
+        .quiz-option {
+            background: #e2e8f0;
+            border: none;
+            padding: 1rem 2rem;
+            margin: 0.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-option:hover {
+            background: #cbd5e0;
+        }
+
+        .quiz-option.correct {
+            background: #48bb78;
+            color: white;
+        }
+
+        .quiz-option.incorrect {
+            background: #f56565;
+            color: white;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78, #38a169);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .back-btn {
+            background: #718096;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        .back-btn:hover {
+            background: #4a5568;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            body.kid-mode .grade-btn {
+                padding: 1rem 2rem;
+                font-size: 1.5rem;
+                margin: 0.5rem;
+            }
+            
+            body.kid-mode .subjects-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="kid-mode">
+    <div class="header">
+        <div class="logo">🌟 Little Learners Academy</div>
+        <button class="mode-toggle" onclick="toggleMode()">Switch to Parent Mode</button>
+    </div>
+
+    <div class="container">
+        <!-- Grade Selection -->
+        <div id="grade-selection" class="grade-selector">
+            <!-- Kid Mode Grade Selection -->
+            <div class="kid-grade-selection">
+                <h1 style="text-align: center; color: white; font-size: 2.5rem; margin-bottom: 2rem;">Choose Your Grade!</h1>
+                <div style="text-align: center;">
+                    <button class="grade-btn kindergarten" onclick="selectGrade('K')">
+                        🌈 Kindergarten
+                    </button>
+                    <button class="grade-btn first-grade" onclick="selectGrade('1')">
+                        🚀 1st Grade
+                    </button>
+                </div>
+            </div>
+
+            <!-- Parent Mode Grade Selection -->
+            <div class="parent-grade-selection hidden">
+                <h2 style="margin-bottom: 1rem;">Select Grade Level</h2>
+                <select class="grade-dropdown" onchange="selectGradeParent(this.value)">
+                    <option value="">Choose Grade...</option>
+                    <option value="K">Kindergarten</option>
+                    <option value="1">1st Grade</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Parent Controls -->
+        <div id="parent-controls" class="parent-controls hidden">
+            <button class="parent-btn" onclick="showAnswerKey()">📋 Answer Keys</button>
+            <button class="parent-btn" onclick="showProgress()">📊 Progress Report</button>
+            <button class="parent-btn" onclick="printWorksheet()">🖨️ Print Worksheets</button>
+            <button class="parent-btn" onclick="showLessonPlans()">📚 Lesson Plans</button>
+        </div>
+
+        <!-- Subject Selection -->
+        <div id="subject-selection" class="hidden">
+            <button class="back-btn" onclick="showGradeSelection()">← Back to Grade Selection</button>
+            
+            <!-- Kid Mode Subjects -->
+            <div class="subjects-grid">
+                <div class="subject-card" onclick="selectSubject('math')">
+                    <div class="subject-icon">🔢</div>
+                    <div class="subject-title">Math Fun</div>
+                    <div>Numbers and counting!</div>
+                </div>
+                <div class="subject-card" onclick="selectSubject('reading')">
+                    <div class="subject-icon">📚</div>
+                    <div class="subject-title">Reading Adventure</div>
+                    <div>Letters and words!</div>
+                </div>
+                <div class="subject-card" onclick="selectSubject('science')">
+                    <div class="subject-icon">🔬</div>
+                    <div class="subject-title">Science Explorer</div>
+                    <div>Discover amazing things!</div>
+                </div>
+                <div class="subject-card" onclick="selectSubject('art')">
+                    <div class="subject-icon">🎨</div>
+                    <div class="subject-title">Creative Arts</div>
+                    <div>Draw and create!</div>
+                </div>
+            </div>
+
+            <!-- Parent Mode Subjects -->
+            <div class="subjects-list hidden">
+                <h2>Curriculum Overview</h2>
+                <div class="subject-item" onclick="selectSubject('math')">
+                    <span>Mathematics</span>
+                    <span>12 lessons available</span>
+                </div>
+                <div class="subject-item" onclick="selectSubject('reading')">
+                    <span>Reading & Language Arts</span>
+                    <span>15 lessons available</span>
+                </div>
+                <div class="subject-item" onclick="selectSubject('science')">
+                    <span>Science</span>
+                    <span>8 lessons available</span>
+                </div>
+                <div class="subject-item" onclick="selectSubject('art')">
+                    <span>Creative Arts</span>
+                    <span>10 lessons available</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lesson Content -->
+        <div id="lesson-content" class="lesson-content hidden">
+            <button class="back-btn" onclick="showSubjectSelection()">← Back to Subjects</button>
+            <div id="lesson-area"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'kid';
+        let currentGrade = '';
+        let currentSubject = '';
+        let currentLesson = 0;
+        let userProgress = JSON.parse(localStorage.getItem('learner_progress') || '{}');
+
+        function toggleMode() {
+            const body = document.body;
+            const toggleBtn = document.querySelector('.mode-toggle');
+            
+            if (currentMode === 'kid') {
+                body.className = 'parent-mode';
+                toggleBtn.textContent = 'Switch to Kid Mode';
+                currentMode = 'parent';
+                updateModeDisplay();
+            } else {
+                body.className = 'kid-mode';
+                toggleBtn.textContent = 'Switch to Parent Mode';
+                currentMode = 'kid';
+                updateModeDisplay();
+            }
+        }
+
+        function updateModeDisplay() {
+            const kidElements = document.querySelectorAll('.kid-grade-selection, .subjects-grid');
+            const parentElements = document.querySelectorAll('.parent-grade-selection, .subjects-list, #parent-controls');
+            
+            if (currentMode === 'kid') {
+                kidElements.forEach(el => el.classList.remove('hidden'));
+                parentElements.forEach(el => el.classList.add('hidden'));
+            } else {
+                kidElements.forEach(el => el.classList.add('hidden'));
+                parentElements.forEach(el => el.classList.remove('hidden'));
+            }
+        }
+
+        function selectGrade(grade) {
+            currentGrade = grade;
+            showSubjectSelection();
+        }
+
+        function selectGradeParent(grade) {
+            if (grade) {
+                currentGrade = grade;
+                showSubjectSelection();
+            }
+        }
+
+        function showGradeSelection() {
+            document.getElementById('grade-selection').classList.remove('hidden');
+            document.getElementById('subject-selection').classList.add('hidden');
+            document.getElementById('lesson-content').classList.add('hidden');
+        }
+
+        function showSubjectSelection() {
+            document.getElementById('grade-selection').classList.add('hidden');
+            document.getElementById('subject-selection').classList.remove('hidden');
+            document.getElementById('lesson-content').classList.add('hidden');
+            updateModeDisplay();
+        }
+
+        function selectSubject(subject) {
+            currentSubject = subject;
+            currentLesson = 0;
+            showLesson();
+        }
+
+        function showLesson() {
+            document.getElementById('subject-selection').classList.add('hidden');
+            document.getElementById('lesson-content').classList.remove('hidden');
+            loadLesson();
+        }
+
+        function showSubjectSelection() {
+            document.getElementById('lesson-content').classList.add('hidden');
+            document.getElementById('subject-selection').classList.remove('hidden');
+        }
+
+        function loadLesson() {
+            const lessonArea = document.getElementById('lesson-area');
+            const lessons = getLessons(currentGrade, currentSubject);
+            
+            if (currentLesson < lessons.length) {
+                const lesson = lessons[currentLesson];
+                lessonArea.innerHTML = generateLessonHTML(lesson);
+                initializeLessonActivities();
+            }
+        }
+
+        function getLessons(grade, subject) {
+            const lessons = {
+                K: {
+                    math: [
+                        {
+                            title: "Counting 1-10",
+                            type: "counting",
+                            content: "Let's learn to count from 1 to 10!",
+                            activity: {
+                                type: "drag_drop",
+                                question: "Drag the numbers to put them in order:",
+                                items: ["3", "1", "5", "2", "4"],
+                                correct_order: ["1", "2", "3", "4", "5"]
+                            }
+                        },
+                        {
+                            title: "Simple Addition",
+                            type: "math",
+                            content: "Adding numbers together!",
+                            activity: {
+                                type: "quiz",
+                                question: "What is 2 + 1?",
+                                options: ["2", "3", "4"],
+                                correct: 1
+                            }
+                        }
+                    ],
+                    reading: [
+                        {
+                            title: "Letter Recognition A-E",
+                            type: "letters",
+                            content: "Let's learn the first 5 letters!",
+                            activity: {
+                                type: "quiz",
+                                question: "Which letter comes after 'B'?",
+                                options: ["A", "C", "D"],
+                                correct: 1
+                            }
+                        }
+                    ]
+                },
+                1: {
+                    math: [
+                        {
+                            title: "Addition to 20",
+                            type: "math",
+                            content: "Adding bigger numbers!",
+                            activity: {
+                                type: "quiz",
+                                question: "What is 7 + 5?",
+                                options: ["11", "12", "13"],
+                                correct: 1
+                            }
+                        }
+                    ],
+                    reading: [
+                        {
+                            title: "Simple Words",
+                            type: "reading",
+                            content: "Reading simple words!",
+                            activity: {
+                                type: "quiz",
+                                question: "What word is this: C-A-T?",
+                                options: ["Dog", "Cat", "Bird"],
+                                correct: 1
+                            }
+                        }
+                    ]
+                }
+            };
+            
+            return lessons[grade]?.[subject] || [];
+        }
+
+        function generateLessonHTML(lesson) {
+            let html = `
+                <h2>${lesson.title}</h2>
+                <p style="font-size: 1.2rem; margin: 1rem 0;">${lesson.content}</p>
+                <div class="activity-area">
+                    <h3>${lesson.activity.question}</h3>
+            `;
+
+            if (lesson.activity.type === 'quiz') {
+                lesson.activity.options.forEach((option, index) => {
+                    html += `<button class="quiz-option" onclick="checkAnswer(${index}, ${lesson.activity.correct})">${option}</button>`;
+                });
+            } else if (lesson.activity.type === 'drag_drop') {
+                html += '<div id="drag-items">';
+                lesson.activity.items.forEach((item, index) => {
+                    html += `<span class="draggable" draggable="true" data-value="${item}">${item}</span>`;
+                });
+                html += '</div>';
+                html += '<div id="drop-zones">';
+                for (let i = 0; i < lesson.activity.correct_order.length; i++) {
+                    html += `<div class="drop-zone" data-position="${i}">Drop here</div>`;
+                }
+                html += '</div>';
+                html += '<button class="quiz-option" onclick="checkDragDrop()" style="margin-top: 1rem;">Check Answer</button>';
+            }
+
+            html += '</div>';
+            html += `<div class="progress-bar"><div class="progress-fill" style="width: ${((currentLesson + 1) / getLessons(currentGrade, currentSubject).length) * 100}%"></div></div>`;
+            html += '<button class="quiz-option" onclick="nextLesson()" style="background: #5a67d8; color: white; margin-top: 1rem;">Next Lesson →</button>';
+
+            return html;
+        }
+
+        function checkAnswer(selected, correct) {
+            const options = document.querySelectorAll('.quiz-option');
+            options[selected].classList.add(selected === correct ? 'correct' : 'incorrect');
+            
+            if (selected === correct) {
+                setTimeout(() => {
+                    alert('Great job! 🌟');
+                    updateProgress();
+                }, 500);
+            } else {
+                setTimeout(() => {
+                    alert('Try again! 💪');
+                }, 500);
+            }
+        }
+
+        function initializeLessonActivities() {
+            // Initialize drag and drop
+            const draggables = document.querySelectorAll('.draggable');
+            const dropZones = document.querySelectorAll('.drop-zone');
+
+            draggables.forEach(draggable => {
+                draggable.addEventListener('dragstart', e => {
+                    e.dataTransfer.setData('text/plain', e.target.dataset.value);
+                    e.target.style.opacity = '0.5';
+                });
+
+                draggable.addEventListener('dragend', e => {
+                    e.target.style.opacity = '1';
+                });
+            });
+
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    zone.classList.add('drag-over');
+                });
+
+                zone.addEventListener('dragleave', e => {
+                    zone.classList.remove('drag-over');
+                });
+
+                zone.addEventListener('drop', e => {
+                    e.preventDefault();
+                    const data = e.dataTransfer.getData('text/plain');
+                    zone.textContent = data;
+                    zone.classList.remove('drag-over');
+                });
+            });
+        }
+
+        function checkDragDrop() {
+            const lesson = getLessons(currentGrade, currentSubject)[currentLesson];
+            const dropZones = document.querySelectorAll('.drop-zone');
+            let correct = true;
+
+            dropZones.forEach((zone, index) => {
+                if (zone.textContent !== lesson.activity.correct_order[index]) {
+                    correct = false;
+                }
+            });
+
+            if (correct) {
+                alert('Perfect! 🌟');
+                updateProgress();
+            } else {
+                alert('Try again! 💪');
+            }
+        }
+
+        function nextLesson() {
+            const lessons = getLessons(currentGrade, currentSubject);
+            if (currentLesson < lessons.length - 1) {
+                currentLesson++;
+                loadLesson();
+            } else {
+                alert('You completed all lessons in this subject! 🎉');
+                showSubjectSelection();
+            }
+        }
+
+        function updateProgress() {
+            if (!userProgress[currentGrade]) {
+                userProgress[currentGrade] = {};
+            }
+            if (!userProgress[currentGrade][currentSubject]) {
+                userProgress[currentGrade][currentSubject] = [];
+            }
+            
+            userProgress[currentGrade][currentSubject][currentLesson] = true;
+            localStorage.setItem('learner_progress', JSON.stringify(userProgress));
+        }
+
+        function showAnswerKey() {
+            alert('Answer keys would be available for parent review here!');
+        }
+
+        function showProgress() {
+            let progressReport = 'Progress Report:\n\n';
+            for (let grade in userProgress) {
+                progressReport += `Grade ${grade}:\n`;
+                for (let subject in userProgress[grade]) {
+                    const completed = userProgress[grade][subject].filter(Boolean).length;
+                    const total = getLessons(grade, subject).length;
+                    progressReport += `  ${subject}: ${completed}/${total} lessons completed\n`;
+                }
+            }
+            alert(progressReport || 'No progress recorded yet.');
+        }
+
+        function printWorksheet() {
+            window.print();
+        }
+
+        function showLessonPlans() {
+            alert('Detailed lesson plans and teaching guides would be available here!');
+        }
+
+        // Initialize mode display on load
+        updateModeDisplay();
+    </script>
+</body>
+</html>
