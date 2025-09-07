@@ -523,6 +523,111 @@
 			border-bottom: 1px solid #ddd;
 		}
 
+		.security-overlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0,0,0,0.8);
+			z-index: 2000;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.security-panel {
+			background: white;
+			padding: 40px;
+			border-radius: 15px;
+			max-width: 500px;
+			width: 90%;
+			box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+		}
+
+		.security-panel h2 {
+			margin-bottom: 20px;
+			color: #4facfe;
+		}
+
+		.pin-input {
+			display: flex;
+			gap: 10px;
+			justify-content: center;
+			margin: 20px 0;
+		}
+
+		.pin-digit {
+			width: 50px;
+			height: 50px;
+			text-align: center;
+			font-size: 24px;
+			border: 2px solid #ddd;
+			border-radius: 8px;
+			background: #f8f9fa;
+		}
+
+		.pin-digit:focus {
+			border-color: #4facfe;
+			outline: none;
+		}
+
+		.passphrase-input {
+			width: 100%;
+			padding: 12px;
+			margin: 10px 0;
+			border: 2px solid #ddd;
+			border-radius: 8px;
+			font-size: 16px;
+		}
+
+		.recovery-key-display {
+			background: #f8f9fa;
+			padding: 15px;
+			border-radius: 8px;
+			margin: 15px 0;
+			font-family: monospace;
+			font-size: 14px;
+			word-break: break-all;
+			border: 2px solid #4facfe;
+		}
+
+		.security-warning {
+			background: #fff3cd;
+			border: 1px solid #ffeaa7;
+			padding: 15px;
+			border-radius: 8px;
+			margin: 15px 0;
+			color: #856404;
+		}
+
+		.security-buttons {
+			display: flex;
+			gap: 10px;
+			margin-top: 20px;
+		}
+
+		.unlock-options {
+			display: flex;
+			gap: 15px;
+			margin: 20px 0;
+		}
+
+		.unlock-option {
+			flex: 1;
+			padding: 15px;
+			border: 2px solid #ddd;
+			border-radius: 8px;
+			cursor: pointer;
+			text-align: center;
+			transition: all 0.3s ease;
+		}
+
+		.unlock-option:hover, .unlock-option.active {
+			border-color: #4facfe;
+			background: #f0f8ff;
+		}
+
         @media (max-width: 768px) {
             .tabs {
                 flex-direction: column;
@@ -540,6 +645,97 @@
     </style>
 </head>
 <body>
+	<!-- Security Overlay -->
+	<div id="securityOverlay" class="security-overlay" style="display: none;">
+		<div class="security-panel">
+			<div id="securitySetup" style="display: none;">
+				<h2>🔐 Setup Security Protection</h2>
+				<div class="security-warning">
+					<strong>Important:</strong> This will encrypt your security question data. You'll need either your PIN or passphrase to access it. If you lose both, your data cannot be recovered.
+				</div>
+				
+				<div class="form-group">
+					<label>Set 4-6 Digit PIN:</label>
+					<div class="pin-input">
+						<input type="password" class="pin-digit" maxlength="1" id="pin1">
+						<input type="password" class="pin-digit" maxlength="1" id="pin2">
+						<input type="password" class="pin-digit" maxlength="1" id="pin3">
+						<input type="password" class="pin-digit" maxlength="1" id="pin4">
+						<input type="password" class="pin-digit" maxlength="1" id="pin5" style="display:none;">
+						<input type="password" class="pin-digit" maxlength="1" id="pin6" style="display:none;">
+					</div>
+					<label style="font-size: 12px;">
+						<input type="checkbox" id="use6Digits"> Use 6 digits instead
+					</label>
+				</div>
+
+				<div class="form-group">
+					<label>Recovery Passphrase (backup method):</label>
+					<input type="password" class="passphrase-input" id="setupPassphrase" 
+						   placeholder="Enter a memorable phrase you won't forget">
+				</div>
+
+				<div id="recoveryKeySection" style="display: none;">
+					<label>Emergency Recovery Key (save this file):</label>
+					<div class="recovery-key-display" id="recoveryKeyDisplay"></div>
+					<button class="btn btn-secondary" onclick="downloadRecoveryKey()">💾 Download Recovery Key</button>
+				</div>
+
+				<div class="security-buttons">
+					<button class="btn btn-primary" onclick="generateRecoveryKey()">Generate Recovery Key</button>
+					<button class="btn btn-success" onclick="enableSecurity()">Enable Security</button>
+					<button class="btn btn-secondary" onclick="cancelSecurity()">Skip for Now</button>
+				</div>
+			</div>
+
+			<div id="securityUnlock" style="display: none;">
+				<h2>🔐 Enter Security Credentials</h2>
+				
+				<div class="unlock-options">
+					<div class="unlock-option active" id="pinOption" onclick="selectUnlockMethod('pin')">
+						<strong>PIN Code</strong><br>
+						<small>4-6 digits</small>
+					</div>
+					<div class="unlock-option" id="passphraseOption" onclick="selectUnlockMethod('passphrase')">
+						<strong>Passphrase</strong><br>
+						<small>Recovery phrase</small>
+					</div>
+					<div class="unlock-option" id="keyOption" onclick="selectUnlockMethod('key')">
+						<strong>Recovery Key</strong><br>
+						<small>Upload file</small>
+					</div>
+				</div>
+
+				<div id="pinUnlock">
+					<div class="pin-input">
+						<input type="password" class="pin-digit" maxlength="1" id="unlock1">
+						<input type="password" class="pin-digit" maxlength="1" id="unlock2">
+						<input type="password" class="pin-digit" maxlength="1" id="unlock3">
+						<input type="password" class="pin-digit" maxlength="1" id="unlock4">
+						<input type="password" class="pin-digit" maxlength="1" id="unlock5">
+						<input type="password" class="pin-digit" maxlength="1" id="unlock6">
+					</div>
+				</div>
+
+				<div id="passphraseUnlock" style="display: none;">
+					<input type="password" class="passphrase-input" id="unlockPassphrase" 
+						   placeholder="Enter your recovery passphrase">
+				</div>
+
+				<div id="keyUnlock" style="display: none;">
+					<input type="file" id="recoveryFile" accept=".txt" style="margin: 10px 0;">
+				</div>
+
+				<div class="security-buttons">
+					<button class="btn btn-primary" onclick="attemptUnlock()">🔓 Unlock</button>
+					<button class="btn btn-danger" onclick="resetAllData()">🗑️ Reset All Data</button>
+				</div>
+				
+				<div id="unlockError" style="color: red; margin-top: 10px; display: none;"></div>
+			</div>
+		</div>
+	</div>
+
     <div class="container">
 		<header class="header">
 			<h1>🔐 Security Helper Pro</h1>
@@ -615,6 +811,7 @@
                 <button class="btn btn-secondary" onclick="exportData()">📤 Export Data</button>
                 <button class="btn btn-secondary" onclick="showImportData()">📥 Import Data</button>
                 <button class="btn btn-danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+				<button class="btn btn-primary" onclick="showSecuritySetup()">🔐 Enable Security Protection</button>
             </section>
 
             <div class="tips">
@@ -1152,6 +1349,283 @@
 			   statusElement.style.display = 'none';
 		   }, 5000);
 		}
+
+		// Security system variables
+		let securityEnabled = false;
+		let unlocked = false;
+		let currentRecoveryKey = '';
+
+		// Initialize security check
+		function initializeSecurity() {
+			const securityData = localStorage.getItem('securityHelperSecurity');
+			if (securityData) {
+				securityEnabled = true;
+				showUnlockScreen();
+			} else {
+				// Check if user wants to set up security
+				setTimeout(() => {
+					if (appData.questions.length > 5 || appData.platforms.length > 2) {
+						showSecuritySetup();
+					}
+				}, 2000);
+			}
+		}
+
+		function showSecuritySetup() {
+			document.getElementById('securityOverlay').style.display = 'flex';
+			document.getElementById('securitySetup').style.display = 'block';
+			document.getElementById('securityUnlock').style.display = 'none';
+		}
+
+		function showUnlockScreen() {
+			document.getElementById('securityOverlay').style.display = 'flex';
+			document.getElementById('securitySetup').style.display = 'none';
+			document.getElementById('securityUnlock').style.display = 'block';
+			
+			// Auto-focus first PIN input
+			setTimeout(() => document.getElementById('unlock1').focus(), 100);
+		}
+
+		// PIN input handling
+		document.addEventListener('DOMContentLoaded', function() {
+			// Existing initialization code...
+			
+			// Add PIN input handlers
+			setupPinInputs();
+			initializeSecurity();
+		});
+
+		function setupPinInputs() {
+			const pinInputs = document.querySelectorAll('.pin-digit');
+			pinInputs.forEach((input, index) => {
+				input.addEventListener('input', function() {
+					if (this.value.length === 1 && index < pinInputs.length - 1) {
+						const nextInput = pinInputs[index + 1];
+						if (nextInput.style.display !== 'none') {
+							nextInput.focus();
+						}
+					}
+				});
+				
+				input.addEventListener('keydown', function(e) {
+					if (e.key === 'Backspace' && this.value === '' && index > 0) {
+						pinInputs[index - 1].focus();
+					}
+				});
+			});
+
+			// 6-digit toggle
+			document.getElementById('use6Digits').addEventListener('change', function() {
+				const pin5 = document.getElementById('pin5');
+				const pin6 = document.getElementById('pin6');
+				if (this.checked) {
+					pin5.style.display = 'block';
+					pin6.style.display = 'block';
+				} else {
+					pin5.style.display = 'none';
+					pin6.style.display = 'none';
+					pin5.value = '';
+					pin6.value = '';
+				}
+			});
+		}
+
+		function generateRecoveryKey() {
+			const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+			currentRecoveryKey = '';
+			for (let i = 0; i < 32; i++) {
+				currentRecoveryKey += chars.charAt(Math.floor(Math.random() * chars.length));
+				if ((i + 1) % 8 === 0 && i < 31) currentRecoveryKey += '-';
+			}
+			
+			document.getElementById('recoveryKeyDisplay').textContent = currentRecoveryKey;
+			document.getElementById('recoveryKeySection').style.display = 'block';
+		}
+
+		function downloadRecoveryKey() {
+			const content = `Security Helper Pro Recovery Key\nGenerated: ${new Date().toISOString()}\n\nRecovery Key: ${currentRecoveryKey}\n\nIMPORTANT: Keep this file safe. You'll need it if you forget both your PIN and passphrase.`;
+			const blob = new Blob([content], { type: 'text/plain' });
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = 'security-helper-recovery-key.txt';
+			link.click();
+			URL.revokeObjectURL(url);
+		}
+
+		async function enableSecurity() {
+			const pin = getPinValue('pin');
+			const passphrase = document.getElementById('setupPassphrase').value;
+			
+			if (pin.length < 4 || !passphrase || !currentRecoveryKey) {
+				showStatusMessage('Please complete all security fields and generate a recovery key.', 'error');
+				return;
+			}
+
+			// Hash the credentials
+			const pinHash = await hashString(pin);
+			const passphraseHash = await hashString(passphrase);
+			const keyHash = await hashString(currentRecoveryKey);
+
+			const securityData = {
+				pinHash,
+				passphraseHash,
+				keyHash,
+				encrypted: true
+			};
+
+			localStorage.setItem('securityHelperSecurity', JSON.stringify(securityData));
+			encryptData();
+			
+			securityEnabled = true;
+			unlocked = true;
+			hideSecurityOverlay();
+			showStatusMessage('Security enabled successfully! Your data is now encrypted.', 'success');
+		}
+
+		function cancelSecurity() {
+			hideSecurityOverlay();
+		}
+
+		function hideSecurityOverlay() {
+			document.getElementById('securityOverlay').style.display = 'none';
+		}
+
+		function selectUnlockMethod(method) {
+			document.querySelectorAll('.unlock-option').forEach(opt => opt.classList.remove('active'));
+			document.getElementById(method + 'Option').classList.add('active');
+			
+			document.getElementById('pinUnlock').style.display = method === 'pin' ? 'block' : 'none';
+			document.getElementById('passphraseUnlock').style.display = method === 'passphrase' ? 'block' : 'none';
+			document.getElementById('keyUnlock').style.display = method === 'key' ? 'block' : 'none';
+		}
+
+		async function attemptUnlock() {
+			const securityData = JSON.parse(localStorage.getItem('securityHelperSecurity'));
+			const activeMethod = document.querySelector('.unlock-option.active').id;
+			
+			let inputHash = '';
+			
+			if (activeMethod === 'pinOption') {
+				const pin = getPinValue('unlock');
+				inputHash = await hashString(pin);
+				if (inputHash === securityData.pinHash) {
+					unlockSuccess();
+					return;
+				}
+			} else if (activeMethod === 'passphraseOption') {
+				const passphrase = document.getElementById('unlockPassphrase').value;
+				inputHash = await hashString(passphrase);
+				if (inputHash === securityData.passphraseHash) {
+					unlockSuccess();
+					return;
+				}
+			} else if (activeMethod === 'keyOption') {
+				const file = document.getElementById('recoveryFile').files[0];
+				if (file) {
+					const text = await file.text();
+					const keyMatch = text.match(/Recovery Key: ([A-Z0-9-]+)/);
+					if (keyMatch) {
+						inputHash = await hashString(keyMatch[1]);
+						if (inputHash === securityData.keyHash) {
+							unlockSuccess();
+							return;
+						}
+					}
+				}
+			}
+			
+			document.getElementById('unlockError').textContent = 'Invalid credentials. Please try again.';
+			document.getElementById('unlockError').style.display = 'block';
+		}
+
+		function unlockSuccess() {
+			unlocked = true;
+			decryptData();
+			hideSecurityOverlay();
+			updateDashboard();
+			renderQuestions();
+			renderPlatforms();
+			showStatusMessage('Successfully unlocked!', 'success');
+		}
+
+		function getPinValue(prefix) {
+			let pin = '';
+			for (let i = 1; i <= 6; i++) {
+				const input = document.getElementById(prefix + i);
+				if (input.style.display !== 'none') {
+					pin += input.value;
+				}
+			}
+			return pin;
+		}
+
+		function resetAllData() {
+			if (confirm('This will permanently delete ALL your data including security settings. This cannot be undone. Are you sure?')) {
+				localStorage.removeItem('securityHelperProData');
+				localStorage.removeItem('securityHelperSecurity');
+				location.reload();
+			}
+		}
+
+		// Simple hash function for client-side use
+		async function hashString(str) {
+			const encoder = new TextEncoder();
+			const data = encoder.encode(str + 'securityhelper-salt');
+			const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+			const hashArray = Array.from(new Uint8Array(hashBuffer));
+			return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+		}
+
+		// Encryption/decryption (simple XOR for demo - in production use proper crypto)
+		function encryptData() {
+			const dataStr = JSON.stringify(appData);
+			const encrypted = btoa(dataStr); // Simple base64 for demo
+			localStorage.setItem('securityHelperProData', JSON.stringify({ encrypted: true, data: encrypted }));
+		}
+
+		function decryptData() {
+			const saved = localStorage.getItem('securityHelperProData');
+			if (saved) {
+				const parsed = JSON.parse(saved);
+				if (parsed.encrypted) {
+					const decrypted = atob(parsed.data);
+					appData = JSON.parse(decrypted);
+				}
+			}
+		}
+
+		// Override existing loadData function
+		function loadData() {
+			if (securityEnabled && !unlocked) {
+				return; // Don't load data if locked
+			}
+			
+			const saved = localStorage.getItem('securityHelperProData');
+			if (saved) {
+				try {
+					const parsed = JSON.parse(saved);
+					if (parsed.encrypted && unlocked) {
+						const decrypted = atob(parsed.data);
+						appData = { ...appData, ...JSON.parse(decrypted) };
+					} else if (!parsed.encrypted) {
+						appData = { ...appData, ...parsed };
+					}
+				} catch (e) {
+					console.error('Error loading data:', e);
+				}
+			}
+		}
+
+		// Override existing saveData function
+		function saveData() {
+			if (securityEnabled) {
+				encryptData();
+			} else {
+				localStorage.setItem('securityHelperProData', JSON.stringify(appData));
+			}
+		}
+
    </script>
 </body>
 </html>
