@@ -893,204 +893,221 @@
             setTimeout(() => {
                 document.getElementById(`platform-${platformId}`).scrollIntoView({ behavior: 'smooth' });
            }, 100);
-       }
+		}
 
-       function addQuestionToPlatform(platformId, questionId) {
-           const question = appData.questions.find(q => q.id === questionId);
-           appData.assignments.push({
-               platformId: platformId,
-               questionId: questionId,
-               answer: question.answer || '',
-               dateAssigned: new Date().toISOString()
-           });
-           
-           saveData();
-           renderPlatforms();
-           renderQuestions();
-           updateDashboard();
-           showStatusMessage('Question added to platform successfully!', 'success');
-       }
+		function addQuestionToPlatform(platformId, questionId) {
+			const question = appData.questions.find(q => q.id === questionId);
+			appData.assignments.push({
+				platformId: platformId,
+				questionId: questionId,
+				answer: question.answer || '',
+				dateAssigned: new Date().toISOString()
+			});
+			
+			saveData();
+			renderPlatforms();
+			renderQuestions();
+			updateDashboard();
+			
+			// If this question doesn't have a default answer, prompt to set one
+			if (!question.answer) {
+				const platform = appData.platforms.find(p => p.id === platformId);
+				showStatusMessage(`Question added to ${platform.name}. Set an answer below - it will become the default for this question.`, 'warning');
+			} else {
+				showStatusMessage('Question added to platform successfully!', 'success');
+			}
+		}
 
-       function removeAssignment(platformId, questionId) {
-           appData.assignments = appData.assignments.filter(a => 
-               !(a.platformId === platformId && a.questionId === questionId)
-           );
-           
-           saveData();
-           renderPlatforms();
-           renderQuestions();
-           updateDashboard();
-           showStatusMessage('Question removed from platform.', 'success');
-       }
+		function removeAssignment(platformId, questionId) {
+		   appData.assignments = appData.assignments.filter(a => 
+			   !(a.platformId === platformId && a.questionId === questionId)
+		   );
+		   
+		   saveData();
+		   renderPlatforms();
+		   renderQuestions();
+		   updateDashboard();
+		   showStatusMessage('Question removed from platform.', 'success');
+		}
 
-       function updateAssignmentAnswer(platformId, questionId, answer) {
-           const assignment = appData.assignments.find(a => 
-               a.platformId === platformId && a.questionId === questionId
-           );
-           
-           if (assignment) {
-               assignment.answer = answer;
-               saveData();
-           }
-       }
+		function updateAssignmentAnswer(platformId, questionId, answer) {
+			const assignment = appData.assignments.find(a => 
+				a.platformId === platformId && a.questionId === questionId
+			);
+			
+			if (assignment) {
+				assignment.answer = answer;
+				
+				// If this question doesn't have a default answer yet, set this as the default
+				const question = appData.questions.find(q => q.id === questionId);
+				if (question && !question.answer && answer.trim()) {
+					question.answer = answer;
+					showStatusMessage(`Set "${answer}" as default answer for this question`, 'success');
+					// Re-render questions to show the new default
+					setTimeout(() => renderQuestions(), 100);
+				}
+				
+				saveData();
+			}
+		}
 
-       function updateQuestionAnswer(questionId, answer) {
-           const question = appData.questions.find(q => q.id === questionId);
-           if (question) {
-               question.answer = answer;
-               saveData();
-           }
-       }
+		function updateQuestionAnswer(questionId, answer) {
+		   const question = appData.questions.find(q => q.id === questionId);
+		   if (question) {
+			   question.answer = answer;
+			   saveData();
+		   }
+		}
 
-       function addCustomQuestion() {
-           const questionText = prompt('Enter your custom security question:');
-           if (!questionText || !questionText.trim()) return;
+		function addCustomQuestion() {
+		   const questionText = prompt('Enter your custom security question:');
+		   if (!questionText || !questionText.trim()) return;
 
-           const answer = prompt('Enter a default answer (optional):') || '';
+		   const answer = prompt('Enter a default answer (optional):') || '';
 
-           const newQuestion = {
-               id: 'custom_' + Date.now(),
-               text: questionText.trim(),
-               answer: answer.trim(),
-               securityScore: 'medium', // Default for custom questions
-               isCustom: true,
-               dateAdded: new Date().toISOString()
-           };
+		   const newQuestion = {
+			   id: 'custom_' + Date.now(),
+			   text: questionText.trim(),
+			   answer: answer.trim(),
+			   securityScore: 'medium', // Default for custom questions
+			   isCustom: true,
+			   dateAdded: new Date().toISOString()
+		   };
 
-           appData.questions.push(newQuestion);
-           saveData();
-           renderQuestions();
-           updateDashboard();
-           showStatusMessage('Custom question added successfully!', 'success');
-       }
+		   appData.questions.push(newQuestion);
+		   saveData();
+		   renderQuestions();
+		   updateDashboard();
+		   showStatusMessage('Custom question added successfully!', 'success');
+		}
 
-       function addPlatform() {
-           const name = prompt('Enter platform name (e.g., Gmail, Bank of America):');
-           if (!name || !name.trim()) return;
+		function addPlatform() {
+		   const name = prompt('Enter platform name (e.g., Gmail, Bank of America):');
+		   if (!name || !name.trim()) return;
 
-           const url = prompt('Enter website URL (optional):') || '';
+		   const url = prompt('Enter website URL (optional):') || '';
 
-           const newPlatform = {
-               id: 'platform_' + Date.now(),
-               name: name.trim(),
-               url: url.trim(),
-               dateAdded: new Date().toISOString()
-           };
+		   const newPlatform = {
+			   id: 'platform_' + Date.now(),
+			   name: name.trim(),
+			   url: url.trim(),
+			   dateAdded: new Date().toISOString()
+		   };
 
-           appData.platforms.push(newPlatform);
-           saveData();
-           renderPlatforms();
-           updateDashboard();
-           showStatusMessage('Platform added successfully!', 'success');
-       }
+		   appData.platforms.push(newPlatform);
+		   saveData();
+		   renderPlatforms();
+		   updateDashboard();
+		   showStatusMessage('Platform added successfully!', 'success');
+		}
 
-       function deleteQuestion(questionId) {
-           const question = appData.questions.find(q => q.id === questionId);
-           const assignments = appData.assignments.filter(a => a.questionId === questionId);
-           
-           let confirmMsg = 'Are you sure you want to delete this question?';
-           if (assignments.length > 0) {
-               const platformNames = assignments.map(a => {
-                   const platform = appData.platforms.find(p => p.id === a.platformId);
-                   return platform ? platform.name : 'Unknown';
-               });
-               confirmMsg += `\n\nThis will also remove it from these platforms:\n${platformNames.join(', ')}`;
-           }
+		function deleteQuestion(questionId) {
+		   const question = appData.questions.find(q => q.id === questionId);
+		   const assignments = appData.assignments.filter(a => a.questionId === questionId);
+		   
+		   let confirmMsg = 'Are you sure you want to delete this question?';
+		   if (assignments.length > 0) {
+			   const platformNames = assignments.map(a => {
+				   const platform = appData.platforms.find(p => p.id === a.platformId);
+				   return platform ? platform.name : 'Unknown';
+			   });
+			   confirmMsg += `\n\nThis will also remove it from these platforms:\n${platformNames.join(', ')}`;
+		   }
 
-           if (confirm(confirmMsg)) {
-               appData.questions = appData.questions.filter(q => q.id !== questionId);
-               appData.assignments = appData.assignments.filter(a => a.questionId !== questionId);
-               saveData();
-               renderQuestions();
-               renderPlatforms();
-               updateDashboard();
-               showStatusMessage('Question deleted successfully!', 'success');
-           }
-       }
+		   if (confirm(confirmMsg)) {
+			   appData.questions = appData.questions.filter(q => q.id !== questionId);
+			   appData.assignments = appData.assignments.filter(a => a.questionId !== questionId);
+			   saveData();
+			   renderQuestions();
+			   renderPlatforms();
+			   updateDashboard();
+			   showStatusMessage('Question deleted successfully!', 'success');
+		   }
+		}
 
-       function deletePlatform(platformId) {
-           const platform = appData.platforms.find(p => p.id === platformId);
-           const assignments = appData.assignments.filter(a => a.platformId === platformId);
-           
-           let confirmMsg = `Are you sure you want to delete "${platform.name}"?`;
-           if (assignments.length > 0) {
-               confirmMsg += `\n\nThis will remove ${assignments.length} security question assignment(s).`;
-           }
+		function deletePlatform(platformId) {
+		   const platform = appData.platforms.find(p => p.id === platformId);
+		   const assignments = appData.assignments.filter(a => a.platformId === platformId);
+		   
+		   let confirmMsg = `Are you sure you want to delete "${platform.name}"?`;
+		   if (assignments.length > 0) {
+			   confirmMsg += `\n\nThis will remove ${assignments.length} security question assignment(s).`;
+		   }
 
-           if (confirm(confirmMsg)) {
-               appData.platforms = appData.platforms.filter(p => p.id !== platformId);
-               appData.assignments = appData.assignments.filter(a => a.platformId !== platformId);
-               saveData();
-               renderPlatforms();
-               renderQuestions();
-               updateDashboard();
-               showStatusMessage('Platform deleted successfully!', 'success');
-           }
-       }
+		   if (confirm(confirmMsg)) {
+			   appData.platforms = appData.platforms.filter(p => p.id !== platformId);
+			   appData.assignments = appData.assignments.filter(a => a.platformId !== platformId);
+			   saveData();
+			   renderPlatforms();
+			   renderQuestions();
+			   updateDashboard();
+			   showStatusMessage('Platform deleted successfully!', 'success');
+		   }
+		}
 
-       function exportData() {
-           const dataStr = JSON.stringify(appData, null, 2);
-           const dataBlob = new Blob([dataStr], {type: 'application/json'});
-           const url = URL.createObjectURL(dataBlob);
-           const link = document.createElement('a');
-           link.href = url;
-           link.download = 'security-helper-pro-backup.json';
-           link.click();
-           URL.revokeObjectURL(url);
-           showStatusMessage('Data exported successfully!', 'success');
-       }
+		function exportData() {
+		   const dataStr = JSON.stringify(appData, null, 2);
+		   const dataBlob = new Blob([dataStr], {type: 'application/json'});
+		   const url = URL.createObjectURL(dataBlob);
+		   const link = document.createElement('a');
+		   link.href = url;
+		   link.download = 'security-helper-pro-backup.json';
+		   link.click();
+		   URL.revokeObjectURL(url);
+		   showStatusMessage('Data exported successfully!', 'success');
+		}
 
-       function showImportData() {
-           const input = document.createElement('input');
-           input.type = 'file';
-           input.accept = '.json';
-           input.onchange = function(e) {
-               const file = e.target.files[0];
-               if (file) {
-                   const reader = new FileReader();
-                   reader.onload = function(e) {
-                       try {
-                           const importedData = JSON.parse(e.target.result);
-                           if (confirm('This will replace all your current data. Are you sure?')) {
-                               appData = importedData;
-                               saveData();
-                               updateDashboard();
-                               renderQuestions();
-                               renderPlatforms();
-                               showStatusMessage('Data imported successfully!', 'success');
-                           }
-                       } catch (error) {
-                           showStatusMessage('Error importing data. Please check the file format.', 'error');
-                       }
-                   };
-                   reader.readAsText(file);
-               }
-           };
-           input.click();
-       }
+		function showImportData() {
+		   const input = document.createElement('input');
+		   input.type = 'file';
+		   input.accept = '.json';
+		   input.onchange = function(e) {
+			   const file = e.target.files[0];
+			   if (file) {
+				   const reader = new FileReader();
+				   reader.onload = function(e) {
+					   try {
+						   const importedData = JSON.parse(e.target.result);
+						   if (confirm('This will replace all your current data. Are you sure?')) {
+							   appData = importedData;
+							   saveData();
+							   updateDashboard();
+							   renderQuestions();
+							   renderPlatforms();
+							   showStatusMessage('Data imported successfully!', 'success');
+						   }
+					   } catch (error) {
+						   showStatusMessage('Error importing data. Please check the file format.', 'error');
+					   }
+				   };
+				   reader.readAsText(file);
+			   }
+		   };
+		   input.click();
+		}
 
-       function clearAllData() {
-           if (confirm('Are you sure you want to clear all data? This action cannot be undone.') && 
-               confirm('This will delete all your questions, platforms, and assignments. Continue?')) {
-               localStorage.removeItem('securityHelperProData');
-               appData = { questions: [], platforms: [], assignments: [] };
-               initializeDefaultQuestions();
-               updateDashboard();
-               renderQuestions();
-               renderPlatforms();
-               showStatusMessage('All data cleared. Default questions restored.', 'success');
-           }
-       }
+		function clearAllData() {
+		   if (confirm('Are you sure you want to clear all data? This action cannot be undone.') && 
+			   confirm('This will delete all your questions, platforms, and assignments. Continue?')) {
+			   localStorage.removeItem('securityHelperProData');
+			   appData = { questions: [], platforms: [], assignments: [] };
+			   initializeDefaultQuestions();
+			   updateDashboard();
+			   renderQuestions();
+			   renderPlatforms();
+			   showStatusMessage('All data cleared. Default questions restored.', 'success');
+		   }
+		}
 
-       function showStatusMessage(message, type) {
-           const statusElement = document.getElementById('statusMessage');
-           statusElement.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
-           statusElement.style.display = 'block';
-           
-           setTimeout(() => {
-               statusElement.style.display = 'none';
-           }, 5000);
-       }
+		function showStatusMessage(message, type) {
+		   const statusElement = document.getElementById('statusMessage');
+		   statusElement.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+		   statusElement.style.display = 'block';
+		   
+		   setTimeout(() => {
+			   statusElement.style.display = 'none';
+		   }, 5000);
+		}
    </script>
 </body>
 </html>
