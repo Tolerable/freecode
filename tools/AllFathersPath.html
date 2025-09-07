@@ -41,7 +41,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: url('header-bg.jpg') center/cover;
+            background: url('tools/img/header-bg.jpg') center/cover;
             opacity: 0.3;
             z-index: -1;
         }
@@ -84,20 +84,22 @@
             transition: all 0.3s ease;
             padding: 0.5rem 1rem;
             border-radius: 5px;
+            cursor: pointer;
         }
 
-        nav a:hover {
+        nav a:hover, nav a.active {
             background: rgba(212, 175, 55, 0.2);
             transform: translateY(-2px);
         }
 
         .section {
+            display: none;
             padding: 4rem 0;
             margin-bottom: 2rem;
         }
 
-        .section:nth-child(even) {
-            background: rgba(255, 255, 255, 0.02);
+        .section.active {
+            display: block;
         }
 
         .section-header {
@@ -121,9 +123,40 @@
             margin: 1rem auto;
         }
 
+        .deity-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .deity-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #d4af37;
+            border-radius: 10px;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .deity-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 10px;
+            border: 3px solid #d4af37;
+            overflow: hidden;
+        }
+
+        .deity-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 2rem;
             margin-top: 2rem;
         }
@@ -136,21 +169,6 @@
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.1), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .card:hover::before {
-            left: 100%;
         }
 
         .card:hover {
@@ -201,30 +219,6 @@
             margin-bottom: 0.5rem;
         }
 
-        .deity-profile {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-            margin: 2rem 0;
-            padding: 2rem;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            border: 1px solid #d4af37;
-        }
-
-        .deity-image {
-            width: 150px;
-            height: 150px;
-            border-radius: 10px;
-            border: 3px solid #d4af37;
-            background: #2a2a3e;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #d4af37;
-            font-weight: bold;
-        }
-
         .quote {
             background: rgba(212, 175, 55, 0.1);
             border-left: 4px solid #d4af37;
@@ -236,7 +230,7 @@
 
         .resources-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 1.5rem;
             margin-top: 2rem;
         }
@@ -274,9 +268,21 @@
             margin-bottom: 0.5rem;
         }
 
+        .hero-image {
+            width: 100%;
+            max-width: 600px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin: 1rem auto;
+            display: block;
+            border: 2px solid #d4af37;
+        }
+
         @media (max-width: 768px) {
             h1 { font-size: 2.5rem; }
-            .deity-profile { flex-direction: column; text-align: center; }
+            .deity-grid, .grid, .resources-grid { grid-template-columns: 1fr; }
+            .deity-card { flex-direction: column; text-align: center; }
             nav ul { flex-direction: column; align-items: center; }
         }
     </style>
@@ -292,55 +298,69 @@
     <nav>
         <div class="container">
             <ul>
-                <li><a href="#deities">The Gods</a></li>
-                <li><a href="#rituals">Rituals</a></li>
-                <li><a href="#prayers">Prayers & Chants</a></li>
-                <li><a href="#practices">Practices</a></li>
-                <li><a href="#resources">Resources</a></li>
+                <li><a href="#" onclick="showSection('deities')" class="nav-link active">The Gods</a></li>
+                <li><a href="#" onclick="showSection('rituals')" class="nav-link">Rituals</a></li>
+                <li><a href="#" onclick="showSection('prayers')" class="nav-link">Prayers & Chants</a></li>
+                <li><a href="#" onclick="showSection('practices')" class="nav-link">Practices</a></li>
+                <li><a href="#" onclick="showSection('resources')" class="nav-link">Resources</a></li>
             </ul>
         </div>
     </nav>
 
     <main class="container">
-        <section id="deities" class="section">
+        <section id="deities" class="section active">
             <div class="section-header">
                 <h2>The Æsir - The Norse Gods</h2>
                 <p>Meet the powerful deities of the Norse pantheon</p>
             </div>
 
-            <div class="deity-profile">
-                <div class="deity-image">
-                    <img src="img/odin-portrait.jpg" alt="Odin Allfather" style="width: 100%; height: 100%; object-fit: cover; border-radius: 7px;">
+            <div class="deity-grid">
+                <div class="deity-card">
+                    <div class="deity-image">
+                        <img src="tools/img/odin-portrait.jpg" alt="Odin Allfather">
+                    </div>
+                    <div>
+                        <h3 style="color: #d4af37; font-size: 1.8rem;">Odin Allfather</h3>
+                        <p><strong>Domains:</strong> Wisdom, War, Death, Poetry, Magic</p>
+                        <p><strong>Symbols:</strong> Ravens (Huginn & Muninn), Wolves, Valknut, Gungnir spear</p>
+                        <p>The one-eyed seeker of wisdom who sacrificed his eye for knowledge and hung himself from Yggdrasil to discover the runes.</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 style="color: #d4af37; font-size: 2rem;">Odin Allfather</h3>
-                    <p><strong>Domains:</strong> Wisdom, War, Death, Poetry, Magic</p>
-                    <p><strong>Symbols:</strong> Ravens (Huginn & Muninn), Wolves, Valknut, Gungnir spear</p>
-                    <p>The one-eyed seeker of wisdom who sacrificed his eye for knowledge and hung himself from Yggdrasil to discover the runes. Father of many gods and ruler of Asgard.</p>
-                </div>
-            </div>
 
-            <div class="deity-profile">
-                <div class="deity-image">
-                    <img src="img/thor-portrait.jpg" alt="Thor Thunderer" style="width: 100%; height: 100%; object-fit: cover; border-radius: 7px;">
+                <div class="deity-card">
+                    <div class="deity-image">
+                        <img src="tools/img/thor-portrait.jpg" alt="Thor Thunderer">
+                    </div>
+                    <div>
+                        <h3 style="color: #d4af37; font-size: 1.8rem;">Thor Thunderer</h3>
+                        <p><strong>Domains:</strong> Thunder, Strength, Protection, Fertility</p>
+                        <p><strong>Symbols:</strong> Mjölnir hammer, Goats, Oak trees, Thor's hammer pendant</p>
+                        <p>The red-bearded protector of Midgard and humanity. Wielder of the mighty hammer Mjölnir and defender against giants.</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 style="color: #d4af37; font-size: 2rem;">Thor Thunderer</h3>
-                    <p><strong>Domains:</strong> Thunder, Strength, Protection, Fertility</p>
-                    <p><strong>Symbols:</strong> Mjölnir hammer, Goats, Oak trees, Thor's hammer pendant</p>
-                    <p>The red-bearded protector of Midgard and humanity. Wielder of the mighty hammer Mjölnir and defender against giants and chaos.</p>
-                </div>
-            </div>
 
-            <div class="deity-profile">
-                <div class="deity-image">
-                    <img src="img/frigg-portrait.jpg" alt="Frigg Queen" style="width: 100%; height: 100%; object-fit: cover; border-radius: 7px;">
+                <div class="deity-card">
+                    <div class="deity-image">
+                        <img src="tools/img/frigg-portrait.jpg" alt="Frigg Queen">
+                    </div>
+                    <div>
+                        <h3 style="color: #d4af37; font-size: 1.8rem;">Frigg Queen</h3>
+                        <p><strong>Domains:</strong> Marriage, Motherhood, Prophecy, Hearth</p>
+                        <p><strong>Symbols:</strong> Spinning wheel, Keys, Falcon feathers</p>
+                        <p>Odin's wife and queen of the Æsir. Mother of Baldr and keeper of domestic wisdom and protective magic.</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 style="color: #d4af37; font-size: 2rem;">Frigg Queen</h3>
-                    <p><strong>Domains:</strong> Marriage, Motherhood, Prophecy, Hearth</p>
-                    <p><strong>Symbols:</strong> Spinning wheel, Keys, Falcon feathers</p>
-                    <p>Odin's wife and queen of the Æsir. Mother of Baldr and keeper of domestic wisdom and protective magic.</p>
+
+                <div class="deity-card">
+                    <div class="deity-image">
+                        <img src="tools/img/yggdrasil.jpg" alt="Yggdrasil World Tree">
+                    </div>
+                    <div>
+                        <h3 style="color: #d4af37; font-size: 1.8rem;">Yggdrasil</h3>
+                        <p><strong>The World Tree:</strong> Cosmic axis connecting all nine realms</p>
+                        <p><strong>Symbols:</strong> Ash tree, Three wells, Sacred springs</p>
+                        <p>The immense sacred tree that stands at the center of the cosmos, connecting all nine worlds of Norse mythology.</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -349,6 +369,7 @@
             <div class="section-header">
                 <h2>Sacred Rituals</h2>
                 <p>Traditional ceremonies to honor the gods</p>
+                <img src="tools/img/longship.jpg" alt="Viking longship" class="hero-image">
             </div>
 
             <div class="grid">
@@ -424,6 +445,7 @@
             <div class="section-header">
                 <h2>Prayers & Invocations</h2>
                 <p>Sacred words to commune with the Æsir</p>
+                <img src="tools/img/runes-texture.jpg" alt="Ancient runes" class="hero-image">
             </div>
 
             <div class="grid">
@@ -532,10 +554,11 @@
             </div>
         </section>
 
-        <section id="resources" class="section resources-section">
+        <section id="resources" class="section">
             <div class="section-header">
                 <h2>Learning Resources</h2>
                 <p>Deepen your understanding of Norse paganism</p>
+                <img src="tools/img/valhalla.jpg" alt="Valhalla great hall" class="hero-image">
             </div>
 
             <div class="resources-grid">
@@ -598,5 +621,26 @@
             </p>
         </div>
     </footer>
+
+    <script>
+		function showSection(sectionId) {
+			// Hide all sections
+			const sections = document.querySelectorAll('.section');
+			sections.forEach(section => section.classList.remove('active'));
+			
+			// Show selected section
+			document.getElementById(sectionId).classList.add('active');
+			
+			// Update nav links
+			const navLinks = document.querySelectorAll('.nav-link');
+			navLinks.forEach(link => link.classList.remove('active'));
+			
+			// Find the clicked link and make it active
+			const clickedLink = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
+			if (clickedLink) {
+				clickedLink.classList.add('active');
+			}
+		}
+    </script>
 </body>
 </html>
