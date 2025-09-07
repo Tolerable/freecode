@@ -664,15 +664,20 @@
 						<input type="password" class="pin-digit" maxlength="1" id="pin5" style="display:none;">
 						<input type="password" class="pin-digit" maxlength="1" id="pin6" style="display:none;">
 					</div>
-					<label style="font-size: 12px;">
-						<input type="checkbox" id="use6Digits"> Use 6 digits instead
-					</label>
+					<div style="text-align: left; margin-top: 10px;">
+						<label style="font-size: 14px; display: flex; align-items: center; gap: 8px;">
+							<input type="checkbox" id="use6Digits"> Use 6 digits instead of 4
+						</label>
+					</div>
 				</div>
 
 				<div class="form-group">
 					<label>Recovery Passphrase (backup method):</label>
 					<input type="password" class="passphrase-input" id="setupPassphrase" 
 						   placeholder="Enter a memorable phrase you won't forget">
+					<input type="password" class="passphrase-input" id="confirmPassphrase" 
+						   placeholder="Confirm your passphrase" style="margin-top: 10px;">
+					<div id="passphraseMatch" style="font-size: 12px; margin-top: 5px;"></div>
 				</div>
 
 				<div id="recoveryKeySection" style="display: none;">
@@ -682,7 +687,8 @@
 				</div>
 
 				<div class="security-buttons">
-					<button class="btn btn-primary" onclick="generateRecoveryKey()">Generate Recovery Key</button>
+					<button class="btn btn-primary" onclick="generateRecoveryKey()" id="generateBtn">Generate Recovery Key</button>
+					<button class="btn btn-success" onclick="enableSecurity()" id="enableBtn" style="display: none;">Enable Security</button>
 					<button class="btn btn-success" onclick="enableSecurity()">Enable Security</button>
 					<button class="btn btn-secondary" onclick="cancelSecurity()">Skip for Now</button>
 				</div>
@@ -1431,6 +1437,20 @@
 		}
 
 		function generateRecoveryKey() {
+			const pin = getPinValue('pin');
+			const passphrase = document.getElementById('setupPassphrase').value;
+			const confirmPassphrase = document.getElementById('confirmPassphrase').value;
+			
+			if (pin.length < 4) {
+				showStatusMessage('Please enter a 4-6 digit PIN first.', 'error');
+				return;
+			}
+			
+			if (!passphrase || passphrase !== confirmPassphrase) {
+				showStatusMessage('Please enter and confirm your passphrase first.', 'error');
+				return;
+			}
+
 			const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 			currentRecoveryKey = '';
 			for (let i = 0; i < 32; i++) {
@@ -1440,6 +1460,8 @@
 			
 			document.getElementById('recoveryKeyDisplay').textContent = currentRecoveryKey;
 			document.getElementById('recoveryKeySection').style.display = 'block';
+			document.getElementById('generateBtn').style.display = 'none';
+			document.getElementById('enableBtn').style.display = 'inline-block';
 		}
 
 		function downloadRecoveryKey() {
