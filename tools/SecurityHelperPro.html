@@ -1167,16 +1167,13 @@
 			
 			<div style="margin: 30px 0;">
 				<h3>Get Started:</h3>
-				<button class="btn btn-primary" onclick="startFresh()" style="width: 100%; margin: 10px 0; padding: 15px;">
-					🚀 Start Using Security Helper Pro
-				</button>
-				<button class="btn btn-secondary" onclick="setupSecurityFirst()" style="width: 100%; margin: 10px 0; padding: 15px;">
-					🔐 Enable Security Protection
+				<button class="btn btn-primary" onclick="setupSecurityFirst()" style="width: 100%; margin: 10px 0; padding: 15px;">
+					🔐 Setup Security & Continue
 				</button>
 			</div>
 			
 			<div style="font-size: 14px; color: #666; text-align: center;">
-				<p>You can always enable security protection later in Settings.</p>
+				<p>You'll need to create a PIN, passphrase, and recovery key to protect your data.</p>
 			</div>
 		</div>
 	</div>
@@ -1513,23 +1510,6 @@
 
 		function hideWelcomeScreen() {
 			document.getElementById('welcomeScreen').style.display = 'none';
-		}
-
-		function startFresh() {
-			hideWelcomeScreen();
-			showMainInterface();
-			// Initialize with defaults
-			loadData();
-			initializeDefaultQuestions();
-			initializeDefaultCategories();
-			updateDashboard();
-			renderQuestions();
-			renderPlatforms();
-			renderPasswords();
-			renderCategories();
-			populateCategoryFilter();
-			showTab('passwords');
-			showStatusMessage('Welcome! Your secure vault is ready to use.', 'success');
 		}
 
 		function setupSecurityFirst() {
@@ -1960,8 +1940,9 @@
 				   categories: [] 
 			   };
 			   
-			   // Completely reload the page to reset everything
-			   location.reload();
+				// Force user back to security setup
+				showWelcomeScreen();
+				hideMainInterface();
 		   }
 		}
 
@@ -2130,6 +2111,16 @@
 			unlocked = true;
 			hideSecurityOverlay();
 			showStatusMessage('Security enabled successfully! Your data is now encrypted.', 'success');
+			loadData();
+			initializeDefaultQuestions();
+			initializeDefaultCategories();
+			updateDashboard();
+			renderQuestions();
+			renderPlatforms();
+			renderPasswords();
+			renderCategories();
+			populateCategoryFilter();
+			showTab('passwords');
 		}
 
 		function hideSecurityOverlay() {
@@ -3212,8 +3203,8 @@
 			const securityData = localStorage.getItem('securityHelperSecurity');
 			const appDataExists = localStorage.getItem('securityHelperProData');
 			
-			// If NO security data AND NO app data - show welcome screen
-			if (!securityData && !appDataExists) {
+			// If NO security data - ALWAYS show welcome screen (force security setup)
+			if (!securityData) {
 				showWelcomeScreen();
 				return;
 			}
