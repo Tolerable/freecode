@@ -1016,6 +1016,36 @@
             height: 100%;
             transition: all 0.3s ease;
         }
+
+		.security-loading {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			z-index: 1500;
+			color: white;
+			flex-direction: column;
+		}
+
+		.loading-spinner {
+			width: 50px;
+			height: 50px;
+			border: 5px solid rgba(255,255,255,0.3);
+			border-top: 5px solid white;
+			border-radius: 50%;
+			animation: spin 1s linear infinite;
+			margin-bottom: 20px;
+		}
+
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
 		
         @media (max-width: 768px) {
             .tabs {
@@ -1417,6 +1447,20 @@
                 saveData();
             }
         }
+
+		function hideMainInterface() {
+			const container = document.querySelector('.container');
+			if (container) {
+				container.style.display = 'none';
+			}
+		}
+
+		function showMainInterface() {
+			const container = document.querySelector('.container');
+			if (container) {
+				container.style.display = 'block';
+			}
+		}
 		
         function showTab(tabName) {
             // Hide all tab contents
@@ -1889,14 +1933,18 @@
 			const securityData = localStorage.getItem('securityHelperSecurity');
 			if (securityData) {
 				securityEnabled = true;
+				hideMainInterface();
 				showUnlockScreen();
 			} else {
-				// Check if user wants to set up security
+				showMainInterface();
+				// Check if user wants to set up security after they have some data
 				setTimeout(() => {
-					if (appData.questions.length > 5 || appData.platforms.length > 2) {
-						showSecuritySetup();
+					if (appData.questions.length > 5 || appData.platforms.length > 2 || appData.passwords.length > 3) {
+						if (confirm('You have sensitive data stored. Would you like to enable security protection?')) {
+							showSecuritySetup();
+						}
 					}
-				}, 2000);
+				}, 3000);
 			}
 		}
 
@@ -1915,14 +1963,42 @@
 			setTimeout(() => document.getElementById('unlock1').focus(), 100);
 		}
 
-		// PIN input handling
 		document.addEventListener('DOMContentLoaded', function() {
-			// Existing initialization code...
-			
-			// Add PIN input handlers
 			setupPinInputs();
-			initializeSecurity();
+			
+			const securityData = localStorage.getItem('securityHelperSecurity');
+			if (securityData) {
+				securityEnabled = true;
+				showUnlockScreen();
+				// Don't load any data or render anything until unlocked
+				return;
+			}
+			
+			// No security enabled - proceed normally
+			loadData();
+			initializeDefaultQuestions();
+			initializeDefaultCategories();
+			updateDashboard();
+			renderQuestions();
+			renderPlatforms();
+			renderPasswords();
+			renderCategories();
+			populateCategoryFilter();
+			showTab('passwords');
 		});
+
+		function initializeAfterUnlock() {
+			loadData();
+			initializeDefaultQuestions();
+			initializeDefaultCategories();
+			updateDashboard();
+			renderQuestions();
+			renderPlatforms();
+			renderPasswords();
+			renderCategories();
+			populateCategoryFilter();
+			showTab('passwords');
+		}
 
 		function setupPinInputs() {
 			const pinInputs = document.querySelectorAll('.pin-digit');
@@ -2030,10 +2106,12 @@
 
 		function cancelSecurity() {
 			hideSecurityOverlay();
+			showMainInterface();
 		}
 
 		function hideSecurityOverlay() {
 			document.getElementById('securityOverlay').style.display = 'none';
+			showMainInterface();
 		}
 
 		function selectUnlockMethod(method) {
@@ -2086,11 +2164,11 @@
 
 		function unlockSuccess() {
 			unlocked = true;
-			decryptData();
 			hideSecurityOverlay();
-			updateDashboard();
-			renderQuestions();
-			renderPlatforms();
+			
+			// Now safely load and display data
+			initializeAfterUnlock();
+			
 			showStatusMessage('Successfully unlocked!', 'success');
 		}
 
@@ -2140,10 +2218,19 @@
 			}
 		}
 
-		// Override existing loadData function
 		function loadData() {
-			if (securityEnabled && !unlocked) {
-				return; // Don't load data if locked
+			const securityData = localStorage.getItem('securityHelperSecurity');
+			
+			if (securityData && !unlocked) {
+				// Security is enabled but user hasn't unlocked yet - don't load any data
+				appData = {
+					questions: [],
+					platforms: [],
+					assignments: [],
+					passwords: [],
+					categories: []
+				};
+				return;
 			}
 			
 			const saved = localStorage.getItem('securityHelperProData');
