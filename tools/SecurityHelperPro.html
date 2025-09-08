@@ -2357,14 +2357,15 @@
                 const categoryClass = category ? category.name.toLowerCase().replace(/\s+/g, '') : 'default';
                 const passwordStrength = calculatePasswordStrength(password.password);
                 
-                const passwordCard = document.createElement('div');
-                passwordCard.className = `password-card ${categoryClass} ${password.isFavorite ? 'favorite' : ''}`;
-                passwordCard.innerHTML = `
-                    ${password.isFavorite ? '<div class="favorite-star">⭐</div>' : ''}
-                    <div class="password-card-header">
-                        <div class="password-card-icon">
-                            ${category ? category.icon : '🔐'}
-                        </div>
+				const passwordCard = document.createElement('div');
+				passwordCard.className = `password-card ${categoryClass} ${password.isFavorite ? 'favorite' : ''}`;
+				passwordCard.innerHTML = `
+					${password.isFavorite ? '<div class="favorite-star">⭐</div>' : ''}
+					<div class="password-card-header">
+						<div class="password-card-icon">
+							${category && category.icon ? category.icon : '🔐'}
+						</div>
+					</div>
                     </div>
                     <div class="password-card-body">
                         <div class="password-card-title">
@@ -2407,6 +2408,30 @@
                 `;
             }
         }
+
+		function resetCategories() {
+			const defaultCategories = [
+				{ name: 'Personal', color: '#4facfe', icon: '👤' },
+				{ name: 'Work', color: '#28a745', icon: '💼' },
+				{ name: 'Banking', color: '#dc3545', icon: '🏦' },
+				{ name: 'Social Media', color: '#6f42c1', icon: '📱' },
+				{ name: 'Shopping', color: '#fd7e14', icon: '🛒' },
+				{ name: 'Entertainment', color: '#e83e8c', icon: '🎬' }
+			];
+			
+			appData.categories = defaultCategories.map((cat, index) => ({
+				id: `category_${index}`,
+				name: cat.name,
+				color: cat.color,
+				icon: cat.icon,
+				dateCreated: new Date().toISOString()
+			}));
+			
+			saveData();
+			renderCategories();
+			populateCategoryFilter();
+			showStatusMessage('Categories reset with proper icons', 'success');
+		}
 
 		function calculatePasswordStrength(password) {
             if (!password) return { class: 'strength-weak', width: 0 };
@@ -2484,12 +2509,12 @@
                             </div>
                             <div class="form-group">
                                 <label>Folder</label>
-                                <select id="passwordCategory">
-                                    <option value="">No Folder</option>
-                                    ${appData.categories.map(cat => 
-                                        `<option value="${cat.id}" ${password?.category === cat.id ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`
-                                    ).join('')}
-                                </select>
+								<select id="passwordCategory">
+									<option value="">No Folder</option>
+									${appData.categories.map(cat => 
+										`<option value="${cat.id}" ${password?.category === cat.id ? 'selected' : ''}>${cat.icon || '📁'} ${cat.name}</option>`
+									).join('')}
+								</select>
                             </div>
                         </div>
                         
