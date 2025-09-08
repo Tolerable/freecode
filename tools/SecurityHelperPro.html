@@ -2200,21 +2200,59 @@
 			return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 		}
 
-		// Encryption/decryption (simple XOR for demo - in production use proper crypto)
 		function encryptData() {
-			const dataStr = JSON.stringify(appData);
-			const encrypted = btoa(dataStr); // Simple base64 for demo
-			localStorage.setItem('securityHelperProData', JSON.stringify({ encrypted: true, data: encrypted }));
+			try {
+				const dataStr = JSON.stringify(appData);
+				// Simple XOR encryption instead of base64 for better Unicode support
+				const key = 'securityhelper2024';
+				let encrypted = '';
+				for (let i = 0; i < dataStr.length; i++) {
+					encrypted += String.fromCharCode(dataStr.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+				}
+				// Convert to hex to avoid btoa issues
+				const hex = Array.from(encrypted).map(char => char.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+				localStorage.setItem('securityHelperProData', JSON.stringify({ encrypted: true, data: hex }));
+			} catch (error) {
+				console.error('Encryption error:', error);
+				// Fallback to unencrypted
+				localStorage.setItem('securityHelperProData', JSON.stringify(appData));
+			}
 		}
 
 		function decryptData() {
-			const saved = localStorage.getItem('securityHelperProData');
-			if (saved) {
-				const parsed = JSON.parse(saved);
-				if (parsed.encrypted) {
-					const decrypted = atob(parsed.data);
-					appData = JSON.parse(decrypted);
+			try {
+				const saved = localStorage.getItem('securityHelperProData');
+				if (saved) {
+					const parsed = JSON.parse(saved);
+					if (parsed.encrypted && parsed.data) {
+						// Convert from hex back to string
+						const hex = parsed.data;
+						let encrypted = '';
+						for (let i = 0; i < hex.length; i += 2) {
+							encrypted += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+						}
+						// XOR decrypt
+						const key = 'securityhelper2024';
+						let decrypted = '';
+						for (let i = 0; i < encrypted.length; i++) {
+							decrypted += String.fromCharCode(encrypted.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+						}
+						appData = JSON.parse(decrypted);
+					} else {
+						// Handle unencrypted data
+						appData = { ...appData, ...parsed };
+					}
 				}
+			} catch (error) {
+				console.error('Decryption error:', error);
+				// Reset to defaults if decryption fails
+				appData = {
+					questions: [],
+					platforms: [],
+					assignments: [],
+					passwords: [],
+					categories: []
+				};
 			}
 		}
 
@@ -2233,28 +2271,41 @@
 				return;
 			}
 			
-			const saved = localStorage.getItem('securityHelperProData');
-			if (saved) {
-				try {
+			try {
+				const saved = localStorage.getItem('securityHelperProData');
+				if (saved) {
 					const parsed = JSON.parse(saved);
 					if (parsed.encrypted && unlocked) {
-						const decrypted = atob(parsed.data);
-						appData = { ...appData, ...JSON.parse(decrypted) };
+						// Use the decrypt function
+						decryptData();
 					} else if (!parsed.encrypted) {
 						appData = { ...appData, ...parsed };
 					}
-				} catch (e) {
-					console.error('Error loading data:', e);
 				}
+			} catch (e) {
+				console.error('Error loading data:', e);
+				// Reset to defaults on load error
+				appData = {
+					questions: [],
+					platforms: [],
+					assignments: [],
+					passwords: [],
+					categories: []
+				};
 			}
 		}
 
 		// Override existing saveData function
 		function saveData() {
-			if (securityEnabled) {
-				encryptData();
-			} else {
-				localStorage.setItem('securityHelperProData', JSON.stringify(appData));
+			try {
+				if (securityEnabled) {
+					encryptData();
+				} else {
+					localStorage.setItem('securityHelperProData', JSON.stringify(appData));
+				}
+			} catch (error) {
+				console.error('Save error:', error);
+				showStatusMessage('Error saving data. Please try again.', 'error');
 			}
 		}
 
@@ -2535,58 +2586,63 @@
             }, 100);
         }
 
-        function savePassword(passwordId) {
-            const title = document.getElementById('passwordTitle').value.trim();
-            const username = document.getElementById('passwordUsername').value.trim();
-            const password = document.getElementById('passwordPassword').value;
-            const url = document.getElementById('passwordUrl').value.trim();
-            const notes = document.getElementById('passwordNotes').value.trim();
-            const category = document.getElementById('passwordCategory').value;
-            
-            if (!title) {
-                alert('Please enter a title for this password');
-                return;
-            }
-            
-            if (!password) {
-                alert('Please enter a password');
-                return;
-            }
-            
-            if (passwordId) {
-                // Edit existing password
-                const existingPassword = appData.passwords.find(p => p.id === passwordId);
-                if (existingPassword) {
-                    existingPassword.title = title;
-                    existingPassword.username = username;
-                    existingPassword.password = password;
-                    existingPassword.url = url;
-                    existingPassword.notes = notes;
-                    existingPassword.category = category;
-                    existingPassword.dateModified = new Date().toISOString();
-                }
-            } else {
-                // Add new password
-                const newPassword = {
-                    id: 'pwd_' + Date.now(),
-                    title,
-                    username,
-                    password,
-                    url,
-                    notes,
-                    category,
-                    dateCreated: new Date().toISOString(),
-                    dateModified: new Date().toISOString(),
-                    isFavorite: false
-                };
-                appData.passwords.push(newPassword);
-            }
-            
-            saveData();
-            closePasswordModal();
-            renderPasswords();
-            showStatusMessage(passwordId ? 'Password updated successfully!' : 'Password added successfully!', 'success');
-        }
+		function savePassword(passwordId) {
+		   try {
+			   const title = document.getElementById('passwordTitle').value.trim();
+			   const username = document.getElementById('passwordUsername').value.trim();
+			   const password = document.getElementById('passwordPassword').value;
+			   const url = document.getElementById('passwordUrl').value.trim();
+			   const notes = document.getElementById('passwordNotes').value.trim();
+			   const category = document.getElementById('passwordCategory').value;
+			   
+			   if (!title) {
+				   alert('Please enter a title for this password');
+				   return;
+			   }
+			   
+			   if (!password) {
+				   alert('Please enter a password');
+				   return;
+			   }
+			   
+			   if (passwordId) {
+				   // Edit existing password
+				   const existingPassword = appData.passwords.find(p => p.id === passwordId);
+				   if (existingPassword) {
+					   existingPassword.title = title;
+					   existingPassword.username = username;
+					   existingPassword.password = password;
+					   existingPassword.url = url;
+					   existingPassword.notes = notes;
+					   existingPassword.category = category;
+					   existingPassword.dateModified = new Date().toISOString();
+				   }
+			   } else {
+				   // Add new password
+				   const newPassword = {
+					   id: 'pwd_' + Date.now(),
+					   title,
+					   username,
+					   password,
+					   url,
+					   notes,
+					   category,
+					   dateCreated: new Date().toISOString(),
+					   dateModified: new Date().toISOString(),
+					   isFavorite: false
+				   };
+				   appData.passwords.push(newPassword);
+			   }
+			   
+			   saveData();
+			   closePasswordModal();
+			   renderPasswords();
+			   showStatusMessage(passwordId ? 'Password updated successfully!' : 'Password added successfully!', 'success');
+		   } catch (error) {
+			   console.error('Error saving password:', error);
+			   showStatusMessage('Error saving password. Please try again.', 'error');
+		   }
+		}
 
         function closePasswordModal() {
             const modal = document.getElementById('passwordModal');
