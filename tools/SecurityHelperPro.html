@@ -2166,8 +2166,19 @@
 			unlocked = true;
 			hideSecurityOverlay();
 			
-			// Now safely load and display data
-			initializeAfterUnlock();
+			// Load the encrypted data now that we're unlocked
+			decryptData();
+			
+			// Initialize the app
+			initializeDefaultQuestions();
+			initializeDefaultCategories();
+			updateDashboard();
+			renderQuestions();
+			renderPlatforms();
+			renderPasswords();
+			renderCategories();
+			populateCategoryFilter();
+			showTab('passwords');
 			
 			showStatusMessage('Successfully unlocked!', 'success');
 		}
@@ -2237,22 +2248,19 @@
 						for (let i = 0; i < encrypted.length; i++) {
 							decrypted += String.fromCharCode(encrypted.charCodeAt(i) ^ key.charCodeAt(i % key.length));
 						}
-						appData = JSON.parse(decrypted);
-					} else {
-						// Handle unencrypted data
-						appData = { ...appData, ...parsed };
+						const decryptedData = JSON.parse(decrypted);
+						
+						// Properly merge the decrypted data
+						appData.questions = decryptedData.questions || [];
+						appData.platforms = decryptedData.platforms || [];
+						appData.assignments = decryptedData.assignments || [];
+						appData.passwords = decryptedData.passwords || [];
+						appData.categories = decryptedData.categories || [];
 					}
 				}
 			} catch (error) {
 				console.error('Decryption error:', error);
-				// Reset to defaults if decryption fails
-				appData = {
-					questions: [],
-					platforms: [],
-					assignments: [],
-					passwords: [],
-					categories: []
-				};
+				// Don't reset to defaults - keep existing appData structure
 			}
 		}
 
@@ -2275,23 +2283,18 @@
 				const saved = localStorage.getItem('securityHelperProData');
 				if (saved) {
 					const parsed = JSON.parse(saved);
-					if (parsed.encrypted && unlocked) {
-						// Use the decrypt function
-						decryptData();
-					} else if (!parsed.encrypted) {
+					if (parsed.encrypted) {
+						// Call decryptData directly instead of trying to decrypt here
+						if (unlocked) {
+							decryptData();
+						}
+					} else {
+						// Handle unencrypted data
 						appData = { ...appData, ...parsed };
 					}
 				}
 			} catch (e) {
 				console.error('Error loading data:', e);
-				// Reset to defaults on load error
-				appData = {
-					questions: [],
-					platforms: [],
-					assignments: [],
-					passwords: [],
-					categories: []
-				};
 			}
 		}
 
