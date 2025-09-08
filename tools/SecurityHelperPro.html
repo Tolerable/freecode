@@ -2112,7 +2112,7 @@
 					if (keyMatch) {
 						inputHash = await hashString(keyMatch[1]);
 						if (inputHash === securityData.keyHash) {
-							unlockSuccess();
+							await unlockSuccess();
 							return;
 						}
 					}
@@ -2123,7 +2123,7 @@
 			document.getElementById('unlockError').style.display = 'block';
 		}
 
-		function unlockSuccess() {
+		async function unlockSuccess() {
 			unlocked = true;
 			
 			// Store the user credential temporarily for encryption/decryption
@@ -2154,7 +2154,8 @@
 			hideSecurityOverlay();
 			
 			// Load the encrypted data now that we're unlocked
-			decryptData().then(() => {
+			try {
+				await decryptData();
 				initializeDefaultQuestions();
 				initializeDefaultCategories();
 				updateDashboard();
@@ -2166,10 +2167,10 @@
 				showTab('passwords');
 				
 				showStatusMessage('Successfully unlocked!', 'success');
-			}).catch(error => {
+			} catch (error) {
 				console.error('Decryption failed:', error);
 				showStatusMessage('Failed to decrypt data. Please try again.', 'error');
-			});
+			}
 		}
 
 		function getPinValue(prefix) {
