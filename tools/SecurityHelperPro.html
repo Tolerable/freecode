@@ -1382,21 +1382,6 @@
             categories: [] // { id, name, color, icon }
         };
 
-        // Initialize app
-		document.addEventListener('DOMContentLoaded', function() {
-            loadData();
-            initializeDefaultQuestions();
-            initializeDefaultCategories();
-            updateDashboard();
-            renderQuestions();
-            renderPlatforms();
-            renderPasswords();
-            renderCategories();
-            populateCategoryFilter();
-            setupPinInputs();
-            initializeSecurity();
-        });
-
         function loadData() {
             const saved = localStorage.getItem('securityHelperProData');
             if (saved) {
@@ -1963,30 +1948,6 @@
 			setTimeout(() => document.getElementById('unlock1').focus(), 100);
 		}
 
-		document.addEventListener('DOMContentLoaded', function() {
-			setupPinInputs();
-			
-			const securityData = localStorage.getItem('securityHelperSecurity');
-			if (securityData) {
-				securityEnabled = true;
-				showUnlockScreen();
-				// Don't load any data or render anything until unlocked
-				return;
-			}
-			
-			// No security enabled - proceed normally
-			loadData();
-			initializeDefaultQuestions();
-			initializeDefaultCategories();
-			updateDashboard();
-			renderQuestions();
-			renderPlatforms();
-			renderPasswords();
-			renderCategories();
-			populateCategoryFilter();
-			showTab('passwords');
-		});
-
 		function initializeAfterUnlock() {
 			loadData();
 			initializeDefaultQuestions();
@@ -2164,23 +2125,51 @@
 
 		function unlockSuccess() {
 			unlocked = true;
+			
+			// Store the user credential temporarily for encryption/decryption
+			const activeMethod = document.querySelector('.unlock-option.active').id;
+			let userCredential = '';
+			
+			if (activeMethod === 'pinOption') {
+				userCredential = getPinValue('unlock');
+			} else if (activeMethod === 'passphraseOption') {
+				userCredential = document.getElementById('unlockPassphrase').value;
+			} else if (activeMethod === 'keyOption') {
+				const file = document.getElementById('recoveryFile').files[0];
+				if (file) {
+					file.text().then(text => {
+						const keyMatch = text.match(/Recovery Key: ([A-Z0-9-]+)/);
+						if (keyMatch) {
+							userCredential = keyMatch[1];
+							localStorage.setItem('tempUserKey', userCredential);
+						}
+					});
+				}
+			}
+			
+			if (userCredential) {
+				localStorage.setItem('tempUserKey', userCredential);
+			}
+			
 			hideSecurityOverlay();
 			
 			// Load the encrypted data now that we're unlocked
-			decryptData();
-			
-			// Initialize the app
-			initializeDefaultQuestions();
-			initializeDefaultCategories();
-			updateDashboard();
-			renderQuestions();
-			renderPlatforms();
-			renderPasswords();
-			renderCategories();
-			populateCategoryFilter();
-			showTab('passwords');
-			
-			showStatusMessage('Successfully unlocked!', 'success');
+			decryptData().then(() => {
+				initializeDefaultQuestions();
+				initializeDefaultCategories();
+				updateDashboard();
+				renderQuestions();
+				renderPlatforms();
+				renderPasswords();
+				renderCategories();
+				populateCategoryFilter();
+				showTab('passwords');
+				
+				showStatusMessage('Successfully unlocked!', 'success');
+			}).catch(error => {
+				console.error('Decryption failed:', error);
+				showStatusMessage('Failed to decrypt data. Please try again.', 'error');
+			});
 		}
 
 		function getPinValue(prefix) {
@@ -2211,56 +2200,115 @@
 			return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 		}
 
-		function encryptData() {
+		async function encryptData() {
 			try {
 				const dataStr = JSON.stringify(appData);
-				// Simple XOR encryption instead of base64 for better Unicode support
-				const key = 'securityhelper2024';
-				let encrypted = '';
-				for (let i = 0; i < dataStr.length; i++) {
-					encrypted += String.fromCharCode(dataStr.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-				}
-				// Convert to hex to avoid btoa issues
-				const hex = Array.from(encrypted).map(char => char.charCodeAt(0).toString(16).padStart(2, '0')).join('');
-				localStorage.setItem('securityHelperProData', JSON.stringify({ encrypted: true, data: hex }));
+				
+				// Generate a random key from the user's PIN/passphrase
+				const userCredential = localStorage.getItem('tempUserKey') || 'fallback';
+				const keyMaterial = await crypto.subtle.importKey(
+					'raw',
+					new TextEncoder().encode(userCredential.padEnd(32, '0').slice(0, 32)),
+					{ name: 'PBKDF2' },
+					false,
+					['deriveKey']
+				);
+				
+				const salt = crypto.getRandomValues(new Uint8Array(16));
+				const key = await crypto.subtle.deriveKey(
+					{
+						name: 'PBKDF2',
+						salt: salt,
+						iterations: 100000,
+						hash: 'SHA-256'
+					},
+					keyMaterial,
+					{ name: 'AES-GCM', length: 256 },
+					false,
+					['encrypt']
+				);
+				
+				const iv = crypto.getRandomValues(new Uint8Array(12));
+				const encodedData = new TextEncoder().encode(dataStr);
+				
+				const encryptedData = await crypto.subtle.encrypt(
+					{ name: 'AES-GCM', iv: iv },
+					key,
+					encodedData
+				);
+				
+				const encryptedArray = new Uint8Array(encryptedData);
+				const combined = new Uint8Array(salt.length + iv.length + encryptedArray.length);
+				combined.set(salt, 0);
+				combined.set(iv, salt.length);
+				combined.set(encryptedArray, salt.length + iv.length);
+				
+				const base64Data = btoa(String.fromCharCode(...combined));
+				localStorage.setItem('securityHelperProData', JSON.stringify({ 
+					encrypted: true, 
+					data: base64Data,
+					version: 2 
+				}));
+				
 			} catch (error) {
 				console.error('Encryption error:', error);
-				// Fallback to unencrypted
-				localStorage.setItem('securityHelperProData', JSON.stringify(appData));
+				throw new Error('Failed to encrypt data');
 			}
 		}
 
-		function decryptData() {
+		async function decryptData() {
 			try {
 				const saved = localStorage.getItem('securityHelperProData');
 				if (saved) {
 					const parsed = JSON.parse(saved);
 					if (parsed.encrypted && parsed.data) {
-						// Convert from hex back to string
-						const hex = parsed.data;
-						let encrypted = '';
-						for (let i = 0; i < hex.length; i += 2) {
-							encrypted += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
-						}
-						// XOR decrypt
-						const key = 'securityhelper2024';
-						let decrypted = '';
-						for (let i = 0; i < encrypted.length; i++) {
-							decrypted += String.fromCharCode(encrypted.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-						}
-						const decryptedData = JSON.parse(decrypted);
+						const userCredential = localStorage.getItem('tempUserKey') || 'fallback';
 						
-						// Properly merge the decrypted data
-						appData.questions = decryptedData.questions || [];
-						appData.platforms = decryptedData.platforms || [];
-						appData.assignments = decryptedData.assignments || [];
-						appData.passwords = decryptedData.passwords || [];
-						appData.categories = decryptedData.categories || [];
+						const combined = new Uint8Array(atob(parsed.data).split('').map(char => char.charCodeAt(0)));
+						const salt = combined.slice(0, 16);
+						const iv = combined.slice(16, 28);
+						const encryptedData = combined.slice(28);
+						
+						const keyMaterial = await crypto.subtle.importKey(
+							'raw',
+							new TextEncoder().encode(userCredential.padEnd(32, '0').slice(0, 32)),
+							{ name: 'PBKDF2' },
+							false,
+							['deriveKey']
+						);
+						
+						const key = await crypto.subtle.deriveKey(
+							{
+								name: 'PBKDF2',
+								salt: salt,
+								iterations: 100000,
+								hash: 'SHA-256'
+							},
+							keyMaterial,
+							{ name: 'AES-GCM', length: 256 },
+							false,
+							['decrypt']
+						);
+						
+						const decryptedData = await crypto.subtle.decrypt(
+							{ name: 'AES-GCM', iv: iv },
+							key,
+							encryptedData
+						);
+						
+						const decryptedText = new TextDecoder().decode(decryptedData);
+						const parsedData = JSON.parse(decryptedText);
+						
+						appData.questions = parsedData.questions || [];
+						appData.platforms = parsedData.platforms || [];
+						appData.assignments = parsedData.assignments || [];
+						appData.passwords = parsedData.passwords || [];
+						appData.categories = parsedData.categories || [];
 					}
 				}
 			} catch (error) {
 				console.error('Decryption error:', error);
-				// Don't reset to defaults - keep existing appData structure
+				throw new Error('Failed to decrypt data - check your credentials');
 			}
 		}
 
@@ -2299,10 +2347,10 @@
 		}
 
 		// Override existing saveData function
-		function saveData() {
+		async function saveData() {
 			try {
-				if (securityEnabled) {
-					encryptData();
+				if (securityEnabled && unlocked) {
+					await encryptData();
 				} else {
 					localStorage.setItem('securityHelperProData', JSON.stringify(appData));
 				}
@@ -3097,22 +3145,39 @@
             if (tabName === 'categories') renderCategories();
         }
 
-        // Update the DOMContentLoaded to remove duplicate function calls
-        // FIND the existing DOMContentLoaded and REPLACE with:
-        document.addEventListener('DOMContentLoaded', function() {
-            loadData();
-            initializeDefaultQuestions();
-            initializeDefaultCategories();
-            updateDashboard();
-            renderQuestions();
-            renderPlatforms();
-            renderPasswords();
-            renderCategories();
-            populateCategoryFilter();
-            
-            // Show passwords tab by default
-            showTab('passwords');
-        });
+		document.addEventListener('DOMContentLoaded', function() {
+			setupPinInputs();
+			
+			const securityData = localStorage.getItem('securityHelperSecurity');
+			if (securityData) {
+				securityEnabled = true;
+				hideMainInterface();
+				showUnlockScreen();
+				return; // Don't load any data until unlocked
+			}
+			
+			// No security enabled - proceed normally
+			loadData();
+			initializeDefaultQuestions();
+			initializeDefaultCategories();
+			updateDashboard();
+			renderQuestions();
+			renderPlatforms();
+			renderPasswords();
+			renderCategories();
+			populateCategoryFilter();
+			showTab('passwords');
+		});
+
+		// Clear temporary credentials functions
+        function clearTemporaryCredentials() {
+            localStorage.removeItem('tempUserKey');
+        }
+
+        // Add event listener to clear on page unload
+        window.addEventListener('beforeunload', clearTemporaryCredentials);
+
+
 
    </script>
 </body>
