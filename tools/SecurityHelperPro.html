@@ -2814,16 +2814,28 @@
             }
         }
 
-        function useGeneratedPassword() {
-            const password = document.getElementById('generatedPassword').textContent;
-            const passwordInput = document.getElementById('passwordPassword');
-            if (password && password !== 'Click "Generate" to create a password' && passwordInput) {
-                passwordInput.value = password;
-                showStatusMessage('Generated password applied!', 'success');
-            } else {
-                showStatusMessage('Please generate a password first', 'warning');
-            }
-        }
+		function useGeneratedPassword() {
+			// First check if the main generator has a password
+			let password = document.getElementById('generatedPassword')?.textContent;
+			
+			// If no password in main generator or it's the default text, generate one
+			if (!password || password === 'Click "Generate" to create a password' || password.includes('Please select')) {
+				// Generate a password on the fly with default settings
+				const length = 12;
+				const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+				password = '';
+				for (let i = 0; i < length; i++) {
+					password += chars.charAt(Math.floor(Math.random() * chars.length));
+				}
+			}
+			
+			const passwordInput = document.getElementById('passwordPassword');
+			if (passwordInput) {
+				passwordInput.value = password;
+				updateModalPasswordStrength();
+				showStatusMessage('Generated password applied!', 'success');
+			}
+		}
 
         // Category Management Functions
         function renderCategories() {
