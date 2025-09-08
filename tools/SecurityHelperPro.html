@@ -3163,14 +3163,34 @@
 			setupPinInputs();
 			
 			const securityData = localStorage.getItem('securityHelperSecurity');
+			const appDataExists = localStorage.getItem('securityHelperProData');
+			
+			// If NO security data AND NO app data - fresh start
+			if (!securityData && !appDataExists) {
+				// Fresh installation - initialize defaults and show main interface
+				loadData();
+				initializeDefaultQuestions();
+				initializeDefaultCategories();
+				updateDashboard();
+				renderQuestions();
+				renderPlatforms();
+				renderPasswords();
+				renderCategories();
+				populateCategoryFilter();
+				showTab('passwords');
+				showMainInterface();
+				return;
+			}
+			
+			// If security is enabled, show unlock screen
 			if (securityData) {
 				securityEnabled = true;
 				hideMainInterface();
 				showUnlockScreen();
-				return; // Don't load any data until unlocked
+				return;
 			}
 			
-			// No security enabled - proceed normally
+			// If only app data exists but no security - load normally
 			loadData();
 			initializeDefaultQuestions();
 			initializeDefaultCategories();
@@ -3181,6 +3201,7 @@
 			renderCategories();
 			populateCategoryFilter();
 			showTab('passwords');
+			showMainInterface();
 		});
 
 		// Clear temporary credentials functions
