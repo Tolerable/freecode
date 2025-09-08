@@ -1887,14 +1887,29 @@
 
 		function clearAllData() {
 		   if (confirm('Are you sure you want to clear all data? This action cannot be undone.') && 
-			   confirm('This will delete all your questions, platforms, and assignments. Continue?')) {
+			   confirm('This will delete all your questions, platforms, passwords, AND security settings. You will need to start completely over. Continue?')) {
+			   
+			   // Clear ALL localStorage items related to the app
 			   localStorage.removeItem('securityHelperProData');
-			   appData = { questions: [], platforms: [], assignments: [], passwords: [], categories: [] };
-			   initializeDefaultQuestions();
-			   updateDashboard();
-			   renderQuestions();
-			   renderPlatforms();
-			   showStatusMessage('All data cleared. Default questions restored.', 'success');
+			   localStorage.removeItem('securityHelperSecurity');
+			   localStorage.removeItem('tempUserKey');
+			   
+			   // Reset all variables
+			   securityEnabled = false;
+			   unlocked = false;
+			   currentRecoveryKey = '';
+			   
+			   // Reset app data
+			   appData = { 
+				   questions: [], 
+				   platforms: [], 
+				   assignments: [], 
+				   passwords: [], 
+				   categories: [] 
+			   };
+			   
+			   // Completely reload the page to reset everything
+			   location.reload();
 		   }
 		}
 
@@ -2185,6 +2200,7 @@
 			if (confirm('This will permanently delete ALL your data including security settings. This cannot be undone. Are you sure?')) {
 				localStorage.removeItem('securityHelperProData');
 				localStorage.removeItem('securityHelperSecurity');
+				localStorage.removeItem('tempUserKey');
 				location.reload();
 			}
 		}
