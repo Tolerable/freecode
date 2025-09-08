@@ -1160,6 +1160,28 @@
 		</div>
 	</div>
 
+	<!-- Welcome/Setup Screen -->
+	<div id="welcomeScreen" class="security-overlay" style="display: none;">
+		<div class="security-panel">
+			<h2>🔐 Welcome to Security Helper Pro</h2>
+			<p>Manage, track, and optimize your security questions and passwords across all platforms.</p>
+			
+			<div style="margin: 30px 0;">
+				<h3>Get Started:</h3>
+				<button class="btn btn-primary" onclick="startFresh()" style="width: 100%; margin: 10px 0; padding: 15px;">
+					🚀 Start Using Security Helper Pro
+				</button>
+				<button class="btn btn-secondary" onclick="setupSecurityFirst()" style="width: 100%; margin: 10px 0; padding: 15px;">
+					🔐 Enable Security Protection First
+				</button>
+			</div>
+			
+			<div style="font-size: 14px; color: #666; text-align: center;">
+				<p>You can always enable security protection later in Settings.</p>
+			</div>
+		</div>
+	</div>
+
     <div class="container">
 		<header class="header">
 			<h1>🔐 Security Helper Pro</h1>
@@ -1484,6 +1506,37 @@
             // Update recommendations
             updateRecommendations();
         }
+
+		function showWelcomeScreen() {
+			document.getElementById('welcomeScreen').style.display = 'flex';
+			hideMainInterface();
+		}
+
+		function hideWelcomeScreen() {
+			document.getElementById('welcomeScreen').style.display = 'none';
+		}
+
+		function startFresh() {
+			hideWelcomeScreen();
+			showMainInterface();
+			// Initialize with defaults
+			loadData();
+			initializeDefaultQuestions();
+			initializeDefaultCategories();
+			updateDashboard();
+			renderQuestions();
+			renderPlatforms();
+			renderPasswords();
+			renderCategories();
+			populateCategoryFilter();
+			showTab('passwords');
+			showStatusMessage('Welcome! Your secure vault is ready to use.', 'success');
+		}
+
+		function setupSecurityFirst() {
+			hideWelcomeScreen();
+			showSecuritySetup();
+		}
 
         function calculateAverageSecurityScore() {
             if (appData.questions.length === 0) return 0;
@@ -3165,20 +3218,9 @@
 			const securityData = localStorage.getItem('securityHelperSecurity');
 			const appDataExists = localStorage.getItem('securityHelperProData');
 			
-			// If NO security data AND NO app data - fresh start
+			// If NO security data AND NO app data - show welcome screen
 			if (!securityData && !appDataExists) {
-				// Fresh installation - initialize defaults and show main interface
-				loadData();
-				initializeDefaultQuestions();
-				initializeDefaultCategories();
-				updateDashboard();
-				renderQuestions();
-				renderPlatforms();
-				renderPasswords();
-				renderCategories();
-				populateCategoryFilter();
-				showTab('passwords');
-				showMainInterface();
+				showWelcomeScreen();
 				return;
 			}
 			
