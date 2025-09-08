@@ -2094,14 +2094,14 @@
 				const pin = getPinValue('unlock');
 				inputHash = await hashString(pin);
 				if (inputHash === securityData.pinHash) {
-					unlockSuccess();
+					await unlockSuccess();
 					return;
 				}
 			} else if (activeMethod === 'passphraseOption') {
 				const passphrase = document.getElementById('unlockPassphrase').value;
 				inputHash = await hashString(passphrase);
 				if (inputHash === securityData.passphraseHash) {
-					unlockSuccess();
+					await unlockSuccess();
 					return;
 				}
 			} else if (activeMethod === 'keyOption') {
@@ -2132,23 +2132,20 @@
 			
 			if (activeMethod === 'pinOption') {
 				userCredential = getPinValue('unlock');
+				localStorage.setItem('tempUserKey', userCredential);
 			} else if (activeMethod === 'passphraseOption') {
 				userCredential = document.getElementById('unlockPassphrase').value;
+				localStorage.setItem('tempUserKey', userCredential);
 			} else if (activeMethod === 'keyOption') {
 				const file = document.getElementById('recoveryFile').files[0];
 				if (file) {
-					file.text().then(text => {
-						const keyMatch = text.match(/Recovery Key: ([A-Z0-9-]+)/);
-						if (keyMatch) {
-							userCredential = keyMatch[1];
-							localStorage.setItem('tempUserKey', userCredential);
-						}
-					});
+					const text = await file.text();
+					const keyMatch = text.match(/Recovery Key: ([A-Z0-9-]+)/);
+					if (keyMatch) {
+						userCredential = keyMatch[1];
+						localStorage.setItem('tempUserKey', userCredential);
+					}
 				}
-			}
-			
-			if (userCredential) {
-				localStorage.setItem('tempUserKey', userCredential);
 			}
 			
 			hideSecurityOverlay();
