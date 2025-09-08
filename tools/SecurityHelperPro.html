@@ -879,6 +879,143 @@
         .form-row .form-group {
             flex: 1;
         }
+
+		.password-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .password-card {
+            background: white;
+            border: 2px solid #e0e6ed;
+            border-radius: 12px;
+            padding: 0;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .password-card:hover {
+            border-color: #4facfe;
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .password-card.favorite {
+            border-color: #ffc107;
+        }
+
+        .password-card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            position: relative;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .password-card.personal .password-card-header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .password-card.work .password-card-header { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .password-card.banking .password-card-header { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .password-card.social .password-card-header { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+        .password-card.shopping .password-card-header { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
+        .password-card.entertainment .password-card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+
+        .password-card-icon {
+            font-size: 2rem;
+            opacity: 0.8;
+        }
+
+        .password-card-body {
+            padding: 20px;
+        }
+
+        .password-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .password-card-subtitle {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            word-break: break-all;
+        }
+
+        .password-card-actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .password-card:hover .password-card-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .action-btn:hover {
+            background: #f8f9fa;
+            border-color: #4facfe;
+            color: #4facfe;
+        }
+
+        .action-btn.primary {
+            background: #4facfe;
+            color: white;
+            border-color: #4facfe;
+        }
+
+        .action-btn.primary:hover {
+            background: #357abd;
+        }
+
+        .favorite-star {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #ffc107;
+            font-size: 16px;
+        }
+
+        .password-strength-indicator {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .strength-bar {
+            height: 100%;
+            transition: all 0.3s ease;
+        }
 		
         @media (max-width: 768px) {
             .tabs {
@@ -1075,14 +1212,28 @@
 		<!-- Password Vault Tab -->
         <div id="passwords" class="tab-content active">
             <section class="section">
-                <h2>Password Vault</h2>
-                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <button class="btn btn-primary" onclick="showPasswordGenerator()">🎲 Generate Password</button>
-                    <button class="btn btn-primary" onclick="addPassword()">➕ Add Password</button>
-                    <select id="categoryFilter" onchange="filterPasswords()" class="form-group" style="margin: 0; width: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Password Vault</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="showPasswordGenerator()">🎲 Generate Password</button>
+                        <button class="btn btn-primary" onclick="addPassword()">+ Add Password</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center;">
+                    <input type="text" id="passwordSearch" onkeyup="searchPasswords()" 
+                           placeholder="Search your vault for anything you need..." 
+                           style="flex: 1; padding: 12px; border: 2px solid #e0e6ed; border-radius: 8px; font-size: 16px;">
+                    <select id="categoryFilter" onchange="filterPasswords()" 
+                            style="padding: 12px; border: 2px solid #e0e6ed; border-radius: 8px; min-width: 150px;">
                         <option value="">All Categories</option>
                     </select>
-                    <input type="text" id="passwordSearch" onkeyup="searchPasswords()" placeholder="Search passwords..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <select id="sortOrder" onchange="sortPasswords()" 
+                            style="padding: 12px; border: 2px solid #e0e6ed; border-radius: 8px;">
+                        <option value="name">Sort by Name</option>
+                        <option value="recent">Recently Modified</option>
+                        <option value="favorites">Favorites First</option>
+                    </select>
                 </div>
 
                 <!-- Password Generator -->
@@ -1133,8 +1284,8 @@
                     </div>
                 </div>
 
-                <div class="password-list" id="passwordList">
-                    <!-- Passwords will be populated by JavaScript -->
+                <div class="password-grid" id="passwordGrid">
+                    <!-- Password cards will be populated by JavaScript -->
                 </div>
             </section>
         </div>
@@ -2021,8 +2172,8 @@
 		}
 
 		// Password Management Functions
-        function renderPasswords() {
-            const container = document.getElementById('passwordList');
+		function renderPasswords() {
+            const container = document.getElementById('passwordGrid');
             if (!container) return;
             
             container.innerHTML = '';
@@ -2041,67 +2192,125 @@
                 const term = searchTerm.value.toLowerCase();
                 filteredPasswords = filteredPasswords.filter(p => 
                     p.title.toLowerCase().includes(term) ||
-                    p.username.toLowerCase().includes(term) ||
-                    p.url.toLowerCase().includes(term)
+                    (p.username && p.username.toLowerCase().includes(term)) ||
+                    (p.url && p.url.toLowerCase().includes(term))
                 );
             }
             
-            // Sort by favorites first, then by title
-            filteredPasswords.sort((a, b) => {
-                if (a.isFavorite && !b.isFavorite) return -1;
-                if (!a.isFavorite && b.isFavorite) return 1;
-                return a.title.localeCompare(b.title);
-            });
+            // Apply sorting
+            const sortOrder = document.getElementById('sortOrder');
+            if (sortOrder) {
+                const order = sortOrder.value;
+                if (order === 'name') {
+                    filteredPasswords.sort((a, b) => a.title.localeCompare(b.title));
+                } else if (order === 'recent') {
+                    filteredPasswords.sort((a, b) => new Date(b.dateModified) - new Date(a.dateModified));
+                } else if (order === 'favorites') {
+                    filteredPasswords.sort((a, b) => {
+                        if (a.isFavorite && !b.isFavorite) return -1;
+                        if (!a.isFavorite && b.isFavorite) return 1;
+                        return a.title.localeCompare(b.title);
+                    });
+                }
+            }
             
             filteredPasswords.forEach(password => {
                 const category = appData.categories.find(c => c.id === password.category);
-                const passwordDiv = document.createElement('div');
-                passwordDiv.className = `password-item ${password.isFavorite ? 'favorite' : ''}`;
-                passwordDiv.innerHTML = `
-                    <div class="password-header">
-                        <div>
-                            <div class="password-title">
-                                ${password.isFavorite ? '⭐ ' : ''}${password.title}
-                            </div>
-                            ${password.url ? `<div class="password-url">${password.url}</div>` : ''}
+                const categoryClass = category ? category.name.toLowerCase().replace(/\s+/g, '') : 'default';
+                const passwordStrength = calculatePasswordStrength(password.password);
+                
+                const passwordCard = document.createElement('div');
+                passwordCard.className = `password-card ${categoryClass} ${password.isFavorite ? 'favorite' : ''}`;
+                passwordCard.innerHTML = `
+                    ${password.isFavorite ? '<div class="favorite-star">⭐</div>' : ''}
+                    <div class="password-card-header">
+                        <div class="password-card-icon">
+                            ${category ? category.icon : '🔐'}
                         </div>
-                        <div class="password-actions">
-                            ${category ? `<span class="category-tag" style="background: ${category.color}20; color: ${category.color};">${category.icon} ${category.name}</span>` : ''}
-                            <button class="btn btn-sm btn-secondary" onclick="toggleFavorite('${password.id}')" title="${password.isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
+                    </div>
+                    <div class="password-card-body">
+                        <div class="password-card-title">
+                            ${password.title}
+                        </div>
+                        <div class="password-card-subtitle">
+                            ${password.username || 'No username'}
+                        </div>
+                        ${password.url ? `<div style="font-size: 0.8rem; color: #6c757d; margin-bottom: 10px;">${password.url}</div>` : ''}
+                        <div class="password-strength-indicator">
+                            <div class="strength-bar ${passwordStrength.class}" style="width: ${passwordStrength.width}%"></div>
+                        </div>
+                        <div class="password-card-actions">
+                            <button class="action-btn primary" onclick="launchWebsite('${password.url || ''}', '${password.title}')">
+                                🚀 Launch
+                            </button>
+                            <button class="action-btn" onclick="copyPasswordToClipboard('${password.id}')">
+                                📋 Copy
+                            </button>
+                            <button class="action-btn" onclick="editPassword('${password.id}')">
+                                ✏️ Edit
+                            </button>
+                            <button class="action-btn" onclick="toggleFavorite('${password.id}')">
                                 ${password.isFavorite ? '⭐' : '☆'}
                             </button>
-                            <button class="btn btn-sm btn-primary" onclick="editPassword('${password.id}')">✏️</button>
-                            <button class="btn btn-sm btn-danger" onclick="deletePassword('${password.id}')">🗑️</button>
                         </div>
                     </div>
-                    
-                    <div class="password-details">
-                        <div class="password-field">
-                            <label>Username</label>
-                            <input type="text" value="${password.username || ''}" readonly>
-                            <button class="copy-btn" onclick="copyToClipboard('${password.username || ''}', 'Username')" title="Copy username">📋</button>
-                        </div>
-                        <div class="password-field">
-                            <label>Password</label>
-                            <input type="password" id="pwd_${password.id}" value="${password.password}" readonly>
-                            <button class="copy-btn" onclick="copyToClipboard('${password.password}', 'Password')" title="Copy password">📋</button>
-                            <button class="password-toggle" onclick="togglePasswordVisibility('pwd_${password.id}')" title="Show/hide password">👁️</button>
-                        </div>
-                    </div>
-                    
-                    ${password.notes ? `
-                        <div class="password-field">
-                            <label>Notes</label>
-                            <div style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-size: 14px;">${password.notes}</div>
-                        </div>
-                    ` : ''}
                 `;
-                container.appendChild(passwordDiv);
+                container.appendChild(passwordCard);
             });
             
             if (filteredPasswords.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #666; font-style: italic; padding: 40px;">No passwords found. Add your first password to get started!</div>';
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #6c757d;">
+                        <div style="font-size: 3rem; margin-bottom: 20px;">🔐</div>
+                        <h3>No passwords found</h3>
+                        <p>Add your first password to get started with your secure vault!</p>
+                        <button class="btn btn-primary" onclick="addPassword()" style="margin-top: 20px;">Add Password</button>
+                    </div>
+                `;
             }
+        }
+
+		function calculatePasswordStrength(password) {
+            if (!password) return { class: 'strength-weak', width: 0 };
+            
+            let score = 0;
+            if (password.length >= 8) score += 1;
+            if (password.length >= 12) score += 1;
+            if (/[a-z]/.test(password)) score += 1;
+            if (/[A-Z]/.test(password)) score += 1;
+            if (/[0-9]/.test(password)) score += 1;
+            if (/[^A-Za-z0-9]/.test(password)) score += 1;
+            
+            if (score <= 2) return { class: 'strength-weak', width: 25 };
+            if (score <= 3) return { class: 'strength-fair', width: 50 };
+            if (score <= 4) return { class: 'strength-good', width: 75 };
+            return { class: 'strength-strong', width: 100 };
+        }
+
+        function launchWebsite(url, title) {
+            if (!url) {
+                showStatusMessage(`No URL set for ${title}`, 'warning');
+                return;
+            }
+            
+            // Ensure URL has protocol
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+            
+            window.open(url, '_blank');
+            showStatusMessage(`Launched ${title}`, 'success');
+        }
+
+        function copyPasswordToClipboard(passwordId) {
+            const password = appData.passwords.find(p => p.id === passwordId);
+            if (password) {
+                copyToClipboard(password.password, 'Password');
+            }
+        }
+
+        function sortPasswords() {
+            renderPasswords();
         }
 
         function addPassword() {
@@ -2115,41 +2324,14 @@
             }
         }
 
-        function showPasswordModal(password = null) {
+		function showPasswordModal(password = null) {
             const isEdit = !!password;
             const modalHtml = `
                 <div class="modal" id="passwordModal">
-                    <div class="modal-content">
-                        <h2>${isEdit ? 'Edit Password' : 'Add New Password'}</h2>
-                        
-                        <div class="form-group">
-                            <label>Title</label>
-                            <input type="text" id="passwordTitle" value="${password?.title || ''}" placeholder="e.g., Gmail, Facebook, Bank Account">
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Username/Email</label>
-                                <input type="text" id="passwordUsername" value="${password?.username || ''}" placeholder="username or email">
-                            </div>
-                            <div class="form-group">
-                                <label>Category</label>
-                                <select id="passwordCategory">
-                                    <option value="">Select Category</option>
-                                    ${appData.categories.map(cat => 
-                                        `<option value="${cat.id}" ${password?.category === cat.id ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`
-                                    ).join('')}
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Password</label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="password" id="passwordPassword" value="${password?.password || ''}" style="flex: 1;">
-                                <button class="btn btn-secondary" onclick="togglePasswordVisibility('passwordPassword')">👁️</button>
-                                <button class="btn btn-secondary" onclick="useGeneratedPassword()">Use Generated</button>
-                            </div>
+                    <div class="modal-content" style="max-width: 700px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h2>${isEdit ? 'Edit Password' : 'Add New Password'}</h2>
+                            <button onclick="closePasswordModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
                         </div>
                         
                         <div class="form-group">
@@ -2157,14 +2339,65 @@
                             <input type="url" id="passwordUrl" value="${password?.url || ''}" placeholder="https://example.com">
                         </div>
                         
-                        <div class="form-group">
-                            <label>Notes</label>
-                            <textarea id="passwordNotes" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">${password?.notes || ''}</textarea>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input type="text" id="passwordTitle" value="${password?.title || ''}" placeholder="e.g., Gmail, Facebook, Bank Account">
+                            </div>
+                            <div class="form-group">
+                                <label>Folder</label>
+                                <select id="passwordCategory">
+                                    <option value="">No Folder</option>
+                                    ${appData.categories.map(cat => 
+                                        `<option value="${cat.id}" ${password?.category === cat.id ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
                         </div>
                         
-                        <div style="display: flex; gap: 10px; margin-top: 20px;">
-                            <button class="btn btn-primary" onclick="savePassword('${password?.id || ''}')">${isEdit ? 'Update' : 'Save'} Password</button>
-                            <button class="btn btn-secondary" onclick="closePasswordModal()">Cancel</button>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Username</label>
+                                <input type="text" id="passwordUsername" value="${password?.username || ''}" placeholder="username or email">
+                            </div>
+                            <div class="form-group">
+                                <label>Site password</label>
+                                <div style="position: relative;">
+                                    <input type="password" id="passwordPassword" value="${password?.password || ''}" style="padding-right: 80px;">
+                                    <button type="button" class="btn btn-secondary" onclick="togglePasswordVisibility('passwordPassword')" 
+                                            style="position: absolute; right: 40px; top: 2px; padding: 6px;">👁️</button>
+                                    <button type="button" class="btn btn-secondary" onclick="useGeneratedPassword()" 
+                                            style="position: absolute; right: 2px; top: 2px; padding: 6px;">🎲</button>
+                                </div>
+                                <div id="passwordStrengthModal" style="margin-top: 8px;">
+                                    <div class="password-strength-indicator">
+                                        <div class="strength-bar" id="modalStrengthBar"></div>
+                                    </div>
+                                    <div id="modalStrengthText" style="font-size: 12px; margin-top: 4px;">Password strength</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea id="passwordNotes" rows="3" placeholder="Additional notes, security questions, etc.">${password?.notes || ''}</textarea>
+                        </div>
+                        
+                        <div style="border-top: 1px solid #ddd; margin-top: 20px; padding-top: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; gap: 10px;">
+                                    ${isEdit ? `
+                                        <button class="action-btn" onclick="toggleFavorite('${password.id}'); updateModalFavoriteButton();">
+                                            <span id="modalFavoriteBtn">${password.isFavorite ? '⭐ Remove from favorites' : '☆ Add to favorites'}</span>
+                                        </button>
+                                        <button class="action-btn" onclick="deletePassword('${password.id}')">🗑️ Delete</button>
+                                    ` : ''}
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn btn-secondary" onclick="closePasswordModal()">Cancel</button>
+                                    <button class="btn btn-primary" onclick="savePassword('${password?.id || ''}')">${isEdit ? 'Save' : 'Add'}</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2172,6 +2405,47 @@
             
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             document.getElementById('passwordTitle').focus();
+            
+            // Update strength indicator when password changes
+            document.getElementById('passwordPassword').addEventListener('input', function() {
+                updateModalPasswordStrength();
+            });
+            
+            if (password) {
+                updateModalPasswordStrength();
+            }
+        }
+
+        function updateModalPasswordStrength() {
+            const password = document.getElementById('passwordPassword').value;
+            const strength = calculatePasswordStrength(password);
+            const bar = document.getElementById('modalStrengthBar');
+            const text = document.getElementById('modalStrengthText');
+            
+            if (bar && text) {
+                bar.className = `strength-bar ${strength.class}`;
+                bar.style.width = strength.width + '%';
+                
+                const strengthLabels = {
+                    'strength-weak': 'Weak',
+                    'strength-fair': 'Fair', 
+                    'strength-good': 'Good',
+                    'strength-strong': 'Strong'
+                };
+                text.textContent = strengthLabels[strength.class] || 'No password';
+            }
+        }
+
+        function updateModalFavoriteButton() {
+            setTimeout(() => {
+                const btn = document.getElementById('modalFavoriteBtn');
+                if (btn) {
+                    const password = appData.passwords.find(p => p.id === btn.closest('[onclick*="toggleFavorite"]').onclick.toString().match(/'([^']+)'/)[1]);
+                    if (password) {
+                        btn.textContent = password.isFavorite ? '⭐ Remove from favorites' : '☆ Add to favorites';
+                    }
+                }
+            }, 100);
         }
 
         function savePassword(passwordId) {
