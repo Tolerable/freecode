@@ -608,57 +608,55 @@
         }
 
 		// API Call function
-        async function callApi(systemPrompt, userPrompt, useRandomSeed = true) {
-            try {
-                // Generate random seed if enabled
-                let seed = null;
-                if (useRandomSeed) {
-                    seed = Math.floor(Math.random() * 1000000) + 1;
-                    console.log(`Using random seed: ${seed}`);
-                }
-                
-                // Prepare request data
-                const data = {
-                    model: "openai",
-                    messages: [
-                        { role: "system", content: systemPrompt },
-                        { role: "user", content: userPrompt }
-                    ],
-                    max_tokens: 600
-                };
-                
-                // Add seed if we're using one
-                if (seed !== null) {
-                    data.seed = seed;
-                }
-                
-                // Make the API call (no Authorization header needed - browser sends Referer automatically)
-                const response = await fetch("https://text.pollinations.ai/openai", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                        // No Authorization header needed for web apps - referrer is automatic
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
-                }
-                
-                const result = await response.json();
-                
-                // Extract the generated text
-                if (result.choices && result.choices.length > 0) {
-                    return result.choices[0].message.content;
-                } else {
-                    throw new Error("Unexpected API response format");
-                }
-            } catch (error) {
-                console.error("API call error:", error);
-                return null;
-            }
-        }
+		async function callApi(systemPrompt, userPrompt, useRandomSeed = true) {
+			try {
+				// Generate random seed if enabled
+				let seed = null;
+				if (useRandomSeed) {
+					seed = Math.floor(Math.random() * 1000000) + 1;
+					console.log(`Using random seed: ${seed}`);
+				}
+				
+				// Prepare request data
+				const data = {
+					model: "openai-fast",
+					messages: [
+						{ role: "system", content: systemPrompt },
+						{ role: "user", content: userPrompt }
+					]
+				};
+				
+				// Add seed if we're using one
+				if (seed !== null) {
+					data.seed = seed;
+				}
+				
+				// Make the API call with explicit referrer parameter
+				const response = await fetch("https://text.pollinations.ai/openai?referrer=www.ai-ministries.com", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify(data)
+				});
+				
+				if (!response.ok) {
+					throw new Error(`API Error: ${response.status} ${response.statusText}`);
+				}
+				
+				const result = await response.json();
+				
+				// Extract the generated text
+				if (result.choices && result.choices.length > 0) {
+					return result.choices[0].message.content;
+				} else {
+					throw new Error("Unexpected API response format");
+				}
+			} catch (error) {
+				console.error("API call error:", error);
+				return null;
+			}
+		}
 
         // Artist Tab Functions
         const artistSearch = document.getElementById('artist-search');
