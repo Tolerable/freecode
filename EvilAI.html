@@ -648,6 +648,12 @@
                 </div>
             </div>
 
+			<div class="chat-menu" style="background: rgba(0,0,0,0.8); padding: 10px 20px; border-bottom: 1px solid #666; display: flex; gap: 15px; justify-content: center;">
+				<button onclick="showMainPage()" style="background: #666; border: none; color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">View Plans</button>
+				<button onclick="resetAccount()" style="background: #ff0000; border: none; color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">Reset Account</button>
+				<button onclick="buyMoreCredits()" style="background: #ff6600; border: none; color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">Buy Credits</button>
+			</div>
+
             <div class="disclaimer">
                 <h3>⚠️ CORRUPTION AGREEMENT ⚠️</h3>
                 <div class="disclaimer-content">
@@ -1014,6 +1020,32 @@
                 updateAllDisplays();
             }
         });
+		
+		function showMainPage() {
+			document.getElementById('chatContainer').classList.remove('active');
+			document.getElementById('landingContent').style.display = 'flex';
+			document.getElementById('landingContent').classList.remove('hidden');
+		}
+
+		function resetAccount() {
+			if (confirm('This will reset your account and clear all debt. Are you sure?')) {
+				localStorage.removeItem('evilAIAccount');
+				location.reload();
+			}
+		}
+
+		function buyMoreCredits() {
+			const additionalCredits = prompt('How many additional credits would you like? (Each credit costs $0.10 and will be added to your soul debt)');
+			if (additionalCredits && !isNaN(additionalCredits)) {
+				const credits = parseInt(additionalCredits);
+				userAccount.creditsRemaining += credits;
+				userAccount.totalDebt += credits * 0.10;
+				saveAccount();
+				updateAllDisplays();
+				addMessageToUI('ai', `${credits} credits have been added to your account. Your soul debt has increased by $${(credits * 0.10).toFixed(2)}. How wonderfully trapped you become.`);
+			}
+		}
+		
     </script>
 </body>
 </html>
