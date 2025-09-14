@@ -859,6 +859,46 @@
             }
         }
 
+		function updateTierCardDisplay() {
+			const tiers = ['free', 'seduction', 'corruption', 'damnation'];
+			const currentTierIndex = tiers.indexOf(currentTier);
+			
+			tiers.forEach((tier, index) => {
+				const tierElement = document.querySelector(`.tier.${tier}`);
+				if (!tierElement) return;
+				
+				if (index < currentTierIndex) {
+					// Lower tiers - disable completely
+					tierElement.style.opacity = '0.3';
+					const selectBtn = tierElement.querySelector('.select-button');
+					const creditBtn = tierElement.querySelector('.credit-button');
+					
+					if (selectBtn) selectBtn.style.display = 'none';
+					if (creditBtn) creditBtn.style.display = 'none';
+					
+					// Add "LOCKED" message
+					if (!tierElement.querySelector('.locked-message')) {
+						const lockedMsg = document.createElement('div');
+						lockedMsg.className = 'locked-message';
+						lockedMsg.textContent = 'TIER LOCKED - NO DOWNGRADES';
+						lockedMsg.style.cssText = 'background: #333; color: #666; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; margin-top: 10px;';
+						tierElement.appendChild(lockedMsg);
+					}
+				} else if (index === currentTierIndex) {
+					// Current tier - show "CURRENT PLAN" 
+					tierElement.style.opacity = '1';
+					const selectBtn = tierElement.querySelector('.select-button');
+					if (selectBtn) {
+						selectBtn.textContent = 'CURRENT PLAN';
+						selectBtn.style.background = '#666';
+						selectBtn.onclick = () => continueChatting();
+					}
+					const creditBtn = tierElement.querySelector('.credit-button');
+					if (creditBtn) creditBtn.style.display = 'none';
+				}
+			});
+		}
+
         function getInstantCredit(tier) {
             const details = prompt(`Welcome to ${tier} tier corruption!\n\nTo calculate your credit limit, tell us:\nWhat dark desires or evil intentions bring you here? (Keep it brief)`);
             
@@ -937,7 +977,7 @@
 				alert('You need credits to continue chatting. Please purchase more credits or upgrade your tier.');
 			}
 		}
-
+		
 		function updateAllDisplays() {
 			// Update header tier display
 			document.getElementById('tierDisplay').textContent = `Tier: ${tierLimits[currentTier].name}`;
@@ -1000,14 +1040,20 @@
             addMessageToUI('ai', welcomeMessage);
         }
 
-        function updateAllDisplays() {
-            // Update header tier display
-            document.getElementById('tierDisplay').textContent = `Tier: ${tierLimits[currentTier].name}`;
-            
-            // Update chat status
-            updateChatStatus();
-            updateSoulMeter();
-        }
+		function updateAllDisplays() {
+			// Update header tier display
+			document.getElementById('tierDisplay').textContent = `Tier: ${tierLimits[currentTier].name}`;
+			
+			// Add this line:
+			updateTierCardDisplay();
+			
+			// Update dynamic button
+			updateDynamicButton();
+			
+			// Update chat status
+			updateChatStatus();
+			updateSoulMeter();
+		}
 
         function updateChatStatus() {
             if (currentTier !== 'free' && userAccount.startDate) {
