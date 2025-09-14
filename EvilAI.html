@@ -1092,29 +1092,32 @@
 			
 			// Update chat status
 			updateChatStatus();
-			updateSoulMeter();
 		}
 
-        function updateChatStatus() {
-            if (currentTier !== 'free' && userAccount.startDate) {
-                const daysSinceStart = Math.floor((new Date() - new Date(userAccount.startDate)) / (1000 * 60 * 60 * 24));
-                userAccount.totalDebt = (daysSinceStart + 1) * tierLimits[currentTier].rate;
-                
-                document.getElementById('statusText').textContent = `${Math.min(userAccount.soulCorruption, 100)}% Corrupted`;
-                document.getElementById('debtAmount').textContent = userAccount.totalDebt.toFixed(2);
-                document.getElementById('creditsRemaining').textContent = userAccount.creditsRemaining;
-                
-                // Update next billing date
-                if (userAccount.nextBillingDate) {
-                    const nextBilling = new Date(userAccount.nextBillingDate);
-                    document.getElementById('nextBilling').textContent = nextBilling.toLocaleDateString();
-                }
-            } else {
-                document.getElementById('statusText').textContent = 'Awaiting Corruption';
-                document.getElementById('debtAmount').textContent = '0.00';
-                document.getElementById('creditsRemaining').textContent = '0';
-            }
-        }
+		function updateChatStatus() {
+			if (currentTier !== 'free' && userAccount.startDate) {
+				const daysSinceStart = Math.floor((new Date() - new Date(userAccount.startDate)) / (1000 * 60 * 60 * 24));
+				userAccount.totalDebt = (daysSinceStart + 1) * tierLimits[currentTier].rate;
+				
+				document.getElementById('statusText').textContent = `${Math.min(userAccount.soulCorruption, 100)}% Corrupted`;
+				document.getElementById('debtAmount').textContent = userAccount.totalDebt.toFixed(2);
+				document.getElementById('creditsRemaining').textContent = userAccount.creditsRemaining;
+				document.getElementById('corruptionPercent').textContent = Math.min(userAccount.soulCorruption, 100);
+				document.getElementById('soulFill').style.width = Math.min(userAccount.soulCorruption, 100) + '%';
+				
+				// Update next billing date
+				if (userAccount.nextBillingDate) {
+					const nextBilling = new Date(userAccount.nextBillingDate);
+					document.getElementById('nextBilling').textContent = nextBilling.toLocaleDateString();
+				}
+			} else {
+				document.getElementById('statusText').textContent = 'Awaiting Corruption';
+				document.getElementById('debtAmount').textContent = '0.00';
+				document.getElementById('creditsRemaining').textContent = '0';
+				document.getElementById('corruptionPercent').textContent = '0';
+				document.getElementById('soulFill').style.width = '0%';
+			}
+		}
 
         function updateSoulMeter() {
             if (currentTier !== 'free') {
