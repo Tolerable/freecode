@@ -630,9 +630,8 @@
         </div>
         <div class="header-right">
             <div class="tier-display" id="tierDisplay">Tier: Free</div>
-            <button class="nav-button primary" onclick="showMainPage()">View Plans</button>
             <button class="nav-button credit" onclick="buyMoreCredits()">Buy Credits</button>
-            <button class="nav-button danger" onclick="resetAccount()">Reset</button>
+            <button class="nav-button" id="dynamicButton" onclick="handleDynamicButton()">UPGRADE</button>
         </div>
     </div>
 
@@ -912,6 +911,40 @@
                 addWelcomeMessage(tier);
             }, 1000);
         }
+
+		function updateAllDisplays() {
+			// Update header tier display
+			document.getElementById('tierDisplay').textContent = `Tier: ${tierLimits[currentTier].name}`;
+			
+			// Update dynamic button
+			updateDynamicButton();
+			
+			// Update chat status
+			updateChatStatus();
+			updateSoulMeter();
+		}
+
+		function updateDynamicButton() {
+			const button = document.getElementById('dynamicButton');
+			
+			if (currentTier === 'damnation') {
+				button.textContent = 'PLANS';
+				button.className = 'nav-button';
+			} else {
+				button.textContent = 'UPGRADE';
+				button.className = 'nav-button primary';
+			}
+		}
+
+		function handleDynamicButton() {
+			if (currentTier === 'damnation') {
+				showMainPage();
+			} else {
+				// Show upgrade options or go to plans
+				showMainPage();
+				// Could add upgrade-specific logic here later
+			}
+		}
 
         function addWelcomeMessage(tier) {
             let welcomeMessage = "";
