@@ -630,8 +630,9 @@
         </div>
         <div class="header-right">
             <div class="tier-display" id="tierDisplay">Tier: Free</div>
-            <button class="nav-button credit" onclick="buyMoreCredits()">Buy Credits</button>
-            <button class="nav-button" id="dynamicButton" onclick="handleDynamicButton()">UPGRADE</button>
+            <button class="nav-button primary" id="continueChat" onclick="continueChatting()" style="display: none;">Continue Chat</button>
+			<button class="nav-button credit" onclick="buyMoreCredits()">Buy Credits</button>
+			<button class="nav-button" id="dynamicButton" onclick="handleDynamicButton()">UPGRADE</button>
         </div>
     </div>
 
@@ -893,28 +894,61 @@
             }
         }
 
-        function selectTier(tier) {
-            currentTier = tier;
-            messageCount = 0;
-            
-            // Initialize conversation with tier-appropriate system message
-            conversation = [{
-                role: "system",
-                content: systemMessages[tier]
-            }];
-            
-            updateAllDisplays();
-            startChatting();
-            
-            // Add welcome message based on tier
-            setTimeout(() => {
-                addWelcomeMessage(tier);
-            }, 1000);
-        }
+		function selectTier(tier) {
+			// If user already has this tier and credits, just start chatting
+			if (currentTier === tier && userAccount.creditsRemaining > 0) {
+				currentTier = tier;
+				conversation = [{
+					role: "system",
+					content: systemMessages[tier]
+				}];
+				updateAllDisplays();
+				startChatting();
+				return;
+			}
+			
+			// If they're selecting a paid tier but don't have credits, redirect to get credits
+			if (tier !== 'free' && userAccount.creditsRemaining <= 0) {
+				alert(`You need credits for ${tier} tier. Please use "Get Instant Credit" to access this tier.`);
+				return;
+			}
+			
+			// Otherwise proceed normally
+			currentTier = tier;
+			messageCount = 0;
+			
+			conversation = [{
+				role: "system",
+				content: systemMessages[tier]
+			}];
+			
+			updateAllDisplays();
+			startChatting();
+			
+			setTimeout(() => {
+				addWelcomeMessage(tier);
+			}, 1000);
+		}
+
+		function continueChatting() {
+			if (currentTier === 'free' || userAccount.creditsRemaining > 0) {
+				selectTier(currentTier);
+			} else {
+				alert('You need credits to continue chatting. Please purchase more credits or upgrade your tier.');
+			}
+		}
 
 		function updateAllDisplays() {
 			// Update header tier display
 			document.getElementById('tierDisplay').textContent = `Tier: ${tierLimits[currentTier].name}`;
+			
+			// Show continue chat button if they have an active tier
+			const continueBtn = document.getElementById('continueChat');
+			if (currentTier !== 'free' && userAccount.creditsRemaining > 0) {
+				continueBtn.style.display = 'inline-block';
+			} else {
+				continueBtn.style.display = 'none';
+			}
 			
 			// Update dynamic button
 			updateDynamicButton();
@@ -923,7 +957,6 @@
 			updateChatStatus();
 			updateSoulMeter();
 		}
-
 		function updateDynamicButton() {
 			const button = document.getElementById('dynamicButton');
 			
