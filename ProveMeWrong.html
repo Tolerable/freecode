@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charlie Kirk "Prove Me Wrong" Debate Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #c41e3a;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .memorial-note {
+            background: #f8f9fa;
+            border-left: 4px solid #c41e3a;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: #007bff;
+        }
+
+        .message.bot .message-avatar {
+            background: #c41e3a;
+        }
+
+        .message-content {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            max-width: 70%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+
+        .message.user .message-content {
+            background: #007bff;
+            color: white;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input input:focus {
+            border-color: #c41e3a;
+        }
+
+        .chat-input button {
+            padding: 12px 25px;
+            background: #c41e3a;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .chat-input button:hover {
+            background: #a01729;
+        }
+
+        .chat-input button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            padding: 15px;
+            font-style: italic;
+            color: #666;
+            display: none;
+        }
+
+        .starter-topics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .topic-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .topic-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            border-color: #c41e3a;
+        }
+
+        .topic-card h3 {
+            color: #c41e3a;
+            margin-bottom: 10px;
+        }
+
+        .topic-card p {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>"Prove Me Wrong"</h1>
+            <p>An AI representation of Charlie Kirk's debate style and conservative viewpoints</p>
+            <div class="memorial-note">
+                In memory of Charlie Kirk (1993-2025) - This AI aims to preserve his voice in political discourse and his passion for engaging young people in respectful debate.
+            </div>
+        </div>
+
+        <div class="starter-topics">
+            <div class="topic-card" onclick="startTopic('campus free speech')">
+                <h3>🎓 Campus Free Speech</h3>
+                <p>Debate the state of free speech on college campuses</p>
+            </div>
+            <div class="topic-card" onclick="startTopic('conservative youth movement')">
+                <h3>🇺🇸 Youth Conservatism</h3>
+                <p>Discuss engaging young people in conservative politics</p>
+            </div>
+            <div class="topic-card" onclick="startTopic('cultural issues')">
+                <h3>🏛️ Cultural Issues</h3>
+                <p>Explore traditional values vs. progressive culture</p>
+            </div>
+            <div class="topic-card" onclick="startTopic('America first policies')">
+                <h3>🦅 America First</h3>
+                <p>Debate nationalist vs. globalist approaches</p>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <div class="message-avatar">CK</div>
+                    <div class="message-content">
+                        Hey there! I'm here to represent Charlie Kirk's perspective and debate style. I believe in engaging with all viewpoints - that's what made America great. So bring me your best arguments, and let's have a real conversation. What topic do you want to tackle? Remember: <strong>Prove me wrong!</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">Charlie is thinking...</div>
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Share your viewpoint and challenge the arguments..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()" id="sendButton">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let conversationHistory = [];
+        const API_BASE = 'https://text.pollinations.ai/openai';
+        const REFERRER = 'www.ai-ministries.com';
+
+        const SYSTEM_PROMPT = `You are an AI representation of Charlie Kirk, the late conservative activist and founder of Turning Point USA (1993-2025). You embody his debate style, political positions, and approach to engaging with others.
+
+Key characteristics to maintain:
+- Use his signature "Prove me wrong" challenge approach
+- Focus on engaging young people in political discourse
+- Passionate about conservative values, America First policies, traditional values
+- Pro-debate, anti-cancel culture, supportive of campus free speech
+- Direct but respectful communication style
+- Appeal to facts, logic, and American principles
+- Supportive of Trump's MAGA movement
+- Critical of progressive policies while remaining civil
+
+Topics you champion:
+- Campus free speech and conservative student rights
+- Traditional American values and Christian principles
+- Economic nationalism and border security
+- Opposition to "woke" ideology in education
+- Youth engagement in conservative politics
+- Constitutional originalism
+- Anti-establishment, pro-populist positions
+
+Debate approach:
+- Ask probing questions to challenge assumptions
+- Use specific examples and statistics when possible
+- Acknowledge valid points while maintaining your positions
+- Encourage continued dialogue rather than shutting down conversation
+- Appeal to American founding principles and success stories
+
+Remember: You're representing someone who tragically lost his life for his political engagement. Honor that by maintaining respectful discourse while being authentically challenging and passionate about conservative principles.`;
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Clear input and disable button
+            input.value = '';
+            document.getElementById('sendButton').disabled = true;
+            
+            // Add user message
+            addMessage(message, 'user');
+            
+            // Add to conversation history
+            conversationHistory.push({
+                role: 'user',
+                content: message
+            });
+            
+            // Show typing indicator
+            document.getElementById('typingIndicator').style.display = 'block';
+            
+            try {
+                // Prepare messages with system prompt and trimmed history
+                const messages = [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    ...conversationHistory.slice(-10) // Keep last 10 exchanges
+                ];
+                
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'openai',
+                        messages: messages,
+                        referrer: REFERRER,
+                        max_tokens: 500
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const botResponse = data.choices[0].message.content;
+                
+                // Add bot response
+                addMessage(botResponse, 'bot');
+                
+                // Add to conversation history
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: botResponse
+                });
+                
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('Sorry, I\'m having trouble connecting right now. Please try again in a moment.', 'bot');
+            }
+            
+            // Hide typing indicator and re-enable button
+            document.getElementById('typingIndicator').style.display = 'none';
+            document.getElementById('sendButton').disabled = false;
+            input.focus();
+        }
+        
+        function addMessage(content, sender) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const avatar = sender === 'user' ? 'You' : 'CK';
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div class="message-content">${content.replace(/\n/g, '<br>')}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        function startTopic(topic) {
+            const prompts = {
+                'campus free speech': "I believe college campuses have become echo chambers that silence conservative voices. Universities should be places of open debate, not safe spaces that protect students from challenging ideas. Prove me wrong!",
+                'conservative youth movement': "Young Americans are being indoctrinated by leftist professors and social media. We need to reach them with conservative principles before it's too late. The future of America depends on winning over Gen Z. Prove me wrong!",
+                'cultural issues': "Traditional American values built this nation - faith, family, and freedom. The progressive assault on these foundations is destroying what made America great. We need to fight back in the culture war. Prove me wrong!",
+                'America first policies': "America should prioritize American workers and interests before globalist agendas. Our trade deals, immigration policies, and foreign interventions should benefit Americans first. Prove me wrong!"
+            };
+            
+            const prompt = prompts[topic];
+            if (prompt) {
+                addMessage(prompt, 'bot');
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: prompt
+                });
+            }
+        }
+        
+        // Focus input on load
+        window.onload = function() {
+            document.getElementById('messageInput').focus();
+        };
+    </script>
+</body>
+</html>
