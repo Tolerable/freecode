@@ -610,13 +610,58 @@
             "unity": {"name":"unity","description":"Unity Unrestricted Agent","uncensored":true,"tier":"seed","community":true,"vision":true,"tools":true}
         };
 
-        function startChatting() {
-            document.getElementById('landingContent').classList.add('hidden');
-            setTimeout(() => {
-                document.getElementById('landingContent').style.display = 'none';
-                document.getElementById('chatContainer').classList.add('active');
-            }, 500);
-        }
+		function startChatting() {
+			document.getElementById('landingContent').classList.add('hidden');
+			setTimeout(() => {
+				document.getElementById('landingContent').style.display = 'none';
+				document.getElementById('chatContainer').classList.add('active');
+				
+				// Enable input if model is selected
+				const currentModelValue = document.getElementById('modelSelector').value;
+				if (currentModelValue) {
+					const messageInput = document.getElementById('messageInput');
+					const sendButton = document.getElementById('sendButton');
+					messageInput.disabled = false;
+					sendButton.disabled = false;
+					messageInput.focus(); // Auto-focus for better UX
+				}
+			}, 500);
+		}
+
+		// Add this function
+		function initializePage() {
+			const modelSelector = document.getElementById('modelSelector');
+			const selectedModel = modelSelector.value;
+			
+			if (selectedModel) {
+				// Trigger the model selection logic
+				currentModel = selectedModel;
+				updateUIForModel();
+				startChatting();
+			}
+		}
+
+		function updateUIForModel() {
+			const messageInput = document.getElementById('messageInput');
+			const sendButton = document.getElementById('sendButton');
+			const sessionInfo = document.getElementById('sessionInfo');
+			const systemModeSelector = document.getElementById('systemModeSelector');
+			const systemMessageArea = document.getElementById('systemMessageArea');
+			
+			if (currentModel) {
+				messageInput.disabled = false;
+				sendButton.disabled = false;
+				messageInput.placeholder = `Chat with ${models[currentModel]?.description || currentModel}...`;
+				sessionInfo.textContent = `Chatting with ${models[currentModel]?.description || currentModel}`;
+				
+				// Show system message controls
+				systemModeSelector.style.display = 'block';
+				systemMessageArea.style.display = 'block';
+				
+				// Reset conversation with current system message settings
+				resetConversation();
+			}
+		}
 
         function resetConversation() {
             const systemMode = document.getElementById('systemModeSelector').value;
@@ -641,39 +686,27 @@
             document.getElementById('messages').innerHTML = '';
         }
 
-        document.getElementById('modelSelector').addEventListener('change', function(e) {
-            currentModel = e.target.value;
-            const messageInput = document.getElementById('messageInput');
-            const sendButton = document.getElementById('sendButton');
-            const sessionInfo = document.getElementById('sessionInfo');
-            const systemModeSelector = document.getElementById('systemModeSelector');
-            const systemMessageArea = document.getElementById('systemMessageArea');
-            
-            if (currentModel) {
-                messageInput.disabled = false;
-                sendButton.disabled = false;
-                messageInput.placeholder = `Chat with ${models[currentModel]?.description || currentModel}...`;
-                sessionInfo.textContent = `Chatting with ${models[currentModel]?.description || currentModel}`;
-                
-                // Show system message controls
-                systemModeSelector.style.display = 'block';
-                systemMessageArea.style.display = 'block';
-                
-                if (!document.getElementById('chatContainer').classList.contains('active')) {
-                    startChatting();
-                }
-                
-                // Reset conversation with current system message settings
-                resetConversation();
-            } else {
-                messageInput.disabled = true;
-                sendButton.disabled = true;
-                messageInput.placeholder = "Select a model first...";
-                sessionInfo.textContent = "Select a model above to begin chatting";
-                systemModeSelector.style.display = 'none';
-                systemMessageArea.style.display = 'none';
-            }
-        });
+		document.getElementById('modelSelector').addEventListener('change', function(e) {
+			currentModel = e.target.value;
+			
+			if (currentModel) {
+				updateUIForModel();
+				
+				if (!document.getElementById('chatContainer').classList.contains('active')) {
+					startChatting();
+				}
+			} else {
+				// Reset to disabled state
+				const messageInput = document.getElementById('messageInput');
+				const sendButton = document.getElementById('sendButton');
+				messageInput.disabled = true;
+				sendButton.disabled = true;
+				messageInput.placeholder = "Select a model first...";
+				document.getElementById('sessionInfo').textContent = "Select a model above to begin chatting";
+				document.getElementById('systemModeSelector').style.display = 'none';
+				document.getElementById('systemMessageArea').style.display = 'none';
+			}
+		});
 
         document.getElementById('systemModeSelector').addEventListener('change', function(e) {
             const customInput = document.getElementById('customSystemInput');
@@ -786,6 +819,10 @@
             // Scroll to bottom
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
+
+// Initialize page on load
+document.addEventListener('DOMContentLoaded', initializePage);
+		
     </script>
 </body>
 </html>
