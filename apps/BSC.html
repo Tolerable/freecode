@@ -201,29 +201,6 @@
             color: white;
         }
 
-        .status-display {
-            padding: 8px 15px;
-            background: #444;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            text-align: center;
-            min-height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .status-display.recording {
-            background: #ff4444;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
         /* Video Column */
         .video-column {
             display: flex;
@@ -457,7 +434,6 @@
                     </div>
                     <button id="startStopBtn">Start Monitoring</button>
                     <button id="clearSessionBtn">Clear Session</button>
-                    <div class="status-display" id="statusDisplay">Ready to start</div>
                 </div>
 
                 <!-- Video Column -->
@@ -556,7 +532,6 @@
                 this.clearSessionBtn = document.getElementById('clearSessionBtn');
                 this.newSessionBtn = document.getElementById('newSessionBtn');
                 this.sessionsList = document.getElementById('sessionsList');
-                this.statusDisplay = document.getElementById('statusDisplay');
                 this.capturesTitle = document.getElementById('capturesTitle');
                 this.capturesGrid = document.getElementById('capturesGrid');
 
@@ -650,7 +625,6 @@
                 if (confirm('Delete this entire session and all its captures?')) {
                     this.sessions = this.sessions.filter(s => s.id !== sessionId);
                     
-                    // If we deleted the current session, select the first remaining one
                     if (this.currentSession && this.currentSession.id === sessionId) {
                         this.currentSession = null;
                         if (this.sessions.length > 0) {
@@ -689,7 +663,7 @@
                 document.querySelectorAll('.session-item').forEach(item => item.classList.remove('active'));
                 document.querySelector(`[onclick*="${sessionId}"]`).classList.add('active');
 
-                this.capturesTitle.textContent = this.currentSession.name;
+                this.capturesTitle.textContent = 'Current Session';
                 this.displayCaptures();
                 this.updateStats();
             }
@@ -712,8 +686,6 @@
                 this.motionEventCount = 0;
                 this.startStopBtn.textContent = 'Stop Monitoring';
                 this.startStopBtn.classList.add('stop');
-                this.statusDisplay.textContent = 'MONITORING';
-                this.statusDisplay.classList.add('recording');
                 
                 this.uptimeInterval = setInterval(() => this.updateUptime(), 1000);
                 this.monitorLoop();
@@ -723,8 +695,6 @@
                 this.isMonitoring = false;
                 this.startStopBtn.textContent = 'Start Monitoring';
                 this.startStopBtn.classList.remove('stop');
-                this.statusDisplay.textContent = 'Ready to start';
-                this.statusDisplay.classList.remove('recording');
                 
                 if (this.uptimeInterval) {
                     clearInterval(this.uptimeInterval);
@@ -771,7 +741,6 @@
                 const totalPixels = current.width * current.height;
                 const motionPercentage = (motionPixels / totalPixels) * 100;
                 
-                // Much more restrictive - requires significant motion like a person moving
                 const requiredMotion = Math.max(2.0, this.sensitivity / 5);
                 return motionPercentage > requiredMotion;
             }
