@@ -83,15 +83,41 @@
             border-radius: 4px;
             cursor: pointer;
             border-left: 4px solid transparent;
+            position: relative;
         }
 
         .session-item:hover {
             background: #555;
         }
 
+        .session-item:hover .delete-session {
+            display: block;
+        }
+
         .session-item.active {
             border-left-color: #00ff88;
             background: #555;
+        }
+
+        .delete-session {
+            display: none;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .delete-session:hover {
+            background: #cc0000;
         }
 
         .session-name {
@@ -609,6 +635,7 @@
 
                 this.sessionsList.innerHTML = this.sessions.map((session, i) => `
                     <div class="session-item ${i === 0 ? 'active' : ''}" onclick="window.securityCamera.selectSession('${session.id}')">
+                        <button class="delete-session" onclick="event.stopPropagation(); window.securityCamera.deleteSession('${session.id}')" title="Delete Session">×</button>
                         <div class="session-name">${session.name}</div>
                         <div class="session-info">${session.captures.length} captures • ${new Date(session.created).toLocaleDateString()}</div>
                     </div>
@@ -616,6 +643,27 @@
 
                 if (!this.currentSession && this.sessions.length > 0) {
                     this.selectSession(this.sessions[0].id);
+                }
+            }
+
+            deleteSession(sessionId) {
+                if (confirm('Delete this entire session and all its captures?')) {
+                    this.sessions = this.sessions.filter(s => s.id !== sessionId);
+                    
+                    // If we deleted the current session, select the first remaining one
+                    if (this.currentSession && this.currentSession.id === sessionId) {
+                        this.currentSession = null;
+                        if (this.sessions.length > 0) {
+                            this.selectSession(this.sessions[0].id);
+                        } else {
+                            this.capturesTitle.textContent = 'Current Session';
+                            this.displayCaptures();
+                            this.updateStats();
+                        }
+                    }
+                    
+                    this.saveSessions();
+                    this.loadSessions();
                 }
             }
 
@@ -675,7 +723,7 @@
                 this.isMonitoring = false;
                 this.startStopBtn.textContent = 'Start Monitoring';
                 this.startStopBtn.classList.remove('stop');
-                this.statusDisplay.textContent = 'Stopped';
+                this.statusDisplay.textContent = 'Ready to start';
                 this.statusDisplay.classList.remove('recording');
                 
                 if (this.uptimeInterval) {
