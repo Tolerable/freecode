@@ -30,19 +30,11 @@
             margin-bottom: 20px;
         }
 
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-            align-items: center;
-        }
-
         .permission-banner {
             background: #ff6b35;
             color: white;
-            padding: 15px;
-            margin: 10px;
+            padding: 20px;
+            margin: 15px;
             border-radius: 8px;
             text-align: center;
             display: none;
@@ -52,19 +44,45 @@
             display: block;
         }
 
+        .permission-banner h3 {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .permission-banner p {
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
         .permission-btn {
             background: #fff;
             color: #ff6b35;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
-            margin: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
         }
 
         .permission-btn:hover {
             background: #f0f0f0;
+            transform: scale(1.05);
+        }
+
+        .permission-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
         }
 
         .control-group {
@@ -315,7 +333,7 @@
         
         <div class="permission-banner" id="permissionBanner">
             <h3>📹 Camera Access Required</h3>
-            <p>This security camera needs access to your camera to function. Click the button below to grant permission and load your available cameras.</p>
+            <p>This security camera needs access to your camera to function properly. Click the button below to grant permission and load your available cameras.</p>
             <button class="permission-btn" id="grantPermissionBtn">🔓 Grant Camera Permission</button>
         </div>
 
@@ -447,14 +465,28 @@
 
             async checkInitialPermission() {
                 try {
-                    // Check if we already have permission by trying to get a stream
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    stream.getTracks().forEach(track => track.stop()); // Stop immediately
-                    this.hasPermission = true;
-                    this.showMainInterface();
-                    await this.loadCameras();
+                    // Try to enumerate devices first to see if we have permission
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                    
+                    // If we get device labels, we likely have permission already
+                    const hasDetailedLabels = videoDevices.some(device => device.label && device.label !== '');
+                    
+                    if (hasDetailedLabels) {
+                        this.hasPermission = true;
+                        this.showMainInterface();
+                        await this.loadCameras();
+                    } else {
+                        // Try to get a stream to check permission
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                        stream.getTracks().forEach(track => track.stop());
+                        this.hasPermission = true;
+                        this.showMainInterface();
+                        await this.loadCameras();
+                    }
                 } catch (error) {
                     // No permission yet, show permission banner
+                    console.log('No camera permission yet:', error.message);
                     this.showPermissionBanner();
                 }
             }
