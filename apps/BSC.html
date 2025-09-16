@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Security Camera</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: #2d2d2d;
+            padding: 20px;
+            border-bottom: 2px solid #444;
+        }
+
+        .header h1 {
+            text-align: center;
+            color: #00ff88;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        select, input, button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            background: #444;
+            color: #fff;
+        }
+
+        button {
+            background: #00ff88;
+            color: #000;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #00cc6a;
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .status.recording {
+            background: #ff4444;
+            animation: pulse 1s infinite;
+        }
+
+        .status.standby {
+            background: #444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .camera-section {
+            flex: 2;
+            min-width: 300px;
+        }
+
+        .camera-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #videoElement {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .motion-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .detection-zones {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .zone {
+            border: 2px dashed #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .sidebar {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .section {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .section h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+
+        .captures-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .capture-item {
+            position: relative;
+            background: #444;
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .capture-item:hover {
+            transform: scale(1.05);
+        }
+
+        .capture-item img {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+        }
+
+        .capture-timestamp {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            font-size: 10px;
+            padding: 2px;
+            text-align: center;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            background: #444;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #motionCanvas, #diffCanvas {
+            display: none;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            position: relative;
+        }
+
+        .modal img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: #ff4444;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎥 Browser Security Camera</h1>
+        <div class="controls">
+            <div class="control-group">
+                <label>Camera</label>
+                <select id="cameraSelect">
+                    <option>Loading cameras...</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Sensitivity</label>
+                <input type="range" id="sensitivitySlider" min="5" max="50" value="15">
+                <span id="sensitivityValue">15%</span>
+            </div>
+            <div class="control-group">
+                <label>Detection Mode</label>
+                <select id="detectionMode">
+                    <option value="full">Full Frame</option>
+                    <option value="zones">Custom Zones</option>
+                </select>
+            </div>
+            <button id="startStopBtn">Start Monitoring</button>
+            <button id="clearCapturesBtn">Clear All</button>
+        </div>
+    </div>
+
+    <div class="status standby" id="statusDisplay">
+        📷 Ready to start monitoring
+    </div>
+
+    <div class="main-content">
+        <div class="camera-section">
+            <div class="camera-container">
+                <video id="videoElement" autoplay muted></video>
+                <canvas id="motionCanvas"></canvas>
+                <canvas id="diffCanvas"></canvas>
+                <canvas class="motion-overlay" id="motionOverlay"></canvas>
+                <div class="detection-zones" id="detectionZones"></div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="section">
+                <h3>📊 Statistics</h3>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="capturesCount">0</div>
+                        <div class="stat-label">Captures</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="motionEvents">0</div>
+                        <div class="stat-label">Motion Events</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="uptime">00:00:00</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="storageUsed">0 KB</div>
+                        <div class="stat-label">Storage Used</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>🖼️ Recent Captures</h3>
+                <div class="captures-grid" id="capturesGrid">
+                    <div style="text-align: center; color: #666; padding: 20px;">
+                        No captures yet. Start monitoring to begin capturing motion events.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="imageModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <img id="modalImage" src="" alt="Capture">
+        </div>
+    </div>
+
+    <script>
+        class SecurityCamera {
+            constructor() {
+                this.video = document.getElementById('videoElement');
+                this.motionCanvas = document.getElementById('motionCanvas');
+                this.diffCanvas = document.getElementById('diffCanvas');
+                this.motionOverlay = document.getElementById('motionOverlay');
+                this.motionCtx = this.motionCanvas.getContext('2d');
+                this.diffCtx = this.diffCanvas.getContext('2d');
+                this.overlayCtx = this.motionOverlay.getContext('2d');
+                
+                this.isMonitoring = false;
+                this.previousFrame = null;
+                this.sensitivity = 15;
+                this.captures = JSON.parse(localStorage.getItem('securityCaptures') || '[]');
+                this.motionEventCount = 0;
+                this.startTime = null;
+                this.uptimeInterval = null;
+                
+                this.initializeElements();
+                this.loadCameras();
+                this.updateUI();
+                this.restoreSettings();
+            }
+
+            initializeElements() {
+                this.cameraSelect = document.getElementById('cameraSelect');
+                this.startStopBtn = document.getElementById('startStopBtn');
+                this.sensitivitySlider = document.getElementById('sensitivitySlider');
+                this.sensitivityValue = document.getElementById('sensitivityValue');
+                this.statusDisplay = document.getElementById('statusDisplay');
+                this.capturesGrid = document.getElementById('capturesGrid');
+                this.clearCapturesBtn = document.getElementById('clearCapturesBtn');
+                this.detectionMode = document.getElementById('detectionMode');
+
+                this.startStopBtn.addEventListener('click', () => this.toggleMonitoring());
+                this.clearCapturesBtn.addEventListener('click', () => this.clearCaptures());
+                this.sensitivitySlider.addEventListener('input', (e) => this.updateSensitivity(e.target.value));
+                this.cameraSelect.addEventListener('change', () => this.switchCamera());
+            }
+
+            async loadCameras() {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                    
+                    this.cameraSelect.innerHTML = '';
+                    videoDevices.forEach((device, index) => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.textContent = device.label || `Camera ${index + 1}`;
+                        this.cameraSelect.appendChild(option);
+                    });
+
+                    if (videoDevices.length === 0) {
+                        this.cameraSelect.innerHTML = '<option>No cameras found</option>';
+                    }
+                } catch (error) {
+                    console.error('Error loading cameras:', error);
+                    this.cameraSelect.innerHTML = '<option>Error loading cameras</option>';
+                }
+            }
+
+            async switchCamera() {
+                if (this.video.srcObject) {
+                    this.video.srcObject.getTracks().forEach(track => track.stop());
+                }
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: this.cameraSelect.value }
+                    });
+                    this.video.srcObject = stream;
+                    
+                    this.video.onloadedmetadata = () => {
+                        this.setupCanvases();
+                    };
+                } catch (error) {
+                    console.error('Error switching camera:', error);
+                    this.updateStatus('❌ Camera access denied or error occurred', 'standby');
+                }
+            }
+
+            setupCanvases() {
+                const rect = this.video.getBoundingClientRect();
+                const width = this.video.videoWidth;
+                const height = this.video.videoHeight;
+                
+                [this.motionCanvas, this.diffCanvas, this.motionOverlay].forEach(canvas => {
+                    canvas.width = width;
+                    canvas.height = height;
+                    canvas.style.width = '100%';
+                    canvas.style.height = 'auto';
+                });
+            }
+
+            updateSensitivity(value) {
+                this.sensitivity = parseInt(value);
+                this.sensitivityValue.textContent = `${value}%`;
+                localStorage.setItem('sensitivity', value);
+            }
+
+            async toggleMonitoring() {
+                if (!this.isMonitoring) {
+                    await this.startMonitoring();
+                } else {
+                    this.stopMonitoring();
+                }
+            }
+
+            async startMonitoring() {
+                try {
+                    if (!this.video.srcObject) {
+                        await this.switchCamera();
+                    }
+
+                    this.isMonitoring = true;
+                    this.startTime = Date.now();
+                    this.startStopBtn.textContent = 'Stop Monitoring';
+                    this.startStopBtn.style.background = '#ff4444';
+                    this.updateStatus('🔴 MONITORING - Motion detection active', 'recording');
+                    
+                    this.uptimeInterval = setInterval(() => this.updateUptime(), 1000);
+                    this.monitorMotion();
+                } catch (error) {
+                    console.error('Error starting monitoring:', error);
+                    this.updateStatus('❌ Failed to start monitoring', 'standby');
+                }
+            }
+
+            stopMonitoring() {
+                this.isMonitoring = false;
+                this.startStopBtn.textContent = 'Start Monitoring';
+                this.startStopBtn.style.background = '#00ff88';
+                this.updateStatus('📷 Monitoring stopped', 'standby');
+                
+                if (this.uptimeInterval) {
+                    clearInterval(this.uptimeInterval);
+                }
+                
+                this.overlayCtx.clearRect(0, 0, this.motionOverlay.width, this.motionOverlay.height);
+            }
+
+            monitorMotion() {
+                if (!this.isMonitoring) return;
+
+                if (this.video.videoWidth > 0) {
+                    this.motionCtx.drawImage(this.video, 0, 0, this.motionCanvas.width, this.motionCanvas.height);
+                    const currentFrame = this.motionCtx.getImageData(0, 0, this.motionCanvas.width, this.motionCanvas.height);
+                    
+                    if (this.previousFrame) {
+                        const motionData = this.detectMotion(currentFrame, this.previousFrame);
+                        if (motionData.hasMotion) {
+                            this.handleMotionDetected(motionData);
+                        }
+                    }
+                    
+                    this.previousFrame = currentFrame;
+                }
+                
+                requestAnimationFrame(() => this.monitorMotion());
+            }
+
+            detectMotion(currentFrame, previousFrame) {
+                const threshold = (this.sensitivity / 100) * 255;
+                const data1 = currentFrame.data;
+                const data2 = previousFrame.data;
+                const diffData = this.diffCtx.createImageData(currentFrame.width, currentFrame.height);
+                
+                let totalDiff = 0;
+                let motionPixels = 0;
+                const motionAreas = [];
+                
+                // Clear overlay
+                this.overlayCtx.clearRect(0, 0, this.motionOverlay.width, this.motionOverlay.height);
+                
+                for (let i = 0; i < data1.length; i += 4) {
+                    const r1 = data1[i], g1 = data1[i + 1], b1 = data1[i + 2];
+                    const r2 = data2[i], g2 = data2[i + 1], b2 = data2[i + 2];
+                    
+                    const diff = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+                    totalDiff += diff;
+                    
+                    if (diff > threshold) {
+                        motionPixels++;
+                        diffData.data[i] = 255;     // Red
+                        diffData.data[i + 1] = 0;   // Green
+                        diffData.data[i + 2] = 0;   // Blue
+                        diffData.data[i + 3] = 100; // Alpha
+                        
+                        // Draw motion on overlay
+                        const x = (i / 4) % currentFrame.width;
+                        const y = Math.floor((i / 4) / currentFrame.width);
+                        this.overlayCtx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+                        this.overlayCtx.fillRect(x, y, 2, 2);
+                    } else {
+                        diffData.data[i + 3] = 0; // Transparent
+                    }
+                }
+                
+                this.diffCtx.putImageData(diffData, 0, 0);
+                
+                const totalPixels = currentFrame.width * currentFrame.height;
+                const motionPercentage = (motionPixels / totalPixels) * 100;
+                const hasMotion = motionPercentage > (this.sensitivity / 10);
+                
+                return {
+                    hasMotion,
+                    motionPercentage,
+                    motionPixels,
+                    totalDiff
+                };
+            }
+
+            handleMotionDetected(motionData) {
+                this.motionEventCount++;
+                this.captureFrame();
+                
+                // Visual feedback
+                this.overlayCtx.strokeStyle = 'red';
+                this.overlayCtx.lineWidth = 3;
+                this.overlayCtx.strokeRect(0, 0, this.motionOverlay.width, this.motionOverlay.height);
+                
+                setTimeout(() => {
+                    if (this.isMonitoring) {
+                        this.overlayCtx.clearRect(0, 0, this.motionOverlay.width, this.motionOverlay.height);
+                    }
+                }, 1000);
+                
+                this.updateUI();
+            }
+
+            captureFrame() {
+                const captureCanvas = document.createElement('canvas');
+                const captureCtx = captureCanvas.getContext('2d');
+                
+                captureCanvas.width = this.video.videoWidth;
+                captureCanvas.height = this.video.videoHeight;
+                
+                captureCtx.drawImage(this.video, 0, 0);
+                
+                const timestamp = new Date().toISOString();
+                const imageData = captureCanvas.toDataURL('image/jpeg', 0.8);
+                
+                const capture = {
+                    id: Date.now(),
+                    timestamp,
+                    imageData,
+                    motionLevel: this.motionEventCount
+                };
+                
+                this.captures.unshift(capture);
+                
+                // Keep only last 50 captures to manage storage
+                if (this.captures.length > 50) {
+                    this.captures = this.captures.slice(0, 50);
+                }
+                
+                this.saveCaptures();
+                this.displayCaptures();
+            }
+
+            saveCaptures() {
+                try {
+                    localStorage.setItem('securityCaptures', JSON.stringify(this.captures));
+                } catch (error) {
+                    console.error('Error saving captures:', error);
+                    // If storage is full, remove old captures and try again
+                    this.captures = this.captures.slice(0, 25);
+                    try {
+                        localStorage.setItem('securityCaptures', JSON.stringify(this.captures));
+                    } catch (e) {
+                        console.error('Still unable to save captures:', e);
+                    }
+                }
+            }
+
+            displayCaptures() {
+                if (this.captures.length === 0) {
+                    this.capturesGrid.innerHTML = `
+                        <div style="text-align: center; color: #666; padding: 20px;">
+                            No captures yet. Start monitoring to begin capturing motion events.
+                        </div>
+                    `;
+                    return;
+                }
+
+                this.capturesGrid.innerHTML = this.captures.map(capture => `
+                    <div class="capture-item" onclick="openModal('${capture.imageData}')">
+                        <img src="${capture.imageData}" alt="Capture ${capture.id}">
+                        <div class="capture-timestamp">
+                            ${new Date(capture.timestamp).toLocaleString()}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            clearCaptures() {
+                if (confirm('Are you sure you want to clear all captures?')) {
+                    this.captures = [];
+                    this.motionEventCount = 0;
+                    localStorage.removeItem('securityCaptures');
+                    this.displayCaptures();
+                    this.updateUI();
+                }
+            }
+
+            updateUptime() {
+                if (!this.startTime) return;
+                
+                const uptime = Date.now() - this.startTime;
+                const hours = Math.floor(uptime / 3600000);
+                const minutes = Math.floor((uptime % 3600000) / 60000);
+                const seconds = Math.floor((uptime % 60000) / 1000);
+                
+                document.getElementById('uptime').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            updateUI() {
+                document.getElementById('capturesCount').textContent = this.captures.length;
+                document.getElementById('motionEvents').textContent = this.motionEventCount;
+                
+                // Calculate storage usage
+                const storageSize = JSON.stringify(this.captures).length;
+                const sizeKB = Math.round(storageSize / 1024);
+                document.getElementById('storageUsed').textContent = `${sizeKB} KB`;
+            }
+
+            updateStatus(message, className) {
+                this.statusDisplay.textContent = message;
+                this.statusDisplay.className = `status ${className}`;
+            }
+
+            restoreSettings() {
+                const savedSensitivity = localStorage.getItem('sensitivity');
+                if (savedSensitivity) {
+                    this.sensitivitySlider.value = savedSensitivity;
+                    this.updateSensitivity(savedSensitivity);
+                }
+                
+                this.displayCaptures();
+            }
+        }
+
+        // Global functions for modal
+        function openModal(imageSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = imageSrc;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        // Click outside modal to close
+        document.getElementById('imageModal').addEventListener('click', (e) => {
+            if (e.target.id === 'imageModal') {
+                closeModal();
+            }
+        });
+
+        // Initialize the security camera when page loads
+        window.addEventListener('load', () => {
+            new SecurityCamera();
+        });
+    </script>
+</body>
+</html>
