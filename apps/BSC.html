@@ -31,26 +31,6 @@
             margin-bottom: 10px;
         }
 
-        .permission-banner {
-            background: #ff6b35;
-            color: white;
-            padding: 20px;
-            margin: 15px;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .permission-btn {
-            background: #fff;
-            color: #ff6b35;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-
         .main-container {
             display: flex;
             height: calc(100vh - 100px);
@@ -58,7 +38,7 @@
 
         /* Left Sidebar */
         .left-sidebar {
-            width: 250px;
+            width: 180px;
             background: #2d2d2d;
             border-right: 2px solid #444;
             display: flex;
@@ -125,26 +105,24 @@
         /* Right Content */
         .right-content {
             flex: 1;
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 1fr 250px;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas:
+                "controls controls"
+                "video info"
+                "captures captures";
         }
 
-        /* Camera Section */
-        .camera-section {
-            height: 60%;
-            background: #2d2d2d;
-            border-bottom: 2px solid #444;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .camera-controls {
+        /* Top Controls Bar */
+        .top-controls {
+            grid-area: controls;
             background: #3d3d3d;
             padding: 15px;
             display: flex;
-            gap: 15px;
+            gap: 20px;
             align-items: center;
-            flex-wrap: wrap;
+            border-bottom: 2px solid #444;
         }
 
         .control-group {
@@ -175,11 +153,7 @@
             color: #000;
             cursor: pointer;
             font-weight: bold;
-            margin-bottom: 8px;
-        }
-
-        button:last-child {
-            margin-bottom: 0;
+            margin-right: 8px;
         }
 
         button:hover {
@@ -191,15 +165,33 @@
             color: white;
         }
 
-        .camera-view {
-            flex: 1;
+        .status-display {
+            margin-left: auto;
+            padding: 8px 15px;
+            background: #444;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-display.recording {
+            background: #ff4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Video Area */
+        .video-section {
+            grid-area: video;
+            background: #2d2d2d;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
-            position: relative;
-            min-height: 200px;
-            max-height: 400px;
+            padding: 30px;
         }
 
         .video-container {
@@ -209,8 +201,8 @@
             overflow: hidden;
             width: 100%;
             height: 100%;
-            max-width: 640px;
-            max-height: 360px;
+            max-width: 100%;
+            max-height: 100%;
         }
 
         #videoElement {
@@ -229,30 +221,50 @@
             z-index: 10;
         }
 
-        .status-bar {
-            background: #444;
-            padding: 8px 15px;
-            text-align: center;
+        /* Info Panel */
+        .info-panel {
+            grid-area: info;
+            background: #3d3d3d;
+            padding: 20px;
+            border-left: 2px solid #444;
+        }
+
+        .info-panel h4 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
             font-size: 12px;
+            padding: 6px 0;
+            border-bottom: 1px solid #555;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #ccc;
+        }
+
+        .info-value {
+            color: #fff;
             font-weight: bold;
-        }
-
-        .status-bar.recording {
-            background: #ff4444;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
         }
 
         /* Captures Section */
         .captures-section {
-            height: 40%;
+            grid-area: captures;
             background: #2d2d2d;
+            border-top: 2px solid #444;
             display: flex;
             flex-direction: column;
+            max-height: 250px;
         }
 
         .captures-header {
@@ -368,7 +380,7 @@
         <h1>Browser Security Camera</h1>
     </div>
 
-    <div class="main-container" id="mainContainer">
+    <div class="main-container">
         <!-- Left Sidebar -->
         <div class="left-sidebar">
             <div class="sidebar-header">
@@ -380,44 +392,67 @@
             </div>
         </div>
 
-        <!-- Right Content -->
+        <!-- Right Content Grid -->
         <div class="right-content">
-            <!-- Camera Section -->
-            <div class="camera-section">
-                <div class="status-bar" id="statusBar">Ready to start</div>
-                
-                <div class="camera-view">
-                    <div class="video-container">
-                        <video id="videoElement" autoplay muted></video>
-                        <canvas id="motionCanvas"></canvas>
-                        <canvas id="diffCanvas"></canvas>
-                        <canvas class="motion-overlay" id="motionOverlay"></canvas>
-                    </div>
-                    
-                    <div class="video-controls">
-                        <div class="control-group">
-                            <label>Camera</label>
-                            <select id="cameraSelect">
-                                <option>Loading...</option>
-                            </select>
-                        </div>
-                        <div class="control-group">
-                            <label>Sensitivity</label>
-                            <input type="range" id="sensitivitySlider" min="5" max="50" value="15">
-                            <span id="sensitivityValue">15%</span>
-                        </div>
-                        <div class="control-group">
-                            <label>Check Interval</label>
-                            <select id="checkInterval">
-                                <option value="1">1 second</option>
-                                <option value="3" selected>3 seconds</option>
-                                <option value="5">5 seconds</option>
-                                <option value="10">10 seconds</option>
-                            </select>
-                        </div>
-                        <button id="startStopBtn">Start Monitoring</button>
-                        <button id="clearSessionBtn">Clear Session</button>
-                    </div>
+            <!-- Top Controls -->
+            <div class="top-controls">
+                <div class="control-group">
+                    <label>Camera</label>
+                    <select id="cameraSelect">
+                        <option>Loading...</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Sensitivity</label>
+                    <input type="range" id="sensitivitySlider" min="5" max="50" value="15">
+                    <span id="sensitivityValue">15%</span>
+                </div>
+                <div class="control-group">
+                    <label>Check Interval</label>
+                    <select id="checkInterval">
+                        <option value="1">1 second</option>
+                        <option value="3" selected>3 seconds</option>
+                        <option value="5">5 seconds</option>
+                        <option value="10">10 seconds</option>
+                    </select>
+                </div>
+                <button id="startStopBtn">Start Monitoring</button>
+                <button id="clearSessionBtn">Clear Session</button>
+                <div class="status-display" id="statusDisplay">Ready to start</div>
+            </div>
+
+            <!-- Video Section -->
+            <div class="video-section">
+                <div class="video-container">
+                    <video id="videoElement" autoplay muted></video>
+                    <canvas id="motionCanvas"></canvas>
+                    <canvas id="diffCanvas"></canvas>
+                    <canvas class="motion-overlay" id="motionOverlay"></canvas>
+                </div>
+            </div>
+
+            <!-- Info Panel -->
+            <div class="info-panel">
+                <h4>Live Monitor Info</h4>
+                <div class="info-item">
+                    <span class="info-label">Resolution:</span>
+                    <span class="info-value" id="videoResolution">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Frame Rate:</span>
+                    <span class="info-value" id="frameRate">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Motion:</span>
+                    <span class="info-value" id="motionStatus">No</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Capture:</span>
+                    <span class="info-value" id="lastCapture">Never</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value" id="cameraStatus">Ready</span>
                 </div>
             </div>
 
@@ -468,7 +503,8 @@
                 this.currentSession = null;
                 
                 this.initElements();
-                this.checkPermissions();
+                this.loadCameras();
+                this.loadSessions();
             }
 
             initElements() {
@@ -480,7 +516,7 @@
                 this.clearSessionBtn = document.getElementById('clearSessionBtn');
                 this.newSessionBtn = document.getElementById('newSessionBtn');
                 this.sessionsList = document.getElementById('sessionsList');
-                this.statusBar = document.getElementById('statusBar');
+                this.statusDisplay = document.getElementById('statusDisplay');
                 this.capturesTitle = document.getElementById('capturesTitle');
                 this.capturesGrid = document.getElementById('capturesGrid');
 
@@ -490,11 +526,6 @@
                 this.sensitivitySlider.addEventListener('input', (e) => this.updateSensitivity(e.target.value));
                 this.checkIntervalSelect.addEventListener('change', (e) => this.updateInterval(e.target.value));
                 this.cameraSelect.addEventListener('change', () => this.switchCamera());
-            }
-
-            async checkPermissions() {
-                await this.loadCameras();
-                this.loadSessions();
             }
 
             async loadCameras() {
@@ -593,7 +624,6 @@
                 this.currentSession = this.sessions.find(s => s.id === sessionId);
                 if (!this.currentSession) return;
 
-                // Update UI
                 document.querySelectorAll('.session-item').forEach(item => item.classList.remove('active'));
                 document.querySelector(`[onclick*="${sessionId}"]`).classList.add('active');
 
@@ -620,8 +650,8 @@
                 this.motionEventCount = 0;
                 this.startStopBtn.textContent = 'Stop Monitoring';
                 this.startStopBtn.classList.add('stop');
-                this.statusBar.textContent = 'MONITORING - Motion detection active';
-                this.statusBar.classList.add('recording');
+                this.statusDisplay.textContent = 'MONITORING - Motion detection active';
+                this.statusDisplay.classList.add('recording');
                 
                 this.uptimeInterval = setInterval(() => this.updateUptime(), 1000);
                 this.monitorLoop();
@@ -631,8 +661,8 @@
                 this.isMonitoring = false;
                 this.startStopBtn.textContent = 'Start Monitoring';
                 this.startStopBtn.classList.remove('stop');
-                this.statusBar.textContent = 'Monitoring stopped';
-                this.statusBar.classList.remove('recording');
+                this.statusDisplay.textContent = 'Monitoring stopped';
+                this.statusDisplay.classList.remove('recording');
                 
                 if (this.uptimeInterval) {
                     clearInterval(this.uptimeInterval);
@@ -699,7 +729,6 @@
                 this.currentSession.captures.unshift(capture);
                 this.motionEventCount++;
                 
-                // Keep only 50 captures per session
                 if (this.currentSession.captures.length > 50) {
                     this.currentSession.captures = this.currentSession.captures.slice(0, 50);
                 }
@@ -707,7 +736,7 @@
                 this.saveSessions();
                 this.displayCaptures();
                 this.updateStats();
-                this.loadSessions(); // Refresh session list
+                this.loadSessions();
             }
 
             displayCaptures() {
