@@ -160,12 +160,15 @@
             border-radius: 8px;
             overflow: hidden;
             margin-bottom: 20px;
+            max-width: 640px;
+            aspect-ratio: 16/9;
         }
 
         #videoElement {
             width: 100%;
-            height: auto;
+            height: 100%;
             display: block;
+            object-fit: cover;
         }
 
         .motion-overlay {
@@ -184,13 +187,29 @@
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
+            pointer-events: auto;
             z-index: 5;
+            cursor: crosshair;
         }
 
         .zone {
             border: 2px dashed #00ff88;
             background: rgba(0, 255, 136, 0.1);
+            position: absolute;
+            cursor: move;
+        }
+
+        .zone-controls {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin: 10px;
+            display: none;
+        }
+
+        .zone-controls.show {
+            display: block;
         }
 
         .sidebar {
@@ -350,6 +369,19 @@
                 <span id="sensitivityValue">15%</span>
             </div>
             <div class="control-group">
+                <label>Check Interval</label>
+                <select id="checkInterval">
+                    <option value="1">1 second</option>
+                    <option value="3" selected>3 seconds</option>
+                    <option value="5">5 seconds</option>
+                    <option value="10">10 seconds</option>
+                    <option value="15">15 seconds</option>
+                    <option value="30">30 seconds</option>
+                    <option value="60">1 minute</option>
+                    <option value="300">5 minutes</option>
+                </select>
+            </div>
+            <div class="control-group">
                 <label>Detection Mode</label>
                 <select id="detectionMode">
                     <option value="full">Full Frame</option>
@@ -373,6 +405,10 @@
                 <canvas id="diffCanvas"></canvas>
                 <canvas class="motion-overlay" id="motionOverlay"></canvas>
                 <div class="detection-zones" id="detectionZones"></div>
+                <div class="zone-controls" id="zoneControls">
+                    <button onclick="clearZones()">Clear Zones</button>
+                    <span id="zoneInfo">Click and drag to create detection zones</span>
+                </div>
             </div>
         </div>
 
@@ -436,6 +472,11 @@
                 this.startTime = null;
                 this.uptimeInterval = null;
                 this.hasPermission = false;
+                this.checkInterval = 3; // seconds
+                this.lastCheckTime = 0;
+                this.detectionZones = [];
+                this.isDrawingZone = false;
+                this.currentZone = null;
                 
                 this.initializeElements();
                 this.checkInitialPermission();
@@ -455,12 +496,19 @@
                 this.permissionBanner = document.getElementById('permissionBanner');
                 this.mainControls = document.getElementById('mainControls');
                 this.grantPermissionBtn = document.getElementById('grantPermissionBtn');
+                this.checkInterval = document.getElementById('checkInterval');
+                this.detectionZones = document.getElementById('detectionZones');
+                this.zoneControls = document.getElementById('zoneControls');
 
                 this.startStopBtn.addEventListener('click', () => this.toggleMonitoring());
                 this.clearCapturesBtn.addEventListener('click', () => this.clearCaptures());
                 this.sensitivitySlider.addEventListener('input', (e) => this.updateSensitivity(e.target.value));
                 this.cameraSelect.addEventListener('change', () => this.switchCamera());
                 this.grantPermissionBtn.addEventListener('click', () => this.requestPermission());
+                this.checkInterval.addEventListener('change', (e) => this.updateCheckInterval(e.target.value));
+                this.detectionMode.addEventListener('change', () => this.toggleZoneMode());
+                
+                this.setupZoneDrawing();
             }
 
             async checkInitialPermission() {
@@ -606,6 +654,70 @@
                 localStorage.setItem('sensitivity', value);
             }
 
+            updateCheckInterval(value) {
+                this.checkInterval = parseInt(value);
+                localStorage.setItem('checkInterval', value);
+            }
+
+            toggleZoneMode() {
+                if (this.detectionMode.value === 'zones') {
+                    this.zoneControls.classList.add('show');
+                    this.detectionZones.style.pointerEvents = 'auto';
+                } else {
+                    this.zoneControls.classList.remove('show');
+                    this.detectionZones.style.pointerEvents = 'none';
+                }
+            }
+
+            setupZoneDrawing() {
+                let isDrawing = false;
+                let startX, startY, currentZone;
+
+                this.detectionZones.addEventListener('mousedown', (e) => {
+                    if (this.detectionMode.value !== 'zones') return;
+                    
+                    isDrawing = true;
+                    const rect = this.detectionZones.getBoundingClientRect();
+                    startX = e.clientX - rect.left;
+                    startY = e.clientY - rect.top;
+                    
+                    currentZone = document.createElement('div');
+                    currentZone.className = 'zone';
+                    currentZone.style.left = startX + 'px';
+                    currentZone.style.top = startY + 'px';
+                    currentZone.style.width = '0px';
+                    currentZone.style.height = '0px';
+                    this.detectionZones.appendChild(currentZone);
+                });
+
+                this.detectionZones.addEventListener('mousemove', (e) => {
+                    if (!isDrawing || this.detectionMode.value !== 'zones') return;
+                    
+                    const rect = this.detectionZones.getBoundingClientRect();
+                    const currentX = e.clientX - rect.left;
+                    const currentY = e.clientY - rect.top;
+                    
+                    const width = Math.abs(currentX - startX);
+                    const height = Math.abs(currentY - startY);
+                    const left = Math.min(startX, currentX);
+                    const top = Math.min(startY, currentY);
+                    
+                    currentZone.style.left = left + 'px';
+                    currentZone.style.top = top + 'px';
+                    currentZone.style.width = width + 'px';
+                    currentZone.style.height = height + 'px';
+                });
+
+                this.detectionZones.addEventListener('mouseup', () => {
+                    isDrawing = false;
+                    if (currentZone && (currentZone.offsetWidth < 10 || currentZone.offsetHeight < 10)) {
+                        // Remove tiny zones
+                        currentZone.remove();
+                    }
+                    currentZone = null;
+                });
+            }
+
             async toggleMonitoring() {
                 if (!this.isMonitoring) {
                     await this.startMonitoring();
@@ -650,7 +762,10 @@
             monitorMotion() {
                 if (!this.isMonitoring) return;
 
-                if (this.video.videoWidth > 0) {
+                const currentTime = Date.now();
+                const timeSinceLastCheck = (currentTime - this.lastCheckTime) / 1000;
+
+                if (this.video.videoWidth > 0 && timeSinceLastCheck >= this.checkInterval) {
                     this.motionCtx.drawImage(this.video, 0, 0, this.motionCanvas.width, this.motionCanvas.height);
                     const currentFrame = this.motionCtx.getImageData(0, 0, this.motionCanvas.width, this.motionCanvas.height);
                     
@@ -662,6 +777,7 @@
                     }
                     
                     this.previousFrame = currentFrame;
+                    this.lastCheckTime = currentTime;
                 }
                 
                 requestAnimationFrame(() => this.monitorMotion());
@@ -675,7 +791,6 @@
                 
                 let totalDiff = 0;
                 let motionPixels = 0;
-                const motionAreas = [];
                 
                 // Clear overlay
                 this.overlayCtx.clearRect(0, 0, this.motionOverlay.width, this.motionOverlay.height);
@@ -689,26 +804,20 @@
                     
                     if (diff > threshold) {
                         motionPixels++;
-                        diffData.data[i] = 255;     // Red
-                        diffData.data[i + 1] = 0;   // Green
-                        diffData.data[i + 2] = 0;   // Blue
-                        diffData.data[i + 3] = 100; // Alpha
                         
                         // Draw motion on overlay
                         const x = (i / 4) % currentFrame.width;
                         const y = Math.floor((i / 4) / currentFrame.width);
                         this.overlayCtx.fillStyle = 'rgba(255, 0, 0, 0.3)';
                         this.overlayCtx.fillRect(x, y, 2, 2);
-                    } else {
-                        diffData.data[i + 3] = 0; // Transparent
                     }
                 }
                 
-                this.diffCtx.putImageData(diffData, 0, 0);
-                
                 const totalPixels = currentFrame.width * currentFrame.height;
                 const motionPercentage = (motionPixels / totalPixels) * 100;
-                const hasMotion = motionPercentage > (this.sensitivity / 10);
+                
+                // More restrictive motion detection - require more significant change
+                const hasMotion = motionPercentage > Math.max(0.5, this.sensitivity / 20);
                 
                 return {
                     hasMotion,
@@ -845,11 +954,17 @@
                     this.updateSensitivity(savedSensitivity);
                 }
                 
+                const savedInterval = localStorage.getItem('checkInterval');
+                if (savedInterval) {
+                    this.checkInterval.value = savedInterval;
+                    this.updateCheckInterval(savedInterval);
+                }
+                
                 this.displayCaptures();
             }
         }
 
-        // Global functions for modal
+        // Global functions for modal and zones
         function openModal(imageSrc) {
             const modal = document.getElementById('imageModal');
             const modalImage = document.getElementById('modalImage');
@@ -859,6 +974,11 @@
 
         function closeModal() {
             document.getElementById('imageModal').style.display = 'none';
+        }
+
+        function clearZones() {
+            const zones = document.querySelectorAll('.zone');
+            zones.forEach(zone => zone.remove());
         }
 
         // Click outside modal to close
