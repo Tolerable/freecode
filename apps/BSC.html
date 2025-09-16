@@ -202,13 +202,14 @@
             overflow: hidden;
             width: 100%;
             height: 100%;
+            max-width: 100%;
             max-height: 100%;
         }
 
         #videoElement {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
         }
 
         .motion-overlay {
@@ -358,15 +359,9 @@
 <body>
     <div class="header">
         <h1>Browser Security Camera</h1>
-        
-        <div class="permission-banner" id="permissionBanner" style="display: none;">
-            <h3>Camera Access Required</h3>
-            <p>This security camera needs access to your camera. Click below to grant permission.</p>
-            <button class="permission-btn" id="grantPermissionBtn">Grant Camera Permission</button>
-        </div>
     </div>
 
-    <div class="main-container" id="mainContainer" style="display: none;">
+    <div class="main-container" id="mainContainer">
         <!-- Left Sidebar -->
         <div class="left-sidebar">
             <div class="sidebar-header">
@@ -470,9 +465,6 @@
             }
 
             initElements() {
-                this.permissionBanner = document.getElementById('permissionBanner');
-                this.mainContainer = document.getElementById('mainContainer');
-                this.grantPermissionBtn = document.getElementById('grantPermissionBtn');
                 this.cameraSelect = document.getElementById('cameraSelect');
                 this.sensitivitySlider = document.getElementById('sensitivitySlider');
                 this.sensitivityValue = document.getElementById('sensitivityValue');
@@ -485,7 +477,6 @@
                 this.capturesTitle = document.getElementById('capturesTitle');
                 this.capturesGrid = document.getElementById('capturesGrid');
 
-                this.grantPermissionBtn.addEventListener('click', () => this.requestPermission());
                 this.startStopBtn.addEventListener('click', () => this.toggleMonitoring());
                 this.clearSessionBtn.addEventListener('click', () => this.clearCurrentSession());
                 this.newSessionBtn.addEventListener('click', () => this.createNewSession());
@@ -495,58 +486,8 @@
             }
 
             async checkPermissions() {
-                try {
-                    // Try to get camera list first
-                    const devices = await navigator.mediaDevices.enumerateDevices();
-                    const cameras = devices.filter(d => d.kind === 'videoinput');
-                    
-                    // Check if we have detailed labels (indicates permission)
-                    if (cameras.some(c => c.label && c.label !== '')) {
-                        this.hasPermission = true;
-                        this.showMainInterface();
-                        await this.loadCameras();
-                        return;
-                    }
-                    
-                    // Try to get a stream to check permission
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    stream.getTracks().forEach(track => track.stop());
-                    this.hasPermission = true;
-                    this.showMainInterface();
-                    await this.loadCameras();
-                } catch (error) {
-                    this.showPermissionBanner();
-                }
-            }
-
-            showPermissionBanner() {
-                this.permissionBanner.style.display = 'block';
-                this.mainContainer.style.display = 'none';
-            }
-
-            showMainInterface() {
-                this.permissionBanner.style.display = 'none';
-                this.mainContainer.style.display = 'flex';
+                await this.loadCameras();
                 this.loadSessions();
-            }
-
-            async requestPermission() {
-                this.grantPermissionBtn.disabled = true;
-                this.grantPermissionBtn.textContent = 'Requesting...';
-
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    stream.getTracks().forEach(track => track.stop());
-                    this.hasPermission = true;
-                    this.showMainInterface();
-                    await this.loadCameras();
-                } catch (error) {
-                    this.grantPermissionBtn.disabled = false;
-                    this.grantPermissionBtn.textContent = 'Permission Denied - Try Again';
-                    setTimeout(() => {
-                        this.grantPermissionBtn.textContent = 'Grant Camera Permission';
-                    }, 3000);
-                }
             }
 
             async loadCameras() {
