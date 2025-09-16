@@ -38,6 +38,35 @@
             align-items: center;
         }
 
+        .permission-banner {
+            background: #ff6b35;
+            color: white;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+
+        .permission-banner.show {
+            display: block;
+        }
+
+        .permission-btn {
+            background: #fff;
+            color: #ff6b35;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px;
+        }
+
+        .permission-btn:hover {
+            background: #f0f0f0;
+        }
+
         .control-group {
             display: flex;
             flex-direction: column;
@@ -283,7 +312,14 @@
 <body>
     <div class="header">
         <h1>🎥 Browser Security Camera</h1>
-        <div class="controls">
+        
+        <div class="permission-banner" id="permissionBanner">
+            <h3>📹 Camera Access Required</h3>
+            <p>This security camera needs access to your camera to function. Click the button below to grant permission and load your available cameras.</p>
+            <button class="permission-btn" id="grantPermissionBtn">🔓 Grant Camera Permission</button>
+        </div>
+
+        <div class="controls" id="mainControls" style="display: none;">
             <div class="control-group">
                 <label>Camera</label>
                 <select id="cameraSelect">
@@ -381,9 +417,10 @@
                 this.motionEventCount = 0;
                 this.startTime = null;
                 this.uptimeInterval = null;
+                this.hasPermission = false;
                 
                 this.initializeElements();
-                this.loadCameras();
+                this.checkInitialPermission();
                 this.updateUI();
                 this.restoreSettings();
             }
@@ -397,32 +434,104 @@
                 this.capturesGrid = document.getElementById('capturesGrid');
                 this.clearCapturesBtn = document.getElementById('clearCapturesBtn');
                 this.detectionMode = document.getElementById('detectionMode');
+                this.permissionBanner = document.getElementById('permissionBanner');
+                this.mainControls = document.getElementById('mainControls');
+                this.grantPermissionBtn = document.getElementById('grantPermissionBtn');
 
                 this.startStopBtn.addEventListener('click', () => this.toggleMonitoring());
                 this.clearCapturesBtn.addEventListener('click', () => this.clearCaptures());
                 this.sensitivitySlider.addEventListener('input', (e) => this.updateSensitivity(e.target.value));
                 this.cameraSelect.addEventListener('change', () => this.switchCamera());
+                this.grantPermissionBtn.addEventListener('click', () => this.requestPermission());
+            }
+
+            async checkInitialPermission() {
+                try {
+                    // Check if we already have permission by trying to get a stream
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    stream.getTracks().forEach(track => track.stop()); // Stop immediately
+                    this.hasPermission = true;
+                    this.showMainInterface();
+                    await this.loadCameras();
+                } catch (error) {
+                    // No permission yet, show permission banner
+                    this.showPermissionBanner();
+                }
+            }
+
+            showPermissionBanner() {
+                this.permissionBanner.classList.add('show');
+                this.mainControls.style.display = 'none';
+                this.updateStatus('🔒 Camera permission required to continue', 'standby');
+            }
+
+            showMainInterface() {
+                this.permissionBanner.classList.remove('show');
+                this.mainControls.style.display = 'flex';
+                this.updateStatus('📷 Camera access granted! Select a camera to begin', 'standby');
+            }
+
+            async requestPermission() {
+                this.grantPermissionBtn.disabled = true;
+                this.grantPermissionBtn.textContent = '🔄 Requesting permission...';
+
+                try {
+                    // Request camera permission
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    stream.getTracks().forEach(track => track.stop()); // Stop immediately after getting permission
+                    
+                    this.hasPermission = true;
+                    this.showMainInterface();
+                    await this.loadCameras();
+                    
+                } catch (error) {
+                    console.error('Permission denied:', error);
+                    this.grantPermissionBtn.disabled = false;
+                    this.grantPermissionBtn.textContent = '❌ Permission Denied - Try Again';
+                    this.grantPermissionBtn.style.background = '#ff4444';
+                    this.grantPermissionBtn.style.color = 'white';
+                    
+                    setTimeout(() => {
+                        this.grantPermissionBtn.textContent = '🔓 Grant Camera Permission';
+                        this.grantPermissionBtn.style.background = '#fff';
+                        this.grantPermissionBtn.style.color = '#ff6b35';
+                    }, 3000);
+                }
             }
 
             async loadCameras() {
+                if (!this.hasPermission) return;
+
                 try {
                     const devices = await navigator.mediaDevices.enumerateDevices();
                     const videoDevices = devices.filter(device => device.kind === 'videoinput');
                     
                     this.cameraSelect.innerHTML = '';
+                    
+                    if (videoDevices.length === 0) {
+                        this.cameraSelect.innerHTML = '<option>No cameras found</option>';
+                        return;
+                    }
+
                     videoDevices.forEach((device, index) => {
                         const option = document.createElement('option');
                         option.value = device.deviceId;
-                        option.textContent = device.label || `Camera ${index + 1}`;
+                        // Use the actual device label, or fallback to generic name
+                        const deviceLabel = device.label || `Camera ${index + 1}`;
+                        option.textContent = deviceLabel;
                         this.cameraSelect.appendChild(option);
                     });
 
-                    if (videoDevices.length === 0) {
-                        this.cameraSelect.innerHTML = '<option>No cameras found</option>';
+                    // Auto-select and start the first camera
+                    if (videoDevices.length > 0) {
+                        await this.switchCamera();
+                        this.updateStatus('📷 Ready to start monitoring', 'standby');
                     }
+
                 } catch (error) {
                     console.error('Error loading cameras:', error);
                     this.cameraSelect.innerHTML = '<option>Error loading cameras</option>';
+                    this.updateStatus('❌ Error loading cameras', 'standby');
                 }
             }
 
