@@ -108,24 +108,27 @@
         /* Right Content */
         .right-content {
             flex: 1;
-            display: grid;
-            grid-template-columns: 1fr 250px;
-            grid-template-rows: auto 1fr auto;
-            grid-template-areas:
-                "controls controls"
-                "video info"
-                "captures captures";
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Top Controls Bar */
-        .top-controls {
-            grid-area: controls;
+        /* Top Section with Controls, Video, and Info */
+        .top-section {
+            height: 320px;
             background: #3d3d3d;
             padding: 15px;
-            display: flex;
+            display: grid;
+            grid-template-columns: auto 1fr 250px;
             gap: 20px;
-            align-items: center;
             border-bottom: 2px solid #444;
+        }
+
+        /* Controls Column */
+        .controls-column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 200px;
         }
 
         .control-group {
@@ -156,7 +159,11 @@
             color: #000;
             cursor: pointer;
             font-weight: bold;
-            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        button:last-child {
+            margin-bottom: 0;
         }
 
         button:hover {
@@ -169,12 +176,12 @@
         }
 
         .status-display {
-            margin-left: auto;
             padding: 8px 15px;
             background: #444;
             border-radius: 4px;
             font-size: 12px;
             font-weight: bold;
+            text-align: center;
         }
 
         .status-display.recording {
@@ -187,11 +194,8 @@
             50% { opacity: 0.7; }
         }
 
-        /* Video Area */
-        .video-section {
-            grid-area: video;
-            background: #2d2d2d;
-            padding: 20px;
+        /* Video Column */
+        .video-column {
             display: flex;
             justify-content: center;
             align-items: center;
@@ -204,8 +208,8 @@
             overflow: hidden;
             width: 100%;
             height: 100%;
-            max-width: 600px;
-            max-height: 400px;
+            max-width: 500px;
+            max-height: 280px;
         }
 
         #videoElement {
@@ -224,15 +228,16 @@
             z-index: 10;
         }
 
-        /* Info Panel */
-        .info-panel {
-            grid-area: info;
-            background: #3d3d3d;
-            padding: 20px;
-            border-left: 2px solid #444;
+        /* Info Column */
+        .info-column {
+            background: #444;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
         }
 
-        .info-panel h4 {
+        .info-column h4 {
             color: #00ff88;
             margin-bottom: 15px;
             border-bottom: 1px solid #555;
@@ -260,14 +265,12 @@
             font-weight: bold;
         }
 
-        /* Captures Section */
+        /* Bottom Captures Section */
         .captures-section {
-            grid-area: captures;
+            flex: 1;
             background: #2d2d2d;
-            border-top: 2px solid #444;
             display: flex;
             flex-direction: column;
-            max-height: 200px;
         }
 
         .captures-header {
@@ -276,6 +279,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #555;
         }
 
         .captures-header h3 {
@@ -294,8 +298,8 @@
             padding: 15px;
             overflow-y: auto;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
         }
 
         .capture-item {
@@ -325,8 +329,8 @@
             right: 0;
             background: rgba(0, 0, 0, 0.9);
             color: #fff;
-            font-size: 9px;
-            padding: 3px;
+            font-size: 10px;
+            padding: 4px;
             text-align: center;
         }
 
@@ -395,71 +399,74 @@
             </div>
         </div>
 
-        <!-- Right Content Grid -->
+        <!-- Right Content -->
         <div class="right-content">
-            <!-- Top Controls -->
-            <div class="top-controls">
-                <div class="control-group">
-                    <label>Camera</label>
-                    <select id="cameraSelect">
-                        <option>Loading...</option>
-                    </select>
+            <!-- Top Section with Controls, Video, and Info -->
+            <div class="top-section">
+                <!-- Controls Column -->
+                <div class="controls-column">
+                    <div class="control-group">
+                        <label>Camera</label>
+                        <select id="cameraSelect">
+                            <option>Loading...</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Sensitivity</label>
+                        <input type="range" id="sensitivitySlider" min="5" max="50" value="15">
+                        <span id="sensitivityValue">15%</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Check Interval</label>
+                        <select id="checkInterval">
+                            <option value="1">1 second</option>
+                            <option value="3" selected>3 seconds</option>
+                            <option value="5">5 seconds</option>
+                            <option value="10">10 seconds</option>
+                        </select>
+                    </div>
+                    <button id="startStopBtn">Start Monitoring</button>
+                    <button id="clearSessionBtn">Clear Session</button>
+                    <div class="status-display" id="statusDisplay">Ready to start</div>
                 </div>
-                <div class="control-group">
-                    <label>Sensitivity</label>
-                    <input type="range" id="sensitivitySlider" min="5" max="50" value="15">
-                    <span id="sensitivityValue">15%</span>
+
+                <!-- Video Column -->
+                <div class="video-column">
+                    <div class="video-container">
+                        <video id="videoElement" autoplay muted></video>
+                        <canvas id="motionCanvas"></canvas>
+                        <canvas id="diffCanvas"></canvas>
+                        <canvas class="motion-overlay" id="motionOverlay"></canvas>
+                    </div>
                 </div>
-                <div class="control-group">
-                    <label>Check Interval</label>
-                    <select id="checkInterval">
-                        <option value="1">1 second</option>
-                        <option value="3" selected>3 seconds</option>
-                        <option value="5">5 seconds</option>
-                        <option value="10">10 seconds</option>
-                    </select>
+
+                <!-- Info Column -->
+                <div class="info-column">
+                    <h4>Live Monitor Info</h4>
+                    <div class="info-item">
+                        <span class="info-label">Resolution:</span>
+                        <span class="info-value" id="videoResolution">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Frame Rate:</span>
+                        <span class="info-value" id="frameRate">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Motion:</span>
+                        <span class="info-value" id="motionStatus">No</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Last Capture:</span>
+                        <span class="info-value" id="lastCapture">Never</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Status:</span>
+                        <span class="info-value" id="cameraStatus">Ready</span>
+                    </div>
                 </div>
-                <button id="startStopBtn">Start Monitoring</button>
-                <button id="clearSessionBtn">Clear Session</button>
-                <div class="status-display" id="statusDisplay">Ready to start</div>
             </div>
 
-            <!-- Video Section -->
-            <div class="video-section">
-                <div class="video-container">
-                    <video id="videoElement" autoplay muted></video>
-                    <canvas id="motionCanvas"></canvas>
-                    <canvas id="diffCanvas"></canvas>
-                    <canvas class="motion-overlay" id="motionOverlay"></canvas>
-                </div>
-            </div>
-
-            <!-- Info Panel -->
-            <div class="info-panel">
-                <h4>Live Monitor Info</h4>
-                <div class="info-item">
-                    <span class="info-label">Resolution:</span>
-                    <span class="info-value" id="videoResolution">--</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Frame Rate:</span>
-                    <span class="info-value" id="frameRate">--</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Motion:</span>
-                    <span class="info-value" id="motionStatus">No</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Last Capture:</span>
-                    <span class="info-value" id="lastCapture">Never</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Status:</span>
-                    <span class="info-value" id="cameraStatus">Ready</span>
-                </div>
-            </div>
-
-            <!-- Captures Section -->
+            <!-- Bottom Captures Section -->
             <div class="captures-section">
                 <div class="captures-header">
                     <h3 id="capturesTitle">Current Session</h3>
@@ -653,7 +660,7 @@
                 this.motionEventCount = 0;
                 this.startStopBtn.textContent = 'Stop Monitoring';
                 this.startStopBtn.classList.add('stop');
-                this.statusDisplay.textContent = 'MONITORING - Motion detection active';
+                this.statusDisplay.textContent = 'MONITORING';
                 this.statusDisplay.classList.add('recording');
                 
                 this.uptimeInterval = setInterval(() => this.updateUptime(), 1000);
@@ -664,7 +671,7 @@
                 this.isMonitoring = false;
                 this.startStopBtn.textContent = 'Start Monitoring';
                 this.startStopBtn.classList.remove('stop');
-                this.statusDisplay.textContent = 'Monitoring stopped';
+                this.statusDisplay.textContent = 'Stopped';
                 this.statusDisplay.classList.remove('recording');
                 
                 if (this.uptimeInterval) {
@@ -732,8 +739,8 @@
                 this.currentSession.captures.unshift(capture);
                 this.motionEventCount++;
                 
-                if (this.currentSession.captures.length > 50) {
-                    this.currentSession.captures = this.currentSession.captures.slice(0, 50);
+                if (this.currentSession.captures.length > 100) {
+                    this.currentSession.captures = this.currentSession.captures.slice(0, 100);
                 }
                 
                 this.saveSessions();
