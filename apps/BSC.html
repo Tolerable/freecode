@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Browser Security Camera - Buffered</title>
+    <title>Browser Security Camera - Fixed</title>
     <style>
         * {
             margin: 0;
@@ -313,7 +313,7 @@
             padding: 15px;
             overflow-y: auto;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 15px;
         }
 
@@ -344,18 +344,19 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             color: #fff;
-            padding: 5px;
+            padding: 8px;
         }
 
         .clip-name {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: bold;
+            margin-bottom: 4px;
         }
 
         .clip-details {
-            font-size: 9px;
+            font-size: 10px;
             color: #ccc;
         }
 
@@ -404,7 +405,7 @@
             text-align: center;
         }
 
-        .clip-player img {
+        .clip-player video {
             max-width: 100%;
             max-height: 70vh;
             border-radius: 4px;
@@ -420,11 +421,27 @@
         #motionCanvas, #diffCanvas, #bufferCanvas {
             display: none;
         }
+
+        .motion-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #666;
+            transition: background 0.3s;
+        }
+
+        .motion-indicator.active {
+            background: #ff4444;
+            box-shadow: 0 0 10px #ff4444;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Browser Security Camera - Buffered</h1>
+        <h1>Browser Security Camera - Fixed</h1>
     </div>
 
     <div class="main-container">
@@ -452,17 +469,26 @@
                         </select>
                     </div>
                     <div class="control-group">
-                        <label>Sensitivity</label>
-                        <input type="range" id="sensitivitySlider" min="10" max="80" value="30">
-                        <span id="sensitivityValue">30%</span>
+                        <label>Motion Sensitivity</label>
+                        <input type="range" id="sensitivitySlider" min="5" max="50" value="15">
+                        <span id="sensitivityValue">15%</span>
                     </div>
                     <div class="control-group">
-                        <label>Frame Rate</label>
-                        <select id="frameRate">
-                            <option value="5">5 FPS</option>
-                            <option value="10">10 FPS</option>
-                            <option value="15" selected>15 FPS</option>
-                            <option value="20">20 FPS</option>
+                        <label>Minimum Event Duration</label>
+                        <select id="minEventDuration">
+                            <option value="2">2 seconds</option>
+                            <option value="3" selected>3 seconds</option>
+                            <option value="5">5 seconds</option>
+                            <option value="10">10 seconds</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Cooldown Between Events</label>
+                        <select id="eventCooldown">
+                            <option value="10">10 seconds</option>
+                            <option value="30" selected>30 seconds</option>
+                            <option value="60">1 minute</option>
+                            <option value="120">2 minutes</option>
                         </select>
                     </div>
                     <button id="startStopBtn">Start Recording</button>
@@ -473,6 +499,7 @@
                 <div class="video-column">
                     <div class="video-container">
                         <video id="videoElement" autoplay muted></video>
+                        <div class="motion-indicator" id="motionIndicator"></div>
                         <canvas id="motionCanvas"></canvas>
                         <canvas id="diffCanvas"></canvas>
                         <canvas id="bufferCanvas"></canvas>
@@ -492,19 +519,23 @@
                         <span class="info-value" id="bufferStatus">0 frames</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Clips:</span>
-                        <span class="info-value" id="clipsCount">0</span>
+                        <span class="info-label">Events:</span>
+                        <span class="info-value" id="eventsCount">0</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Last Event:</span>
                         <span class="info-value" id="lastEvent">None</span>
                     </div>
+                    <div class="info-item">
+                        <span class="info-label">Motion Level:</span>
+                        <span class="info-value" id="motionLevel">0%</span>
+                    </div>
                     
                     <div class="buffer-info">
                         <div style="margin-bottom: 5px;">Buffer Info:</div>
-                        <div>Size: <span id="bufferSize">0</span> frames</div>
-                        <div>Memory: ~<span id="memoryUsage">0</span>MB</div>
-                        <div>Duration: <span id="bufferDuration">0</span>s</div>
+                        <div>Pre-buffer: <span id="preBufferFrames">60</span> frames</div>
+                        <div>Post-buffer: <span id="postBufferFrames">30</span> frames</div>
+                        <div>Next event in: <span id="cooldownTimer">Ready</span></div>
                     </div>
                 </div>
             </div>
@@ -512,14 +543,14 @@
             <!-- Bottom Clips Section -->
             <div class="clips-section">
                 <div class="clips-header">
-                    <h3 id="clipsTitle">Motion Clips</h3>
+                    <h3 id="clipsTitle">Motion Events</h3>
                     <div class="clips-stats">
-                        <span>Total Clips: <span id="totalClips">0</span></span>
+                        <span>Total Events: <span id="totalClips">0</span></span>
                         <span>Session: <span id="sessionTime">00:00:00</span></span>
                     </div>
                 </div>
                 <div class="clips-grid" id="clipsGrid">
-                    <div class="empty-state">Start recording to capture motion clips</div>
+                    <div class="empty-state">Start recording to capture motion events</div>
                 </div>
             </div>
         </div>
@@ -529,16 +560,17 @@
         <div class="modal-content">
             <button class="modal-close" onclick="closeClipModal()">×</button>
             <div class="clip-player">
-                <img id="modalClipImage" src="" alt="Motion Clip">
+                <video id="modalClipVideo" controls autoplay loop></video>
                 <div class="clip-controls">
-                    <button onclick="exportClip()">Export as Image</button>
+                    <button onclick="exportClip()">Export Video</button>
+                    <button onclick="deleteClip()">Delete Event</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        class BufferedSecurityCamera {
+        class FixedSecurityCamera {
             constructor() {
                 this.video = document.getElementById('videoElement');
                 this.motionCanvas = document.getElementById('motionCanvas');
@@ -549,18 +581,32 @@
                 this.overlayCtx = this.motionOverlay.getContext('2d');
                 
                 this.isRecording = false;
-                this.frameRate = 15;
-                this.sensitivity = 30;
+                this.frameRate = 10; // Reduced for efficiency
+                this.sensitivity = 15;
+                this.minEventDuration = 3; // seconds
+                this.eventCooldown = 30; // seconds
+                
+                // Buffer management
+                this.preBufferFrames = 60; // 6 seconds at 10fps
+                this.postBufferFrames = 30; // 3 seconds at 10fps
                 this.frameBuffer = [];
-                this.maxBufferSize = 300; // ~20 seconds at 15fps
+                this.maxBufferSize = 150; // 15 seconds total
+                
+                // Motion detection
                 this.lastFrameTime = 0;
                 this.previousFrame = null;
-                this.motionDetected = false;
-                this.motionStartTime = null;
-                this.recordingClip = false;
-                this.clipFrames = [];
+                this.motionHistory = [];
+                this.motionThreshold = 10; // consecutive frames needed
                 
-                this.sessions = JSON.parse(localStorage.getItem('bufferedSessions') || '[]');
+                // Event management
+                this.currentEvent = null;
+                this.lastEventTime = 0;
+                this.motionStartTime = null;
+                this.isInCooldown = false;
+                this.cooldownTimer = null;
+                
+                // Session management
+                this.sessions = JSON.parse(localStorage.getItem('fixedSessions') || '[]');
                 this.currentSession = null;
                 this.sessionStartTime = null;
                 this.sessionInterval = null;
@@ -574,18 +620,21 @@
                 this.cameraSelect = document.getElementById('cameraSelect');
                 this.sensitivitySlider = document.getElementById('sensitivitySlider');
                 this.sensitivityValue = document.getElementById('sensitivityValue');
-                this.frameRateSelect = document.getElementById('frameRate');
+                this.minEventDurationSelect = document.getElementById('minEventDuration');
+                this.eventCooldownSelect = document.getElementById('eventCooldown');
                 this.startStopBtn = document.getElementById('startStopBtn');
                 this.clearSessionBtn = document.getElementById('clearSessionBtn');
                 this.newSessionBtn = document.getElementById('newSessionBtn');
                 this.sessionsList = document.getElementById('sessionsList');
                 this.clipsGrid = document.getElementById('clipsGrid');
+                this.motionIndicator = document.getElementById('motionIndicator');
 
                 this.startStopBtn.addEventListener('click', () => this.toggleRecording());
                 this.clearSessionBtn.addEventListener('click', () => this.clearCurrentSession());
                 this.newSessionBtn.addEventListener('click', () => this.createNewSession());
                 this.sensitivitySlider.addEventListener('input', (e) => this.updateSensitivity(e.target.value));
-                this.frameRateSelect.addEventListener('change', (e) => this.updateFrameRate(e.target.value));
+                this.minEventDurationSelect.addEventListener('change', (e) => this.minEventDuration = parseInt(e.target.value));
+                this.eventCooldownSelect.addEventListener('change', (e) => this.eventCooldown = parseInt(e.target.value));
                 this.cameraSelect.addEventListener('change', () => this.switchCamera());
             }
 
@@ -617,7 +666,11 @@
 
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { deviceId: this.cameraSelect.value }
+                        video: { 
+                            deviceId: this.cameraSelect.value,
+                            width: { ideal: 640 },
+                            height: { ideal: 480 }
+                        }
                     });
                     this.video.srcObject = stream;
                     
@@ -644,10 +697,6 @@
                 this.sensitivityValue.textContent = `${value}%`;
             }
 
-            updateFrameRate(value) {
-                this.frameRate = parseInt(value);
-            }
-
             loadSessions() {
                 if (this.sessions.length === 0) {
                     this.sessionsList.innerHTML = '<div class="empty-state">No sessions yet</div>';
@@ -658,7 +707,7 @@
                     <div class="session-item ${i === 0 ? 'active' : ''}" onclick="window.camera.selectSession('${session.id}')">
                         <button class="delete-session" onclick="event.stopPropagation(); window.camera.deleteSession('${session.id}')" title="Delete Session">×</button>
                         <div class="session-name">${session.name}</div>
-                        <div class="session-info">${session.clips.length} clips • ${new Date(session.created).toLocaleDateString()}</div>
+                        <div class="session-info">${session.events.length} events • ${new Date(session.created).toLocaleDateString()}</div>
                     </div>
                 `).join('');
 
@@ -673,7 +722,7 @@
                     id: Date.now().toString(),
                     name: `Session ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`,
                     created: now.toISOString(),
-                    clips: []
+                    events: []
                 };
 
                 this.sessions.unshift(session);
@@ -689,12 +738,12 @@
                 document.querySelectorAll('.session-item').forEach(item => item.classList.remove('active'));
                 document.querySelector(`[onclick*="${sessionId}"]`).classList.add('active');
 
-                this.displayClips();
+                this.displayEvents();
                 this.updateStats();
             }
 
             deleteSession(sessionId) {
-                if (confirm('Delete this entire session and all its clips?')) {
+                if (confirm('Delete this entire session and all its events?')) {
                     this.sessions = this.sessions.filter(s => s.id !== sessionId);
                     
                     if (this.currentSession && this.currentSession.id === sessionId) {
@@ -702,7 +751,7 @@
                         if (this.sessions.length > 0) {
                             this.selectSession(this.sessions[0].id);
                         } else {
-                            this.displayClips();
+                            this.displayEvents();
                             this.updateStats();
                         }
                     }
@@ -728,6 +777,10 @@
                 this.isRecording = true;
                 this.sessionStartTime = Date.now();
                 this.frameBuffer = [];
+                this.motionHistory = [];
+                this.lastEventTime = 0;
+                this.isInCooldown = false;
+                
                 this.startStopBtn.textContent = 'Stop Recording';
                 this.startStopBtn.classList.add('stop');
                 document.getElementById('recordingStatus').textContent = 'Recording';
@@ -744,6 +797,15 @@
                 
                 if (this.sessionInterval) {
                     clearInterval(this.sessionInterval);
+                }
+                
+                if (this.cooldownTimer) {
+                    clearInterval(this.cooldownTimer);
+                }
+                
+                // Finalize any ongoing event
+                if (this.currentEvent) {
+                    this.finalizeEvent();
                 }
             }
 
@@ -767,26 +829,24 @@
                 const timestamp = Date.now();
                 
                 // Add to circular buffer
-                this.frameBuffer.push({
+                const frame = {
                     data: frameData,
                     timestamp: timestamp,
-                    imageData: this.bufferCanvas.toDataURL('image/jpeg', 0.8)
-                });
+                    imageData: this.bufferCanvas.toDataURL('image/jpeg', 0.7)
+                };
+                
+                this.frameBuffer.push(frame);
 
                 // Keep buffer size manageable
                 if (this.frameBuffer.length > this.maxBufferSize) {
                     this.frameBuffer.shift();
                 }
 
-                // Check for motion
+                // Motion detection
                 if (this.previousFrame) {
-                    const hasMotion = this.detectMotion(frameData, this.previousFrame);
-                    
-                    if (hasMotion && !this.motionDetected) {
-                        this.startMotionClip(timestamp);
-                    } else if (!hasMotion && this.motionDetected) {
-                        this.endMotionClip(timestamp);
-                    }
+                    const motionLevel = this.detectMotion(frameData, this.previousFrame);
+                    this.updateMotionDisplay(motionLevel);
+                    this.processMotionEvent(motionLevel, timestamp);
                 }
 
                 this.previousFrame = frameData;
@@ -794,11 +854,11 @@
             }
 
             detectMotion(current, previous) {
-                const threshold = (this.sensitivity / 100) * 255;
+                const threshold = (this.sensitivity / 100) * 50;
                 const data1 = current.data;
                 const data2 = previous.data;
                 let motionPixels = 0;
-                const sampleRate = 4; // Check every 4th pixel for performance
+                const sampleRate = 8; // Sample every 8th pixel for performance
                 
                 for (let i = 0; i < data1.length; i += (4 * sampleRate)) {
                     const diff = Math.abs(data1[i] - data2[i]) + 
@@ -813,84 +873,160 @@
                 const totalSamples = (current.width * current.height) / sampleRate;
                 const motionPercentage = (motionPixels / totalSamples) * 100;
                 
-                // Require sustained motion over multiple frames
-                return motionPercentage > Math.max(1.5, this.sensitivity / 15);
+                return Math.min(100, motionPercentage);
             }
 
-            startMotionClip(timestamp) {
-                this.motionDetected = true;
+            updateMotionDisplay(motionLevel) {
+                document.getElementById('motionLevel').textContent = `${motionLevel.toFixed(1)}%`;
+                
+                if (motionLevel > this.sensitivity) {
+                    this.motionIndicator.classList.add('active');
+                } else {
+                    this.motionIndicator.classList.remove('active');
+                }
+            }
+
+            processMotionEvent(motionLevel, timestamp) {
+                const hasSignificantMotion = motionLevel > this.sensitivity;
+                
+                // Add to motion history for debouncing
+                this.motionHistory.push(hasSignificantMotion);
+                if (this.motionHistory.length > this.motionThreshold) {
+                    this.motionHistory.shift();
+                }
+                
+                // Check if we're in cooldown
+                if (this.isInCooldown) {
+                    return;
+                }
+                
+                // Count consecutive motion frames
+                const recentMotionFrames = this.motionHistory.filter(m => m).length;
+                const isMotionEvent = recentMotionFrames >= (this.motionThreshold * 0.7);
+                
+                if (isMotionEvent && !this.currentEvent) {
+                    this.startMotionEvent(timestamp);
+                } else if (!isMotionEvent && this.currentEvent) {
+                    // Check if minimum duration has been met
+                    const eventDuration = (timestamp - this.currentEvent.startTime) / 1000;
+                    if (eventDuration >= this.minEventDuration) {
+                        this.finalizeEvent();
+                    }
+                } else if (this.currentEvent) {
+                    // Continue collecting frames for current event
+                    this.addFrameToEvent();
+                }
+            }
+
+            startMotionEvent(timestamp) {
+                if (this.isInCooldown) return;
+                
+                console.log('Starting motion event');
+                this.currentEvent = {
+                    id: Date.now().toString(),
+                    startTime: timestamp,
+                    frames: [],
+                    preBuffer: []
+                };
+                
+                // Add pre-buffer frames
+                const preFrames = Math.min(this.preBufferFrames, this.frameBuffer.length - 1);
+                this.currentEvent.preBuffer = this.frameBuffer.slice(-preFrames).map(f => ({...f}));
+                
                 this.motionStartTime = timestamp;
-                this.recordingClip = true;
-                
-                // Include 2 seconds before motion started
-                const preMotionFrames = Math.min(this.frameRate * 2, this.frameBuffer.length);
-                this.clipFrames = this.frameBuffer.slice(-preMotionFrames).map(frame => ({...frame}));
-                
                 document.getElementById('lastEvent').textContent = new Date(timestamp).toLocaleTimeString();
             }
 
-            endMotionClip(timestamp) {
-                if (!this.recordingClip) return;
+            addFrameToEvent() {
+                if (!this.currentEvent || this.frameBuffer.length === 0) return;
                 
-                this.motionDetected = false;
-                this.recordingClip = false;
-                
-                // Add 1 second after motion ended
-                const postMotionFrames = Math.min(this.frameRate * 1, this.frameBuffer.length);
-                this.clipFrames.push(...this.frameBuffer.slice(-postMotionFrames));
-                
-                // Save the clip
-                this.saveMotionClip();
+                const latestFrame = this.frameBuffer[this.frameBuffer.length - 1];
+                this.currentEvent.frames.push({...latestFrame});
             }
 
-            saveMotionClip() {
-                if (!this.currentSession || this.clipFrames.length === 0) return;
+            finalizeEvent() {
+                if (!this.currentEvent || !this.currentSession) return;
                 
-                const clipStart = this.clipFrames[0].timestamp;
-                const clipEnd = this.clipFrames[this.clipFrames.length - 1].timestamp;
-                const duration = (clipEnd - clipStart) / 1000;
+                console.log('Finalizing motion event');
                 
-                const clip = {
-                    id: Date.now().toString(),
-                    name: `Motion_${new Date(clipStart).toISOString().replace(/[:.]/g, '-')}`,
-                    timestamp: clipStart,
-                    duration: duration,
-                    frameCount: this.clipFrames.length,
-                    // Store first frame as thumbnail
-                    thumbnail: this.clipFrames[0].imageData,
-                    // For now, just store the first frame. In a real implementation,
-                    // you'd compress or store the full sequence
-                    frames: [this.clipFrames[0].imageData] // Simplified - just thumbnail for now
-                };
+                // Add post-buffer frames
+                const postFrames = Math.min(this.postBufferFrames, this.frameBuffer.length);
+                const postBuffer = this.frameBuffer.slice(-postFrames).map(f => ({...f}));
                 
-                this.currentSession.clips.unshift(clip);
+                // Create final event with all frames
+                const allFrames = [
+                    ...this.currentEvent.preBuffer,
+                    ...this.currentEvent.frames,
+                    ...postBuffer
+                ];
                 
-                // Keep only last 50 clips per session
-                if (this.currentSession.clips.length > 50) {
-                    this.currentSession.clips = this.currentSession.clips.slice(0, 50);
+                if (allFrames.length === 0) {
+                    this.currentEvent = null;
+                    return;
                 }
                 
-                this.clipFrames = [];
+                const endTime = Date.now();
+                const duration = (endTime - this.currentEvent.startTime) / 1000;
+                
+                const event = {
+                    id: this.currentEvent.id,
+                    name: `Motion_${new Date(this.currentEvent.startTime).toISOString().replace(/[:.]/g, '-')}`,
+                    timestamp: this.currentEvent.startTime,
+                    duration: duration,
+                    frameCount: allFrames.length,
+                    thumbnail: allFrames[Math.floor(allFrames.length / 2)].imageData, // Middle frame as thumbnail
+                    frames: allFrames.map(f => f.imageData) // All frames for playback
+                };
+                
+                this.currentSession.events.unshift(event);
+                
+                // Keep only last 20 events per session to manage storage
+                if (this.currentSession.events.length > 20) {
+                    this.currentSession.events = this.currentSession.events.slice(0, 20);
+                }
+                
+                this.currentEvent = null;
+                this.lastEventTime = endTime;
+                this.startCooldown();
+                
                 this.saveSessions();
-                this.displayClips();
+                this.displayEvents();
                 this.updateStats();
                 this.loadSessions();
             }
 
-            displayClips() {
-                if (!this.currentSession || this.currentSession.clips.length === 0) {
-                    this.clipsGrid.innerHTML = '<div class="empty-state">Start recording to capture motion clips</div>';
+            startCooldown() {
+                this.isInCooldown = true;
+                let remainingTime = this.eventCooldown;
+                
+                this.cooldownTimer = setInterval(() => {
+                    remainingTime--;
+                    document.getElementById('cooldownTimer').textContent = `${remainingTime}s`;
+                    
+                    if (remainingTime <= 0) {
+                        this.isInCooldown = false;
+                        document.getElementById('cooldownTimer').textContent = 'Ready';
+                        clearInterval(this.cooldownTimer);
+                        this.motionHistory = []; // Reset motion history after cooldown
+                    }
+                }, 1000);
+            }
+
+            displayEvents() {
+                if (!this.currentSession || this.currentSession.events.length === 0) {
+                    this.clipsGrid.innerHTML = '<div class="empty-state">Start recording to capture motion events</div>';
                     return;
                 }
 
-                this.clipsGrid.innerHTML = this.currentSession.clips.map(clip => `
-                    <div class="clip-item" onclick="openClip('${clip.id}')">
-                        <img src="${clip.thumbnail}" alt="${clip.name}">
+                this.clipsGrid.innerHTML = this.currentSession.events.map(event => `
+                    <div class="clip-item" onclick="openEvent('${event.id}')">
+                        <img src="${event.thumbnail}" alt="${event.name}">
                         <div class="clip-info">
-                            <div class="clip-name">${clip.name}</div>
+                            <div class="clip-name">Event ${this.currentSession.events.indexOf(event) + 1}</div>
                             <div class="clip-details">
-                                ${clip.duration.toFixed(1)}s • ${clip.frameCount} frames<br>
-                                ${new Date(clip.timestamp).toLocaleString()}
+                                Duration: ${event.duration.toFixed(1)}s<br>
+                                Frames: ${event.frameCount}<br>
+                                ${new Date(event.timestamp).toLocaleString()}
                             </div>
                         </div>
                     </div>
@@ -900,10 +1036,10 @@
             clearCurrentSession() {
                 if (!this.currentSession) return;
                 
-                if (confirm('Clear all clips from this session?')) {
-                    this.currentSession.clips = [];
+                if (confirm('Clear all events from this session?')) {
+                    this.currentSession.events = [];
                     this.saveSessions();
-                    this.displayClips();
+                    this.displayEvents();
                     this.updateStats();
                     this.loadSessions();
                 }
@@ -911,17 +1047,8 @@
 
             updateBufferStats() {
                 document.getElementById('bufferStatus').textContent = `${this.frameBuffer.length} frames`;
-                document.getElementById('bufferSize').textContent = this.frameBuffer.length;
-                
-                // Rough memory calculation
-                const bytesPerFrame = this.frameBuffer.length > 0 ? 
-                    this.frameBuffer[0].data.data.length : 0;
-                const totalBytes = bytesPerFrame * this.frameBuffer.length;
-                const megabytes = (totalBytes / (1024 * 1024)).toFixed(1);
-                document.getElementById('memoryUsage').textContent = megabytes;
-                
-                const duration = (this.frameBuffer.length / this.frameRate).toFixed(1);
-                document.getElementById('bufferDuration').textContent = duration;
+                document.getElementById('preBufferFrames').textContent = this.preBufferFrames;
+                document.getElementById('postBufferFrames').textContent = this.postBufferFrames;
             }
 
             updateSessionTime() {
@@ -937,21 +1064,21 @@
             }
 
             updateStats() {
-                const count = this.currentSession ? this.currentSession.clips.length : 0;
-                document.getElementById('clipsCount').textContent = count;
+                const count = this.currentSession ? this.currentSession.events.length : 0;
+                document.getElementById('eventsCount').textContent = count;
                 document.getElementById('totalClips').textContent = count;
             }
 
             saveSessions() {
                 try {
-                    localStorage.setItem('bufferedSessions', JSON.stringify(this.sessions));
+                    localStorage.setItem('fixedSessions', JSON.stringify(this.sessions));
                 } catch (error) {
                     console.error('Error saving sessions:', error);
                     // If storage is full, remove old sessions
-                    if (this.sessions.length > 10) {
-                        this.sessions = this.sessions.slice(0, 10);
+                    if (this.sessions.length > 5) {
+                        this.sessions = this.sessions.slice(0, 5);
                         try {
-                            localStorage.setItem('bufferedSessions', JSON.stringify(this.sessions));
+                            localStorage.setItem('fixedSessions', JSON.stringify(this.sessions));
                         } catch (e) {
                             console.error('Still unable to save:', e);
                         }
@@ -961,33 +1088,101 @@
         }
 
         // Global functions
-        function openClip(clipId) {
+        function openEvent(eventId) {
             const camera = window.camera;
             if (!camera.currentSession) return;
             
-            const clip = camera.currentSession.clips.find(c => c.id === clipId);
-            if (!clip) return;
+            const event = camera.currentSession.events.find(e => e.id === eventId);
+            if (!event) return;
             
             const modal = document.getElementById('clipModal');
-            const modalImage = document.getElementById('modalClipImage');
-            modalImage.src = clip.thumbnail;
-            modal.style.display = 'flex';
+            const modalVideo = document.getElementById('modalClipVideo');
             
-            // Store current clip for export
-            window.currentClip = clip;
+            // Create a video from frames
+            createVideoFromFrames(event.frames, (videoBlob) => {
+                const videoUrl = URL.createObjectURL(videoBlob);
+                modalVideo.src = videoUrl;
+                modal.style.display = 'flex';
+                
+                // Store current event for export/delete
+                window.currentEvent = event;
+                
+                // Clean up URL when modal closes
+                modal.addEventListener('hidden', () => {
+                    URL.revokeObjectURL(videoUrl);
+                }, { once: true });
+            });
+        }
+
+        function createVideoFromFrames(frames, callback) {
+            if (frames.length === 0) return;
+            
+            // For now, create a simple slideshow effect using canvas and MediaRecorder
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 640;
+            canvas.height = 480;
+            
+            const stream = canvas.captureStream(10); // 10 FPS
+            const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            const chunks = [];
+            
+            recorder.ondataavailable = (e) => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                callback(blob);
+            };
+            
+            recorder.start();
+            
+            let frameIndex = 0;
+            const frameInterval = setInterval(() => {
+                if (frameIndex >= frames.length) {
+                    clearInterval(frameInterval);
+                    setTimeout(() => recorder.stop(), 100);
+                    return;
+                }
+                
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                };
+                img.src = frames[frameIndex];
+                frameIndex++;
+            }, 100); // 100ms per frame = 10 FPS
         }
 
         function closeClipModal() {
             document.getElementById('clipModal').style.display = 'none';
+            const modalVideo = document.getElementById('modalClipVideo');
+            modalVideo.src = '';
         }
 
         function exportClip() {
-            if (!window.currentClip) return;
+            if (!window.currentEvent) return;
             
+            const modalVideo = document.getElementById('modalClipVideo');
             const link = document.createElement('a');
-            link.download = `${window.currentClip.name}.jpg`;
-            link.href = window.currentClip.thumbnail;
+            link.download = `${window.currentEvent.name}.webm`;
+            link.href = modalVideo.src;
             link.click();
+        }
+
+        function deleteClip() {
+            if (!window.currentEvent || !window.camera.currentSession) return;
+            
+            if (confirm('Delete this motion event?')) {
+                const eventIndex = window.camera.currentSession.events.findIndex(e => e.id === window.currentEvent.id);
+                if (eventIndex !== -1) {
+                    window.camera.currentSession.events.splice(eventIndex, 1);
+                    window.camera.saveSessions();
+                    window.camera.displayEvents();
+                    window.camera.updateStats();
+                    window.camera.loadSessions();
+                    closeClipModal();
+                }
+            }
         }
 
         // Click outside modal to close
@@ -999,7 +1194,7 @@
 
         // Initialize the camera when page loads
         window.addEventListener('load', () => {
-            window.camera = new BufferedSecurityCamera();
+            window.camera = new FixedSecurityCamera();
         });
     </script>
 </body>
