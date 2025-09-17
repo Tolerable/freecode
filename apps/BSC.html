@@ -640,21 +640,22 @@
 
 			async loadCameras() {
 				try {
-					const devices = await navigator.mediaDevices.enumerateDevices();
-					const cameras = devices.filter(d => d.kind === 'videoinput');
+					// Force browser to ask for permission again by requesting all cameras
+					const allDevices = await navigator.mediaDevices.enumerateDevices();
+					const cameras = allDevices.filter(d => d.kind === 'videoinput');
 					
 					this.cameraSelect.innerHTML = '';
 					
-					// Add default option
 					const defaultOption = document.createElement('option');
 					defaultOption.value = '';
-					defaultOption.textContent = 'Choose a camera...';
+					defaultOption.textContent = 'Select camera to grant permission...';
 					this.cameraSelect.appendChild(defaultOption);
 					
 					cameras.forEach((camera, i) => {
 						const option = document.createElement('option');
 						option.value = camera.deviceId;
-						option.textContent = camera.label || `Camera ${i + 1}`;
+						// Don't rely on cached labels - they'll be generic until permission granted
+						option.textContent = `Camera ${i + 1}`;
 						this.cameraSelect.appendChild(option);
 					});
 				} catch (error) {
@@ -668,19 +669,34 @@
 					this.video.srcObject.getTracks().forEach(track => track.stop());
 				}
 
-				if (!this.cameraSelect.value) {
-					return; // No camera selected
-				}
+				if (!this.cameraSelect.value) return;
 
 				try {
 					const stream = await navigator.mediaDevices.getUserMedia({
-						video: { 
-							deviceId: { exact: this.cameraSelect.value },
-							width: { ideal: 640 },
-							height: { ideal: 480 }
-						}
+						video: { deviceId: { exact: this.cameraSelect.value } }
 					});
 					this.video.srcObject = stream;
+					
+					// After getting permission, update the dropdown with real names
+					const devices = await navigator.mediaDevices.enumerateDevices();
+					const cameras = devices.filter(d => d.kind === 'videoinput');
+					const currentValue = this.cameraSelect.value;
+					
+					this.cameraSelect.innerHTML = '';
+					const defaultOption = document.createElement('option');
+					defaultOption.value = '';
+					defaultOption.textContent = 'Choose a camera...';
+					this.cameraSelect.appendChild(defaultOption);
+					
+					cameras.forEach((camera, i) => {
+						const option = document.createElement('option');
+						option.value = camera.deviceId;
+						option.textContent = camera.label || `Camera ${i + 1}`;
+						if (camera.deviceId === currentValue) {
+							option.selected = true;
+						}
+						this.cameraSelect.appendChild(option);
+					});
 					
 					this.video.onloadedmetadata = () => {
 						this.setupCanvases();
