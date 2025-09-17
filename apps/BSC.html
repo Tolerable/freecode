@@ -860,25 +860,31 @@
                 this.recordingLoop();
             }
 
-            stopRecording() {
-                this.isRecording = false;
-                this.startStopBtn.textContent = 'Start Recording';
-                this.startStopBtn.classList.remove('stop');
-                document.getElementById('recordingStatus').textContent = 'Stopped';
-                
-                if (this.sessionInterval) {
-                    clearInterval(this.sessionInterval);
-                }
-                
-                if (this.cooldownTimer) {
-                    clearInterval(this.cooldownTimer);
-                }
-                
-                // Finalize any ongoing event
-                if (this.currentEvent) {
-                    this.finalizeEvent();
-                }
-            }
+			stopRecording() {
+				this.isRecording = false;
+				this.startStopBtn.textContent = 'Start Recording';
+				this.startStopBtn.classList.remove('stop');
+				document.getElementById('recordingStatus').textContent = 'Stopped';
+				
+				// STOP THE CAMERA STREAM
+				if (this.video.srcObject) {
+					this.video.srcObject.getTracks().forEach(track => track.stop());
+					this.video.srcObject = null;
+				}
+				
+				if (this.sessionInterval) {
+					clearInterval(this.sessionInterval);
+				}
+				
+				if (this.cooldownTimer) {
+					clearInterval(this.cooldownTimer);
+				}
+				
+				// Finalize any ongoing event
+				if (this.currentEvent) {
+					this.finalizeEvent();
+				}
+			}
 
             recordingLoop() {
                 if (!this.isRecording) return;
@@ -1275,6 +1281,27 @@
 			await window.camera.initStorage();
 			await window.camera.loadSessions();
 		});
+		
+		// Cleanup camera on page close
+        window.addEventListener('beforeunload', () => {
+            if (window.camera && window.camera.video.srcObject) {
+                window.camera.video.srcObject.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        window.addEventListener('unload', () => {
+            if (window.camera && window.camera.video.srcObject) {
+                window.camera.video.srcObject.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && window.camera && window.camera.video.srcObject) {
+                window.camera.video.srcObject.getTracks().forEach(track => track.stop());
+                window.camera.video.srcObject = null;
+            }
+        });
+		
     </script>
 </body>
 </html>
