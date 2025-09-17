@@ -638,26 +638,25 @@
                 this.cameraSelect.addEventListener('change', () => this.switchCamera());
             }
 
-            async loadCameras() {
-                try {
-                    const devices = await navigator.mediaDevices.enumerateDevices();
-                    const cameras = devices.filter(d => d.kind === 'videoinput');
-                    
-                    this.cameraSelect.innerHTML = '';
-                    cameras.forEach((camera, i) => {
-                        const option = document.createElement('option');
-                        option.value = camera.deviceId;
-                        option.textContent = camera.label || `Camera ${i + 1}`;
-                        this.cameraSelect.appendChild(option);
-                    });
+			async loadCameras() {
+				try {
+					const devices = await navigator.mediaDevices.enumerateDevices();
+					const cameras = devices.filter(d => d.kind === 'videoinput');
+					
+					this.cameraSelect.innerHTML = '';
+					cameras.forEach((camera, i) => {
+						const option = document.createElement('option');
+						option.value = camera.deviceId;
+						option.textContent = camera.label || `Camera ${i + 1}`;
+						this.cameraSelect.appendChild(option);
+					});
 
-                    if (cameras.length > 0) {
-                        await this.switchCamera();
-                    }
-                } catch (error) {
-                    console.error('Error loading cameras:', error);
-                }
-            }
+					// Don't auto-start any camera - wait for user selection
+				} catch (error) {
+					console.error('Error loading cameras:', error);
+					this.cameraSelect.innerHTML = '<option>Error loading cameras</option>';
+				}
+			}
 
             async switchCamera() {
                 if (this.video.srcObject) {
