@@ -644,42 +644,51 @@
 					const cameras = devices.filter(d => d.kind === 'videoinput');
 					
 					this.cameraSelect.innerHTML = '';
+					
+					// Add default option
+					const defaultOption = document.createElement('option');
+					defaultOption.value = '';
+					defaultOption.textContent = 'Choose a camera...';
+					this.cameraSelect.appendChild(defaultOption);
+					
 					cameras.forEach((camera, i) => {
 						const option = document.createElement('option');
 						option.value = camera.deviceId;
 						option.textContent = camera.label || `Camera ${i + 1}`;
 						this.cameraSelect.appendChild(option);
 					});
-
-					// Don't auto-start any camera - wait for user selection
 				} catch (error) {
 					console.error('Error loading cameras:', error);
 					this.cameraSelect.innerHTML = '<option>Error loading cameras</option>';
 				}
 			}
 
-            async switchCamera() {
-                if (this.video.srcObject) {
-                    this.video.srcObject.getTracks().forEach(track => track.stop());
-                }
+			async switchCamera() {
+				if (this.video.srcObject) {
+					this.video.srcObject.getTracks().forEach(track => track.stop());
+				}
 
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { 
-                            deviceId: this.cameraSelect.value,
-                            width: { ideal: 640 },
-                            height: { ideal: 480 }
-                        }
-                    });
-                    this.video.srcObject = stream;
-                    
-                    this.video.onloadedmetadata = () => {
-                        this.setupCanvases();
-                    };
-                } catch (error) {
-                    console.error('Error switching camera:', error);
-                }
-            }
+				if (!this.cameraSelect.value) {
+					return; // No camera selected
+				}
+
+				try {
+					const stream = await navigator.mediaDevices.getUserMedia({
+						video: { 
+							deviceId: { exact: this.cameraSelect.value },
+							width: { ideal: 640 },
+							height: { ideal: 480 }
+						}
+					});
+					this.video.srcObject = stream;
+					
+					this.video.onloadedmetadata = () => {
+						this.setupCanvases();
+					};
+				} catch (error) {
+					console.error('Error switching camera:', error);
+				}
+			}
 
             setupCanvases() {
                 const width = this.video.videoWidth;
