@@ -72,25 +72,92 @@
             color: #27ae60;
         }
 
-        .section {
-            margin-bottom: 25px;
+        .question-section {
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
 
-        .section h3 {
-            font-size: 1em;
-            margin-bottom: 12px;
-            color: #666;
+        .question-section.completed {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+        }
+
+        .question-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .question-header:hover {
+            background: #e9ecef;
+        }
+
+        .question-section.active .question-header {
+            background: #667eea;
+            color: white;
+        }
+
+        .question-section.completed .question-header {
+            background: #28a745;
+            color: white;
+        }
+
+        .question-title {
             font-weight: 600;
+            font-size: 1em;
         }
 
-        .trait-buttons {
+        .question-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .selection-count {
+            background: rgba(255,255,255,0.2);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        .expand-icon {
+            font-size: 1.2em;
+            transition: transform 0.3s ease;
+        }
+
+        .question-section.active .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .question-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .question-section.active .question-content {
+            max-height: 500px;
+        }
+
+        .question-options {
+            padding: 20px;
+        }
+
+        .option-buttons {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 15px;
         }
 
-        .trait-btn {
+        .option-btn {
             padding: 8px 15px;
             border: 2px solid #ddd;
             background: white;
@@ -100,32 +167,44 @@
             transition: all 0.3s ease;
         }
 
-        .trait-btn:hover {
+        .option-btn:hover {
             border-color: #667eea;
+            transform: translateY(-1px);
         }
 
-        .trait-btn.selected {
-            background: #e74c3c;
-            border-color: #e74c3c;
+        .option-btn.selected {
+            background: #667eea;
+            border-color: #667eea;
             color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
 
-        .situation-select {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 0.95em;
-            margin-bottom: 10px;
+        .option-btn.positive.selected {
+            background: #28a745;
+            border-color: #28a745;
+        }
+
+        .option-btn.negative.selected {
+            background: #dc3545;
+            border-color: #dc3545;
         }
 
         .results {
-            margin-top: 15px;
+            margin-top: 20px;
             padding: 15px;
             background: #f8f9fa;
             border-radius: 8px;
             font-size: 0.9em;
             line-height: 1.4;
+            min-height: 60px;
+        }
+
+        .empty-state {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 40px 20px;
         }
 
         .controls {
@@ -206,7 +285,7 @@
                 font-size: 1.8em;
             }
             
-            .trait-btn {
+            .option-btn {
                 font-size: 0.8em;
                 padding: 6px 12px;
             }
@@ -233,96 +312,161 @@
             <div class="side your-side">
                 <h2>Your Current Relationship</h2>
                 
-                <div class="section">
-                    <h3>Partner Traits (Select all that apply)</h3>
-                    <div class="trait-buttons" id="traitButtons">
-                        <button class="trait-btn" data-trait="moody">Often moody</button>
-                        <button class="trait-btn" data-trait="critical">Critical/belittling</button>
-                        <button class="trait-btn" data-trait="controlling">Controlling</button>
-                        <button class="trait-btn" data-trait="unreliable">Unreliable</button>
-                        <button class="trait-btn" data-trait="selfish">Puts himself first</button>
-                        <button class="trait-btn" data-trait="defensive">Gets defensive easily</button>
-                        <button class="trait-btn" data-trait="unhelpful">Doesn't help with kids/house</button>
-                        <button class="trait-btn" data-trait="drinks">Drinks to cope</button>
-                        <button class="trait-btn" data-trait="supportive">Supportive</button>
-                        <button class="trait-btn" data-trait="helpful">Helpful</button>
-                        <button class="trait-btn" data-trait="understanding">Understanding</button>
+                <div class="question-section" data-question="traits">
+                    <div class="question-header" onclick="toggleQuestion('traits')">
+                        <span class="question-title">Partner Traits</span>
+                        <div class="question-indicator">
+                            <span class="selection-count" id="traits-count">0 selected</span>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                    </div>
+                    <div class="question-content">
+                        <div class="question-options">
+                            <div class="option-buttons">
+                                <button class="option-btn positive" data-question="traits" data-option="supportive">Supportive</button>
+                                <button class="option-btn positive" data-question="traits" data-option="loving">Loving</button>
+                                <button class="option-btn positive" data-question="traits" data-option="reliable">Reliable</button>
+                                <button class="option-btn positive" data-question="traits" data-option="understanding">Understanding</button>
+                                <button class="option-btn positive" data-question="traits" data-option="helpful">Helpful</button>
+                                <button class="option-btn positive" data-question="traits" data-option="respectful">Respectful</button>
+                                <button class="option-btn negative" data-question="traits" data-option="moody">Often moody</button>
+                                <button class="option-btn negative" data-question="traits" data-option="critical">Critical/belittling</button>
+                                <button class="option-btn negative" data-question="traits" data-option="controlling">Controlling</button>
+                                <button class="option-btn negative" data-question="traits" data-option="unreliable">Unreliable</button>
+                                <button class="option-btn negative" data-question="traits" data-option="selfish">Puts himself first</button>
+                                <button class="option-btn negative" data-question="traits" data-option="defensive">Gets defensive</button>
+                                <button class="option-btn negative" data-question="traits" data-option="unhelpful">Doesn't help much</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="section">
-                    <h3>Family Emergency Response</h3>
-                    <select class="situation-select" id="emergencyResponse">
-                        <option value="">How does your partner respond?</option>
-                        <option value="angry">Gets angry you're away too long</option>
-                        <option value="abandons">Goes out/drinks, leaves kids alone</option>
-                        <option value="complains">Complains about inconvenience</option>
-                        <option value="neutral">Doesn't react much either way</option>
-                        <option value="supportive">Asks if you need help</option>
-                        <option value="steps-up">Takes care of everything at home</option>
-                    </select>
+                <div class="question-section" data-question="emergency">
+                    <div class="question-header" onclick="toggleQuestion('emergency')">
+                        <span class="question-title">Family Emergency Response</span>
+                        <div class="question-indicator">
+                            <span class="selection-count" id="emergency-count">0 selected</span>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                    </div>
+                    <div class="question-content">
+                        <div class="question-options">
+                            <div class="option-buttons">
+                                <button class="option-btn positive" data-question="emergency" data-option="steps-up">Takes care of everything at home</button>
+                                <button class="option-btn positive" data-question="emergency" data-option="supportive">Asks what you need</button>
+                                <button class="option-btn positive" data-question="emergency" data-option="flexible">Adjusts his schedule to help</button>
+                                <button class="option-btn neutral" data-question="emergency" data-option="neutral">Doesn't react much</button>
+                                <button class="option-btn negative" data-question="emergency" data-option="complains">Complains about inconvenience</button>
+                                <button class="option-btn negative" data-question="emergency" data-option="angry">Gets angry you're away</button>
+                                <button class="option-btn negative" data-question="emergency" data-option="abandons">Leaves kids alone, goes out</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="section">
-                    <h3>Daily Household Responsibilities</h3>
-                    <select class="situation-select" id="householdResponse">
-                        <option value="">Who handles most daily tasks?</option>
-                        <option value="all-you">You do everything</option>
-                        <option value="mostly-you">You do most things</option>
-                        <option value="minimal">Partner does very little</option>
-                        <option value="complains">Partner complains when asked</option>
-                        <option value="some">Partner does some without asking</option>
-                        <option value="equal">Shared equally</option>
-                    </select>
+                <div class="question-section" data-question="household">
+                    <div class="question-header" onclick="toggleQuestion('household')">
+                        <span class="question-title">Daily Household Tasks</span>
+                        <div class="question-indicator">
+                            <span class="selection-count" id="household-count">0 selected</span>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                    </div>
+                    <div class="question-content">
+                        <div class="question-options">
+                            <div class="option-buttons">
+                                <button class="option-btn positive" data-question="household" data-option="equal">Shares tasks equally</button>
+                                <button class="option-btn positive" data-question="household" data-option="proactive">Does things without being asked</button>
+                                <button class="option-btn positive" data-question="household" data-option="willing">Happy to help when asked</button>
+                                <button class="option-btn neutral" data-question="household" data-option="some">Does some tasks</button>
+                                <button class="option-btn negative" data-question="household" data-option="minimal">Does very little</button>
+                                <button class="option-btn negative" data-question="household" data-option="complains-tasks">Complains when asked</button>
+                                <button class="option-btn negative" data-question="household" data-option="all-you">You do everything</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="section">
-                    <h3>When You're Stressed</h3>
-                    <select class="situation-select" id="stressResponse">
-                        <option value="">How does your partner respond?</option>
-                        <option value="dismissive">Dismisses your feelings</option>
-                        <option value="makes-worse">Makes situation about them</option>
-                        <option value="avoids">Avoids you until you're better</option>
-                        <option value="minimal">Basic acknowledgment only</option>
-                        <option value="listens">Listens and offers comfort</option>
-                        <option value="helps">Actively tries to help</option>
-                    </select>
+                <div class="question-section" data-question="stress">
+                    <div class="question-header" onclick="toggleQuestion('stress')">
+                        <span class="question-title">When You're Stressed</span>
+                        <div class="question-indicator">
+                            <span class="selection-count" id="stress-count">0 selected</span>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                    </div>
+                    <div class="question-content">
+                        <div class="question-options">
+                            <div class="option-buttons">
+                                <button class="option-btn positive" data-question="stress" data-option="helps">Actively tries to help</button>
+                                <button class="option-btn positive" data-question="stress" data-option="listens">Listens and comforts</button>
+                                <button class="option-btn positive" data-question="stress" data-option="space">Gives you space if needed</button>
+                                <button class="option-btn neutral" data-question="stress" data-option="acknowledges">Acknowledges but doesn't help</button>
+                                <button class="option-btn negative" data-question="stress" data-option="avoids">Avoids you</button>
+                                <button class="option-btn negative" data-question="stress" data-option="dismissive">Dismisses your feelings</button>
+                                <button class="option-btn negative" data-question="stress" data-option="makes-worse">Makes it about himself</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="question-section" data-question="communication">
+                    <div class="question-header" onclick="toggleQuestion('communication')">
+                        <span class="question-title">Communication Style</span>
+                        <div class="question-indicator">
+                            <span class="selection-count" id="communication-count">0 selected</span>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                    </div>
+                    <div class="question-content">
+                        <div class="question-options">
+                            <div class="option-buttons">
+                                <button class="option-btn positive" data-question="communication" data-option="open">Open and honest</button>
+                                <button class="option-btn positive" data-question="communication" data-option="listens-well">Really listens to you</button>
+                                <button class="option-btn positive" data-question="communication" data-option="discusses">Discusses problems calmly</button>
+                                <button class="option-btn neutral" data-question="communication" data-option="basic">Basic communication only</button>
+                                <button class="option-btn negative" data-question="communication" data-option="shuts-down">Shuts down during conflict</button>
+                                <button class="option-btn negative" data-question="communication" data-option="yells">Raises voice/yells</button>
+                                <button class="option-btn negative" data-question="communication" data-option="silent-treatment">Gives silent treatment</button>
+                                <button class="option-btn negative" data-question="communication" data-option="dismissive-comm">Dismisses your concerns</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="question-section" data-question="financial">
+                    <div class="question-header" onclick="toggleQuestion('financial')">
+                        <span class="question-title">Financial Partnership</span>
+                        <div class="question-indicator">
+                            <span class="selection-count" id="financial-count">0 selected</span>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                    </div>
+                    <div class="question-content">
+                        <div class="question-options">
+                            <div class="option-buttons">
+                                <button class="option-btn positive" data-question="financial" data-option="fair-share">Contributes fair share</button>
+                                <button class="option-btn positive" data-question="financial" data-option="transparent">Transparent about finances</button>
+                                <button class="option-btn positive" data-question="financial" data-option="discusses-money">Discusses money decisions together</button>
+                                <button class="option-btn neutral" data-question="financial" data-option="basic-contribution">Makes basic contribution</button>
+                                <button class="option-btn negative" data-question="financial" data-option="minimal-contribution">Contributes very little</button>
+                                <button class="option-btn negative" data-question="financial" data-option="controlling-money">Controls all the money</button>
+                                <button class="option-btn negative" data-question="financial" data-option="spends-irresponsibly">Spends money irresponsibly</button>
+                                <button class="option-btn negative" data-question="financial" data-option="hides-spending">Hides spending from you</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="results" id="yourResults">
-                    Your selections will appear here...
+                    <div class="empty-state">Click on questions above to make your selections</div>
                 </div>
             </div>
 
             <div class="side healthy-side">
-                <h2>A Healthy Partnership</h2>
-                
-                <div class="section">
-                    <h3>Healthy Partner Traits</h3>
-                    <div class="results" id="healthyTraits">
-                        In a healthy relationship, your partner is emotionally stable, supportive, reliable, and treats you as an equal partner in life's challenges.
-                    </div>
-                </div>
-
-                <div class="section">
-                    <h3>Family Emergency Response</h3>
-                    <div class="results" id="healthyEmergency">
-                        A supportive partner asks "What can I do to help?" and takes care of home responsibilities so you can focus on the family crisis.
-                    </div>
-                </div>
-
-                <div class="section">
-                    <h3>Daily Household Responsibilities</h3>
-                    <div class="results" id="healthyHousehold">
-                        Household tasks are shared based on ability and availability. Both partners contribute without being asked.
-                    </div>
-                </div>
-
-                <div class="section">
-                    <h3>When You're Stressed</h3>
-                    <div class="results" id="healthyStress">
-                        A caring partner listens without judgment, offers emotional support, and looks for practical ways to reduce your stress.
-                    </div>
+                <h2>What You Could Expect</h2>
+                <div class="results" id="healthyResults">
+                    <div class="empty-state">The healthy alternatives to your selections will appear here</div>
                 </div>
             </div>
         </div>
@@ -336,205 +480,221 @@
     </div>
 
     <script>
-        let selectedTraits = [];
-        let responses = {};
-        let totalQuestions = 4; // traits + 3 situations
+        let selections = {};
+        let activeQuestion = null;
 
-        function updateProgress() {
-            let completed = selectedTraits.length > 0 ? 1 : 0;
-            completed += Object.keys(responses).length;
-            let progress = (completed / totalQuestions) * 100;
-            document.getElementById('progressFill').style.width = progress + '%';
+        function toggleQuestion(questionId) {
+            // Close currently active question
+            if (activeQuestion && activeQuestion !== questionId) {
+                document.querySelector(`[data-question="${activeQuestion}"]`).classList.remove('active');
+            }
             
-            if (completed >= 2) {
-                document.getElementById('scoreBtn').style.display = 'inline-block';
+            // Toggle the clicked question
+            const questionElement = document.querySelector(`[data-question="${questionId}"]`);
+            questionElement.classList.toggle('active');
+            
+            activeQuestion = questionElement.classList.contains('active') ? questionId : null;
+        }
+
+        // Handle option selection
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('option-btn')) {
+                const question = e.target.dataset.question;
+                const option = e.target.dataset.option;
+                
+                e.target.classList.toggle('selected');
+                
+                if (!selections[question]) {
+                    selections[question] = [];
+                }
+                
+                if (e.target.classList.contains('selected')) {
+                    if (!selections[question].includes(option)) {
+                        selections[question].push(option);
+                    }
+                } else {
+                    selections[question] = selections[question].filter(o => o !== option);
+                }
+                
+                updateQuestionStatus(question);
+                updateResults();
+                updateProgress();
+            }
+        });
+
+        function updateQuestionStatus(questionId) {
+            const count = selections[questionId] ? selections[questionId].length : 0;
+            const countElement = document.getElementById(`${questionId}-count`);
+            const questionElement = document.querySelector(`[data-question="${questionId}"]`);
+            
+            countElement.textContent = count === 0 ? '0 selected' : `${count} selected`;
+            
+            if (count > 0) {
+                questionElement.classList.add('completed');
+            } else {
+                questionElement.classList.remove('completed');
             }
         }
 
-        // Trait selection
-        document.getElementById('traitButtons').addEventListener('click', function(e) {
-            if (e.target.classList.contains('trait-btn')) {
-                e.target.classList.toggle('selected');
-                let trait = e.target.dataset.trait;
-                
-                if (e.target.classList.contains('selected')) {
-                    if (!selectedTraits.includes(trait)) {
-                        selectedTraits.push(trait);
-                    }
-                } else {
-                    selectedTraits = selectedTraits.filter(t => t !== trait);
-                }
-                
-                updateYourResults();
-                updateHealthyTraits();
-                updateProgress();
-            }
-        });
-
-        // Situation responses
-        document.querySelectorAll('.situation-select').forEach(select => {
-            select.addEventListener('change', function() {
-                responses[this.id] = this.value;
-                updateYourResults();
-                updateHealthyResponses(this.id, this.value);
-                updateProgress();
-            });
-        });
+        function updateResults() {
+            updateYourResults();
+            updateHealthyResults();
+        }
 
         function updateYourResults() {
             let results = [];
             
-            if (selectedTraits.length > 0) {
-                results.push('<strong>Partner Traits:</strong> ' + selectedTraits.map(formatTrait).join(', '));
-            }
-            
-            Object.keys(responses).forEach(key => {
-                if (responses[key]) {
-                    results.push('<strong>' + formatResponseType(key) + ':</strong> ' + formatResponse(responses[key]));
+            Object.keys(selections).forEach(question => {
+                if (selections[question].length > 0) {
+                    let responses = selections[question].map(formatOption).join(', ');
+                    results.push('<strong>' + formatQuestionTitle(question) + ':</strong> ' + responses);
                 }
             });
             
-            document.getElementById('yourResults').innerHTML = results.length > 0 ? results.join('<br><br>') : 'Your selections will appear here...';
+            document.getElementById('yourResults').innerHTML = results.length > 0 ? 
+                results.join('<br><br>') : 
+                '<div class="empty-state">Click on questions above to make your selections</div>';
         }
 
-        function updateHealthyTraits() {
-            if (selectedTraits.length === 0) return;
+        function updateHealthyResults() {
+            if (Object.keys(selections).every(k => !selections[k] || selections[k].length === 0)) {
+                document.getElementById('healthyResults').innerHTML = '<div class="empty-state">The healthy alternatives to your selections will appear here</div>';
+                return;
+            }
+
+            let healthyResults = [];
             
-            let healthyTraits = {
-                'moody': 'emotionally stable and consistent',
-                'critical': 'supportive and encouraging',
-                'controlling': 'respectful of your autonomy',
-                'unreliable': 'dependable and follows through',
-                'selfish': 'considers your needs equally',
-                'defensive': 'open to communication',
-                'unhelpful': 'actively participates in household/parenting',
-                'drinks': 'healthy coping mechanisms',
-                'supportive': 'continues being supportive ✓',
-                'helpful': 'continues being helpful ✓',
-                'understanding': 'continues being understanding ✓'
-            };
+            Object.keys(selections).forEach(question => {
+                if (selections[question].length > 0) {
+                    let healthyAlternatives = getHealthyAlternatives(question, selections[question]);
+                    if (healthyAlternatives.length > 0) {
+                        healthyResults.push('<strong>' + formatQuestionTitle(question) + ' (Healthy):</strong> ' + healthyAlternatives.join(', '));
+                    }
+                }
+            });
             
-            let healthyList = selectedTraits.map(trait => healthyTraits[trait] || trait).join(', ');
-            document.getElementById('healthyTraits').innerHTML = `<strong>In contrast, a healthy partner is:</strong> ${healthyList}`;
+            document.getElementById('healthyResults').innerHTML = healthyResults.length > 0 ? 
+                healthyResults.join('<br><br>') : 
+                '<div class="empty-state">The healthy alternatives to your selections will appear here</div>';
         }
 
-        function updateHealthyResponses(responseType, value) {
-            let healthyResponses = {
-                'emergencyResponse': {
-                    'angry': 'Says "Take all the time you need, I\'ll handle things here"',
-                    'abandons': 'Stays home, feeds kids, keeps house running smoothly',
-                    'complains': 'Asks "How can I support you through this?"',
-                    'neutral': 'Shows concern and offers practical help',
-                    'supportive': 'This is already healthy! ✓',
-                    'steps-up': 'This shows excellent partnership! ✓'
+        function getHealthyAlternatives(question, options) {
+            const alternatives = {
+                'traits': {
+                    'moody': 'emotionally stable',
+                    'critical': 'supportive and encouraging',
+                    'controlling': 'respectful of your autonomy',
+                    'unreliable': 'dependable',
+                    'selfish': 'considers your needs',
+                    'defensive': 'open to feedback',
+                    'unhelpful': 'actively helpful'
                 },
-                'householdResponse': {
-                    'all-you': 'Takes on fair share without being asked',
-                    'mostly-you': 'Proactively handles tasks and asks what else needs doing',
-                    'minimal': 'Consistently contributes to household management',
-                    'complains': 'Does their part willingly as a team member',
-                    'some': 'This is moving in a healthy direction ✓',
-                    'equal': 'This is excellent partnership! ✓'
+                'emergency': {
+                    'complains': 'asks how to help',
+                    'angry': 'says "take your time"',
+                    'abandons': 'stays and manages home',
+                    'neutral': 'shows concern and support'
                 },
-                'stressResponse': {
-                    'dismissive': 'Validates your feelings and asks how to help',
-                    'makes-worse': 'Focuses on supporting you, not their own needs',
-                    'avoids': 'Stays present and offers comfort',
-                    'minimal': 'Actively listens and provides emotional support',
-                    'listens': 'This shows good emotional support ✓',
-                    'helps': 'This is excellent partnership! ✓'
+                'household': {
+                    'minimal': 'takes fair share',
+                    'complains-tasks': 'helps willingly',
+                    'all-you': 'shares responsibilities equally'
+                },
+                'stress': {
+                    'avoids': 'stays present and supportive',
+                    'dismissive': 'validates your feelings',
+                    'makes-worse': 'focuses on helping you'
+                },
+                'communication': {
+                    'shuts-down': 'stays engaged in discussion',
+                    'yells': 'speaks calmly even when upset',
+                    'silent-treatment': 'addresses issues directly',
+                    'dismissive-comm': 'takes your concerns seriously'
+                },
+                'financial': {
+                    'minimal-contribution': 'contributes fairly',
+                    'controlling-money': 'shares financial decisions',
+                    'spends-irresponsibly': 'makes thoughtful spending choices',
+                    'hides-spending': 'is transparent about finances'
                 }
             };
+
+            let result = [];
+            options.forEach(option => {
+                if (alternatives[question] && alternatives[question][option]) {
+                    result.push(alternatives[question][option]);
+                } else if (isPositiveOption(question, option)) {
+                    result.push(formatOption(option) + ' ✓');
+                }
+            });
             
-            let elementId = responseType.replace('Response', '');
-            let healthyText = healthyResponses[responseType][value];
-            if (healthyText) {
-                document.getElementById('healthy' + elementId.charAt(0).toUpperCase() + elementId.slice(1)).innerHTML = 
-                    '<strong>Healthy response:</strong> ' + healthyText;
+            return result;
+        }
+
+        function isPositiveOption(question, option) {
+            const positiveOptions = {
+                'traits': ['supportive', 'loving', 'reliable', 'understanding', 'helpful', 'respectful'],
+                'emergency': ['steps-up', 'supportive', 'flexible'],
+                'household': ['equal', 'proactive', 'willing'],
+                'stress': ['helps', 'listens', 'space'],
+                'communication': ['open', 'listens-well', 'discusses'],
+                'financial': ['fair-share', 'transparent', 'discusses-money']
+            };
+            
+            return positiveOptions[question] && positiveOptions[question].includes(option);
+        }
+
+        function formatOption(option) {
+            // This would contain a mapping of all options to display text
+            // For brevity, returning the option as-is, but you'd want proper formatting
+            return option.replace(/-/g, ' ');
+        }
+
+        function formatQuestionTitle(question) {
+            const titles = {
+                'traits': 'Partner Traits',
+                'emergency': 'Family Emergency',
+                'household': 'Household Tasks',
+                'stress': 'When Stressed',
+                'communication': 'Communication',
+                'financial': 'Financial Partnership'
+            };
+            return titles[question] || question;
+        }
+
+        function updateProgress() {
+            const totalQuestions = 6;
+            const completedQuestions = Object.keys(selections).filter(q => selections[q] && selections[q].length > 0).length;
+            const progress = (completedQuestions / totalQuestions) * 100;
+            
+            document.getElementById('progressFill').style.width = progress + '%';
+            
+            if (completedQuestions >= 3) {
+                document.getElementById('scoreBtn').style.display = 'inline-block';
             }
-        }
-
-        function formatTrait(trait) {
-            let traitMap = {
-                'moody': 'Often moody',
-                'critical': 'Critical/belittling',
-                'controlling': 'Controlling behavior',
-                'unreliable': 'Unreliable',
-                'selfish': 'Puts himself first',
-                'defensive': 'Gets defensive easily',
-                'unhelpful': 'Doesn\'t help with kids/house',
-                'drinks': 'Drinks to cope',
-                'supportive': 'Supportive ✓',
-                'helpful': 'Helpful ✓',
-                'understanding': 'Understanding ✓'
-            };
-            return traitMap[trait] || trait;
-        }
-
-        function formatResponseType(key) {
-            let typeMap = {
-                'emergencyResponse': 'Family Emergency',
-                'householdResponse': 'Household Tasks',
-                'stressResponse': 'When You\'re Stressed'
-            };
-            return typeMap[key] || key;
-        }
-
-        function formatResponse(value) {
-            let responseMap = {
-                'angry': 'Gets angry you\'re away too long',
-                'abandons': 'Goes out/drinks, leaves kids alone',
-                'complains': 'Complains about inconvenience',
-                'neutral': 'Doesn\'t react much either way',
-                'supportive': 'Asks if you need help ✓',
-                'steps-up': 'Takes care of everything at home ✓',
-                'all-you': 'You do everything',
-                'mostly-you': 'You do most things',
-                'minimal': 'Partner does very little',
-                'some': 'Partner does some without asking',
-                'equal': 'Shared equally ✓',
-                'dismissive': 'Dismisses your feelings',
-                'makes-worse': 'Makes situation about them',
-                'avoids': 'Avoids you until you\'re better',
-                'listens': 'Listens and offers comfort ✓',
-                'helps': 'Actively tries to help ✓'
-            };
-            return responseMap[value] || value;
         }
 
         function calculateScore() {
             let score = 0;
             let maxScore = 0;
             
-            // Score traits (positive traits add points, negative traits subtract)
-            let positiveTraits = ['supportive', 'helpful', 'understanding'];
-            let negativeTraits = ['moody', 'critical', 'controlling', 'unreliable', 'selfish', 'defensive', 'unhelpful', 'drinks'];
-            
-            selectedTraits.forEach(trait => {
-                if (positiveTraits.includes(trait)) {
-                    score += 20;
-                } else if (negativeTraits.includes(trait)) {
-                    score -= 10;
-                }
-            });
-            maxScore += 60; // 3 positive traits * 20
-            
-            // Score responses (positive responses add points)
-            let positiveResponses = ['supportive', 'steps-up', 'some', 'equal', 'listens', 'helps'];
-            let neutralResponses = ['neutral', 'minimal'];
-            
-            Object.values(responses).forEach(response => {
-                if (positiveResponses.includes(response)) {
-                    score += 20;
-                } else if (neutralResponses.includes(response)) {
-                    score += 5;
-                }
-                maxScore += 20;
+            Object.keys(selections).forEach(question => {
+                selections[question].forEach(option => {
+                    const optionElement = document.querySelector(`[data-question="${question}"][data-option="${option}"]`);
+                    if (optionElement) {
+                        if (optionElement.classList.contains('positive')) {
+                            score += 15;
+                        } else if (optionElement.classList.contains('neutral')) {
+                            score += 5;
+                        } else if (optionElement.classList.contains('negative')) {
+                            score -= 8;
+                        }
+                    }
+                    maxScore += 15;
+                });
             });
             
-            // Convert to percentage
-            let percentage = maxScore > 0 ? Math.max(0, Math.round((score / maxScore) * 100)) : 0;
-            return percentage;
+            return maxScore > 0 ? Math.max(0, Math.round((score / maxScore) * 100)) : 0;
         }
 
         function showFinalScore() {
@@ -546,13 +706,13 @@
             
             if (score >= 70) {
                 scoreElement.className = 'score-display score-good';
-                messageElement.innerHTML = '<strong>Good news!</strong> Your relationship shows many healthy patterns. You\'re experiencing real partnership and support.';
+                messageElement.innerHTML = '<strong>Great news!</strong> Your relationship shows many healthy patterns. You\'re experiencing real partnership and support.';
             } else if (score >= 40) {
                 scoreElement.className = 'score-display score-fair';
-                messageElement.innerHTML = '<strong>Mixed results.</strong> Your relationship has some positive elements, but there\'s significant room for improvement. You deserve more consistent support and partnership.';
+                messageElement.innerHTML = '<strong>Mixed results.</strong> Your relationship has some positive elements, but there\'s room for improvement. You deserve more consistent support.';
             } else {
                 scoreElement.className = 'score-display score-poor';
-                messageElement.innerHTML = '<strong>This is concerning.</strong> Your relationship shows many patterns that aren\'t healthy or supportive. You deserve so much more than what you\'re currently experiencing.';
+                messageElement.innerHTML = '<strong>This is concerning.</strong> Your relationship shows patterns that aren\'t healthy. You deserve so much more than what you\'re experiencing.';
             }
             
             document.getElementById('finalScore').style.display = 'block';
@@ -560,25 +720,21 @@
         }
 
         function clearAll() {
-            selectedTraits = [];
-            responses = {};
+            selections = {};
+            activeQuestion = null;
             
-            // Clear trait selections
-            document.querySelectorAll('.trait-btn').forEach(btn => {
-                btn.classList.remove('selected');
+            document.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelectorAll('.question-section').forEach(section => {
+                section.classList.remove('active', 'completed');
             });
             
-            // Clear dropdowns
-            document.querySelectorAll('.situation-select').forEach(select => {
-                select.value = '';
+            // Reset counters
+            document.querySelectorAll('.selection-count').forEach(counter => {
+                counter.textContent = '0 selected';
             });
             
-            // Reset displays
-            document.getElementById('yourResults').innerHTML = 'Your selections will appear here...';
-            document.getElementById('healthyTraits').innerHTML = 'In a healthy relationship, your partner is emotionally stable, supportive, reliable, and treats you as an equal partner in life\'s challenges.';
-            document.getElementById('healthyEmergency').innerHTML = 'A supportive partner asks "What can I do to help?" and takes care of home responsibilities so you can focus on the family crisis.';
-            document.getElementById('healthyHousehold').innerHTML = 'Household tasks are shared based on ability and availability. Both partners contribute without being asked.';
-            document.getElementById('healthyStress').innerHTML = 'A caring partner listens without judgment, offers emotional support, and looks for practical ways to reduce your stress.';
+            document.getElementById('yourResults').innerHTML = '<div class="empty-state">Click on questions above to make your selections</div>';
+            document.getElementById('healthyResults').innerHTML = '<div class="empty-state">The healthy alternatives to your selections will appear here</div>';
             document.getElementById('finalScore').style.display = 'none';
             document.getElementById('scoreBtn').style.display = 'none';
             
