@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitten Civilization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: #ecf0f1;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 250px 1fr 250px;
+            gap: 20px;
+            min-height: calc(100vh - 40px);
+        }
+
+        .panel {
+            background: rgba(52, 73, 94, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #3498db;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .main-panel {
+            background: rgba(44, 62, 80, 0.9);
+        }
+
+        h1 {
+            text-align: center;
+            color: #f39c12;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        h2 {
+            color: #e74c3c;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e74c3c;
+            padding-bottom: 5px;
+        }
+
+        h3 {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+
+        .resource {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(0,0,0,0.3);
+            border-radius: 5px;
+            border-left: 4px solid #27ae60;
+        }
+
+        .resource-name {
+            font-weight: bold;
+        }
+
+        .resource-amount {
+            color: #2ecc71;
+            font-family: 'Courier New', monospace;
+        }
+
+        .production-rate {
+            color: #f1c40f;
+            font-size: 0.8em;
+            font-style: italic;
+        }
+
+        .action-button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .action-button:active {
+            transform: translateY(0);
+        }
+
+        .action-button:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .building-button {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+        }
+
+        .building-button:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(230, 126, 34, 0.4);
+        }
+
+        .tech-button {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        }
+
+        .tech-button:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+        }
+
+        .religion-button {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+
+        .religion-button:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+        }
+
+        .cost-display {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .building-item, .tech-item, .religion-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+
+        .building-item {
+            border-left-color: #e67e22;
+        }
+
+        .tech-item {
+            border-left-color: #9b59b6;
+        }
+
+        .religion-item {
+            border-left-color: #f39c12;
+        }
+
+        .tab-container {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #34495e;
+        }
+
+        .tab {
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.3);
+            color: #bdc3c7;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .tab:first-child {
+            border-radius: 5px 0 0 0;
+        }
+
+        .tab:last-child {
+            border-radius: 0 5px 0 0;
+        }
+
+        .tab.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .achievement {
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(46, 204, 113, 0.2);
+            border-radius: 5px;
+            border-left: 4px solid #2ecc71;
+            font-size: 12px;
+        }
+
+        .achievement.new {
+            animation: achievementPop 0.5s ease-out;
+        }
+
+        @keyframes achievementPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .log-entry {
+            padding: 5px;
+            margin: 2px 0;
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
+            font-size: 12px;
+            border-left: 3px solid #3498db;
+        }
+
+        .save-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .save-button {
+            padding: 8px 15px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .save-button:hover {
+            background: #2ecc71;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="save-controls">
+        <button class="save-button" onclick="saveGame()">Save Game</button>
+        <button class="save-button" onclick="loadGame()">Load Game</button>
+        <button class="save-button" onclick="resetGame()">Reset Game</button>
+    </div>
+
+    <div class="container">
+        <!-- Left Panel: Resources -->
+        <div class="panel">
+            <h2>Resources</h2>
+            <div id="resources">
+                <div class="resource">
+                    <span class="resource-name">Catnip</span>
+                    <div>
+                        <span class="resource-amount" id="catnip-amount">0</span>
+                        <div class="production-rate" id="catnip-rate">+0.0/sec</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Population</h3>
+            <div class="resource">
+                <span class="resource-name">Kittens</span>
+                <span class="resource-amount" id="kittens-amount">1</span>
+            </div>
+            <div class="resource">
+                <span class="resource-name">Happiness</span>
+                <span class="resource-amount" id="happiness-amount">100%</span>
+            </div>
+
+            <h3>Recent Achievements</h3>
+            <div id="achievements-list"></div>
+        </div>
+
+        <!-- Main Panel: Actions and Buildings -->
+        <div class="panel main-panel">
+            <h1>🐱 Kitten Civilization 🐱</h1>
+            
+            <div class="tab-container">
+                <button class="tab active" onclick="showTab('gather')">Gather</button>
+                <button class="tab" onclick="showTab('buildings')">Buildings</button>
+                <button class="tab" onclick="showTab('technology')">Technology</button>
+                <button class="tab" onclick="showTab('religion')">Religion</button>
+                <button class="tab" onclick="showTab('trade')">Trade</button>
+            </div>
+
+            <!-- Gathering Tab -->
+            <div id="gather-tab" class="tab-content active">
+                <h3>Basic Actions</h3>
+                <button class="action-button" onclick="gatherCatnip()">
+                    Gather catnip
+                    <div class="cost-display">Gather some catnip from the forest</div>
+                </button>
+                
+                <button class="action-button hidden" id="refine-catnip-btn" onclick="refineCatnip()">
+                    Refine catnip
+                    <div class="cost-display">Turn 1 catnip into catnip wood (Cost: 100 catnip)</div>
+                </button>
+
+                <button class="action-button hidden" id="hunt-btn" onclick="hunt()">
+                    Send hunters
+                    <div class="cost-display">Hunt for furs and ivory</div>
+                </button>
+
+                <button class="action-button hidden" id="observe-stars-btn" onclick="observeStars()">
+                    Observe the sky
+                    <div class="cost-display">Study the stars for science</div>
+                </button>
+            </div>
+
+            <!-- Buildings Tab -->
+            <div id="buildings-tab" class="tab-content">
+                <h3>Buildings</h3>
+                <div id="buildings-list">
+                    <!-- Buildings will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Technology Tab -->
+            <div id="technology-tab" class="tab-content">
+                <h3>Research</h3>
+                <div id="tech-list">
+                    <!-- Technologies will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Religion Tab -->
+            <div id="religion-tab" class="tab-content">
+                <h3>Spiritual Development</h3>
+                <div id="religion-list">
+                    <!-- Religious options will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Trade Tab -->
+            <div id="trade-tab" class="tab-content">
+                <h3>Trading Post</h3>
+                <p>Build a trading post to unlock trade with other civilizations...</p>
+            </div>
+        </div>
+
+        <!-- Right Panel: Log and Status -->
+        <div class="panel">
+            <h2>Civilization Status</h2>
+            <div id="status-info">
+                <p><strong>Season:</strong> <span id="current-season">Spring</span></p>
+                <p><strong>Year:</strong> <span id="current-year">1</span></p>
+                <p><strong>Faith:</strong> <span id="faith-amount">0</span></p>
+                <p><strong>Science:</strong> <span id="science-amount">0</span></p>
+            </div>
+
+            <h3>Activity Log</h3>
+            <div id="game-log">
+                <div class="log-entry">Welcome to your kitten civilization! Click 'Gather catnip' to begin.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            resources: {
+                catnip: 0,
+                wood: 0,
+                minerals: 0,
+                coal: 0,
+                iron: 0,
+                gold: 0,
+                science: 0,
+                faith: 0,
+                furs: 0,
+                ivory: 0,
+                unicorns: 0
+            },
+            resourcesProduction: {
+                catnip: 0,
+                wood: 0,
+                science: 0,
+                faith: 0
+            },
+            population: {
+                kittens: 1,
+                happiness: 1.0,
+                engineers: 0,
+                farmers: 0,
+                scholars: 0,
+                priests: 0,
+                hunters: 0
+            },
+            buildings: {
+                hut: 0,
+                logHouse: 0,
+                mansion: 0,
+                library: 0,
+                temple: 0,
+                workshop: 0,
+                barn: 0,
+                warehouse: 0,
+                mine: 0,
+                quarry: 0,
+                tradingPost: 0,
+                observatory: 0,
+                academy: 0
+            },
+            technologies: {
+                agriculture: false,
+                archery: false,
+                mining: false,
+                metalWorking: false,
+                construction: false,
+                engineering: false,
+                astronomy: false,
+                theology: false,
+                philosophy: false,
+                mathematics: false,
+                optics: false,
+                physics: false
+            },
+            religion: {
+                faithLevel: 0,
+                solarRevolution: false,
+                scholasticism: false,
+                goldenRatio: false,
+                sunAltar: 0,
+                moonAltar: 0,
+                transcendence: 0
+            },
+            stats: {
+                totalCatnipGathered: 0,
+                totalCatnipRefined: 0,
+                timePlayed: 0,
+                achievements: [],
+                season: 0, // 0=spring, 1=summer, 2=autumn, 3=winter
+                year: 1,
+                gatherClicks: 0
+            }
+        };
+
+        // Building Definitions
+        const buildingDefs = {
+            hut: {
+                name: "Hut",
+                description: "A small hut for kittens",
+                cost: { wood: 5 },
+                effect: "Houses 2 kittens",
+                unlocked: () => gameState.resources.wood >= 1,
+                onBuild: () => { gameState.population.kittens += 2; }
+            },
+            logHouse: {
+                name: "Log House",
+                description: "A sturdy log house",
+                cost: { wood: 200, minerals: 250 },
+                effect: "Houses 6 kittens, +1 happiness",
+                unlocked: () => gameState.technologies.construction,
+                onBuild: () => { 
+                    gameState.population.kittens += 6; 
+                    gameState.population.happiness += 0.1;
+                }
+            },
+            library: {
+                name: "Library", 
+                description: "A place of learning",
+                cost: { wood: 25 },
+                effect: "+0.1 science per second",
+                unlocked: () => gameState.resources.science >= 5,
+                onBuild: () => { gameState.resourcesProduction.science += 0.1; }
+            },
+            temple: {
+                name: "Temple",
+                description: "A place of worship to Babs",
+                cost: { wood: 50, gold: 10 },
+                effect: "+0.1 faith per second",
+                unlocked: () => gameState.resources.faith >= 1,
+                onBuild: () => { gameState.resourcesProduction.faith += 0.1; }
+            },
+            workshop: {
+                name: "Workshop",
+                description: "Crafting building",
+                cost: { wood: 100, minerals: 100 },
+                effect: "Enables advanced crafting",
+                unlocked: () => gameState.technologies.engineering,
+                onBuild: () => { showElement('refine-catnip-btn'); }
+            },
+            barn: {
+                name: "Barn",
+                description: "Stores catnip",
+                cost: { wood: 50 },
+                effect: "+5000 catnip storage",
+                unlocked: () => gameState.resources.catnip >= 1000,
+                onBuild: () => { /* Storage handled automatically */ }
+            },
+            mine: {
+                name: "Mine",
+                description: "Extracts minerals and coal",
+                cost: { wood: 100 },
+                effect: "Produces minerals and coal",
+                unlocked: () => gameState.technologies.mining,
+                onBuild: () => { gameState.resourcesProduction.minerals = 0.05; }
+            },
+            observatory: {
+                name: "Observatory",
+                description: "Study the heavens",
+                cost: { wood: 200, minerals: 100, iron: 50 },
+                effect: "+0.25 science per second, enables star observation",
+                unlocked: () => gameState.technologies.astronomy,
+                onBuild: () => { 
+                    gameState.resourcesProduction.science += 0.25; 
+                    showElement('observe-stars-btn');
+                }
+            }
+        };
+
+        // Technology Definitions
+        const techDefs = {
+            agriculture: {
+                name: "Agriculture",
+                description: "Learn to farm efficiently",
+                cost: { science: 10 },
+                effect: "Improves catnip production",
+                unlocked: () => gameState.resources.science >= 5,
+                onResearch: () => { gameState.resourcesProduction.catnip += 0.5; }
+            },
+            archery: {
+                name: "Archery", 
+                description: "Hunt more effectively",
+                cost: { science: 25 },
+                effect: "Unlocks hunting",
+                unlocked: () => gameState.technologies.agriculture,
+                onResearch: () => { showElement('hunt-btn'); }
+            },
+            mining: {
+                name: "Mining",
+                description: "Extract minerals from the earth",
+                cost: { science: 50 },
+                effect: "Unlocks mines and mineral extraction",
+                unlocked: () => gameState.resources.science >= 25,
+                onResearch: () => { /* Unlocks buildings */ }
+            },
+            construction: {
+                name: "Construction",
+                description: "Build better structures",
+                cost: { science: 100 },
+                effect: "Unlocks advanced buildings",
+                unlocked: () => gameState.technologies.mining,
+                onResearch: () => { /* Unlocks buildings */ }
+            },
+            engineering: {
+                name: "Engineering",
+                description: "Advanced mechanical knowledge",
+                cost: { science: 200 },
+                effect: "Unlocks workshops and automation",
+                unlocked: () => gameState.technologies.construction,
+                onResearch: () => { /* Unlocks buildings */ }
+            },
+            astronomy: {
+                name: "Astronomy", 
+                description: "Study the stars",
+                cost: { science: 150 },
+                effect: "Unlocks observatory and star charts",
+                unlocked: () => gameState.resources.science >= 50,
+                onResearch: () => { /* Unlocks buildings */ }
+            },
+            theology: {
+                name: "Theology",
+                description: "Deepen understanding of Babs' teachings",
+                cost: { science: 75, faith: 25 },
+                effect: "Improves faith generation",
+                unlocked: () => gameState.resources.faith >= 10,
+                onResearch: () => { gameState.resourcesProduction.faith += 0.2; }
+            }
+        };
+
+        // Religion Definitions
+        const religionDefs = {
+            sunAltar: {
+                name: "Sun Altar to Babs",
+                description: "A gleaming altar to the cat goddess",
+                cost: { gold: 50, faith: 100 },
+                effect: "+0.5 faith per second",
+                unlocked: () => gameState.resources.faith >= 50,
+                onBuild: () => { gameState.resourcesProduction.faith += 0.5; }
+            },
+            solarRevolution: {
+                name: "Solar Revolution",
+                description: "Harness the power of Babs' light",
+                cost: { faith: 250 },
+                effect: "All resource production +25%",
+                unlocked: () => gameState.technologies.theology,
+                onPurchase: () => { 
+                    // Multiply all production by 1.25
+                    for (let resource in gameState.resourcesProduction) {
+                        gameState.resourcesProduction[resource] *= 1.25;
+                    }
+                }
+            },
+            transcendence: {
+                name: "Transcendence",
+                description: "Achieve oneness with Babs",
+                cost: { faith: 1000, unicorns: 10 },
+                effect: "Reset progress but gain powerful bonuses",
+                unlocked: () => gameState.resources.unicorns >= 1,
+                onPurchase: () => { 
+                    // This would trigger a "prestige" reset
+                    logMessage("You have achieved transcendence! Your civilization ascends to a higher plane...");
+                }
+            }
+        };
+
+        // Achievement Definitions
+        const achievements = [
+            { id: 'first_catnip', name: 'First Catnip', desc: 'Gather your first catnip', trigger: () => gameState.stats.totalCatnipGathered >= 1 },
+            { id: 'catnip_hoarder', name: 'Catnip Hoarder', desc: 'Gather 100 catnip', trigger: () => gameState.stats.totalCatnipGathered >= 100 },
+            { id: 'first_building', name: 'Architect', desc: 'Build your first structure', trigger: () => Object.values(gameState.buildings).some(count => count > 0) },
+            { id: 'first_tech', name: 'Scholar', desc: 'Research your first technology', trigger: () => Object.values(gameState.technologies).some(researched => researched) },
+            { id: 'faithful', name: 'Faithful Servant', desc: 'Accumulate 10 faith', trigger: () => gameState.resources.faith >= 10 },
+            { id: 'population_growth', name: 'Growing Tribe', desc: 'Reach 10 kittens', trigger: () => gameState.population.kittens >= 10 },
+            { id: 'year_survivor', name: 'One Year Strong', desc: 'Survive your first year', trigger: () => gameState.stats.year >= 2 },
+            { id: 'dedicated_clicker', name: 'Dedicated Gatherer', desc: 'Click gather 100 times', trigger: () => gameState.stats.gatherClicks >= 100 }
+        ];
+
+        // Game Functions
+        function gatherCatnip() {
+            const amount = Math.random() * 3 + 1; // 1-4 catnip per click
+            gameState.resources.catnip += amount;
+            gameState.stats.totalCatnipGathered += amount;
+            gameState.stats.gatherClicks++;
+            
+            logMessage(`You gathered ${amount.toFixed(1)} catnip.`);
+            
+            // Unlock refine button after gathering enough
+            if (gameState.resources.catnip >= 10 && gameState.stats.gatherClicks >= 3) {
+                showElement('refine-catnip-btn');
+            }
+            
+            checkAchievements();
+            updateDisplay();
+        }
+
+        function refineCatnip() {
+            if (gameState.resources.catnip >= 100) {
+                gameState.resources.catnip -= 100;
+                gameState.resources.wood += 1;
+                gameState.stats.totalCatnipRefined++;
+                logMessage("You refined 100 catnip into 1 wood.");
+                updateDisplay();
+            }
+        }
+
+        function hunt() {
+            if (Math.random() < 0.7) {
+                const furs = Math.floor(Math.random() * 3) + 1;
+                gameState.resources.furs += furs;
+                logMessage(`Your hunters returned with ${furs} furs!`);
+            } else {
+                logMessage("Your hunters returned empty-pawed.");
+            }
+            
+            if (Math.random() < 0.1) {
+                gameState.resources.ivory += 1;
+                logMessage("Your hunters found ivory!");
+            }
+            
+            updateDisplay();
+        }
+
+        function observeStars() {
+            if (gameState.buildings.observatory > 0) {
+                const science = Math.random() * 5 + 2;
+                gameState.resources.science += science;
+                logMessage(`Observing the stars grants ${science.toFixed(1)} science.`);
+                
+                if (Math.random() < 0.01) {
+                    gameState.resources.unicorns += 1;
+                    logMessage("A unicorn appears from the cosmic void!");
+                }
+                updateDisplay();
+            }
+        }
+
+        function buildBuilding(buildingKey) {
+            const building = buildingDefs[buildingKey];
+            if (!building) return;
+            
+            // Check if we can afford it
+            let canAfford = true;
+            for (let resource in building.cost) {
+                if (gameState.resources[resource] < building.cost[resource]) {
+                    canAfford = false;
+                    break;
+                }
+            }
+            
+            if (!canAfford) return;
+            
+            // Pay the cost
+            for (let resource in building.cost) {
+                gameState.resources[resource] -= building.cost[resource];
+            }
+            
+            // Build it
+            gameState.buildings[buildingKey]++;
+            building.onBuild();
+            
+            logMessage(`Built a ${building.name}!`);
+            checkAchievements();
+            updateDisplay();
+        }
+
+        function researchTech(techKey) {
+            const tech = techDefs[techKey];
+            if (!tech || gameState.technologies[techKey]) return;
+            
+            // Check if we can afford it
+            let canAfford = true;
+            for (let resource in tech.cost) {
+                if (gameState.resources[resource] < tech.cost[resource]) {
+                    canAfford = false;
+                    break;
+                }
+            }
+            
+            if (!canAfford) return;
+            
+            // Pay the cost
+            for (let resource in tech.cost) {
+                gameState.resources[resource] -= tech.cost[resource];
+            }
+            
+            // Research it
+            gameState.technologies[techKey] = true;
+            tech.onResearch();
+            
+            logMessage(`Researched ${tech.name}!`);
+            checkAchievements();
+            updateDisplay();
+        }
+
+        function purchaseReligion(religionKey) {
+            const religion = religionDefs[religionKey];
+            if (!religion) return;
+            
+            // Check if we can afford it
+            let canAfford = true;
+            for (let resource in religion.cost) {
+                if (gameState.resources[resource] < religion.cost[resource]) {
+                    canAfford = false;
+                    break;
+                }
+            }
+            
+            if (!canAfford) return;
+            
+            // Pay the cost
+            for (let resource in religion.cost) {
+                gameState.resources[resource] -= religion.cost[resource];
+            }
+            
+            // Purchase it
+            if (religionKey === 'sunAltar') {
+                gameState.religion.sunAltar++;
+            } else {
+                gameState.religion[religionKey] = true;
+            }
+            
+            religion.onPurchase?.();
+            
+            logMessage(`Acquired ${religion.name}!`);
+            updateDisplay();
+        }
+
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Hide all tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Show selected tab button
+            event.target.classList.add('active');
+        }
+
+        function showElement(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.remove('hidden');
+            }
+        }
+
+        function updateDisplay() {
+            // Update resources
+            for (let resource in gameState.resources) {
+                const element = document.getElementById(resource + '-amount');
+                if (element) {
+                    element.textContent = Math.floor(gameState.resources[resource]).toLocaleString();
+                }
+                
+                const rateElement = document.getElementById(resource + '-rate');
+                if (rateElement && gameState.resourcesProduction[resource]) {
+                    const rate = gameState.resourcesProduction[resource];
+                    rateElement.textContent = rate > 0 ? `+${rate.toFixed(2)}/sec` : '';
+                }
+            }
+            
+            // Update population
+            document.getElementById('kittens-amount').textContent = Math.floor(gameState.population.kittens);
+            document.getElementById('happiness-amount').textContent = Math.floor(gameState.population.happiness * 100) + '%';
+            
+            // Update status
+            const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+            document.getElementById('current-season').textContent = seasons[gameState.stats.season];
+            document.getElementById('current-year').textContent = gameState.stats.year;
+            document.getElementById('faith-amount').textContent = Math.floor(gameState.resources.faith);
+            document.getElementById('science-amount').textContent = Math.floor(gameState.resources.science);
+            
+            // Update buildings list
+            updateBuildingsList();
+            updateTechList();
+            updateReligionList();
+        }
+
+        function updateBuildingsList() {
+            const buildingsList = document.getElementById('buildings-list');
+            buildingsList.innerHTML = '';
+            
+            for (let buildingKey in buildingDefs) {
+                const building = buildingDefs[buildingKey];
+                if (building.unlocked()) {
+                    const div = document.createElement('div');
+                    div.className = 'building-item';
+                    
+                    let canAfford = true;
+                    let costText = '';
+                    for (let resource in building.cost) {
+                        if (gameState.resources[resource] < building.cost[resource]) {
+                            canAfford = false;
+                        }
+                        costText += `${building.cost[resource]} ${resource}, `;
+                    }
+                    costText = costText.slice(0, -2); // Remove trailing comma
+                    
+                    div.innerHTML = `
+                        <h4>${building.name} (${gameState.buildings[buildingKey]})</h4>
+                        <p>${building.description}</p>
+                        <p><strong>Effect:</strong> ${building.effect}</p>
+                        <button class="action-button building-button" 
+                                onclick="buildBuilding('${buildingKey}')" 
+                                ${!canAfford ? 'disabled' : ''}>
+                            Build (${costText})
+                        </button>
+                    `;
+                    buildingsList.appendChild(div);
+                }
+            }
+        }
+
+        function updateTechList() {
+            const techList = document.getElementById('tech-list');
+            techList.innerHTML = '';
+            
+            for (let techKey in techDefs) {
+                const tech = techDefs[techKey];
+                if (tech.unlocked() && !gameState.technologies[techKey]) {
+                    const div = document.createElement('div');
+                    div.className = 'tech-item';
+                    
+                    let canAfford = true;
+                    let costText = '';
+                    for (let resource in tech.cost) {
+                        if (gameState.resources[resource] < tech.cost[resource]) {
+                            canAfford = false;
+                        }
+                        costText += `${tech.cost[resource]} ${resource}, `;
+                    }
+                    costText = costText.slice(0, -2);
+                    
+                    div.innerHTML = `
+                        <h4>${tech.name}</h4>
+                        <p>${tech.description}</p>
+                        <p><strong>Effect:</strong> ${tech.effect}</p>
+                        <button class="action-button tech-button" 
+                                onclick="researchTech('${techKey}')" 
+                                ${!canAfford ? 'disabled' : ''}>
+                            Research (${costText})
+                        </button>
+                    `;
+                    techList.appendChild(div);
+                }
+            }
+            
+            // Show researched technologies
+            const researchedDiv = document.createElement('div');
+            researchedDiv.innerHTML = '<h4>Researched Technologies:</h4>';
+            for (let techKey in gameState.technologies) {
+                if (gameState.technologies[techKey]) {
+                    const p = document.createElement('p');
+                    p.innerHTML = `✓ ${techDefs[techKey].name}`;
+                    p.style.color = '#2ecc71';
+                    researchedDiv.appendChild(p);
+                }
+            }
+            techList.appendChild(researchedDiv);
+        }
+
+        function updateReligionList() {
+            const religionList = document.getElementById('religion-list');
+            religionList.innerHTML = '';
+            
+            if (gameState.resources.faith < 1) {
+                religionList.innerHTML = '<p>You must gather faith before you can worship Babs, the great cat goddess...</p>';
+                return;
+            }
+            
+            religionList.innerHTML = '<p>🐱 <em>"In the beginning, there was Babs, the great black cat goddess who created all kittens in her divine image..."</em></p>';
+            
+            for (let religionKey in religionDefs) {
+                const religion = religionDefs[religionKey];
+                if (religion.unlocked()) {
+                    const div = document.createElement('div');
+                    div.className = 'religion-item';
+                    
+                    let canAfford = true;
+                    let costText = '';
+                    for (let resource in religion.cost) {
+                        if (gameState.resources[resource] < religion.cost[resource]) {
+                            canAfford = false;
+                        }
+                        costText += `${religion.cost[resource]} ${resource}, `;
+                    }
+                    costText = costText.slice(0, -2);
+                    
+                    const count = religionKey === 'sunAltar' ? ` (${gameState.religion.sunAltar})` : '';
+                    const purchased = gameState.religion[religionKey] === true;
+                    
+                    div.innerHTML = `
+                        <h4>${religion.name}${count}</h4>
+                        <p>${religion.description}</p>
+                        <p><strong>Effect:</strong> ${religion.effect}</p>
+                        ${!purchased ? `
+                            <button class="action-button religion-button" 
+                                    onclick="purchaseReligion('${religionKey}')" 
+                                    ${!canAfford ? 'disabled' : ''}>
+                                ${religionKey === 'sunAltar' ? 'Build' : 'Purchase'} (${costText})
+                            </button>
+                        ` : '<p style="color: #2ecc71;">✓ Acquired</p>'}
+                    `;
+                    religionList.appendChild(div);
+                }
+            }
+        }
+
+        function checkAchievements() {
+            achievements.forEach(achievement => {
+                if (!gameState.stats.achievements.includes(achievement.id) && achievement.trigger()) {
+                    gameState.stats.achievements.push(achievement.id);
+                    showAchievement(achievement);
+                }
+            });
+        }
+
+        function showAchievement(achievement) {
+            const achievementsList = document.getElementById('achievements-list');
+            const div = document.createElement('div');
+            div.className = 'achievement new';
+            div.innerHTML = `
+                <strong>${achievement.name}</strong><br>
+                <small>${achievement.desc}</small>
+            `;
+            achievementsList.insertBefore(div, achievementsList.firstChild);
+            
+            // Remove the "new" class after animation
+            setTimeout(() => {
+                div.classList.remove('new');
+            }, 500);
+            
+            // Keep only last 5 achievements visible
+            while (achievementsList.children.length > 5) {
+                achievementsList.removeChild(achievementsList.lastChild);
+            }
+            
+            logMessage(`🏆 Achievement Unlocked: ${achievement.name}`);
+        }
+
+        function logMessage(message) {
+            const gameLog = document.getElementById('game-log');
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.textContent = message;
+            gameLog.insertBefore(div, gameLog.firstChild);
+            
+            // Keep only last 20 log entries
+            while (gameLog.children.length > 20) {
+                gameLog.removeChild(gameLog.lastChild);
+            }
+        }
+
+        function gameLoop() {
+            // Resource production
+            for (let resource in gameState.resourcesProduction) {
+                if (gameState.resourcesProduction[resource] > 0) {
+                    gameState.resources[resource] += gameState.resourcesProduction[resource];
+                }
+            }
+            
+            // Season progression (every 30 seconds = 1 season)
+            gameState.stats.timePlayed += 1;
+            if (gameState.stats.timePlayed % 30 === 0) {
+                gameState.stats.season = (gameState.stats.season + 1) % 4;
+                if (gameState.stats.season === 0) {
+                    gameState.stats.year++;
+                    logMessage(`Year ${gameState.stats.year} begins! Spring has arrived.`);
+                    checkAchievements();
+                }
+            }
+            
+            // Catnip consumption (kittens eat catnip)
+            const catnipConsumption = gameState.population.kittens * 0.1;
+            gameState.resources.catnip = Math.max(0, gameState.resources.catnip - catnipConsumption);
+            
+            // Happiness calculation
+            if (gameState.resources.catnip <= 0) {
+                gameState.population.happiness = Math.max(0.1, gameState.population.happiness - 0.001);
+            } else {
+                gameState.population.happiness = Math.min(1.0, gameState.population.happiness + 0.001);
+            }
+            
+            // Random events
+            if (Math.random() < 0.001) { // 0.1% chance per second
+                triggerRandomEvent();
+            }
+            
+            updateDisplay();
+        }
+
+        function triggerRandomEvent() {
+            const events = [
+                {
+                    message: "A traveling merchant kitten offers to trade!",
+                    effect: () => {
+                        if (gameState.resources.furs >= 10) {
+                            gameState.resources.furs -= 10;
+                            gameState.resources.gold += 5;
+                            logMessage("You traded 10 furs for 5 gold!");
+                        }
+                    }
+                },
+                {
+                    message: "Your kittens find a cache of catnip!",
+                    effect: () => {
+                        const bonus = Math.floor(Math.random() * 50) + 25;
+                        gameState.resources.catnip += bonus;
+                        logMessage(`Your kittens found ${bonus} catnip!`);
+                    }
+                },
+                {
+                    message: "A wise elder cat shares ancient knowledge!",
+                    effect: () => {
+                        if (gameState.resources.science < 10) {
+                            gameState.resources.science += 5;
+                            logMessage("The elder's wisdom grants you 5 science!");
+                        }
+                    }
+                },
+                {
+                    message: "The aurora borealis fills your kittens with wonder!",
+                    effect: () => {
+                        gameState.resources.faith += 2;
+                        logMessage("The beautiful lights inspire faith in Babs!");
+                    }
+                }
+            ];
+            
+            const randomEvent = events[Math.floor(Math.random() * events.length)];
+            logMessage(randomEvent.message);
+            randomEvent.effect();
+        }
+
+        function saveGame() {
+            localStorage.setItem('kittenCivilizationSave', JSON.stringify(gameState));
+            logMessage("Game saved successfully!");
+        }
+
+        function loadGame() {
+            const savedGame = localStorage.getItem('kittenCivilizationSave');
+            if (savedGame) {
+                gameState = JSON.parse(savedGame);
+                logMessage("Game loaded successfully!");
+                
+                // Show previously unlocked elements
+                if (gameState.resources.catnip >= 10 && gameState.stats.gatherClicks >= 3) {
+                    showElement('refine-catnip-btn');
+                }
+                if (gameState.technologies.archery) {
+                    showElement('hunt-btn');
+                }
+                if (gameState.buildings.observatory > 0) {
+                    showElement('observe-stars-btn');
+                }
+                
+                updateDisplay();
+            } else {
+                logMessage("No saved game found!");
+            }
+        }
+
+        function resetGame() {
+            if (confirm("Are you sure you want to reset your entire civilization? This cannot be undone!")) {
+                localStorage.removeItem('kittenCivilizationSave');
+                location.reload();
+            }
+        }
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', function() {
+            // Try to load saved game
+            const savedGame = localStorage.getItem('kittenCivilizationSave');
+            if (savedGame) {
+                gameState = JSON.parse(savedGame);
+                
+                // Show previously unlocked elements
+                if (gameState.resources.catnip >= 10 && gameState.stats.gatherClicks >= 3) {
+                    showElement('refine-catnip-btn');
+                }
+                if (gameState.technologies.archery) {
+                    showElement('hunt-btn');
+                }
+                if (gameState.buildings.observatory > 0) {
+                    showElement('observe-stars-btn');
+                }
+            }
+            
+            // Start game loop
+            setInterval(gameLoop, 1000); // Run every second
+            
+            // Auto-save every 30 seconds
+            setInterval(saveGame, 30000);
+            
+            // Initial display update
+            updateDisplay();
+            
+            logMessage("Welcome to Kitten Civilization! Your journey begins...");
+        });
+
+        // Add some additional resources to the display when they become available
+        function addResourceToDisplay(resourceName, productionName = null) {
+            const resourcesDiv = document.getElementById('resources');
+            const resourceDiv = document.createElement('div');
+            resourceDiv.className = 'resource';
+            resourceDiv.innerHTML = `
+                <span class="resource-name">${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)}</span>
+                <div>
+                    <span class="resource-amount" id="${resourceName}-amount">0</span>
+                    ${productionName ? `<div class="production-rate" id="${resourceName}-rate">+0.0/sec</div>` : ''}
+                </div>
+            `;
+            resourcesDiv.appendChild(resourceDiv);
+        }
+
+        // Monitor for new resources and add them to display
+        function checkNewResources() {
+            const displayedResources = ['catnip'];
+            
+            if (gameState.resources.wood > 0 && !document.getElementById('wood-amount')) {
+                addResourceToDisplay('wood');
+            }
+            if (gameState.resources.science > 0 && !document.getElementById('science-amount')) {
+                addResourceToDisplay('science', 'science');
+            }
+            if (gameState.resources.faith > 0 && !document.getElementById('faith-amount')) {
+                addResourceToDisplay('faith', 'faith');
+            }
+            if (gameState.resources.furs > 0 && !document.getElementById('furs-amount')) {
+                addResourceToDisplay('furs');
+            }
+            if (gameState.resources.ivory > 0 && !document.getElementById('ivory-amount')) {
+                addResourceToDisplay('ivory');
+            }
+            if (gameState.resources.gold > 0 && !document.getElementById('gold-amount')) {
+                addResourceToDisplay('gold');
+            }
+            if (gameState.resources.minerals > 0 && !document.getElementById('minerals-amount')) {
+                addResourceToDisplay('minerals');
+            }
+            if (gameState.resources.coal > 0 && !document.getElementById('coal-amount')) {
+                addResourceToDisplay('coal');
+            }
+            if (gameState.resources.iron > 0 && !document.getElementById('iron-amount')) {
+                addResourceToDisplay('iron');
+            }
+            if (gameState.resources.unicorns > 0 && !document.getElementById('unicorns-amount')) {
+                addResourceToDisplay('unicorns');
+            }
+        }
+
+        // Enhanced game loop to check for new resources
+        setInterval(checkNewResources, 2000);
+    </script>
+</body>
+</html>
