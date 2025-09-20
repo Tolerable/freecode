@@ -271,6 +271,48 @@
             transition: width 0.3s ease;
         }
 
+        .field-display {
+            background: rgba(46, 204, 113, 0.1);
+            border: 2px solid #27ae60;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .field-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .field-title {
+            color: #2ecc71;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .sell-button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .sell-button:hover {
+            background: #c0392b;
+        }
+
+        .field-effects {
+            background: rgba(0,0,0,0.2);
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -745,7 +787,53 @@
                 gameState.buildings.catnipField++;
                 gameState.resourcesProduction.catnip += 0.63;
                 logMessage("You planted a catnip field! It will grow catnip automatically.");
+                
+                // Show field management section
+                showElement('field-management');
+                updateFieldDisplay();
                 updateDisplay();
+            }
+        }
+
+        function sellCatnipField() {
+            if (gameState.buildings.catnipField > 0) {
+                gameState.buildings.catnipField--;
+                gameState.resourcesProduction.catnip = Math.max(0, gameState.resourcesProduction.catnip - 0.63);
+                gameState.resources.catnip += 5; // Get half back when selling
+                logMessage("You sold a catnip field for 5 catnip.");
+                
+                if (gameState.buildings.catnipField === 0) {
+                    document.getElementById('field-management').classList.add('hidden');
+                }
+                
+                updateFieldDisplay();
+                updateDisplay();
+            }
+        }
+
+        function updateFieldDisplay() {
+            const fieldsDisplay = document.getElementById('catnip-fields-display');
+            if (gameState.buildings.catnipField > 0) {
+                const totalProduction = (gameState.buildings.catnipField * 0.63).toFixed(2);
+                const seasonMultipliers = [1.5, 1.0, 0.75, 0.25];
+                const seasonalProduction = (totalProduction * seasonMultipliers[gameState.stats.season]).toFixed(2);
+                const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+                
+                fieldsDisplay.innerHTML = `
+                    <div class="field-display">
+                        <div class="field-header">
+                            <span class="field-title">Catnip Field (${gameState.buildings.catnipField})</span>
+                            <button class="sell-button" onclick="sellCatnipField()">sell</button>
+                        </div>
+                        <p>Plant some catnip to grow in the village.<br>
+                        Fields have +50% production in Spring and -75% production in Winter</p>
+                        <div class="field-effects">
+                            <div class="effect-line">Effects:</div>
+                            <div class="effect-line">Catnip production: ${seasonalProduction}/sec (${seasons[gameState.stats.season]})</div>
+                            <div class="effect-line">Base production: ${totalProduction}/sec</div>
+                        </div>
+                    </div>
+                `;
             }
         }
 
@@ -936,6 +1024,7 @@
             updateBuildingsList();
             updateTechList();
             updateReligionList();
+            updateFieldDisplay();
         }
 
         function updateBuildingsList() {
@@ -1244,8 +1333,12 @@
                 if (gameState.buildings.observatory > 0) {
                     showElement('observe-stars-btn');
                 }
+                if (gameState.buildings.catnipField > 0) {
+                    showElement('field-management');
+                }
                 
                 updateGatherButton();
+                updateFieldDisplay();
                 
                 updateDisplay();
             } else {
