@@ -349,6 +349,18 @@
                 <span class="resource-amount" id="happiness-amount">100%</span>
             </div>
 
+            <!-- Catnip Fields Summary -->
+            <div id="catnip-fields-summary" class="hidden">
+                <h3>Catnip Fields</h3>
+                <div class="resource">
+                    <span class="resource-name">Fields</span>
+                    <div>
+                        <span class="resource-amount" id="total-fields">0</span>
+                        <div class="production-rate" id="fields-production">+0.0/sec</div>
+                    </div>
+                </div>
+            </div>
+
             <h3>Recent Achievements</h3>
             <div id="achievements-list"></div>
         </div>
@@ -1004,7 +1016,14 @@
                 
                 const rateElement = document.getElementById(resource + '-rate');
                 if (rateElement && gameState.resourcesProduction[resource]) {
-                    const rate = gameState.resourcesProduction[resource];
+                    let rate = gameState.resourcesProduction[resource];
+                    
+                    // Apply seasonal effects for display
+                    if (resource === 'catnip') {
+                        const seasonMultipliers = [1.5, 1.0, 0.75, 0.25];
+                        rate *= seasonMultipliers[gameState.stats.season];
+                    }
+                    
                     rateElement.textContent = rate > 0 ? `+${rate.toFixed(2)}/sec` : '';
                 }
             }
@@ -1012,6 +1031,9 @@
             // Update population
             document.getElementById('kittens-amount').textContent = Math.floor(gameState.population.kittens);
             document.getElementById('happiness-amount').textContent = Math.floor(gameState.population.happiness * 100) + '%';
+            
+            // Update catnip fields summary
+            updateCatnipFieldsSummary();
             
             // Update status
             const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
@@ -1025,6 +1047,22 @@
             updateTechList();
             updateReligionList();
             updateFieldDisplay();
+        }
+
+        function updateCatnipFieldsSummary() {
+            const fieldsCount = gameState.buildings.catnipField || 0;
+            if (fieldsCount > 0) {
+                showElement('catnip-fields-summary');
+                document.getElementById('total-fields').textContent = fieldsCount;
+                
+                const baseProduction = fieldsCount * 0.63;
+                const seasonMultipliers = [1.5, 1.0, 0.75, 0.25];
+                const currentProduction = baseProduction * seasonMultipliers[gameState.stats.season];
+                
+                document.getElementById('fields-production').textContent = `+${currentProduction.toFixed(2)}/sec`;
+            } else {
+                document.getElementById('catnip-fields-summary').classList.add('hidden');
+            }
         }
 
         function updateBuildingsList() {
@@ -1170,6 +1208,7 @@
             const achievementsList = document.getElementById('achievements-list');
             const div = document.createElement('div');
             div.className = 'achievement new';
+            div.setAttribute('data-achievement-id', achievement.id);
             div.innerHTML = `
                 <strong>${achievement.name}</strong><br>
                 <small>${achievement.desc}</small>
@@ -1187,6 +1226,27 @@
             }
             
             logMessage(`🏆 Achievement Unlocked: ${achievement.name}`);
+        }
+
+        function loadAchievements() {
+            const achievementsList = document.getElementById('achievements-list');
+            achievementsList.innerHTML = '';
+            
+            // Show earned achievements (most recent first)
+            const earnedAchievements = gameState.stats.achievements.slice().reverse().slice(0, 5);
+            earnedAchievements.forEach(achievementId => {
+                const achievement = achievements.find(a => a.id === achievementId);
+                if (achievement) {
+                    const div = document.createElement('div');
+                    div.className = 'achievement';
+                    div.setAttribute('data-achievement-id', achievement.id);
+                    div.innerHTML = `
+                        <strong>${achievement.name}</strong><br>
+                        <small>${achievement.desc}</small>
+                    `;
+                    achievementsList.appendChild(div);
+                }
+            });
         }
 
         function logMessage(message) {
