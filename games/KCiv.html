@@ -326,9 +326,14 @@
             <!-- Gathering Tab -->
             <div id="gather-tab" class="tab-content active">
                 <h3>Basic Actions</h3>
-                <button class="action-button" onclick="gatherCatnip()">
+                <button class="action-button" onclick="gatherCatnip()" id="gather-catnip-btn">
                     Gather catnip
                     <div class="cost-display">Gather some catnip from the forest</div>
+                </button>
+                
+                <button class="action-button hidden" id="plant-catnip-btn" onclick="plantCatnip()">
+                    Plant catnip field
+                    <div class="cost-display">Plant catnip to grow automatically (Cost: 10 catnip)</div>
                 </button>
                 
                 <button class="action-button hidden" id="refine-catnip-btn" onclick="refineCatnip()">
@@ -437,7 +442,7 @@
                 warehouse: 0,
                 mine: 0,
                 quarry: 0,
-                tradingPost: 0,
+                catnipFields: 0,
                 observatory: 0,
                 academy: 0
             },
@@ -477,6 +482,17 @@
 
         // Building Definitions
         const buildingDefs = {
+            catnipField: {
+                name: "Catnip Field",
+                description: "Plant catnip that grows automatically",
+                cost: { catnip: 10 },
+                effect: "+0.63 catnip per second",
+                unlocked: () => gameState.stats.gatherClicks >= 5,
+                onBuild: () => { 
+                    gameState.resourcesProduction.catnip += 0.63;
+                    updateGatherButton();
+                }
+            },
             hut: {
                 name: "Hut",
                 description: "A small hut for kittens",
@@ -501,7 +517,7 @@
                 description: "A place of learning",
                 cost: { wood: 25 },
                 effect: "+0.1 science per second",
-                unlocked: () => gameState.resources.science >= 5,
+                unlocked: () => gameState.resources.science >= 5 || gameState.resources.wood >= 15,
                 onBuild: () => { gameState.resourcesProduction.science += 0.1; }
             },
             temple: {
@@ -532,9 +548,33 @@
                 name: "Mine",
                 description: "Extracts minerals and coal",
                 cost: { wood: 100 },
-                effect: "Produces minerals and coal",
+                effect: "+0.05 minerals/sec, +0.02 coal/sec",
                 unlocked: () => gameState.technologies.mining,
-                onBuild: () => { gameState.resourcesProduction.minerals = 0.05; }
+                onBuild: () => { 
+                    gameState.resourcesProduction.minerals = (gameState.resourcesProduction.minerals || 0) + 0.05;
+                    gameState.resourcesProduction.coal = (gameState.resourcesProduction.coal || 0) + 0.02;
+                }
+            },
+            quarry: {
+                name: "Quarry",
+                description: "Extracts stone and minerals",
+                cost: { wood: 50, minerals: 25 },
+                effect: "+0.1 minerals/sec, +0.05 stone/sec",
+                unlocked: () => gameState.technologies.mining && gameState.buildings.mine >= 1,
+                onBuild: () => { 
+                    gameState.resourcesProduction.minerals = (gameState.resourcesProduction.minerals || 0) + 0.1;
+                    gameState.resourcesProduction.stone = (gameState.resourcesProduction.stone || 0) + 0.05;
+                }
+            },
+            goldMine: {
+                name: "Gold Mine",
+                description: "Extracts precious gold",
+                cost: { wood: 200, minerals: 150, coal: 50 },
+                effect: "+0.01 gold/sec",
+                unlocked: () => gameState.technologies.metalWorking && gameState.buildings.mine >= 2,
+                onBuild: () => { 
+                    gameState.resourcesProduction.gold = (gameState.resourcesProduction.gold || 0) + 0.01;
+                }
             },
             observatory: {
                 name: "Observatory",
@@ -574,6 +614,14 @@
                 effect: "Unlocks mines and mineral extraction",
                 unlocked: () => gameState.resources.science >= 25,
                 onResearch: () => { /* Unlocks buildings */ }
+            },
+            metalWorking: {
+                name: "Metal Working",
+                description: "Work with iron and gold",
+                cost: { science: 125 },
+                effect: "Unlocks advanced mining and metal crafting",
+                unlocked: () => gameState.technologies.mining,
+                onResearch: () => { /* Unlocks gold mining */ }
             },
             construction: {
                 name: "Construction",
@@ -665,14 +713,40 @@
             gameState.stats.gatherClicks++;
             
             logMessage(`You gathered ${amount.toFixed(1)} catnip.`);
-            
-            // Unlock refine button after gathering enough
-            if (gameState.resources.catnip >= 10 && gameState.stats.gatherClicks >= 3) {
-                showElement('refine-catnip-btn');
-            }
+            updateGatherButton();
             
             checkAchievements();
             updateDisplay();
+        }
+
+        function updateGatherButton() {
+            const gatherBtn = document.getElementById('gather-catnip-btn');
+            const plantBtn = document.getElementById('plant-catnip-btn');
+            
+            if (gameState.buildings.catnipField >= 10) {
+                gatherBtn.innerHTML = `
+                    Gather catnip
+                    <div class="cost-display">Your fields provide enough catnip. Focus on other tasks!</div>
+                `;
+            } else if (gameState.stats.gatherClicks >= 5) {
+                showElement('plant-catnip-btn');
+                gatherBtn.innerHTML = `
+                    Gather catnip
+                    <div class="cost-display">Consider planting fields for automatic catnip!</div>
+                `;
+            } else if (gameState.stats.gatherClicks >= 3) {
+                showElement('refine-catnip-btn');
+            }
+        }
+
+        function plantCatnip() {
+            if (gameState.resources.catnip >= 10) {
+                gameState.resources.catnip -= 10;
+                gameState.buildings.catnipField++;
+                gameState.resourcesProduction.catnip += 0.63;
+                logMessage("You planted a catnip field! It will grow catnip automatically.");
+                updateDisplay();
+            }
         }
 
         function refineCatnip() {
@@ -1043,38 +1117,64 @@
             // Resource production
             for (let resource in gameState.resourcesProduction) {
                 if (gameState.resourcesProduction[resource] > 0) {
-                    gameState.resources[resource] += gameState.resourcesProduction[resource];
+                    let production = gameState.resourcesProduction[resource];
+                    
+                    // Season effects on catnip
+                    if (resource === 'catnip') {
+                        const seasonMultipliers = [1.5, 1.0, 0.75, 0.25]; // Spring, Summer, Autumn, Winter
+                        production *= seasonMultipliers[gameState.stats.season];
+                    }
+                    
+                    gameState.resources[resource] += production;
                 }
             }
             
-            // Season progression (every 30 seconds = 1 season)
+            // Season progression (every 60 seconds = 1 season, so 4 minutes = 1 year)
             gameState.stats.timePlayed += 1;
-            if (gameState.stats.timePlayed % 30 === 0) {
+            if (gameState.stats.timePlayed % 60 === 0) {
+                const oldSeason = gameState.stats.season;
                 gameState.stats.season = (gameState.stats.season + 1) % 4;
+                const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+                
                 if (gameState.stats.season === 0) {
                     gameState.stats.year++;
-                    logMessage(`Year ${gameState.stats.year} begins! Spring has arrived.`);
-                    checkAchievements();
+                    logMessage(`🌸 Year ${gameState.stats.year} begins! Spring has arrived with abundant growth.`);
+                } else {
+                    logMessage(`${seasons[gameState.stats.season]} has arrived. ${getSeasonMessage()}`);
                 }
+                checkAchievements();
             }
             
             // Catnip consumption (kittens eat catnip)
-            const catnipConsumption = gameState.population.kittens * 0.1;
+            const catnipConsumption = gameState.population.kittens * 0.05; // Reduced consumption
             gameState.resources.catnip = Math.max(0, gameState.resources.catnip - catnipConsumption);
             
             // Happiness calculation
             if (gameState.resources.catnip <= 0) {
-                gameState.population.happiness = Math.max(0.1, gameState.population.happiness - 0.001);
+                gameState.population.happiness = Math.max(0.1, gameState.population.happiness - 0.002);
+                if (gameState.stats.timePlayed % 30 === 0) {
+                    logMessage("⚠️ Your kittens are hungry! Catnip supplies are low.");
+                }
             } else {
                 gameState.population.happiness = Math.min(1.0, gameState.population.happiness + 0.001);
             }
             
-            // Random events
-            if (Math.random() < 0.001) { // 0.1% chance per second
+            // Random events (less frequent)
+            if (Math.random() < 0.0005) { // 0.05% chance per second
                 triggerRandomEvent();
             }
             
             updateDisplay();
+        }
+
+        function getSeasonMessage() {
+            const messages = [
+                '', // Spring handled above
+                '☀️ Catnip grows normally under the warm sun.',
+                '🍂 Catnip production slows as leaves fall.',
+                '❄️ Winter reduces catnip growth significantly. Prepare food stores!'
+            ];
+            return messages[gameState.stats.season];
         }
 
         function triggerRandomEvent() {
@@ -1122,7 +1222,7 @@
 
         function saveGame() {
             localStorage.setItem('kittenCivilizationSave', JSON.stringify(gameState));
-            logMessage("Game saved successfully!");
+            // Don't log save messages - they're too frequent
         }
 
         function loadGame() {
@@ -1132,7 +1232,10 @@
                 logMessage("Game loaded successfully!");
                 
                 // Show previously unlocked elements
-                if (gameState.resources.catnip >= 10 && gameState.stats.gatherClicks >= 3) {
+                if (gameState.stats.gatherClicks >= 5) {
+                    showElement('plant-catnip-btn');
+                }
+                if (gameState.stats.gatherClicks >= 3) {
                     showElement('refine-catnip-btn');
                 }
                 if (gameState.technologies.archery) {
@@ -1141,6 +1244,8 @@
                 if (gameState.buildings.observatory > 0) {
                     showElement('observe-stars-btn');
                 }
+                
+                updateGatherButton();
                 
                 updateDisplay();
             } else {
@@ -1163,7 +1268,10 @@
                 gameState = JSON.parse(savedGame);
                 
                 // Show previously unlocked elements
-                if (gameState.resources.catnip >= 10 && gameState.stats.gatherClicks >= 3) {
+                if (gameState.stats.gatherClicks >= 5) {
+                    showElement('plant-catnip-btn');
+                }
+                if (gameState.stats.gatherClicks >= 3) {
                     showElement('refine-catnip-btn');
                 }
                 if (gameState.technologies.archery) {
@@ -1172,6 +1280,8 @@
                 if (gameState.buildings.observatory > 0) {
                     showElement('observe-stars-btn');
                 }
+                
+                updateGatherButton();
             }
             
             // Start game loop
