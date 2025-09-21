@@ -494,20 +494,20 @@
                 science: 0,
                 faith: 0
             },
-            resourceLimits: {
-                catnip: 1000,
-                wood: 200,
-                minerals: 250,
-                coal: 150,
-                iron: 100,
-                gold: 50,
-                stone: 250,
-                science: 1000,
-                faith: 100,
-                furs: 200,
-                ivory: 50,
-                unicorns: 10
-            },
+			resourceLimits: {
+				catnip: 5000,
+				wood: 1000,
+				minerals: 1000,
+				coal: 500,
+				iron: 300,
+				gold: 200,
+				stone: 1000,
+				science: 2000,
+				faith: 500,
+				furs: 500,
+				ivory: 100,
+				unicorns: 50
+			},
             population: {
                 kittens: 1,
                 happiness: 1.0,
@@ -610,18 +610,19 @@
                     gameState.resources.science += 5;
                 }
             },
-            barn: {
-                name: "Barn",
-                description: "Stores catnip and food",
-                cost: { wood: 50 },
-                effect: "+5000 catnip storage, +1000 wood storage",
-                unlocked: () => gameState.buildings.hut >= 2,
-                onBuild: () => { 
-                    gameState.resourceLimits.catnip += 5000;
-                    gameState.resourceLimits.wood += 1000;
-                    gameState.resourceLimits.furs += 500;
-                }
-            },
+			barn: {
+				name: "Barn",
+				description: "Stores catnip and food",
+				cost: { wood: 50 },
+				effect: "+10000 catnip storage, +2000 wood storage, +1000 furs storage",
+				unlocked: () => gameState.buildings.hut >= 2,
+				onBuild: () => { 
+					gameState.resourceLimits.catnip += 10000;
+					gameState.resourceLimits.wood += 2000;
+					gameState.resourceLimits.furs += 1000;
+					logMessage("Barn built! Storage capacity increased significantly.");
+				}
+			},
             warehouse: {
                 name: "Warehouse", 
                 description: "Stores minerals, coal, and stone",
@@ -1011,15 +1012,50 @@
             }
         }
 
-        function refineCatnip() {
-            if (gameState.resources.catnip >= 100) {
-                gameState.resources.catnip -= 100;
-                gameState.resources.wood += 1;
-                gameState.stats.totalCatnipRefined++;
-                logMessage("You refined 100 catnip into 1 wood.");
-                updateDisplay();
-            }
-        }
+		function refineCatnip(quantity = 1) {
+			const cost = 100 * quantity;
+			const woodGained = 1 * quantity;
+			
+			if (gameState.resources.catnip >= cost) {
+				gameState.resources.catnip -= cost;
+				gameState.resources.wood += woodGained;
+				gameState.stats.totalCatnipRefined += quantity;
+				
+				const plural = quantity > 1 ? 's' : '';
+				logMessage(`You refined ${cost} catnip into ${woodGained} wood${plural}.`);
+				updateDisplay();
+			}
+		}
+
+		function updateRefineButton() {
+			const refineBtn = document.getElementById('refine-catnip-btn');
+			if (refineBtn && !refineBtn.classList.contains('hidden')) {
+				const canRefine10 = gameState.resources.catnip >= 1000;
+				const canRefine100 = gameState.resources.catnip >= 10000;
+				
+				refineBtn.innerHTML = `
+					<div style="display: flex; gap: 5px; align-items: center; width: 100%;">
+						<button class="action-button" onclick="refineCatnip(1)" 
+								${gameState.resources.catnip < 100 ? 'disabled' : ''}
+								style="flex: 1;">
+							Refine catnip (100 → 1 wood)
+						</button>
+						${canRefine10 ? `
+							<button class="action-button" onclick="refineCatnip(10)" 
+									style="width: 60px; font-size: 12px;">
+								x10
+							</button>
+						` : ''}
+						${canRefine100 ? `
+							<button class="action-button" onclick="refineCatnip(100)" 
+									style="width: 60px; font-size: 12px;">
+								x100
+							</button>
+						` : ''}
+					</div>
+				`;
+			}
+		}
 
         function hunt() {
             if (Math.random() < 0.7) {
@@ -1220,11 +1256,12 @@
             document.getElementById('science-amount').textContent = Math.floor(gameState.resources.science);
             
             // Update buildings list
-            updateBuildingsList();
-            updateTechList();
-            updateReligionList();
-            updateFieldDisplay();
-        }
+			updateRefineButton();
+			updateBuildingsList();
+			updateTechList();
+			updateReligionList();
+			updateFieldDisplay();
+		}
 
         function updateCatnipFieldsSummary() {
             const fieldsCount = gameState.buildings.catnipField || 0;
