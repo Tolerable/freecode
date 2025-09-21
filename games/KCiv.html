@@ -684,12 +684,22 @@
                     logMessage("🌾 Agriculture improves your catnip production!");
                 }
             },
+            calendar: {
+                name: "Calendar",
+                description: "Track seasons and time accurately",
+                cost: { science: 30 },
+                effect: "Reduces seasonal penalties by 25%",
+                unlocked: () => gameState.resources.science >= 15,
+                onResearch: () => { 
+                    logMessage("📅 Calendar helps predict and prepare for seasons!");
+                }
+            },
             archery: {
                 name: "Archery", 
                 description: "Hunt more effectively with bows",
                 cost: { science: 25 },
                 effect: "Unlocks hunting for furs and ivory",
-                unlocked: () => gameState.technologies.agriculture,
+                unlocked: () => gameState.resources.science >= 15,
                 onResearch: () => { 
                     showElement('hunt-btn');
                     logMessage("🏹 Your kittens can now hunt!");
@@ -705,36 +715,6 @@
                     logMessage("⛏️ Mining unlocked! You can now build mines.");
                 }
             },
-            metalWorking: {
-                name: "Metal Working",
-                description: "Work with iron and gold",
-                cost: { science: 125 },
-                effect: "Unlocks smelters and gold mining",
-                unlocked: () => gameState.technologies.mining && gameState.resources.science >= 100,
-                onResearch: () => { 
-                    logMessage("🔨 Metal working unlocked! Advanced mining and smelting available.");
-                }
-            },
-            construction: {
-                name: "Construction",
-                description: "Build better structures",
-                cost: { science: 100 },
-                effect: "Unlocks advanced buildings like log houses",
-                unlocked: () => gameState.technologies.mining,
-                onResearch: () => { 
-                    logMessage("🏗️ Construction unlocked! Better buildings available.");
-                }
-            },
-            engineering: {
-                name: "Engineering",
-                description: "Advanced mechanical knowledge",
-                cost: { science: 200 },
-                effect: "Unlocks workshops and automation",
-                unlocked: () => gameState.technologies.construction,
-                onResearch: () => { 
-                    logMessage("⚙️ Engineering unlocked! Workshops and automation available.");
-                }
-            },
             astronomy: {
                 name: "Astronomy", 
                 description: "Study the stars and celestial bodies",
@@ -743,6 +723,36 @@
                 unlocked: () => gameState.resources.science >= 75,
                 onResearch: () => { 
                     logMessage("🌟 Astronomy unlocked! You can now build observatories.");
+                }
+            },
+            construction: {
+                name: "Construction",
+                description: "Build better structures",
+                cost: { science: 100 },
+                effect: "Unlocks advanced buildings like log houses",
+                unlocked: () => gameState.resources.science >= 50,
+                onResearch: () => { 
+                    logMessage("🏗️ Construction unlocked! Better buildings available.");
+                }
+            },
+            metalWorking: {
+                name: "Metal Working",
+                description: "Work with iron and gold",
+                cost: { science: 125 },
+                effect: "Unlocks smelters and gold mining",
+                unlocked: () => gameState.technologies.mining && gameState.resources.science >= 75,
+                onResearch: () => { 
+                    logMessage("🔨 Metal working unlocked! Advanced mining and smelting available.");
+                }
+            },
+            engineering: {
+                name: "Engineering",
+                description: "Advanced mechanical knowledge",
+                cost: { science: 200 },
+                effect: "Unlocks workshops and automation",
+                unlocked: () => gameState.resources.science >= 100,
+                onResearch: () => { 
+                    logMessage("⚙️ Engineering unlocked! Workshops and automation available.");
                 }
             },
             theology: {
@@ -754,16 +764,6 @@
                 onResearch: () => { 
                     gameState.resourcesProduction.faith += 0.2;
                     logMessage("🙏 Theology deepens your faith in Babs!");
-                }
-            },
-            calendar: {
-                name: "Calendar",
-                description: "Track seasons and time accurately",
-                cost: { science: 30 },
-                effect: "Reduces seasonal penalties by 25%",
-                unlocked: () => gameState.technologies.agriculture,
-                onResearch: () => { 
-                    logMessage("📅 Calendar helps predict and prepare for seasons!");
                 }
             }
         };
@@ -1128,7 +1128,10 @@
             
             for (let buildingKey in buildingDefs) {
                 const building = buildingDefs[buildingKey];
-                if (building.unlocked()) {
+                const buildingCount = gameState.buildings[buildingKey] || 0;
+                const isVisible = building.unlocked() || buildingCount > 0;
+                
+                if (isVisible) {
                     const div = document.createElement('div');
                     div.className = 'building-item';
                     
@@ -1142,18 +1145,97 @@
                     }
                     costText = costText.slice(0, -2); // Remove trailing comma
                     
+                    // Show if already built or if can afford
+                    const buttonDisabled = !canAfford;
+                    const buttonClass = buttonDisabled ? 'building-button disabled' : 'building-button';
+                    
                     div.innerHTML = `
-                        <h4>${building.name} (${gameState.buildings[buildingKey]})</h4>
+                        <h4>${building.name} ${buildingCount > 0 ? `(${buildingCount})` : ''}</h4>
                         <p>${building.description}</p>
                         <p><strong>Effect:</strong> ${building.effect}</p>
-                        <button class="action-button building-button" 
+                        ${buildingCount > 0 ? 
+                            `<p style="color: #2ecc71;"><strong>✓ Built:</strong> ${buildingCount}</p>` : ''
+                        }
+                        <button class="action-button ${buttonClass}" 
                                 onclick="buildBuilding('${buildingKey}')" 
-                                ${!canAfford ? 'disabled' : ''}>
+                                ${buttonDisabled ? 'disabled' : ''}>
                             Build (${costText})
                         </button>
                     `;
                     buildingsList.appendChild(div);
                 }
+            }
+            
+            // Show "coming soon" buildings that are close to unlocking
+            addComingSoonBuildings(buildingsList);
+        }
+
+        function addComingSoonBuildings(buildingsList) {
+            const comingSoonDiv = document.createElement('div');
+            comingSoonDiv.innerHTML = '<h3 style="color: #95a5a6; margin-top: 20px;">Coming Soon...</h3>';
+            let hasComingSoon = false;
+            
+            for (let buildingKey in buildingDefs) {
+                const building = buildingDefs[buildingKey];
+                const buildingCount = gameState.buildings[buildingKey] || 0;
+                const isCurrentlyVisible = building.unlocked() || buildingCount > 0;
+                
+                if (!isCurrentlyVisible && isCloseToUnlocking(buildingKey)) {
+                    hasComingSoon = true;
+                    const div = document.createElement('div');
+                    div.className = 'building-item';
+                    div.style.opacity = '0.6';
+                    div.style.border = '2px dashed #7f8c8d';
+                    
+                    let costText = '';
+                    for (let resource in building.cost) {
+                        costText += `${building.cost[resource]} ${resource}, `;
+                    }
+                    costText = costText.slice(0, -2);
+                    
+                    div.innerHTML = `
+                        <h4>${building.name} 🔒</h4>
+                        <p>${building.description}</p>
+                        <p><strong>Effect:</strong> ${building.effect}</p>
+                        <p style="color: #f39c12;"><strong>Unlock Requirement:</strong> ${getUnlockHint(buildingKey)}</p>
+                        <button class="action-button building-button" disabled>
+                            Locked (${costText})
+                        </button>
+                    `;
+                    comingSoonDiv.appendChild(div);
+                }
+            }
+            
+            if (hasComingSoon) {
+                buildingsList.appendChild(comingSoonDiv);
+            }
+        }
+
+        function isCloseToUnlocking(buildingKey) {
+            const building = buildingDefs[buildingKey];
+            
+            // Show buildings that require technologies we're close to researching
+            if (buildingKey === 'mine' && gameState.resources.science >= 25) return true;
+            if (buildingKey === 'workshop' && gameState.resources.science >= 100) return true;
+            if (buildingKey === 'smelter' && gameState.technologies.mining) return true;
+            if (buildingKey === 'goldMine' && gameState.resources.science >= 75) return true;
+            if (buildingKey === 'temple' && (gameState.resources.gold >= 5 || gameState.buildings.goldMine > 0)) return true;
+            if (buildingKey === 'logHouse' && gameState.resources.science >= 75) return true;
+            if (buildingKey === 'observatory' && gameState.resources.science >= 100) return true;
+            
+            return false;
+        }
+
+        function getUnlockHint(buildingKey) {
+            switch(buildingKey) {
+                case 'mine': return 'Research Mining (50 science)';
+                case 'workshop': return 'Research Engineering (200 science)';
+                case 'smelter': return 'Research Metal Working + Build Workshop';
+                case 'goldMine': return 'Research Metal Working + Build 2 Mines';
+                case 'temple': return 'Acquire 20+ gold (build Gold Mine)';
+                case 'logHouse': return 'Research Construction (100 science)';
+                case 'observatory': return 'Research Astronomy (150 science)';
+                default: return 'Requirements not met';
             }
         }
 
@@ -1161,9 +1243,15 @@
             const techList = document.getElementById('tech-list');
             techList.innerHTML = '';
             
+            // Available technologies
+            const availableDiv = document.createElement('div');
+            availableDiv.innerHTML = '<h4>Available Research:</h4>';
+            let hasAvailable = false;
+            
             for (let techKey in techDefs) {
                 const tech = techDefs[techKey];
                 if (tech.unlocked() && !gameState.technologies[techKey]) {
+                    hasAvailable = true;
                     const div = document.createElement('div');
                     div.className = 'tech-item';
                     
@@ -1187,22 +1275,96 @@
                             Research (${costText})
                         </button>
                     `;
-                    techList.appendChild(div);
+                    availableDiv.appendChild(div);
                 }
             }
             
-            // Show researched technologies
+            if (hasAvailable) {
+                techList.appendChild(availableDiv);
+            }
+            
+            // Researched technologies
             const researchedDiv = document.createElement('div');
-            researchedDiv.innerHTML = '<h4>Researched Technologies:</h4>';
+            researchedDiv.innerHTML = '<h4 style="margin-top: 20px;">Researched Technologies:</h4>';
+            let hasResearched = false;
+            
             for (let techKey in gameState.technologies) {
-                if (gameState.technologies[techKey]) {
+                if (gameState.technologies[techKey] && techDefs[techKey]) {
+                    hasResearched = true;
                     const p = document.createElement('p');
-                    p.innerHTML = `✓ ${techDefs[techKey].name}`;
+                    p.innerHTML = `✓ <strong>${techDefs[techKey].name}</strong> - ${techDefs[techKey].effect}`;
                     p.style.color = '#2ecc71';
+                    p.style.margin = '8px 0';
                     researchedDiv.appendChild(p);
                 }
             }
-            techList.appendChild(researchedDiv);
+            
+            if (hasResearched) {
+                techList.appendChild(researchedDiv);
+            }
+            
+            // Coming soon technologies  
+            const comingSoonDiv = document.createElement('div');
+            comingSoonDiv.innerHTML = '<h4 style="color: #95a5a6; margin-top: 20px;">Future Research:</h4>';
+            let hasComingSoon = false;
+            
+            for (let techKey in techDefs) {
+                const tech = techDefs[techKey];
+                if (!tech.unlocked() && !gameState.technologies[techKey] && isCloseToResearching(techKey)) {
+                    hasComingSoon = true;
+                    const div = document.createElement('div');
+                    div.className = 'tech-item';
+                    div.style.opacity = '0.6';
+                    div.style.border = '2px dashed #7f8c8d';
+                    
+                    let costText = '';
+                    for (let resource in tech.cost) {
+                        costText += `${tech.cost[resource]} ${resource}, `;
+                    }
+                    costText = costText.slice(0, -2);
+                    
+                    div.innerHTML = `
+                        <h4>${tech.name} 🔒</h4>
+                        <p>${tech.description}</p>
+                        <p><strong>Effect:</strong> ${tech.effect}</p>
+                        <p style="color: #f39c12;"><strong>Requirement:</strong> ${getResearchHint(techKey)}</p>
+                        <button class="action-button tech-button" disabled>
+                            Locked (${costText})
+                        </button>
+                    `;
+                    comingSoonDiv.appendChild(div);
+                }
+            }
+            
+            if (hasComingSoon) {
+                techList.appendChild(comingSoonDiv);
+            }
+        }
+
+        function isCloseToResearching(techKey) {
+            if (techKey === 'agriculture' && gameState.resources.science >= 2) return true;
+            if (techKey === 'calendar' && gameState.resources.science >= 10) return true;
+            if (techKey === 'archery' && gameState.resources.science >= 10) return true;
+            if (techKey === 'mining' && gameState.resources.science >= 15) return true;
+            if (techKey === 'construction' && gameState.resources.science >= 30) return true;
+            if (techKey === 'astronomy' && gameState.resources.science >= 50) return true;
+            if (techKey === 'metalWorking' && gameState.technologies.mining && gameState.resources.science >= 50) return true;
+            if (techKey === 'engineering' && gameState.resources.science >= 75) return true;
+            if (techKey === 'theology' && gameState.resources.faith >= 5) return true;
+            return false;
+        }
+
+        function getResearchHint(techKey) {
+            if (techKey === 'agriculture') return 'Need 5+ science';
+            if (techKey === 'calendar') return 'Need 15+ science';
+            if (techKey === 'archery') return 'Need 15+ science';
+            if (techKey === 'mining') return 'Need 25+ science';
+            if (techKey === 'construction') return 'Need 50+ science';
+            if (techKey === 'astronomy') return 'Need 75+ science';
+            if (techKey === 'metalWorking') return 'Need Mining + 75+ science';
+            if (techKey === 'engineering') return 'Need 100+ science';
+            if (techKey === 'theology') return 'Need 10+ faith';
+            return 'Requirements not met';
         }
 
         function updateReligionList() {
