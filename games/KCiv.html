@@ -359,6 +359,66 @@
 			background: #7f8c8d;
 			cursor: not-allowed;
 		}
+
+		.modal {
+			display: none;
+			position: fixed;
+			z-index: 1000;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0,0,0,0.7);
+		}
+
+		.modal-content {
+			background-color: #2c3e50;
+			margin: 15% auto;
+			padding: 20px;
+			border: 2px solid #3498db;
+			border-radius: 10px;
+			width: 400px;
+			text-align: center;
+			color: #ecf0f1;
+		}
+
+		.modal input {
+			width: 80%;
+			padding: 10px;
+			margin: 10px;
+			border: 2px solid #3498db;
+			border-radius: 5px;
+			background: #34495e;
+			color: #ecf0f1;
+			font-size: 16px;
+		}
+
+		.modal-buttons {
+			margin-top: 15px;
+		}
+
+		.modal-button {
+			padding: 10px 20px;
+			margin: 5px;
+			background: #3498db;
+			color: white;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+			font-size: 14px;
+		}
+
+		.modal-button:hover {
+			background: #2980b9;
+		}
+
+		.modal-button.cancel {
+			background: #e74c3c;
+		}
+
+		.modal-button.cancel:hover {
+			background: #c0392b;
+		}
 		
     </style>
 </head>
@@ -368,6 +428,18 @@
         <button class="save-button" onclick="loadGame()">Load Game</button>
         <button class="save-button" onclick="resetGame()">Reset Game</button>
     </div>
+
+	<div id="phrase-modal" class="modal">
+		<div class="modal-content">
+			<h3 id="modal-title">Enter Secret Phrase</h3>
+			<p id="modal-description">This phrase will be needed to verify your save file later.</p>
+			<input type="text" id="phrase-input" placeholder="Enter your secret phrase..." maxlength="50">
+			<div class="modal-buttons">
+				<button class="modal-button" onclick="confirmPhrase()">OK</button>
+				<button class="modal-button cancel" onclick="cancelPhrase()">Cancel</button>
+			</div>
+		</div>
+	</div>
 
     <div class="container">
         <!-- Left Panel: Resources -->
@@ -513,6 +585,7 @@
 
     <script>
         // Game State
+		let pendingAction = null;
         let gameState = {
             resources: {
                 catnip: 0,
@@ -2085,9 +2158,65 @@
 		}
 
 		function saveGame() {
-			const userPhrase = prompt("Enter a secret phrase for your save file:");
-			if (!userPhrase) return;
+			pendingAction = 'save';
+			document.getElementById('modal-title').textContent = 'Create Save File';
+			document.getElementById('modal-description').textContent = 'Enter a secret phrase to protect your save file:';
+			document.getElementById('phrase-input').value = '';
+			document.getElementById('phrase-modal').style.display = 'block';
+			document.getElementById('phrase-input').focus();
+		}
+
+		function loadGame() {
+			const input = document.createElement('input');
+			input.type = 'file';
+			input.accept = '.json';
+			input.onchange = function(event) {
+				const file = event.target.files[0];
+				if (!file) return;
+				
+				const reader = new FileReader();
+				reader.onload = function(e) {
+					try {
+						window.pendingSaveData = JSON.parse(e.target.result);
+						pendingAction = 'load';
+						document.getElementById('modal-title').textContent = 'Load Save File';
+						document.getElementById('modal-description').textContent = 'Enter the secret phrase for this save file:';
+						document.getElementById('phrase-input').value = '';
+						document.getElementById('phrase-modal').style.display = 'block';
+						document.getElementById('phrase-input').focus();
+					} catch (error) {
+						logMessage("Error: Invalid save file format!");
+					}
+				};
+				reader.readAsText(file);
+			};
+			input.click();
+		}
+
+		function confirmPhrase() {
+			const phrase = document.getElementById('phrase-input').value.trim();
+			if (!phrase) {
+				alert('Please enter a phrase!');
+				return;
+			}
 			
+			document.getElementById('phrase-modal').style.display = 'none';
+			
+			if (pendingAction === 'save') {
+				performSave(phrase);
+			} else if (pendingAction === 'load') {
+				performLoad(phrase);
+			}
+			
+			pendingAction = null;
+		}
+
+		function cancelPhrase() {
+			document.getElementById('phrase-modal').style.display = 'none';
+			pendingAction = null;
+		}
+
+		function performSave(userPhrase) {
 			const signature = generateGameSignature(gameState, userPhrase);
 			const saveData = {
 				gameState: gameState,
@@ -2107,40 +2236,22 @@
 			logMessage(`Save file downloaded! Game ID: ${saveData.gameId}`);
 		}
 
-		function loadGame() {
-			const input = document.createElement('input');
-			input.type = 'file';
-			input.accept = '.json';
-			input.onchange = function(event) {
-				const file = event.target.files[0];
-				if (!file) return;
-				
-				const reader = new FileReader();
-				reader.onload = function(e) {
-					try {
-						const saveData = JSON.parse(e.target.result);
-						const userPhrase = prompt("Enter the secret phrase for this save file:");
-						if (!userPhrase) return;
-						
-						const expectedSignature = generateGameSignature(saveData.gameState, userPhrase);
-						
-						if (saveData.signature === expectedSignature) {
-							gameState = saveData.gameState;
-							recalculateStorageLimits();
-							restoreUIState();
-							loadAchievements();
-							updateDisplay();
-							logMessage(`Game loaded! ID: ${saveData.gameId} ✓ Verified`);
-						} else {
-							logMessage("Invalid save file or wrong secret phrase!");
-						}
-					} catch (error) {
-						logMessage("Error loading save file!");
-					}
-				};
-				reader.readAsText(file);
-			};
-			input.click();
+		function performLoad(userPhrase) {
+			const saveData = window.pendingSaveData;
+			const expectedSignature = generateGameSignature(saveData.gameState, userPhrase);
+			
+			if (saveData.signature === expectedSignature) {
+				gameState = saveData.gameState;
+				recalculateStorageLimits();
+				restoreUIState();
+				loadAchievements();
+				updateDisplay();
+				logMessage(`Game loaded! ID: ${saveData.gameId} ✓ Verified`);
+			} else {
+				logMessage("Invalid save file or wrong secret phrase!");
+			}
+			
+			delete window.pendingSaveData;
 		}
 
 		function generateGameSignature(gameData, userPhrase) {
