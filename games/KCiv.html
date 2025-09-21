@@ -1944,7 +1944,7 @@
 			
 			let canAfford = true;
 			for (let resource in upgrade.cost) {
-				if (gameState.resources[resource] < upgrade.cost[resource]) {
+				if (Math.floor(gameState.resources[resource]) < upgrade.cost[resource]) {
 					canAfford = false;
 					break;
 				}
@@ -2823,7 +2823,7 @@
 			const cost = Math.floor(race.ratio[race.wants] * standingBonus);
 			const gain = Math.floor(race.ratio[race.gives] * standingBonus);
 			
-			if (gameState.resources[race.wants] >= cost) {
+			if (Math.floor(gameState.resources[race.wants]) >= cost) {
 				gameState.resources[race.wants] -= cost;
 				
 				// Add titanium to resources if trading with zebras
@@ -2940,38 +2940,38 @@
             updateDisplay();
         }
 
-        function purchaseReligion(religionKey) {
-            const religion = religionDefs[religionKey];
-            if (!religion) return;
-            
-            // Check if we can afford it
-            let canAfford = true;
-            for (let resource in religion.cost) {
-                if (gameState.resources[resource] < religion.cost[resource]) {
-                    canAfford = false;
-                    break;
-                }
-            }
-            
-            if (!canAfford) return;
-            
-            // Pay the cost
-            for (let resource in religion.cost) {
-                gameState.resources[resource] -= religion.cost[resource];
-            }
-            
-            // Purchase it
-            if (religionKey === 'sunAltar') {
-                gameState.religion.sunAltar++;
-            } else {
-                gameState.religion[religionKey] = true;
-            }
-            
-            religion.onPurchase?.();
-            
-            logMessage(`Acquired ${religion.name}!`);
-            updateDisplay();
-        }
+		function purchaseReligion(religionKey) {
+			const religion = religionDefs[religionKey];
+			if (!religion) return;
+			
+			// Check if we can afford it
+			let canAfford = true;
+			for (let resource in religion.cost) {
+				if (Math.floor(gameState.resources[resource]) < religion.cost[resource]) {
+					canAfford = false;
+					break;
+				}
+			}
+			
+			if (!canAfford) return;
+			
+			// Pay the cost
+			for (let resource in religion.cost) {
+				gameState.resources[resource] -= religion.cost[resource];
+			}
+			
+			// Purchase it
+			if (religionKey === 'sunAltar') {
+				gameState.religion.sunAltar++;
+			} else {
+				gameState.religion[religionKey] = true;
+			}
+			
+			religion.onPurchase?.();
+			
+			logMessage(`Acquired ${religion.name}!`);
+			updateDisplay();
+		}
 
         function showTab(tabName) {
             // Hide all tab contents
@@ -3338,7 +3338,7 @@
                     let canAfford = true;
                     let costText = '';
                     for (let resource in tech.cost) {
-                        if (gameState.resources[resource] < tech.cost[resource]) {
+                        if (Math.floor(gameState.resources[resource]) < tech.cost[resource]) {
                             canAfford = false;
                         }
                         costText += `${tech.cost[resource]} ${resource}, `;
