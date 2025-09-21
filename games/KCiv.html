@@ -2356,54 +2356,61 @@
             }
         }
 
-        function updateDisplay() {
-            // Update resources with storage info
-            for (let resource in gameState.resources) {
-                const element = document.getElementById(resource + '-amount');
-                if (element) {
-                    const current = Math.floor(gameState.resources[resource]);
-                    const limit = gameState.resourceLimits[resource];
-                    if (limit && limit < Infinity) {
-                        element.textContent = `${current.toLocaleString()}/${limit.toLocaleString()}`;
-                        // Color code based on capacity
-                        if (current >= limit * 0.9) {
-                            element.style.color = '#e74c3c'; // Red when nearly full
-                        } else if (current >= limit * 0.75) {
-                            element.style.color = '#f39c12'; // Orange when 75% full
-                        } else {
-                            element.style.color = '#2ecc71'; // Green when plenty of space
-                        }
-                    } else {
-                        element.textContent = current.toLocaleString();
-                        element.style.color = '#2ecc71';
-                    }
-                }
-                
-                const rateElement = document.getElementById(resource + '-rate');
-                if (rateElement && gameState.resourcesProduction[resource]) {
-                    let rate = gameState.resourcesProduction[resource];
-                    
-                    // Apply seasonal effects for display
-                    if (resource === 'catnip') {
-                        const seasonMultipliers = [1.5, 1.0, 0.75, 0.25];
-                        rate *= seasonMultipliers[gameState.stats.season];
-                    }
-                    
-                    rateElement.textContent = rate > 0 ? `+${rate.toFixed(2)}/sec` : '';
-                }
-            }
-            
-            // Update population
-            document.getElementById('kittens-amount').textContent = Math.floor(gameState.population.kittens);
-            document.getElementById('happiness-amount').textContent = Math.floor(gameState.population.happiness * 100) + '%';
-            
-            // Update catnip fields summary
-            updateCatnipFieldsSummary();
-            
-            // Update status
-            const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
-            document.getElementById('current-season').textContent = seasons[gameState.stats.season];
-            document.getElementById('current-year').textContent = gameState.stats.year;
+		function updateDisplay() {
+			// Update resources with storage info
+			for (let resource in gameState.resources) {
+				const element = document.getElementById(resource + '-amount');
+				if (element) {
+					const current = Math.floor(gameState.resources[resource]);
+					const limit = gameState.resourceLimits[resource];
+					if (limit && limit < Infinity) {
+						element.textContent = `${current.toLocaleString()}/${limit.toLocaleString()}`;
+						// Color code based on capacity
+						if (current >= limit * 0.9) {
+							element.style.color = '#e74c3c'; // Red when nearly full
+						} else if (current >= limit * 0.75) {
+							element.style.color = '#f39c12'; // Orange when 75% full
+						} else {
+							element.style.color = '#2ecc71'; // Green when plenty of space
+						}
+					} else {
+						element.textContent = current.toLocaleString();
+						element.style.color = '#2ecc71';
+					}
+				}
+				
+				const rateElement = document.getElementById(resource + '-rate');
+				if (rateElement && gameState.resourcesProduction[resource]) {
+					let rate = gameState.resourcesProduction[resource];
+					
+					// Apply seasonal effects for display
+					if (resource === 'catnip') {
+						const seasonMultipliers = [1.5, 1.0, 0.75, 0.25];
+						rate *= seasonMultipliers[gameState.stats.season];
+					}
+					
+					rateElement.textContent = rate > 0 ? `+${rate.toFixed(2)}/sec` : '';
+				}
+			}
+			
+			// Handle catpower rate display separately
+			const catpowerRateElement = document.getElementById('catpower-rate');
+			if (catpowerRateElement) {
+				const catpowerRate = (gameState.population.jobs.hunters || 0) * 0.4;
+				catpowerRateElement.textContent = catpowerRate > 0 ? `+${catpowerRate.toFixed(2)}/sec` : '';
+			}
+			
+			// Update population
+			document.getElementById('kittens-amount').textContent = Math.floor(gameState.population.kittens);
+			document.getElementById('happiness-amount').textContent = Math.floor(gameState.population.happiness * 100) + '%';
+			
+			// Update catnip fields summary
+			updateCatnipFieldsSummary();
+			
+			// Update status
+			const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+			document.getElementById('current-season').textContent = seasons[gameState.stats.season];
+			document.getElementById('current-year').textContent = gameState.stats.year;
 			document.getElementById('faith-amount').textContent = Math.floor(gameState.resources.faith);
 			document.getElementById('science-amount').textContent = Math.floor(gameState.resources.science);
 
@@ -2422,8 +2429,8 @@
 					document.getElementById('prestige-display').innerHTML = prestigeText;
 				}
 			}
-            
-            updateJobManagement();
+			
+			updateJobManagement();
 			updateRefineButton();
 			updateBuildingsList();
 			updateTechList();
@@ -2433,7 +2440,7 @@
 			updateTradeTab();
 			if (gameState.technologies.archery) {
 				updateHuntingSection();
-			}  // ADD THIS LINE
+			}
 		}
 
         function updateCatnipFieldsSummary() {
