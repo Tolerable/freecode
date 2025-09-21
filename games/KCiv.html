@@ -1457,16 +1457,78 @@
         };
 
         // Achievement Definitions
-        const achievements = [
-            { id: 'first_catnip', name: 'First Catnip', desc: 'Gather your first catnip', trigger: () => gameState.stats.totalCatnipGathered >= 1 },
-            { id: 'catnip_hoarder', name: 'Catnip Hoarder', desc: 'Gather 100 catnip', trigger: () => gameState.stats.totalCatnipGathered >= 100 },
-            { id: 'first_building', name: 'Architect', desc: 'Build your first structure', trigger: () => Object.values(gameState.buildings).some(count => count > 0) },
-            { id: 'first_tech', name: 'Scholar', desc: 'Research your first technology', trigger: () => Object.values(gameState.technologies).some(researched => researched) },
-            { id: 'faithful', name: 'Faithful Servant', desc: 'Accumulate 10 faith', trigger: () => gameState.resources.faith >= 10 },
-            { id: 'population_growth', name: 'Growing Tribe', desc: 'Reach 10 kittens', trigger: () => gameState.population.kittens >= 10 },
-            { id: 'year_survivor', name: 'One Year Strong', desc: 'Survive your first year', trigger: () => gameState.stats.year >= 2 },
-            { id: 'dedicated_clicker', name: 'Dedicated Gatherer', desc: 'Click gather 100 times', trigger: () => gameState.stats.gatherClicks >= 100 }
-        ];
+		const achievements = [
+			// Early Game
+			{ id: 'first_catnip', name: 'First Catnip', desc: 'Gather your first catnip', trigger: () => gameState.stats.totalCatnipGathered >= 1 },
+			{ id: 'catnip_hoarder', name: 'Catnip Hoarder', desc: 'Gather 100 catnip', trigger: () => gameState.stats.totalCatnipGathered >= 100 },
+			{ id: 'catnip_addict', name: 'Catnip Addict', desc: 'Gather 10,000 catnip', trigger: () => gameState.stats.totalCatnipGathered >= 10000 },
+			{ id: 'first_building', name: 'Architect', desc: 'Build your first structure', trigger: () => Object.values(gameState.buildings).some(count => count > 0) },
+			{ id: 'first_tech', name: 'Scholar', desc: 'Research your first technology', trigger: () => Object.values(gameState.technologies).some(researched => researched) },
+			{ id: 'faithful', name: 'Faithful Servant', desc: 'Accumulate 10 faith', trigger: () => gameState.resources.faith >= 10 },
+			{ id: 'population_growth', name: 'Growing Tribe', desc: 'Reach 10 kittens', trigger: () => gameState.population.kittens >= 10 },
+			{ id: 'year_survivor', name: 'One Year Strong', desc: 'Survive your first year', trigger: () => gameState.stats.year >= 2 },
+			{ id: 'dedicated_clicker', name: 'Dedicated Gatherer', desc: 'Click gather 100 times', trigger: () => gameState.stats.gatherClicks >= 100 },
+			
+			// Building Achievements
+			{ id: 'village_founder', name: 'Village Founder', desc: 'Build 5 huts', trigger: () => gameState.buildings.hut >= 5 },
+			{ id: 'metropolis', name: 'Metropolis', desc: 'Reach 50 kittens', trigger: () => gameState.population.kittens >= 50 },
+			{ id: 'civilization', name: 'True Civilization', desc: 'Reach 100 kittens', trigger: () => gameState.population.kittens >= 100 },
+			{ id: 'farming_community', name: 'Farming Community', desc: 'Build 25 catnip fields', trigger: () => gameState.buildings.catnipField >= 25 },
+			{ id: 'industrial_age', name: 'Industrial Age', desc: 'Build 10 mines', trigger: () => gameState.buildings.mine >= 10 },
+			{ id: 'scholar_society', name: 'Scholar Society', desc: 'Build 5 libraries', trigger: () => gameState.buildings.library >= 5 },
+			{ id: 'storage_master', name: 'Storage Master', desc: 'Build 5 barns and 5 warehouses', trigger: () => gameState.buildings.barn >= 5 && gameState.buildings.warehouse >= 5 },
+			
+			// Resource Achievements
+			{ id: 'wood_stockpile', name: 'Lumber Baron', desc: 'Accumulate 10,000 wood', trigger: () => gameState.resources.wood >= 10000 },
+			{ id: 'mineral_fortune', name: 'Mining Tycoon', desc: 'Accumulate 5,000 minerals', trigger: () => gameState.resources.minerals >= 5000 },
+			{ id: 'iron_age', name: 'Iron Age', desc: 'Accumulate 1,000 iron', trigger: () => gameState.resources.iron >= 1000 },
+			{ id: 'gold_rush', name: 'Gold Rush', desc: 'Accumulate 500 gold', trigger: () => gameState.resources.gold >= 500 },
+			{ id: 'steel_magnate', name: 'Steel Magnate', desc: 'Craft 50 steel', trigger: () => (gameState.stats.steelCrafted || 0) >= 50 },
+			{ id: 'manuscript_collector', name: 'Manuscript Collector', desc: 'Accumulate 25 manuscripts', trigger: () => gameState.resources.manuscripts >= 25 },
+			
+			// Technology Achievements
+			{ id: 'renaissance', name: 'Renaissance', desc: 'Research 5 technologies', trigger: () => Object.values(gameState.technologies).filter(Boolean).length >= 5 },
+			{ id: 'enlightenment', name: 'Age of Enlightenment', desc: 'Research 10 technologies', trigger: () => Object.values(gameState.technologies).filter(Boolean).length >= 10 },
+			{ id: 'space_pioneer', name: 'Space Pioneer', desc: 'Research Rocketry', trigger: () => gameState.technologies.rocketry },
+			{ id: 'rocket_scientist', name: 'Rocket Scientist', desc: 'Launch your first space mission', trigger: () => gameState.space.missions >= 1 },
+			{ id: 'astronaut', name: 'Astronaut', desc: 'Complete 10 space missions', trigger: () => gameState.space.missions >= 10 },
+			
+			// Hunting & Exploration
+			{ id: 'first_hunt', name: 'First Hunt', desc: 'Send your first hunting expedition', trigger: () => (gameState.stats.huntsCompleted || 0) >= 1 },
+			{ id: 'master_hunter', name: 'Master Hunter', desc: 'Complete 50 hunts', trigger: () => (gameState.stats.huntsCompleted || 0) >= 50 },
+			{ id: 'unicorn_whisperer', name: 'Unicorn Whisperer', desc: 'Find 10 unicorns', trigger: () => gameState.resources.unicorns >= 10 },
+			{ id: 'explorer', name: 'Explorer', desc: 'Complete 25 expeditions', trigger: () => gameState.expeditions.completed >= 25 },
+			{ id: 'oil_baron', name: 'Oil Baron', desc: 'Accumulate 1,000 oil', trigger: () => gameState.resources.oil >= 1000 },
+			
+			// Trading Achievements
+			{ id: 'first_trade', name: 'Merchant', desc: 'Complete your first trade', trigger: () => (gameState.stats.tradesCompleted || 0) >= 1 },
+			{ id: 'trade_empire', name: 'Trade Empire', desc: 'Unlock all 5 trading races', trigger: () => Object.values(gameState.tradingRaces).filter(race => race.unlocked).length >= 5 },
+			{ id: 'diplomat', name: 'Diplomat', desc: 'Achieve 50+ standing with any race', trigger: () => Object.values(gameState.tradingRaces).some(race => race.standing >= 50) },
+			{ id: 'titanium_collector', name: 'Titanium Collector', desc: 'Accumulate 100 titanium', trigger: () => gameState.resources.titanium >= 100 },
+			
+			// Religious Achievements
+			{ id: 'devout_follower', name: 'Devout Follower', desc: 'Accumulate 1,000 faith', trigger: () => gameState.resources.faith >= 1000 },
+			{ id: 'temple_builder', name: 'Temple Builder', desc: 'Build 5 temples', trigger: () => gameState.buildings.temple >= 5 },
+			{ id: 'sun_worshipper', name: 'Sun Worshipper', desc: 'Build 3 sun altars', trigger: () => gameState.religion.sunAltar >= 3 },
+			
+			// Time & Survival
+			{ id: 'decade_survivor', name: 'Decade Survivor', desc: 'Survive 10 years', trigger: () => gameState.stats.year >= 11 },
+			{ id: 'century_survivor', name: 'Century Survivor', desc: 'Survive 100 years', trigger: () => gameState.stats.year >= 101 },
+			{ id: 'winter_survivor', name: 'Winter Survivor', desc: 'Survive 10 winters', trigger: () => gameState.stats.year >= 3 },
+			
+			// Challenge Achievements
+			{ id: 'efficient_clicker', name: 'Efficient Clicker', desc: 'Gather 1000 catnip with only 50 clicks', trigger: () => gameState.stats.totalCatnipGathered >= 1000 && gameState.stats.gatherClicks <= 50 },
+			{ id: 'happiness_keeper', name: 'Happiness Keeper', desc: 'Maintain 100% happiness for 5 years', trigger: () => (gameState.stats.happyYears || 0) >= 5 },
+			{ id: 'resource_master', name: 'Resource Master', desc: 'Have 10+ different resources above 1000', trigger: () => {
+				const highResources = Object.entries(gameState.resources).filter(([key, value]) => value >= 1000).length;
+				return highResources >= 10;
+			}},
+			
+			// Prestige Achievements
+			{ id: 'first_reset', name: 'Born Again', desc: 'Perform your first reset', trigger: () => gameState.prestige.totalResets >= 1 },
+			{ id: 'karma_collector', name: 'Karma Collector', desc: 'Accumulate 100 karma', trigger: () => gameState.prestige.karma >= 100 },
+			{ id: 'paragon_master', name: 'Paragon Master', desc: 'Accumulate 500 paragon', trigger: () => gameState.prestige.paragon >= 500 }
+		];
 
 
 		function showTranscendenceConfirmation() {
@@ -2218,9 +2280,13 @@
 				results.push(`${oilGained} oil`);
 			}
 			
+			// Track hunts for achievements
+			gameState.stats.huntsCompleted = (gameState.stats.huntsCompleted || 0) + 1;
+			
 			logMessage(`Hunt returned with: ${results.join(', ')}`);
 			updateHuntingSection();
 			updateDisplay();
+			checkAchievements();
 		}
 
 		function updateWorkshopTab() {
@@ -2460,9 +2526,15 @@
 				gameState.resources[resource] += recipe.output[resource];
 			}
 			
+			// Track crafting for achievements
+			if (recipeName === 'Steel') {
+				gameState.stats.steelCrafted = (gameState.stats.steelCrafted || 0) + 1;
+			}
+			
 			logMessage(`Crafted ${recipeName}!`);
 			updateWorkshopTab();
 			updateDisplay();
+			checkAchievements();
 		}
 
 		function addSpaceTab() {
@@ -2841,9 +2913,13 @@
 				// Increase standing
 				gameState.tradingRaces[raceKey].standing++;
 				
+				// Track trades for achievements
+				gameState.stats.tradesCompleted = (gameState.stats.tradesCompleted || 0) + 1;
+				
 				logMessage(`Traded ${cost} ${race.wants} for ${gain} ${race.gives} with the ${raceKey}!`);
 				updateTradeTab();
 				updateDisplay();
+				checkAchievements();
 			}
 		}
 
@@ -3677,6 +3753,13 @@
 				}
 				checkAchievements();
 			}
+			
+			// Track happiness for achievements
+			if (gameState.population.happiness >= 1.0) {
+				if (gameState.stats.season === 0 && gameState.stats.timePlayed % 60 === 0) { // New year
+					gameState.stats.happyYears = (gameState.stats.happyYears || 0) + 1;
+				}
+			}			
 			
 			// Catnip consumption (kittens eat catnip)
 			const catnipConsumption = gameState.population.kittens * 0.05; // Reduced consumption
