@@ -1797,6 +1797,21 @@
 			});
 		}
 
+		function enforceMaxBuildingLimits() {
+			if (gameState.buildings.tradingPost > 1) {
+				gameState.buildings.tradingPost = 1;
+				logMessage("Trading Post count reduced to 1 (max limit)");
+			}
+			if (gameState.buildings.observatory > 1) {
+				gameState.buildings.observatory = 1;
+				logMessage("Observatory count reduced to 1 (max limit)");
+			}
+			if (gameState.buildings.launchPad > 1) {
+				gameState.buildings.launchPad = 1;
+				logMessage("Launch Pad count reduced to 1 (max limit)");
+			}
+		}
+
 		function craft(recipeName) {
 			const recipes = {
 				'Steel': {
@@ -2460,11 +2475,11 @@
 					const buttonClass = buttonDisabled ? 'building-button disabled' : 'building-button';
 					
 					div.innerHTML = `
-						<h4>${building.name} ${buildingCount > 0 ? `(${buildingCount})` : ''}</h4>
+						<h4>${building.name} ${buildingCount > 0 ? `(${buildingCount})` : ''}${building.maxBuildable ? ` [LIMIT: ${building.maxBuildable}]` : ''}</h4>
 						<p>${building.description}</p>
 						<p><strong>Effect:</strong> ${building.effect}</p>
 						${buildingCount > 0 ? 
-							`<p style="color: #2ecc71;"><strong>✓ Built:</strong> ${buildingCount}</p>` : ''
+							`<p style="color: #2ecc71;"><strong>✓ Built:</strong> ${buildingCount}${building.maxBuildable ? `/${building.maxBuildable}` : ''}</p>` : ''
 						}
 						<div style="display: flex; gap: 5px; align-items: center;">
 							<button class="action-button ${buttonClass}" 
@@ -3466,6 +3481,8 @@
 			}
 			
 			logMessage("Welcome to Kitten Civilization! Your journey begins...");
+			enforceMaxBuildingLimits();
+			updateWorkshopTab();
 		});
 
         // Add some additional resources to the display when they become available
