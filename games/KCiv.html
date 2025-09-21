@@ -2084,59 +2084,74 @@
 			}
 		}
 
-        function saveGame() {
-            localStorage.setItem('kittenCivilizationSave', JSON.stringify(gameState));
-            // Don't log save messages - they're too frequent
-        }
+		function saveGame() {
+			const userPhrase = prompt("Enter a secret phrase for your save file:");
+			if (!userPhrase) return;
+			
+			const signature = generateGameSignature(gameState, userPhrase);
+			const saveData = {
+				gameState: gameState,
+				signature: signature,
+				timestamp: Date.now(),
+				gameId: signature.substring(0, 8).toUpperCase()
+			};
+			
+			const blob = new Blob([JSON.stringify(saveData, null, 2)], {type: 'application/json'});
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `kitten-civ-${saveData.gameId}.json`;
+			a.click();
+			URL.revokeObjectURL(url);
+			
+			logMessage(`Save file downloaded! Game ID: ${saveData.gameId}`);
+		}
 
 		function loadGame() {
-			const savedGame = localStorage.getItem('kittenCivilizationSave');
-			if (savedGame) {
-				try {
-					const loadedState = JSON.parse(savedGame);
-					
-					// Merge saved state with current state to ensure all properties exist
-					gameState = Object.assign({}, gameState, loadedState);
-					
-					// Ensure all nested objects exist
-					gameState.buildings = Object.assign({}, {
-						catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0, 
-						quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0, 
-						logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0
-					}, loadedState.buildings || {});
-					
-					gameState.technologies = Object.assign({}, {
-						agriculture: false, archery: false, mining: false, metalWorking: false,
-						construction: false, engineering: false, astronomy: false, theology: false,
-						philosophy: false, mathematics: false, optics: false, physics: false, calendar: false
-					}, loadedState.technologies || {});
-					
-					// Ensure jobs object exists
-					if (!gameState.population.jobs) {
-						gameState.population.jobs = {
-							farmers: 0,
-							woodcutters: 0,
-							miners: 0,
-							scholars: 0,
-							hunters: 0,
-							priests: 0
-						};
+			const input = document.createElement('input');
+			input.type = 'file';
+			input.accept = '.json';
+			input.onchange = function(event) {
+				const file = event.target.files[0];
+				if (!file) return;
+				
+				const reader = new FileReader();
+				reader.onload = function(e) {
+					try {
+						const saveData = JSON.parse(e.target.result);
+						const userPhrase = prompt("Enter the secret phrase for this save file:");
+						if (!userPhrase) return;
+						
+						const expectedSignature = generateGameSignature(saveData.gameState, userPhrase);
+						
+						if (saveData.signature === expectedSignature) {
+							gameState = saveData.gameState;
+							recalculateStorageLimits();
+							restoreUIState();
+							loadAchievements();
+							updateDisplay();
+							logMessage(`Game loaded! ID: ${saveData.gameId} ✓ Verified`);
+						} else {
+							logMessage("Invalid save file or wrong secret phrase!");
+						}
+					} catch (error) {
+						logMessage("Error loading save file!");
 					}
-					
-					// IMPORTANT: Recalculate storage limits based on buildings owned
-					recalculateStorageLimits();
-					
-					logMessage("Game loaded successfully!");
-					restoreUIState();
-					loadAchievements();
-					updateDisplay();
-				} catch (error) {
-					logMessage("Error loading saved game - starting fresh!");
-					console.error("Save load error:", error);
-				}
-			} else {
-				logMessage("No saved game found!");
+				};
+				reader.readAsText(file);
+			};
+			input.click();
+		}
+
+		function generateGameSignature(gameData, userPhrase) {
+			const dataString = JSON.stringify(gameData) + userPhrase;
+			let hash = 0;
+			for (let i = 0; i < dataString.length; i++) {
+				const char = dataString.charCodeAt(i);
+				hash = ((hash << 5) - hash) + char;
+				hash = hash & hash;
 			}
+			return Math.abs(hash).toString(36);
 		}
 
 		function recalculateStorageLimits() {
