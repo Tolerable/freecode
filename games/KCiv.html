@@ -3672,26 +3672,31 @@
             logMessage(`🏆 Achievement Unlocked: ${achievement.name}`);
         }
 
-        function loadAchievements() {
-            const achievementsList = document.getElementById('achievements-list');
-            achievementsList.innerHTML = '';
-            
-            // Show earned achievements (most recent first)
-            const earnedAchievements = gameState.stats.achievements.slice().reverse().slice(0, 5);
-            earnedAchievements.forEach(achievementId => {
-                const achievement = achievements.find(a => a.id === achievementId);
-                if (achievement) {
-                    const div = document.createElement('div');
-                    div.className = 'achievement';
-                    div.setAttribute('data-achievement-id', achievement.id);
-                    div.innerHTML = `
-                        <strong>${achievement.name}</strong><br>
-                        <small>${achievement.desc}</small>
-                    `;
-                    achievementsList.appendChild(div);
-                }
-            });
-        }
+		function loadAchievements() {
+			const achievementsList = document.getElementById('achievements-list');
+			achievementsList.innerHTML = '';
+			
+			// Show ALL earned achievements (most recent first), not just 5
+			const earnedAchievements = gameState.stats.achievements.slice().reverse();
+			earnedAchievements.forEach(achievementId => {
+				const achievement = achievements.find(a => a.id === achievementId);
+				if (achievement) {
+					const div = document.createElement('div');
+					div.className = 'achievement';
+					div.setAttribute('data-achievement-id', achievement.id);
+					div.innerHTML = `
+						<strong>${achievement.name}</strong><br>
+						<small>${achievement.desc}</small>
+					`;
+					achievementsList.appendChild(div);
+				}
+			});
+			
+			// Add a counter
+			const counterDiv = document.createElement('div');
+			counterDiv.innerHTML = `<p style="text-align: center; color: #bdc3c7; margin-top: 10px;">Total: ${earnedAchievements.length} achievements</p>`;
+			achievementsList.appendChild(counterDiv);
+		}
 
         function logMessage(message) {
             const gameLog = document.getElementById('game-log');
