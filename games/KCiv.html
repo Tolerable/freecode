@@ -559,11 +559,13 @@
                 </div>
             </div>
 
-            <!-- Trade Tab -->
-            <div id="trade-tab" class="tab-content">
-                <h3>Trading Post</h3>
-                <p>Build a trading post to unlock trade with other civilizations...</p>
-            </div>
+			<!-- Trade Tab -->
+			<div id="trade-tab" class="tab-content">
+				<h3>Trading Post</h3>
+				<div id="trade-content">
+					<p>Build a trading post to unlock trade with other civilizations...</p>
+				</div>
+			</div>
         </div>
 
         <!-- Right Panel: Log and Status -->
@@ -683,6 +685,13 @@
                 moonAltar: 0,
                 transcendence: 0
             },
+			tradingRaces: {
+				lizards: { standing: 0, unlocked: false },
+				sharks: { standing: 0, unlocked: false },
+				griffins: { standing: 0, unlocked: false },
+				nagas: { standing: 0, unlocked: false },
+				zebras: { standing: 0, unlocked: false }
+			},			
             stats: {
                 totalCatnipGathered: 0,
                 totalCatnipRefined: 0,
@@ -878,9 +887,10 @@
                 cost: { wood: 500, minerals: 200, gold: 15 },
                 effect: "Unlocks trading and exotic resources",
                 unlocked: () => gameState.resources.gold >= 10 && gameState.resources.furs >= 50,
-                onBuild: () => {
-                    logMessage("🏪 Trading post built! New trading opportunities available.");
-                }
+				onBuild: () => {
+					unlockTrading();
+					logMessage("🏪 Trading post built! New trading opportunities available.");
+				}
             },
             observatory: {
                 name: "Observatory",
@@ -1260,6 +1270,138 @@
 						` : ''}
 					</div>
 				`;
+			}
+		}
+
+		function unlockTrading() {
+			if (gameState.buildings.tradingPost > 0) {
+				// Unlock first race
+				gameState.tradingRaces.lizards.unlocked = true;
+				updateTradeTab();
+			}
+		}
+
+		function updateTradeTab() {
+			const tradeContent = document.getElementById('trade-content');
+			
+			if (gameState.buildings.tradingPost === 0) {
+				tradeContent.innerHTML = '<p>Build a trading post to unlock trade with other civilizations...</p>';
+				return;
+			}
+			
+			tradeContent.innerHTML = '<h4>Trading Partners</h4>';
+			
+			const races = [
+				{
+					key: 'lizards',
+					name: 'Lizards',
+					wants: 'minerals',
+					gives: 'wood',
+					ratio: { minerals: 100, wood: 50 },
+					unlock: () => true
+				},
+				{
+					key: 'sharks',
+					name: 'Sharks',
+					wants: 'iron',
+					gives: 'catnip',
+					ratio: { iron: 25, catnip: 350 },
+					unlock: () => gameState.tradingRaces.lizards.standing >= 10
+				},
+				{
+					key: 'griffins',
+					name: 'Griffins',
+					wants: 'wood',
+					gives: 'iron',
+					ratio: { wood: 500, iron: 25 },
+					unlock: () => gameState.tradingRaces.sharks.standing >= 10
+				},
+				{
+					key: 'nagas',
+					name: 'Nagas',
+					wants: 'minerals',
+					gives: 'science',
+					ratio: { minerals: 350, science: 100 },
+					unlock: () => gameState.tradingRaces.griffins.standing >= 5
+				},
+				{
+					key: 'zebras',
+					name: 'Zebras',
+					wants: 'furs',
+					gives: 'titanium',
+					ratio: { furs: 500, titanium: 1.5 },
+					unlock: () => gameState.tradingRaces.nagas.standing >= 5
+				}
+			];
+			
+			races.forEach(race => {
+				if (race.unlock()) {
+					if (!gameState.tradingRaces[race.key].unlocked) {
+						gameState.tradingRaces[race.key].unlocked = true;
+						logMessage(`The ${race.name} have discovered your civilization!`);
+					}
+					
+					const standing = gameState.tradingRaces[race.key].standing;
+					const standingBonus = 1 + (standing * 0.01); // 1% better rates per standing
+					const adjustedRatio = {};
+					
+					for (let resource in race.ratio) {
+						adjustedRatio[resource] = Math.floor(race.ratio[resource] * standingBonus);
+					}
+					
+					const canTrade = gameState.resources[race.wants] >= adjustedRatio[race.wants];
+					
+					const div = document.createElement('div');
+					div.className = 'building-item';
+					div.innerHTML = `
+						<h4>${race.name} (Standing: ${standing})</h4>
+						<p>Trade ${adjustedRatio[race.wants]} ${race.wants} for ${adjustedRatio[race.gives]} ${race.gives}</p>
+						<button class="action-button" 
+								onclick="tradeWith('${race.key}')" 
+								${!canTrade ? 'disabled' : ''}>
+							Trade with ${race.name}
+						</button>
+					`;
+					tradeContent.appendChild(div);
+				}
+			});
+		}
+
+		function tradeWith(raceKey) {
+			const races = {
+				lizards: { wants: 'minerals', gives: 'wood', ratio: { minerals: 100, wood: 50 } },
+				sharks: { wants: 'iron', gives: 'catnip', ratio: { iron: 25, catnip: 350 } },
+				griffins: { wants: 'wood', gives: 'iron', ratio: { wood: 500, iron: 25 } },
+				nagas: { wants: 'minerals', gives: 'science', ratio: { minerals: 350, science: 100 } },
+				zebras: { wants: 'furs', gives: 'titanium', ratio: { furs: 500, titanium: 1.5 } }
+			};
+			
+			const race = races[raceKey];
+			if (!race) return;
+			
+			const standing = gameState.tradingRaces[raceKey].standing;
+			const standingBonus = 1 + (standing * 0.01);
+			
+			const cost = Math.floor(race.ratio[race.wants] * standingBonus);
+			const gain = Math.floor(race.ratio[race.gives] * standingBonus);
+			
+			if (gameState.resources[race.wants] >= cost) {
+				gameState.resources[race.wants] -= cost;
+				
+				// Add titanium to resources if trading with zebras
+				if (race.gives === 'titanium') {
+					if (!gameState.resources.titanium) gameState.resources.titanium = 0;
+					gameState.resources.titanium += gain;
+				} else {
+					gameState.resources[race.gives] += gain;
+				}
+				
+				// Increase standing
+				gameState.tradingRaces[raceKey].standing++;
+				
+				logMessage(`Traded ${cost} ${race.wants} for ${gain} ${race.gives} with the ${raceKey}!`);
+				updateTradeTab();
+				updateDisplay();
 			}
 		}
 
@@ -2311,6 +2453,15 @@
 				gameState.resourceLimits.coal += gameState.buildings.warehouse * 1500;
 				gameState.resourceLimits.stone += gameState.buildings.warehouse * 2000;
 				gameState.resourceLimits.iron += gameState.buildings.warehouse * 500;
+			}
+			
+			// ADD THESE NEW LINES:
+			// Add faith storage from religious buildings
+			if (gameState.buildings.temple > 0) {
+				gameState.resourceLimits.faith += gameState.buildings.temple * 200;
+			}
+			if (gameState.religion.sunAltar > 0) {
+				gameState.resourceLimits.faith += gameState.religion.sunAltar * 100;
 			}
 		}
 
