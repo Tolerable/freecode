@@ -1686,7 +1686,23 @@
 			`;
 			huntingButtons.appendChild(huntButton);
 			
-			// Display hunting bonus and hunters info (remove catpower display from here)
+			// Send explorers button (only show after trading post built)
+			if (gameState.buildings.tradingPost > 0) {
+				const exploreCost = 1000;
+				const canExplore = currentCatpower >= exploreCost;
+				
+				const exploreButton = document.createElement('button');
+				exploreButton.className = `action-button ${!canExplore ? 'disabled' : ''}`;
+				exploreButton.disabled = !canExplore;
+				exploreButton.onclick = () => sendExplorers();
+				exploreButton.innerHTML = `
+					Send Explorers
+					<div class="cost-display">Cost: ${exploreCost} catpower - Search for new civilizations to trade with</div>
+				`;
+				huntingButtons.appendChild(exploreButton);
+			}
+			
+			// Display hunting bonus and hunters info
 			const statusDiv = document.createElement('div');
 			statusDiv.className = 'expedition-progress';
 			statusDiv.innerHTML = `
@@ -2141,11 +2157,7 @@
 			];
 			
 			races.forEach(race => {
-				if (race.unlock()) {
-					if (!gameState.tradingRaces[race.key].unlocked) {
-						gameState.tradingRaces[race.key].unlocked = true;
-						logMessage(`The ${race.name} have discovered your civilization!`);
-					}
+				if (gameState.tradingRaces[race.key].unlocked) {
 					
 					const standing = gameState.tradingRaces[race.key].standing;
 					const standingBonus = 1 + (standing * 0.01);
@@ -2169,6 +2181,47 @@
 					tradeContent.appendChild(div);
 				}
 			});
+		}
+
+		function sendExplorers() {
+			const exploreCost = 1000;
+			if (gameState.resources.catpower < exploreCost) return;
+			
+			gameState.resources.catpower -= exploreCost;
+			
+			// Find next available race to unlock
+			const raceOrder = ['sharks', 'griffins', 'nagas', 'zebras'];
+			let foundRace = null;
+			
+			for (let race of raceOrder) {
+				if (!gameState.tradingRaces[race].unlocked) {
+					// Check if previous race has enough standing
+					if (race === 'sharks' && gameState.tradingRaces.lizards.standing >= 10) {
+						foundRace = race;
+						break;
+					} else if (race === 'griffins' && gameState.tradingRaces.sharks.standing >= 10) {
+						foundRace = race;
+						break;
+					} else if (race === 'nagas' && gameState.tradingRaces.griffins.standing >= 5) {
+						foundRace = race;
+						break;
+					} else if (race === 'zebras' && gameState.tradingRaces.nagas.standing >= 5) {
+						foundRace = race;
+						break;
+					}
+				}
+			}
+			
+			if (foundRace) {
+				gameState.tradingRaces[foundRace].unlocked = true;
+				logMessage(`Your explorers discovered the ${foundRace}! New trading opportunities available.`);
+			} else {
+				logMessage("Your explorers found no new civilizations.");
+				gameState.resources.catpower += 950; // Refund most catpower
+			}
+			
+			updateTradeTab();
+			updateDisplay();
 		}
 
 		function tradeWith(raceKey) {
