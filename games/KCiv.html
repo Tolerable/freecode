@@ -1242,53 +1242,113 @@
             }
         }
 
-        function updateBuildingsList() {
-            const buildingsList = document.getElementById('buildings-list');
-            buildingsList.innerHTML = '';
-            
-            for (let buildingKey in buildingDefs) {
-                const building = buildingDefs[buildingKey];
-                const buildingCount = gameState.buildings[buildingKey] || 0;
-                const isVisible = building.unlocked() || buildingCount > 0;
-                
-                if (isVisible) {
-                    const div = document.createElement('div');
-                    div.className = 'building-item';
-                    
-                    let canAfford = true;
-                    let costText = '';
-                    for (let resource in building.cost) {
-                        if (gameState.resources[resource] < building.cost[resource]) {
-                            canAfford = false;
-                        }
-                        costText += `${building.cost[resource]} ${resource}, `;
-                    }
-                    costText = costText.slice(0, -2); // Remove trailing comma
-                    
-                    // Show if already built or if can afford
-                    const buttonDisabled = !canAfford;
-                    const buttonClass = buttonDisabled ? 'building-button disabled' : 'building-button';
-                    
-                    div.innerHTML = `
-                        <h4>${building.name} ${buildingCount > 0 ? `(${buildingCount})` : ''}</h4>
-                        <p>${building.description}</p>
-                        <p><strong>Effect:</strong> ${building.effect}</p>
-                        ${buildingCount > 0 ? 
-                            `<p style="color: #2ecc71;"><strong>✓ Built:</strong> ${buildingCount}</p>` : ''
-                        }
-                        <button class="action-button ${buttonClass}" 
-                                onclick="buildBuilding('${buildingKey}')" 
-                                ${buttonDisabled ? 'disabled' : ''}>
-                            Build (${costText})
-                        </button>
-                    `;
-                    buildingsList.appendChild(div);
-                }
-            }
-            
-            // Show "coming soon" buildings that are close to unlocking
-            addComingSoonBuildings(buildingsList);
-        }
+		function updateBuildingsList() {
+			const buildingsList = document.getElementById('buildings-list');
+			buildingsList.innerHTML = '';
+			
+			for (let buildingKey in buildingDefs) {
+				const building = buildingDefs[buildingKey];
+				const buildingCount = gameState.buildings[buildingKey] || 0;
+				const isVisible = building.unlocked() || buildingCount > 0;
+				
+				if (isVisible) {
+					const div = document.createElement('div');
+					div.className = 'building-item';
+					
+					let canAfford = true;
+					let costText = '';
+					for (let resource in building.cost) {
+						if (gameState.resources[resource] < building.cost[resource]) {
+							canAfford = false;
+						}
+						costText += `${building.cost[resource]} ${resource}, `;
+					}
+					costText = costText.slice(0, -2);
+					
+					// Check if we can afford multiples
+					let canAfford10 = true;
+					let canAfford100 = true;
+					for (let resource in building.cost) {
+						if (gameState.resources[resource] < building.cost[resource] * 10) {
+							canAfford10 = false;
+						}
+						if (gameState.resources[resource] < building.cost[resource] * 100) {
+							canAfford100 = false;
+						}
+					}
+					
+					const buttonDisabled = !canAfford;
+					const buttonClass = buttonDisabled ? 'building-button disabled' : 'building-button';
+					
+					div.innerHTML = `
+						<h4>${building.name} ${buildingCount > 0 ? `(${buildingCount})` : ''}</h4>
+						<p>${building.description}</p>
+						<p><strong>Effect:</strong> ${building.effect}</p>
+						${buildingCount > 0 ? 
+							`<p style="color: #2ecc71;"><strong>✓ Built:</strong> ${buildingCount}</p>` : ''
+						}
+						<div style="display: flex; gap: 5px; align-items: center;">
+							<button class="action-button ${buttonClass}" 
+									onclick="buildBuilding('${buildingKey}', 1)" 
+									${buttonDisabled ? 'disabled' : ''}
+									style="flex: 1;">
+								Build (${costText})
+							</button>
+							${canAfford10 ? `
+								<button class="action-button building-button" 
+										onclick="buildBuilding('${buildingKey}', 10)" 
+										style="width: 60px; font-size: 12px;">
+									x10
+								</button>
+							` : ''}
+							${canAfford100 ? `
+								<button class="action-button building-button" 
+										onclick="buildBuilding('${buildingKey}', 100)" 
+										style="width: 60px; font-size: 12px;">
+									x100
+								</button>
+							` : ''}
+						</div>
+					`;
+					buildingsList.appendChild(div);
+				}
+			}
+			
+			// Show "coming soon" buildings that are close to unlocking
+			addComingSoonBuildings(buildingsList);
+		}
+
+		function buildBuilding(buildingKey, quantity = 1) {
+			const building = buildingDefs[buildingKey];
+			if (!building) return;
+			
+			// Check if we can afford the quantity requested
+			let canAfford = true;
+			for (let resource in building.cost) {
+				if (gameState.resources[resource] < building.cost[resource] * quantity) {
+					canAfford = false;
+					break;
+				}
+			}
+			
+			if (!canAfford) return;
+			
+			// Pay the cost for all buildings
+			for (let resource in building.cost) {
+				gameState.resources[resource] -= building.cost[resource] * quantity;
+			}
+			
+			// Build them and apply effects
+			for (let i = 0; i < quantity; i++) {
+				gameState.buildings[buildingKey]++;
+				building.onBuild();
+			}
+			
+			const plural = quantity > 1 ? 's' : '';
+			logMessage(`Built ${quantity} ${building.name}${plural}!`);
+			checkAchievements();
+			updateDisplay();
+		}
 
         function addComingSoonBuildings(buildingsList) {
             const comingSoonDiv = document.createElement('div');
