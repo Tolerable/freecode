@@ -3335,24 +3335,21 @@
 			
 			if (freeKittens <= 0) return;
 			
-			// Priority order for auto-assignment
-			const jobPriority = [
+			// Simple rotation through available jobs
+			const availableJobs = [
 				{ key: 'farmers', condition: () => gameState.buildings.catnipField > 0 },
 				{ key: 'woodcutters', condition: () => gameState.resources.wood > 0 },
 				{ key: 'scholars', condition: () => gameState.buildings.library > 0 },
 				{ key: 'miners', condition: () => gameState.buildings.mine > 0 },
-				{ key: 'hunters', condition: () => gameState.technologies.archery },
-				{ key: 'priests', condition: () => gameState.buildings.shrine > 0 || gameState.buildings.temple > 0 }
-			];
+				{ key: 'hunters', condition: () => gameState.technologies.archery }
+			].filter(job => job.condition());
+			
+			if (availableJobs.length === 0) return;
 			
 			for (let i = 0; i < freeKittens; i++) {
-				for (let job of jobPriority) {
-					if (job.condition()) {
-						gameState.population.jobs[job.key]++;
-						logMessage(`Auto-assigned a kitten to work as ${job.key.slice(0, -1)}.`);
-						break;
-					}
-				}
+				const job = availableJobs[i % availableJobs.length];
+				gameState.population.jobs[job.key]++;
+				logMessage(`Auto-assigned a kitten to work as ${job.key.slice(0, -1)}.`);
 			}
 		}
 
