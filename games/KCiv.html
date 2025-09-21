@@ -2385,33 +2385,23 @@
 			const recipe = recipes[recipeName];
 			if (!recipe) return;
 			
-			// Check if we can afford it
-			let canCraft = true;
+			// Check if we can afford all inputs
 			for (let resource in recipe.inputs) {
 				if ((gameState.resources[resource] || 0) < recipe.inputs[resource]) {
-					canCraft = false;
-					break;
+					logMessage(`Not enough ${resource} to craft ${recipeName}`);
+					return;
 				}
 			}
 			
-			if (!canCraft) return;
-			
-			// Pay the cost
+			// Pay the costs
 			for (let resource in recipe.inputs) {
 				gameState.resources[resource] -= recipe.inputs[resource];
 			}
 			
-			// Add the output
+			// Add outputs
 			for (let resource in recipe.output) {
 				if (!gameState.resources[resource]) gameState.resources[resource] = 0;
-				let outputAmount = recipe.output[resource];
-				
-				// Apply workshop crafting bonus
-				if (gameState.craftingBonus) {
-					outputAmount *= (1 + gameState.craftingBonus);
-				}
-				
-				gameState.resources[resource] += outputAmount;
+				gameState.resources[resource] += recipe.output[resource];
 			}
 			
 			logMessage(`Crafted ${recipeName}!`);
