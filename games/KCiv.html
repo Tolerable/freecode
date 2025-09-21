@@ -322,6 +322,44 @@
         .hidden {
             display: none !important;
         }
+		
+		.job-item {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 8px;
+			margin: 5px 0;
+			background: rgba(0,0,0,0.3);
+			border-radius: 5px;
+			border-left: 4px solid #3498db;
+		}
+
+		.job-controls {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+
+		.job-button {
+			width: 30px;
+			height: 30px;
+			background: #3498db;
+			color: white;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			font-weight: bold;
+		}
+
+		.job-button:hover {
+			background: #2980b9;
+		}
+
+		.job-button:disabled {
+			background: #7f8c8d;
+			cursor: not-allowed;
+		}
+		
     </style>
 </head>
 <body>
@@ -383,40 +421,47 @@
                 <button class="tab" onclick="showTab('trade')">Trade</button>
             </div>
 
-            <!-- Gathering Tab -->
-            <div id="gather-tab" class="tab-content active">
-                <h3>Basic Actions</h3>
-                <button class="action-button" onclick="gatherCatnip()" id="gather-catnip-btn">
-                    Gather catnip
-                    <div class="cost-display">Gather some catnip from the forest</div>
-                </button>
-                
-                <button class="action-button hidden" id="plant-catnip-btn" onclick="plantCatnip()">
-                    Plant catnip field
-                    <div class="cost-display">Plant catnip to grow automatically (Cost: 10 catnip)</div>
-                </button>
-                
-                <button class="action-button hidden" id="refine-catnip-btn" onclick="refineCatnip()">
-                    Refine catnip
-                    <div class="cost-display">Turn 1 catnip into catnip wood (Cost: 100 catnip)</div>
-                </button>
+			<!-- Gathering Tab -->
+			<div id="gather-tab" class="tab-content active">
+				<h3>Basic Actions</h3>
+				<button class="action-button" onclick="gatherCatnip()" id="gather-catnip-btn">
+					Gather catnip
+					<div class="cost-display">Gather some catnip from the forest</div>
+				</button>
+				
+				<button class="action-button hidden" id="plant-catnip-btn" onclick="plantCatnip()">
+					Plant catnip field
+					<div class="cost-display">Plant catnip to grow automatically (Cost: 10 catnip)</div>
+				</button>
+				
+				<button class="action-button hidden" id="refine-catnip-btn" onclick="refineCatnip()">
+					Refine catnip
+					<div class="cost-display">Turn catnip into wood (Cost: 100 catnip)</div>
+				</button>
 
-                <button class="action-button hidden" id="hunt-btn" onclick="hunt()">
-                    Send hunters
-                    <div class="cost-display">Hunt for furs and ivory</div>
-                </button>
+				<button class="action-button hidden" id="hunt-btn" onclick="hunt()">
+					Send hunters
+					<div class="cost-display">Hunt for furs and ivory</div>
+				</button>
 
-                <button class="action-button hidden" id="observe-stars-btn" onclick="observeStars()">
-                    Observe the sky
-                    <div class="cost-display">Study the stars for science</div>
-                </button>
+				<button class="action-button hidden" id="observe-stars-btn" onclick="observeStars()">
+					Observe the sky
+					<div class="cost-display">Study the stars for science</div>
+				</button>
 
-                <!-- Field Management Section -->
-                <div id="field-management" class="hidden">
-                    <h3>Field Management</h3>
-                    <div id="catnip-fields-display"></div>
-                </div>
-            </div>
+				<!-- Job Assignment Section -->
+				<div id="job-management" class="hidden">
+					<h3>Job Assignment</h3>
+					<p>Free kittens: <span id="free-kittens">0</span> / <span id="total-kittens">0</span></p>
+					<div id="job-list"></div>
+				</div>
+
+				<!-- Field Management Section -->
+				<div id="field-management" class="hidden">
+					<h3>Field Management</h3>
+					<div id="catnip-fields-display"></div>
+				</div>
+			</div>
 
             <!-- Buildings Tab -->
             <div id="buildings-tab" class="tab-content">
@@ -508,15 +553,19 @@
 				ivory: 100,
 				unicorns: 50
 			},
-            population: {
-                kittens: 1,
-                happiness: 1.0,
-                engineers: 0,
-                farmers: 0,
-                scholars: 0,
-                priests: 0,
-                hunters: 0
-            },
+			population: {
+				kittens: 1,
+				happiness: 1.0,
+				maxKittens: 2, // Housing capacity
+				jobs: {
+					farmers: 0,
+					woodcutters: 0,
+					miners: 0,
+					scholars: 0,
+					hunters: 0,
+					priests: 0
+				}
+			},
             buildings: {
                 catnipField: 0,
                 hut: 0,
@@ -947,6 +996,73 @@
             }
         }
 
+		function updateJobManagement() {
+			const jobList = document.getElementById('job-list');
+			if (!jobList) return;
+			
+			const totalKittens = gameState.population.kittens;
+			const assignedKittens = Object.values(gameState.population.jobs).reduce((sum, count) => sum + count, 0);
+			const freeKittens = totalKittens - assignedKittens;
+			
+			document.getElementById('free-kittens').textContent = freeKittens;
+			document.getElementById('total-kittens').textContent = totalKittens;
+			
+			const jobs = [
+				{ key: 'farmers', name: 'Farmers', effect: '+0.25 catnip/sec each', unlocked: () => gameState.buildings.catnipField > 0 },
+				{ key: 'woodcutters', name: 'Woodcutters', effect: '+0.05 wood/sec each', unlocked: () => gameState.resources.wood > 0 },
+				{ key: 'miners', name: 'Miners', effect: '+0.03 minerals/sec each', unlocked: () => gameState.buildings.mine > 0 },
+				{ key: 'scholars', name: 'Scholars', effect: '+0.035 science/sec each', unlocked: () => gameState.buildings.library > 0 },
+				{ key: 'hunters', name: 'Hunters', effect: 'Hunt automatically', unlocked: () => gameState.technologies.archery },
+				{ key: 'priests', name: 'Priests', effect: '+0.02 faith/sec each', unlocked: () => gameState.buildings.shrine > 0 || gameState.buildings.temple > 0 }
+			];
+			
+			jobList.innerHTML = '';
+			
+			jobs.forEach(job => {
+				if (job.unlocked()) {
+					const currentCount = gameState.population.jobs[job.key];
+					const div = document.createElement('div');
+					div.className = 'job-item';
+					
+					div.innerHTML = `
+						<div>
+							<strong>${job.name} (${currentCount})</strong>
+							<div style="font-size: 12px; color: #bdc3c7;">${job.effect}</div>
+						</div>
+						<div class="job-controls">
+							<button class="job-button" onclick="assignJob('${job.key}', -1)" 
+									${currentCount <= 0 ? 'disabled' : ''}>-</button>
+							<span style="min-width: 20px; text-align: center;">${currentCount}</span>
+							<button class="job-button" onclick="assignJob('${job.key}', 1)" 
+									${freeKittens <= 0 ? 'disabled' : ''}>+</button>
+						</div>
+					`;
+					
+					jobList.appendChild(div);
+				}
+			});
+			
+			if (totalKittens > 1) {
+				showElement('job-management');
+			}
+		}
+
+		function assignJob(jobKey, change) {
+			const totalKittens = gameState.population.kittens;
+			const assignedKittens = Object.values(gameState.population.jobs).reduce((sum, count) => sum + count, 0);
+			const freeKittens = totalKittens - assignedKittens;
+			
+			if (change > 0 && freeKittens > 0) {
+				gameState.population.jobs[jobKey]++;
+				logMessage(`Assigned a kitten to work as ${jobKey.slice(0, -1)}.`);
+			} else if (change < 0 && gameState.population.jobs[jobKey] > 0) {
+				gameState.population.jobs[jobKey]--;
+				logMessage(`Reassigned a ${jobKey.slice(0, -1)} to be a free kitten.`);
+			}
+			
+			updateDisplay();
+		}
+
         function plantCatnip() {
             const cost = buildingDefs.catnipField.cost.catnip;
             if (gameState.resources.catnip >= cost) {
@@ -1255,7 +1371,7 @@
             document.getElementById('faith-amount').textContent = Math.floor(gameState.resources.faith);
             document.getElementById('science-amount').textContent = Math.floor(gameState.resources.science);
             
-            // Update buildings list
+            updateJobManagement();
 			updateRefineButton();
 			updateBuildingsList();
 			updateTechList();
@@ -1710,7 +1826,19 @@
             }
         }
 
-        function gameLoop() {
+		function gameLoop() {
+			// Job-based resource production
+			gameState.resourcesProduction.catnip += gameState.population.jobs.farmers * 0.25;
+			gameState.resourcesProduction.wood += gameState.population.jobs.woodcutters * 0.05;
+			gameState.resourcesProduction.minerals += gameState.population.jobs.miners * 0.03;
+			gameState.resourcesProduction.science += gameState.population.jobs.scholars * 0.035;
+			gameState.resourcesProduction.faith += gameState.population.jobs.priests * 0.02;
+			
+			// Hunters hunt automatically
+			if (gameState.population.jobs.hunters > 0 && Math.random() < 0.1 * gameState.population.jobs.hunters) {
+				hunt();
+			}
+			
             // Resource production
             for (let resource in gameState.resourcesProduction) {
                 if (gameState.resourcesProduction[resource] > 0) {
