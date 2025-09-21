@@ -949,37 +949,40 @@
                     gameState.resourcesProduction.unicorns = 0.001; // Very slow unicorn production
                 }
             },
-            tradingPost: {
-                name: "Trading Post",
-                description: "Trade with other civilizations",
-                cost: { wood: 500, minerals: 200, gold: 15 },
-                effect: "Unlocks trading and exotic resources",
-                unlocked: () => gameState.resources.gold >= 10 && gameState.resources.furs >= 50,
+			tradingPost: {
+				name: "Trading Post",
+				description: "Trade with other civilizations",
+				cost: { wood: 500, minerals: 200, gold: 15 },
+				effect: "Unlocks trading and exotic resources",
+				maxBuildable: 1,
+				unlocked: () => gameState.resources.gold >= 10 && gameState.resources.furs >= 50,
 				onBuild: () => {
 					gameState.tradingRaces.lizards.unlocked = true;
 					updateTradeTab();
-					logMessage("🏪 Trading post built! New trading opportunities available.");
+					logMessage("Trading post built! New trading opportunities available.");
 				}
-            },
-            observatory: {
-                name: "Observatory",
-                description: "Study the heavens and stars",
-                cost: { wood: 200, minerals: 100, iron: 50 },
-                effect: "+0.25 science per second, enables star observation",
-                unlocked: () => gameState.technologies.astronomy,
-                onBuild: () => { 
-                    gameState.resourcesProduction.science += 0.25; 
-                    showElement('observe-stars-btn');
-                }
-            },
+			},
+			observatory: {
+				name: "Observatory",
+				description: "Study the heavens and stars",
+				cost: { wood: 200, minerals: 100, iron: 50 },
+				effect: "+0.25 science per second, enables star observation",
+				maxBuildable: 1,
+				unlocked: () => gameState.technologies.astronomy,
+				onBuild: () => { 
+					gameState.resourcesProduction.science += 0.25; 
+					showElement('observe-stars-btn');
+				}
+			},
 			launchPad: {
 				name: "Launch Pad",
 				description: "Launch rockets and satellites into space",
 				cost: { steel: 25, concrete: 15, alloy: 5 },
 				effect: "Unlocks space missions and satellites",
+				maxBuildable: 1,
 				unlocked: () => gameState.resources.steel >= 10 && gameState.resources.concrete >= 5,
 				onBuild: () => {
-					logMessage("🚀 Launch pad constructed! Space program initiated.");
+					logMessage("Launch pad constructed! Space program initiated.");
 				}
 			},
 			sattelite: {
@@ -2331,6 +2334,19 @@
 		function buildBuilding(buildingKey, quantity = 1) {
 			const building = buildingDefs[buildingKey];
 			if (!building) return;
+			
+			// Check building limits
+			if (building.maxBuildable && gameState.buildings[buildingKey] >= building.maxBuildable) {
+				logMessage(`You can only build ${building.maxBuildable} ${building.name}.`);
+				return;
+			}
+			
+			// Adjust quantity if it would exceed limit
+			if (building.maxBuildable) {
+				const remaining = building.maxBuildable - gameState.buildings[buildingKey];
+				quantity = Math.min(quantity, remaining);
+				if (quantity <= 0) return;
+			}
 			
 			// Check if we can afford the quantity requested
 			let canAfford = true;
