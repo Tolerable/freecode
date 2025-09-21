@@ -474,8 +474,7 @@
 				</label>
 			</div>
 			<div class="modal-buttons">
-				<button class="modal-button" onclick="applySettings()">Apply</button>
-				<button class="modal-button cancel" onclick="closeSettings()">Cancel</button>
+				<button class="modal-button cancel" onclick="closeSettings()">Close</button>
 			</div>
 		</div>
 	</div>
@@ -1324,12 +1323,12 @@
 			document.getElementById('settings-modal').style.display = 'none';
 		}
 
-		function applySettings() {
+		function saveSettings() {
 			gameSettings.hideSellButtons = document.getElementById('hide-sell-buttons').checked;
 			gameSettings.autoAssignJobs = document.getElementById('auto-assign-jobs').checked;
-			closeSettings();
-			updateDisplay(); // This should call updateFieldDisplay
-			updateFieldDisplay(); // Force update the field display
+			localStorage.setItem('kittenCivSettings', JSON.stringify(gameSettings));
+			updateDisplay();
+			updateFieldDisplay();
 		}
 
 		function updateObjectives() {
@@ -3345,6 +3344,16 @@
 			}
 			if (gameSettings.autoAssignJobs) {
 				document.getElementById('auto-assign-jobs').checked = true;
+			}
+
+			// Add event listeners for settings
+			document.getElementById('hide-sell-buttons').addEventListener('change', saveSettings);
+			document.getElementById('auto-assign-jobs').addEventListener('change', saveSettings);
+
+			// Load settings on startup
+			const savedSettings = localStorage.getItem('kittenCivSettings');
+			if (savedSettings) {
+				gameSettings = JSON.parse(savedSettings);
 			}
 			
 			logMessage("Welcome to Kitten Civilization! Your journey begins...");
