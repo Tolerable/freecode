@@ -490,6 +490,13 @@
                         <span class="resource-amount" id="catnip-amount">0</span>
                         <div class="production-rate" id="catnip-rate">+0.0/sec</div>
                     </div>
+				<div class="resource">
+					<span class="resource-name">Catpower</span>
+					<div>
+						<span class="resource-amount" id="catpower-amount">0</span>
+						<div class="production-rate" id="catpower-rate">+0.0/sec</div>
+					</div>
+				</div>
                 </div>
             </div>
 
@@ -1147,8 +1154,8 @@
 				effect: "Unlocks hunting for rare resources",
 				unlocked: () => gameState.resources.science >= 15,
 				onResearch: () => {
-					gameState.resourcesProduction.catpower = 0.01;
-					updateHuntingSection(); // CHANGED THIS LINE
+					// Don't set base production - hunters generate catpower directly
+					updateHuntingSection();
 					logMessage("Your kittens can now hunt for furs and rare resources!");
 				}
 			},
@@ -1641,6 +1648,11 @@
 
 		function updateHuntingSection() {
 			if (!gameState.technologies.archery) return;
+			
+			// Ensure catpower is displayed
+			if (!document.getElementById('catpower-amount')) {
+				addResourceToDisplay('catpower', 'catpower');
+			}
 			
 			showElement('expedition-section');
 			
@@ -3518,9 +3530,9 @@
 			if (gameState.resources.faith > 0 && !document.getElementById('faith-amount')) {
 				addResourceToDisplay('faith', 'faith');
 			}
-			if (gameState.resourcesProduction.catpower !== undefined && !document.getElementById('catpower-amount')) {
+			if (gameState.resources.catpower >= 0 && !document.getElementById('catpower-amount')) {
 				addResourceToDisplay('catpower', 'catpower');
-			}			
+			}		
 			if (gameState.resources.furs > 0 && !document.getElementById('furs-amount')) {
 				addResourceToDisplay('furs');
 			}
