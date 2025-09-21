@@ -2196,19 +2196,23 @@
 		function confirmPhrase() {
 			const phrase = document.getElementById('phrase-input').value.trim();
 			if (!phrase) {
-				alert('Please enter a phrase!');
+				logMessage('Please enter a phrase!');
 				return;
 			}
 			
+			// Hide modal FIRST
 			document.getElementById('phrase-modal').style.display = 'none';
 			
+			// Then perform the action
 			if (pendingAction === 'save') {
-				performSave(phrase);
+				performSaveWithPhrase(phrase);
 			} else if (pendingAction === 'load') {
-				performLoad(phrase);
+				performLoadWithPhrase(phrase);
 			}
 			
+			// Clear everything
 			pendingAction = null;
+			document.getElementById('phrase-input').value = '';
 		}
 
 		function cancelPhrase() {
@@ -2216,43 +2220,55 @@
 			pendingAction = null;
 		}
 
-		function performSave(userPhrase) {
-			const signature = generateGameSignature(gameState, userPhrase);
-			const saveData = {
-				gameState: gameState,
-				signature: signature,
-				timestamp: Date.now(),
-				gameId: signature.substring(0, 8).toUpperCase()
-			};
-			
-			const blob = new Blob([JSON.stringify(saveData, null, 2)], {type: 'application/json'});
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = `kitten-civ-${saveData.gameId}.json`;
-			a.click();
-			URL.revokeObjectURL(url);
-			
-			logMessage(`Save file downloaded! Game ID: ${saveData.gameId}`);
+		function performSaveWithPhrase(userPhrase) {
+			try {
+				const signature = generateGameSignature(gameState, userPhrase);
+				const saveData = {
+					gameState: gameState,
+					signature: signature,
+					timestamp: Date.now(),
+					gameId: signature.substring(0, 8).toUpperCase()
+				};
+				
+				const blob = new Blob([JSON.stringify(saveData, null, 2)], {type: 'application/json'});
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = `kitten-civ-${saveData.gameId}.json`;
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+				
+				logMessage(`Save file downloaded! Game ID: ${saveData.gameId}`);
+			} catch (error) {
+				logMessage("Error creating save file!");
+			}
 		}
 
-		function performLoad(userPhrase) {
-			const saveData = window.pendingSaveData;
-			const expectedSignature = generateGameSignature(saveData.gameState, userPhrase);
-			
-			if (saveData.signature === expectedSignature) {
-				gameState = saveData.gameState;
-				recalculateStorageLimits();
-				restoreUIState();
-				loadAchievements();
-				updateDisplay();
-				logMessage(`Game loaded! ID: ${saveData.gameId} ✓ Verified`);
-			} else {
-				logMessage("Invalid save file or wrong secret phrase!");
+		function performLoadWithPhrase(userPhrase) {
+			try {
+				const saveData = window.pendingSaveData;
+				const expectedSignature = generateGameSignature(saveData.gameState, userPhrase);
+				
+				if (saveData.signature === expectedSignature) {
+					gameState = saveData.gameState;
+					recalculateStorageLimits();
+					restoreUIState();
+					loadAchievements();
+					updateDisplay();
+					logMessage(`Game loaded! ID: ${saveData.gameId} ✓ Verified`);
+				} else {
+					logMessage("Invalid save file or wrong secret phrase!");
+				}
+				
+				delete window.pendingSaveData;
+			} catch (error) {
+				logMessage("Error loading save file!");
 			}
-			
-			delete window.pendingSaveData;
 		}
+
+
 
 		function generateGameSignature(gameData, userPhrase) {
 			const dataString = JSON.stringify(gameData) + userPhrase;
@@ -2380,6 +2396,31 @@
 			updateDisplay();
 			
 			logMessage("Welcome to Kitten Civilization! Your journey begins...");
+		});
+
+		// Add this event listener to prevent modal from closing when clicking inside
+		document.addEventListener('DOMContentLoaded', function() {
+			const modal = document.getElementById('phrase-modal');
+			const modalContent = modal.querySelector('.modal-content');
+			
+			modal.addEventListener('click', function(e) {
+				if (e.target === modal) {
+					// Only close if clicking outside the modal content
+					cancelPhrase();
+				}
+			});
+			
+			// Prevent clicks inside modal content from bubbling up
+			modalContent.addEventListener('click', function(e) {
+				e.stopPropagation();
+			});
+			
+			// Allow Enter key to confirm
+			document.getElementById('phrase-input').addEventListener('keypress', function(e) {
+				if (e.key === 'Enter') {
+					confirmPhrase();
+				}
+			});
 		});
 
         // Add some additional resources to the display when they become available
