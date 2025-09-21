@@ -420,6 +420,24 @@
 			background: #c0392b;
 		}
 		
+		.modal input[type="checkbox"] {
+			width: auto !important;
+			margin: 0 10px 0 0 !important;
+			padding: 0 !important;
+		}
+
+		.modal label {
+			display: flex !important;
+			align-items: center;
+			margin: 15px 0 !important;
+			text-align: left;
+			cursor: pointer;
+		}
+
+		.modal-content div[style*="text-align: left"] {
+			padding: 10px;
+		}
+		
     </style>
 </head>
 <body>
@@ -3057,6 +3075,7 @@
 				const signature = generateGameSignature(gameState, userPhrase);
 				const saveData = {
 					gameState: gameState,
+					settings: gameSettings,
 					signature: signature,
 					timestamp: Date.now(),
 					gameId: signature.substring(0, 8).toUpperCase()
@@ -3086,6 +3105,13 @@
 				if (saveData.signature === expectedSignature) {
 					gameState = saveData.gameState;
 					
+					// Restore settings
+					if (saveData.settings) {
+						gameSettings = saveData.settings;
+					} else {
+						gameSettings = { hideSellButtons: false, autoAssignJobs: false };
+					}
+					
 					// Ensure trading races exist
 					if (!gameState.tradingRaces) {
 						gameState.tradingRaces = {
@@ -3096,7 +3122,6 @@
 							zebras: { standing: 0, unlocked: false }
 						};
 					}
-
 					// Ensure expeditions exist
 					if (!gameState.expeditions) {
 						gameState.expeditions = {
@@ -3107,7 +3132,6 @@
 							manuscripts: 0
 						};
 					}
-
 					// Ensure space exists
 					if (!gameState.space) {
 						gameState.space = {
@@ -3313,6 +3337,14 @@
 					gatherCatnip();
 				}
 			});
+
+			// Apply saved settings
+			if (gameSettings.hideSellButtons) {
+				document.getElementById('hide-sell-buttons').checked = true;
+			}
+			if (gameSettings.autoAssignJobs) {
+				document.getElementById('auto-assign-jobs').checked = true;
+			}
 			
 			logMessage("Welcome to Kitten Civilization! Your journey begins...");
 		});
