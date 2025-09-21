@@ -464,6 +464,7 @@
                 coal: 0,
                 iron: 0,
                 gold: 0,
+                stone: 0,
                 science: 0,
                 faith: 0,
                 furs: 0,
@@ -473,6 +474,11 @@
             resourcesProduction: {
                 catnip: 0,
                 wood: 0,
+                minerals: 0,
+                coal: 0,
+                iron: 0,
+                gold: 0,
+                stone: 0,
                 science: 0,
                 faith: 0
             },
@@ -552,55 +558,32 @@
                 description: "A small hut for kittens",
                 cost: { wood: 5 },
                 effect: "Houses 2 kittens",
-                unlocked: () => gameState.resources.wood >= 1,
+                unlocked: () => gameState.resources.wood >= 5,
                 onBuild: () => { gameState.population.kittens += 2; }
-            },
-            logHouse: {
-                name: "Log House",
-                description: "A sturdy log house",
-                cost: { wood: 200, minerals: 250 },
-                effect: "Houses 6 kittens, +1 happiness",
-                unlocked: () => gameState.technologies.construction,
-                onBuild: () => { 
-                    gameState.population.kittens += 6; 
-                    gameState.population.happiness += 0.1;
-                }
             },
             library: {
                 name: "Library", 
-                description: "A place of learning",
+                description: "A place of learning and research",
                 cost: { wood: 25 },
-                effect: "+0.1 science per second",
-                unlocked: () => gameState.resources.science >= 5 || gameState.resources.wood >= 15,
-                onBuild: () => { gameState.resourcesProduction.science += 0.1; }
-            },
-            temple: {
-                name: "Temple",
-                description: "A place of worship to Babs",
-                cost: { wood: 50, gold: 10 },
-                effect: "+0.1 faith per second",
-                unlocked: () => gameState.resources.faith >= 1,
-                onBuild: () => { gameState.resourcesProduction.faith += 0.1; }
-            },
-            workshop: {
-                name: "Workshop",
-                description: "Crafting building",
-                cost: { wood: 100, minerals: 100 },
-                effect: "Enables advanced crafting",
-                unlocked: () => gameState.technologies.engineering,
-                onBuild: () => { showElement('refine-catnip-btn'); }
+                effect: "+0.1 science per second, unlocks research",
+                unlocked: () => gameState.resources.wood >= 20,
+                onBuild: () => { 
+                    gameState.resourcesProduction.science += 0.1;
+                    // Give some starting science to kickstart research
+                    gameState.resources.science += 5;
+                }
             },
             barn: {
                 name: "Barn",
-                description: "Stores catnip",
+                description: "Stores catnip and food",
                 cost: { wood: 50 },
                 effect: "+5000 catnip storage",
-                unlocked: () => gameState.resources.catnip >= 1000,
+                unlocked: () => gameState.buildings.hut >= 2,
                 onBuild: () => { /* Storage handled automatically */ }
             },
             mine: {
                 name: "Mine",
-                description: "Extracts minerals and coal",
+                description: "Extracts minerals and coal from the earth",
                 cost: { wood: 100 },
                 effect: "+0.05 minerals/sec, +0.02 coal/sec",
                 unlocked: () => gameState.technologies.mining,
@@ -611,7 +594,7 @@
             },
             quarry: {
                 name: "Quarry",
-                description: "Extracts stone and minerals",
+                description: "Extracts stone and more minerals",
                 cost: { wood: 50, minerals: 25 },
                 effect: "+0.1 minerals/sec, +0.05 stone/sec",
                 unlocked: () => gameState.technologies.mining && gameState.buildings.mine >= 1,
@@ -630,9 +613,54 @@
                     gameState.resourcesProduction.gold = (gameState.resourcesProduction.gold || 0) + 0.01;
                 }
             },
+            workshop: {
+                name: "Workshop",
+                description: "Advanced crafting building",
+                cost: { wood: 100, minerals: 100 },
+                effect: "Enables advanced crafting and smelting",
+                unlocked: () => gameState.technologies.engineering,
+                onBuild: () => { 
+                    showElement('refine-catnip-btn');
+                    // Workshop also provides some iron through smelting
+                    gameState.resourcesProduction.iron = (gameState.resourcesProduction.iron || 0) + 0.01;
+                }
+            },
+            smelter: {
+                name: "Smelter",
+                description: "Smelt coal and minerals into iron",
+                cost: { wood: 200, minerals: 200, coal: 100 },
+                effect: "+0.05 iron/sec",
+                unlocked: () => gameState.technologies.metalWorking && gameState.buildings.workshop >= 1,
+                onBuild: () => { 
+                    gameState.resourcesProduction.iron = (gameState.resourcesProduction.iron || 0) + 0.05;
+                }
+            },
+            temple: {
+                name: "Temple",
+                description: "A sacred place of worship to Babs",
+                cost: { wood: 50, gold: 25 },
+                effect: "+0.1 faith per second",
+                unlocked: () => gameState.resources.gold >= 20,
+                onBuild: () => { 
+                    gameState.resourcesProduction.faith += 0.1;
+                    // Give some starting faith
+                    gameState.resources.faith += 5;
+                }
+            },
+            logHouse: {
+                name: "Log House",
+                description: "A sturdy log house for more kittens",
+                cost: { wood: 200, minerals: 250 },
+                effect: "Houses 6 kittens, +10% happiness",
+                unlocked: () => gameState.technologies.construction,
+                onBuild: () => { 
+                    gameState.population.kittens += 6; 
+                    gameState.population.happiness += 0.1;
+                }
+            },
             observatory: {
                 name: "Observatory",
-                description: "Study the heavens",
+                description: "Study the heavens and stars",
                 cost: { wood: 200, minerals: 100, iron: 50 },
                 effect: "+0.25 science per second, enables star observation",
                 unlocked: () => gameState.technologies.astronomy,
@@ -649,41 +677,53 @@
                 name: "Agriculture",
                 description: "Learn to farm efficiently",
                 cost: { science: 10 },
-                effect: "Improves catnip production",
+                effect: "Improves catnip production by +50%",
                 unlocked: () => gameState.resources.science >= 5,
-                onResearch: () => { gameState.resourcesProduction.catnip += 0.5; }
+                onResearch: () => { 
+                    gameState.resourcesProduction.catnip += 0.5;
+                    logMessage("🌾 Agriculture improves your catnip production!");
+                }
             },
             archery: {
                 name: "Archery", 
-                description: "Hunt more effectively",
+                description: "Hunt more effectively with bows",
                 cost: { science: 25 },
-                effect: "Unlocks hunting",
+                effect: "Unlocks hunting for furs and ivory",
                 unlocked: () => gameState.technologies.agriculture,
-                onResearch: () => { showElement('hunt-btn'); }
+                onResearch: () => { 
+                    showElement('hunt-btn');
+                    logMessage("🏹 Your kittens can now hunt!");
+                }
             },
             mining: {
                 name: "Mining",
-                description: "Extract minerals from the earth",
+                description: "Extract minerals and coal from the earth",
                 cost: { science: 50 },
                 effect: "Unlocks mines and mineral extraction",
                 unlocked: () => gameState.resources.science >= 25,
-                onResearch: () => { /* Unlocks buildings */ }
+                onResearch: () => { 
+                    logMessage("⛏️ Mining unlocked! You can now build mines.");
+                }
             },
             metalWorking: {
                 name: "Metal Working",
                 description: "Work with iron and gold",
                 cost: { science: 125 },
-                effect: "Unlocks advanced mining and metal crafting",
-                unlocked: () => gameState.technologies.mining,
-                onResearch: () => { /* Unlocks gold mining */ }
+                effect: "Unlocks smelters and gold mining",
+                unlocked: () => gameState.technologies.mining && gameState.resources.science >= 100,
+                onResearch: () => { 
+                    logMessage("🔨 Metal working unlocked! Advanced mining and smelting available.");
+                }
             },
             construction: {
                 name: "Construction",
                 description: "Build better structures",
                 cost: { science: 100 },
-                effect: "Unlocks advanced buildings",
+                effect: "Unlocks advanced buildings like log houses",
                 unlocked: () => gameState.technologies.mining,
-                onResearch: () => { /* Unlocks buildings */ }
+                onResearch: () => { 
+                    logMessage("🏗️ Construction unlocked! Better buildings available.");
+                }
             },
             engineering: {
                 name: "Engineering",
@@ -691,23 +731,40 @@
                 cost: { science: 200 },
                 effect: "Unlocks workshops and automation",
                 unlocked: () => gameState.technologies.construction,
-                onResearch: () => { /* Unlocks buildings */ }
+                onResearch: () => { 
+                    logMessage("⚙️ Engineering unlocked! Workshops and automation available.");
+                }
             },
             astronomy: {
                 name: "Astronomy", 
-                description: "Study the stars",
+                description: "Study the stars and celestial bodies",
                 cost: { science: 150 },
                 effect: "Unlocks observatory and star charts",
-                unlocked: () => gameState.resources.science >= 50,
-                onResearch: () => { /* Unlocks buildings */ }
+                unlocked: () => gameState.resources.science >= 75,
+                onResearch: () => { 
+                    logMessage("🌟 Astronomy unlocked! You can now build observatories.");
+                }
             },
             theology: {
                 name: "Theology",
                 description: "Deepen understanding of Babs' teachings",
                 cost: { science: 75, faith: 25 },
-                effect: "Improves faith generation",
+                effect: "Improves faith generation by +0.2/sec",
                 unlocked: () => gameState.resources.faith >= 10,
-                onResearch: () => { gameState.resourcesProduction.faith += 0.2; }
+                onResearch: () => { 
+                    gameState.resourcesProduction.faith += 0.2;
+                    logMessage("🙏 Theology deepens your faith in Babs!");
+                }
+            },
+            calendar: {
+                name: "Calendar",
+                description: "Track seasons and time accurately",
+                cost: { science: 30 },
+                effect: "Reduces seasonal penalties by 25%",
+                unlocked: () => gameState.technologies.agriculture,
+                onResearch: () => { 
+                    logMessage("📅 Calendar helps predict and prepare for seasons!");
+                }
             }
         };
 
