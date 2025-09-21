@@ -550,10 +550,10 @@
 					<div class="cost-display">Turn catnip into wood (Cost: 100 catnip)</div>
 				</button>
 
+				<!-- Replace the expedition section with this -->
 				<div id="expedition-section" class="hidden">
-					<h3>Expeditions</h3>
-					<div id="expedition-buttons"></div>
-					<div id="active-expeditions"></div>
+					<h3>Hunting</h3>
+					<div id="hunting-buttons"></div>
 				</div>
 
 				<button class="action-button hidden" id="observe-stars-btn" onclick="observeStars()">
@@ -671,7 +671,8 @@
 				uranium: 0,
 				gear: 0,
 				alloy: 0,
-				concrete: 0
+				concrete: 0,
+				catpower: 0 
 			},
             resourcesProduction: {
                 catnip: 0,
@@ -682,7 +683,8 @@
                 gold: 0,
                 stone: 0,
                 science: 0,
-                faith: 0
+                faith: 0,
+				catpower: 0
             },
 			resourceLimits: {
 				catnip: 5000,
@@ -696,7 +698,8 @@
 				faith: 500,
 				furs: 500,
 				ivory: 100,
-				unicorns: 50
+				unicorns: 50,
+				catpower: 1000
 			},
 			population: {
 				kittens: 1,
@@ -784,7 +787,34 @@
                 season: 0, // 0=spring, 1=summer, 2=autumn, 3=winter
                 year: 1,
                 gatherClicks: 0
-            }
+            },
+			prestige: {
+				karma: 0,
+				paragon: 0,
+				burnedParagon: 0,
+				totalResets: 0
+			},
+			metaphysics: {
+				engineering: false,
+				goldOre: false,
+				unobtainium: false,
+				carnivals: false,
+				adjustmentBureau: false,
+				diamondOre: false,
+				coalFurnace: false,
+				deepMining: false,
+				pyrolysis: false,
+				electrolyticSmelting: false,
+				oxidation: false,
+				steelPlants: false,
+				rotaryKiln: false,
+				fluidizedReactors: false,
+				nuclearPlants: false,
+				orbitalGeodesy: false,
+				microwarpReactors: false,
+				thoriumReactors: false,
+				hubbleSpaceTelescope: false
+			}			
         };
 
         // Building Definitions
@@ -1114,11 +1144,11 @@
 				name: "Archery", 
 				description: "Hunt more effectively with bows",
 				cost: { science: 25 },
-				effect: "Unlocks expeditions for rare resources",
+				effect: "Unlocks hunting for rare resources",
 				unlocked: () => gameState.resources.science >= 15,
 				onResearch: () => { 
-					updateExpeditionSection();
-					logMessage("🏹 Your kittens can now send hunting expeditions!");
+					updateHuntingSection(); // CHANGED THIS LINE
+					logMessage("Your kittens can now hunt for furs and rare resources!");
 				}
 			},
             mining: {
@@ -1331,6 +1361,155 @@
 			updateFieldDisplay();
 		}
 
+		function calculateResetRewards() {
+			const currentKittens = gameState.population.kittens;
+			const currentYears = gameState.stats.year;
+			
+			// Karma: 1 point per kitten over 35, up to 1 point per 1 kitten
+			let karmaGain = 0;
+			if (currentKittens > 35) {
+				karmaGain = Math.floor(currentKittens - 35);
+			}
+			
+			// Paragon: 1 point per kitten over 70
+			let paragonGain = 0;
+			if (currentKittens > 70) {
+				paragonGain = Math.floor(currentKittens - 70);
+			}
+			
+			// Years bonus: 1 paragon per 1000 years (while in same run)
+			const yearBonus = Math.floor(currentYears / 1000);
+			paragonGain += yearBonus;
+			
+			return { karma: karmaGain, paragon: paragonGain, years: currentYears };
+		}
+
+		function showResetConfirmation() {
+			const rewards = calculateResetRewards();
+			
+			if (rewards.karma === 0 && rewards.paragon === 0) {
+				if (!confirm("You will gain no karma or paragon from resetting now. Karma requires 35+ kittens, Paragon requires 70+ kittens. Reset anyway?")) {
+					return;
+				}
+			}
+			
+			const confirmText = `Reset your civilization and start over?\n\nYou will gain:\n• ${rewards.karma} Karma (happiness bonus)\n• ${rewards.paragon} Paragon (production bonus)\n\nThis cannot be undone!`;
+			
+			if (confirm(confirmText)) {
+				performReset(rewards);
+			}
+		}
+
+		function performReset(rewards) {
+			// Store old values for comparison
+			const oldKarma = gameState.prestige.karma;
+			const oldParagon = gameState.prestige.paragon;
+			
+			// Add new prestige currency
+			gameState.prestige.karma += rewards.karma;
+			gameState.prestige.paragon += rewards.paragon;
+			gameState.prestige.totalResets++;
+			
+			// Reset most game state
+			gameState.resources = {
+				catnip: 0, wood: 0, minerals: 0, coal: 0, iron: 0, gold: 0, stone: 0,
+				science: 0, faith: 0, furs: 0, ivory: 0, unicorns: 0, titanium: 0,
+				steel: 0, oil: 0, uranium: 0, gear: 0, alloy: 0, concrete: 0
+			};
+			
+			gameState.buildings = {
+				catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0,
+				quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0,
+				logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0
+			};
+			
+			gameState.technologies = {
+				agriculture: false, archery: false, mining: false, metalWorking: false,
+				construction: false, engineering: false, astronomy: false, theology: false,
+				philosophy: false, mathematics: false, optics: false, physics: false, calendar: false
+			};
+			
+			gameState.population = {
+				kittens: 1,
+				happiness: 1.0 + (gameState.prestige.karma * 0.01), // Karma bonus
+				maxKittens: 2,
+				jobs: { farmers: 0, woodcutters: 0, miners: 0, scholars: 0, hunters: 0, priests: 0 }
+			};
+			
+			// Reset production but apply paragon bonuses
+			gameState.resourcesProduction = {
+				catnip: 0, wood: 0, minerals: 0, coal: 0, iron: 0, gold: 0, stone: 0, science: 0, faith: 0
+			};
+			
+			// Reset other systems
+			gameState.religion = {
+				faithLevel: 0, solarRevolution: false, scholasticism: false, goldenRatio: false,
+				sunAltar: 0, moonAltar: 0, transcendence: 0
+			};
+			
+			gameState.tradingRaces = {
+				lizards: { standing: 0, unlocked: false },
+				sharks: { standing: 0, unlocked: false },
+				griffins: { standing: 0, unlocked: false },
+				nagas: { standing: 0, unlocked: false },
+				zebras: { standing: 0, unlocked: false }
+			};
+			
+			gameState.expeditions = { active: [], completed: 0, artifacts: 0, relics: 0, manuscripts: 0 };
+			gameState.space = { missions: 0, satellites: 0, spaceStations: 0, moonBases: 0, planetCrackers: 0 };
+			
+			// Reset stats but keep prestige
+			gameState.stats = {
+				totalCatnipGathered: 0, totalCatnipRefined: 0, timePlayed: 0,
+				achievements: [], season: 0, year: 1, gatherClicks: 0
+			};
+			
+			// Apply paragon production bonus immediately
+			applyParagonBonus();
+			
+			// Reset building costs
+			resetBuildingCosts();
+			
+			// Log the reset
+			logMessage(`Civilization reset! Gained ${rewards.karma} karma and ${rewards.paragon} paragon.`);
+			logMessage(`Total: ${gameState.prestige.karma} karma, ${gameState.prestige.paragon} paragon`);
+			
+			// Update display
+			updateDisplay();
+			restoreUIState();
+		}
+
+		function applyParagonBonus() {
+			const totalParagon = gameState.prestige.paragon + gameState.prestige.burnedParagon;
+			let bonus = totalParagon * 0.01; // 1% per paragon up to 150
+			
+			if (totalParagon > 150) {
+				// Diminishing returns after 150
+				const excess = totalParagon - 150;
+				bonus = 1.5 + (excess * 0.005); // 0.5% per paragon after 150
+			}
+			
+			// Apply to all production (but not base rates - this is a multiplier)
+			gameState.paragonBonus = bonus;
+		}
+
+		function resetBuildingCosts() {
+			// Reset all building costs to their base values
+			buildingDefs.catnipField.cost.catnip = 10;
+			buildingDefs.temple.cost.wood = 50;
+			buildingDefs.temple.cost.gold = 25;
+			buildingDefs.goldMine.cost.wood = 200;
+			buildingDefs.goldMine.cost.minerals = 150;
+			buildingDefs.goldMine.cost.coal = 50;
+			buildingDefs.smelter.cost.wood = 200;
+			buildingDefs.smelter.cost.minerals = 200;
+			buildingDefs.smelter.cost.coal = 100;
+			buildingDefs.academy.cost.wood = 200;
+			buildingDefs.academy.cost.minerals = 100;
+			buildingDefs.academy.cost.science = 500;
+		}
+
+
 		function updateObjectives() {
 			const objectivesPanel = document.getElementById('objectives-panel');
 			if (!objectivesPanel) return;
@@ -1390,13 +1569,13 @@
 			
 			document.getElementById('free-kittens').textContent = freeKittens;
 			document.getElementById('total-kittens').textContent = totalKittens;
-			
+						
 			const jobs = [
 				{ key: 'farmers', name: 'Farmers', effect: '+0.25 catnip/sec each', unlocked: () => gameState.buildings.catnipField > 0 },
 				{ key: 'woodcutters', name: 'Woodcutters', effect: '+0.05 wood/sec each', unlocked: () => gameState.resources.wood > 0 },
 				{ key: 'miners', name: 'Miners', effect: '+0.03 minerals/sec each', unlocked: () => gameState.buildings.mine > 0 },
 				{ key: 'scholars', name: 'Scholars', effect: '+0.035 science/sec each', unlocked: () => gameState.buildings.library > 0 },
-				{ key: 'hunters', name: 'Hunters', effect: 'Hunt automatically', unlocked: () => gameState.technologies.archery },
+				{ key: 'hunters', name: 'Hunters', effect: '+0.4 catpower/sec each', unlocked: () => gameState.technologies.archery }, // CHANGED THIS LINE
 				{ key: 'priests', name: 'Priests', effect: '+0.02 faith/sec each', unlocked: () => gameState.buildings.shrine > 0 || gameState.buildings.temple > 0 }
 			];
 			
@@ -1459,184 +1638,92 @@
 			updateDisplay();
 		}
 
-		function updateExpeditionSection() {
+		function updateHuntingSection() {
 			if (!gameState.technologies.archery) return;
 			
 			showElement('expedition-section');
 			
-			const expeditionButtons = document.getElementById('expedition-buttons');
-			const activeExpeditions = document.getElementById('active-expeditions');
+			// Change the title
+			const expeditionSection = document.getElementById('expedition-section');
+			expeditionSection.innerHTML = `
+				<h3>Hunting</h3>
+				<div id="hunting-buttons"></div>
+			`;
 			
-			// Available expeditions
-			const expeditions = [
-				{
-					name: 'Forest Expedition',
-					hunters: 1,
-					duration: 120, // 2 minutes
-					rewards: { furs: [5, 15], ivory: [0, 2], artifacts: 0.1 },
-					unlocked: () => true
-				},
-				{
-					name: 'Mountain Expedition', 
-					hunters: 2,
-					duration: 300, // 5 minutes
-					rewards: { minerals: [20, 50], coal: [5, 15], relics: 0.05 },
-					unlocked: () => gameState.buildings.mine > 0
-				},
-				{
-					name: 'Ocean Expedition',
-					hunters: 3, 
-					duration: 480, // 8 minutes
-					rewards: { oil: [1, 5], uranium: [0, 1], manuscripts: 0.02 },
-					unlocked: () => gameState.expeditions.completed >= 10
-				}
-			];
+			const huntingButtons = document.getElementById('hunting-buttons');
 			
-			expeditionButtons.innerHTML = '';
-			
-			expeditions.forEach((exp, index) => {
-				if (exp.unlocked()) {
-					const availableHunters = gameState.population.jobs.hunters - getActiveHunters();
-					const canSend = availableHunters >= exp.hunters;
-					
-					const button = document.createElement('button');
-					button.className = `action-button ${!canSend ? 'disabled' : ''}`;
-					button.disabled = !canSend;
-					button.style.cursor = !canSend ? 'not-allowed' : 'pointer';
-					if (!canSend) {
-						button.title = `Need ${exp.hunters} available hunters (${availableHunters} available)`;
-					}
-					button.onclick = () => startExpedition(index);
-					button.innerHTML = `
-						${exp.name}
-						<div class="cost-display">${exp.hunters} hunters, ${Math.floor(exp.duration/60)}min ${exp.duration%60}s</div>
-					`;
-					expeditionButtons.appendChild(button);
-				}
-			});
-			
-			// Show active expeditions  
-			activeExpeditions.innerHTML = '';
-			gameState.expeditions.active.forEach((exp, index) => {
-				const timeLeft = Math.max(0, exp.endTime - Date.now());
-				const progress = Math.min(100, Math.max(0, 100 - (timeLeft / (exp.duration * 1000)) * 100));
-				
-				const div = document.createElement('div');
-				div.className = 'expedition-progress';
-				
-				if (timeLeft > 0) {
-					const minutes = Math.floor(timeLeft / 60000);
-					const seconds = Math.floor((timeLeft % 60000) / 1000);
-					div.innerHTML = `
-						<div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0;">
-							<span>${exp.name} (${exp.hunters} hunters busy)</span>
-							<span>${minutes}m ${seconds}s remaining</span>
-						</div>
-						<div class="progress-bar">
-							<div class="progress-fill" style="width: ${progress}%;"></div>
-						</div>
-					`;
-				} else {
-					div.innerHTML = `
-						<div style="color: #2ecc71; margin: 10px 0;">
-							${exp.name} completed! Check activity log for results.
-						</div>
-					`;
-				}
-				activeExpeditions.appendChild(div);
-			});
-		}
-
-		function getActiveHunters() {
-			return gameState.expeditions.active.reduce((sum, exp) => sum + exp.hunters, 0);
-		}
-
-		function startExpedition(expeditionIndex) {
-			const expeditions = [
-				{
-					name: 'Forest Expedition',
-					hunters: 1,
-					duration: 120,
-					rewards: { furs: [5, 15], ivory: [0, 2], artifacts: 0.1 }
-				},
-				{
-					name: 'Mountain Expedition',
-					hunters: 2, 
-					duration: 300,
-					rewards: { minerals: [20, 50], coal: [5, 15], relics: 0.05 }
-				},
-				{
-					name: 'Ocean Expedition',
-					hunters: 3,
-					duration: 480,
-					rewards: { oil: [1, 5], uranium: [0, 1], manuscripts: 0.02 }
-				}
-			];
-			
-			const expedition = expeditions[expeditionIndex];
-			const availableHunters = gameState.population.jobs.hunters - getActiveHunters();
-			
-			if (availableHunters >= expedition.hunters) {
-				const activeExp = {
-					...expedition,
-					startTime: Date.now(),
-					endTime: Date.now() + (expedition.duration * 1000)
-				};
-				
-				gameState.expeditions.active.push(activeExp);
-				logMessage(`${expedition.name} departed with ${expedition.hunters} hunters!`);
-				updateExpeditionSection();
+			// Calculate hunting bonus from workshop upgrades
+			let huntingBonus = 1.0;
+			if (gameState.buildings.workshop > 0) {
+				huntingBonus += 0.5; // Base workshop bonus
 			}
+			
+			// Main hunt button
+			const huntCost = 100;
+			const canHunt = gameState.resources.catpower >= huntCost;
+			
+			const huntButton = document.createElement('button');
+			huntButton.className = `action-button ${!canHunt ? 'disabled' : ''}`;
+			huntButton.disabled = !canHunt;
+			huntButton.onclick = () => performHunt();
+			huntButton.innerHTML = `
+				Send Hunt
+				<div class="cost-display">Cost: ${huntCost} catpower - Hunt for furs, ivory, and rare resources</div>
+			`;
+			huntingButtons.appendChild(huntButton);
+			
+			// Display current catpower and hunting bonus
+			const statusDiv = document.createElement('div');
+			statusDiv.className = 'expedition-progress';
+			statusDiv.innerHTML = `
+				<p><strong>Catpower:</strong> ${Math.floor(gameState.resources.catpower)}/${gameState.resourceLimits.catpower}</p>
+				<p><strong>Hunting Bonus:</strong> +${((huntingBonus - 1) * 100).toFixed(0)}%</p>
+				<p><strong>Hunters:</strong> ${gameState.population.jobs.hunters} (generating ${(gameState.population.jobs.hunters * 0.4).toFixed(1)} catpower/sec)</p>
+			`;
+			huntingButtons.appendChild(statusDiv);
 		}
 
-		function checkExpeditions() {
-			const currentTime = Date.now();
-			const completedIndices = [];
+		function performHunt() {
+			const huntCost = 100;
+			if (gameState.resources.catpower < huntCost) return;
 			
-			gameState.expeditions.active.forEach((exp, index) => {
-				if (currentTime >= exp.endTime) {
-					// Expedition completed
-					completedIndices.push(index);
-					
-					// Calculate rewards
-					let foundSomething = false;
-					for (let resource in exp.rewards) {
-						const reward = exp.rewards[resource];
-						if (Array.isArray(reward)) {
-							// Random amount between min and max
-							const amount = Math.floor(Math.random() * (reward[1] - reward[0] + 1)) + reward[0];
-							if (amount > 0) {
-								gameState.resources[resource] = (gameState.resources[resource] || 0) + amount;
-								logMessage(`${exp.name} returned with ${amount} ${resource}!`);
-								foundSomething = true;
-							}
-						} else {
-							// Chance for special item
-							if (Math.random() < reward) {
-								gameState.expeditions[resource]++;
-								logMessage(`${exp.name} discovered a rare ${resource}!`);
-								foundSomething = true;
-							}
-						}
-					}
-					
-					if (!foundSomething) {
-						logMessage(`${exp.name} returned empty-handed but safely.`);
-					}
-					
-					gameState.expeditions.completed++;
-				}
-			});
+			gameState.resources.catpower -= huntCost;
 			
-			// Remove completed expeditions (in reverse order to maintain indices)
-			completedIndices.reverse().forEach(index => {
-				gameState.expeditions.active.splice(index, 1);
-			});
-			
-			if (completedIndices.length > 0) {
-				updateExpeditionSection();
-				updateDisplay();
+			// Calculate hunting bonus
+			let huntingBonus = 1.0;
+			if (gameState.buildings.workshop > 0) {
+				huntingBonus += 0.5;
 			}
+			
+			// Always get furs
+			const fursGained = Math.floor((Math.random() * 80 + Math.random() * (65 * huntingBonus)) + 1);
+			gameState.resources.furs += fursGained;
+			
+			let results = [`${fursGained} furs`];
+			
+			// Chance for ivory (20% base)
+			if (Math.random() < 0.2 * huntingBonus) {
+				const ivoryGained = Math.floor(Math.random() * 3) + 1;
+				gameState.resources.ivory += ivoryGained;
+				results.push(`${ivoryGained} ivory`);
+			}
+			
+			// Small chance for unicorns (2% base)
+			if (Math.random() < 0.02 * huntingBonus) {
+				gameState.resources.unicorns += 1;
+				results.push(`1 unicorn!`);
+			}
+			
+			// Very small chance for oil (1% base, only if expeditions completed)
+			if (gameState.expeditions && gameState.expeditions.completed >= 5 && Math.random() < 0.01 * huntingBonus) {
+				const oilGained = Math.floor(Math.random() * 3) + 1;
+				gameState.resources.oil += oilGained;
+				results.push(`${oilGained} oil`);
+			}
+			
+			logMessage(`Hunt returned with: ${results.join(', ')}`);
+			updateHuntingSection();
+			updateDisplay();
 		}
 
 		function updateWorkshopTab() {
@@ -2292,8 +2379,24 @@
             const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
             document.getElementById('current-season').textContent = seasons[gameState.stats.season];
             document.getElementById('current-year').textContent = gameState.stats.year;
-            document.getElementById('faith-amount').textContent = Math.floor(gameState.resources.faith);
-            document.getElementById('science-amount').textContent = Math.floor(gameState.resources.science);
+			document.getElementById('faith-amount').textContent = Math.floor(gameState.resources.faith);
+			document.getElementById('science-amount').textContent = Math.floor(gameState.resources.science);
+
+			// ADD THESE LINES:
+			if (gameState.prestige.karma > 0 || gameState.prestige.paragon > 0) {
+				let prestigeText = '';
+				if (gameState.prestige.karma > 0) prestigeText += `<p><strong>Karma:</strong> <span style="color: #e74c3c;">${gameState.prestige.karma}</span></p>`;
+				if (gameState.prestige.paragon > 0) prestigeText += `<p><strong>Paragon:</strong> <span style="color: #f39c12;">${gameState.prestige.paragon}</span></p>`;
+				
+				if (!document.getElementById('prestige-display')) {
+					const prestigeDiv = document.createElement('div');
+					prestigeDiv.id = 'prestige-display';
+					prestigeDiv.innerHTML = prestigeText;
+					document.getElementById('status-info').appendChild(prestigeDiv);
+				} else {
+					document.getElementById('prestige-display').innerHTML = prestigeText;
+				}
+			}
             
             updateJobManagement();
 			updateRefineButton();
@@ -2770,6 +2873,8 @@
 				if (gameState.resourcesProduction[resource] > 0) {
 					let production = gameState.resourcesProduction[resource];
 					
+					production *= (1 + (gameState.paragonBonus || 0));
+					
 					// Add job bonuses without modifying base rates
 					if (resource === 'catnip') {
 						production += gameState.population.jobs.farmers * 0.25;
@@ -2785,6 +2890,9 @@
 					}
 					if (resource === 'faith') {
 						production += gameState.population.jobs.priests * 0.02;
+					}
+					if (resource === 'catpower') {
+						production += gameState.population.jobs.hunters * 0.4;
 					}
 					
 					// Season effects on catnip
@@ -3244,12 +3352,9 @@
 			updateFieldDisplay();
 		}
 
-        function resetGame() {
-            if (confirm("Are you sure you want to reset your entire civilization? This cannot be undone!")) {
-                localStorage.removeItem('kittenCivilizationSave');
-                location.reload();
-            }
-        }
+		function resetGame() {
+			showResetConfirmation();
+		}
 
         // Initialize game
 		document.addEventListener('DOMContentLoaded', function() {
