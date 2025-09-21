@@ -3259,6 +3259,9 @@
 				try {
 					const loadedState = JSON.parse(savedGame);
 					gameState = Object.assign({}, gameState, loadedState);
+					if (loadedState.settings) {
+						gameSettings = loadedState.settings;
+					}
 					
 					// Ensure all nested objects exist
 					gameState.buildings = Object.assign({}, {
@@ -3298,7 +3301,10 @@
 			
 			// Auto-save to localStorage every 10 seconds
 			setInterval(() => {
-				localStorage.setItem('kittenCivilizationSave', JSON.stringify(gameState));
+				localStorage.setItem('kittenCivilizationSave', JSON.stringify({
+					...gameState,
+					settings: gameSettings
+				}));
 			}, 10000);
 			
 			// Initial display update
