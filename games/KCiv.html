@@ -861,16 +861,28 @@
                     gameState.resourcesProduction.stone = (gameState.resourcesProduction.stone || 0) + 0.05;
                 }
             },
-            goldMine: {
-                name: "Gold Mine",
-                description: "Extracts precious gold",
-                cost: { wood: 200, minerals: 150, coal: 50 },
-                effect: "+0.01 gold/sec",
-                unlocked: () => gameState.technologies.metalWorking && gameState.buildings.mine >= 2,
-                onBuild: () => { 
-                    gameState.resourcesProduction.gold = (gameState.resourcesProduction.gold || 0) + 0.01;
-                }
-            },
+			goldMine: {
+				name: "Gold Mine",
+				description: "Extracts precious gold",
+				cost: { wood: 200, minerals: 150, coal: 50 },
+				effect: "+0.01 gold/sec",
+				unlocked: () => gameState.technologies.metalWorking && gameState.buildings.mine >= 2,
+				onBuild: () => { 
+					const currentCount = gameState.buildings.goldMine;
+					const scalingMultiplier = Math.pow(1.4, currentCount);
+					buildingDefs.goldMine.cost.wood = Math.floor(200 * scalingMultiplier);
+					buildingDefs.goldMine.cost.minerals = Math.floor(150 * scalingMultiplier);
+					buildingDefs.goldMine.cost.coal = Math.floor(50 * scalingMultiplier);
+					
+					// Diminishing returns: each gold mine after the 2nd gives less gold
+					let goldBonus = 0.01;
+					if (currentCount >= 2) {
+						goldBonus = 0.01 * Math.pow(0.85, currentCount - 1); // 15% less each time
+					}
+					
+					gameState.resourcesProduction.gold = (gameState.resourcesProduction.gold || 0) + goldBonus;
+				}
+			},
             workshop: {
                 name: "Workshop",
                 description: "Advanced crafting building",
@@ -884,16 +896,28 @@
 					logMessage("Workshop unlocks crafting recipes!");
 				}
             },
-            smelter: {
-                name: "Smelter",
-                description: "Smelt coal and minerals into iron",
-                cost: { wood: 200, minerals: 200, coal: 100 },
-                effect: "+0.05 iron/sec",
-                unlocked: () => gameState.technologies.metalWorking && gameState.buildings.workshop >= 1,
-                onBuild: () => { 
-                    gameState.resourcesProduction.iron = (gameState.resourcesProduction.iron || 0) + 0.05;
-                }
-            },
+			smelter: {
+				name: "Smelter",
+				description: "Smelt coal and minerals into iron",
+				cost: { wood: 200, minerals: 200, coal: 100 },
+				effect: "+0.05 iron/sec",
+				unlocked: () => gameState.technologies.metalWorking && gameState.buildings.workshop >= 1,
+				onBuild: () => { 
+					const currentCount = gameState.buildings.smelter;
+					const scalingMultiplier = Math.pow(1.3, currentCount);
+					buildingDefs.smelter.cost.wood = Math.floor(200 * scalingMultiplier);
+					buildingDefs.smelter.cost.minerals = Math.floor(200 * scalingMultiplier);
+					buildingDefs.smelter.cost.coal = Math.floor(100 * scalingMultiplier);
+					
+					// Diminishing returns: each smelter after the 3rd gives less iron
+					let ironBonus = 0.05;
+					if (currentCount >= 3) {
+						ironBonus = 0.05 * Math.pow(0.8, currentCount - 2); // 20% less each time
+					}
+					
+					gameState.resourcesProduction.iron = (gameState.resourcesProduction.iron || 0) + ironBonus;
+				}
+			},
             shrine: {
                 name: "Shrine",
                 description: "A small shrine to Babs",
@@ -905,18 +929,28 @@
                     gameState.resources.faith += 1; // Starting faith
                 }
             },
-            temple: {
-                name: "Temple",
-                description: "A sacred place of worship to Babs",
-                cost: { wood: 50, gold: 25 },
-                effect: "+0.1 faith per second",
-                unlocked: () => gameState.resources.gold >= 20,
-                onBuild: () => { 
-                    gameState.resourcesProduction.faith += 0.1;
-                    // Give some starting faith
-                    gameState.resources.faith += 5;
-                }
-            },
+			temple: {
+				name: "Temple",
+				description: "A sacred place of worship to Babs",
+				cost: { wood: 50, gold: 25 },
+				effect: "+0.1 faith per second",
+				unlocked: () => gameState.resources.gold >= 20,
+				onBuild: () => { 
+					const currentCount = gameState.buildings.temple;
+					const scalingMultiplier = Math.pow(1.25, currentCount);
+					buildingDefs.temple.cost.wood = Math.floor(50 * scalingMultiplier);
+					buildingDefs.temple.cost.gold = Math.floor(25 * scalingMultiplier);
+					
+					// Diminishing returns: each temple after the 3rd gives less faith
+					let faithBonus = 0.1;
+					if (currentCount >= 3) {
+						faithBonus = 0.1 * Math.pow(0.8, currentCount - 2); // 20% less each time
+					}
+					
+					gameState.resourcesProduction.faith += faithBonus;
+					if (currentCount === 0) gameState.resources.faith += 5; // Only first temple gives starting faith
+				}
+			},
             logHouse: {
                 name: "Log House",
                 description: "A sturdy log house for more kittens",
@@ -928,16 +962,28 @@
                     gameState.population.happiness += 0.1;
                 }
             },
-            academy: {
-                name: "Academy",
-                description: "Advanced learning institution",
-                cost: { wood: 200, minerals: 100, science: 500 },
-                effect: "+1.0 science per second, reduces tech costs",
-                unlocked: () => gameState.buildings.library >= 2 && gameState.resources.science >= 200,
-                onBuild: () => { 
-                    gameState.resourcesProduction.science += 1.0;
-                }
-            },
+			academy: {
+				name: "Academy",
+				description: "Advanced learning institution",
+				cost: { wood: 200, minerals: 100, science: 500 },
+				effect: "+1.0 science per second, reduces tech costs",
+				unlocked: () => gameState.buildings.library >= 2 && gameState.resources.science >= 200,
+				onBuild: () => { 
+					const currentCount = gameState.buildings.academy;
+					const scalingMultiplier = Math.pow(1.5, currentCount);
+					buildingDefs.academy.cost.wood = Math.floor(200 * scalingMultiplier);
+					buildingDefs.academy.cost.minerals = Math.floor(100 * scalingMultiplier);
+					buildingDefs.academy.cost.science = Math.floor(500 * scalingMultiplier);
+					
+					// Diminishing returns: each academy after the 2nd gives less science
+					let scienceBonus = 1.0;
+					if (currentCount >= 2) {
+						scienceBonus = 1.0 * Math.pow(0.75, currentCount - 1); // 25% less each time
+					}
+					
+					gameState.resourcesProduction.science += scienceBonus;
+				}
+			},
             pasture: {
                 name: "Pasture",
                 description: "Raise unicorns and other creatures",
