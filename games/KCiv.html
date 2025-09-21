@@ -1535,33 +1535,21 @@
 		];
 
 		function upgradeAchievementSystem() {
-			// Check if we need to upgrade the achievement system
-			if (!gameState.achievementSystemVersion || gameState.achievementSystemVersion < 2) {
-				logMessage("Upgrading achievement system...");
-				
-				// Store old achievements to avoid losing them
-				const oldAchievements = gameState.stats.achievements || [];
-				
-				// Clear and recheck all achievements
-				gameState.stats.achievements = [];
-				
-				achievements.forEach(achievement => {
-					if (achievement.trigger()) {
-						gameState.stats.achievements.push(achievement.id);
-						// Only show notification if it's a new achievement
-						if (!oldAchievements.includes(achievement.id)) {
-							showAchievement(achievement);
-						}
-					}
-				});
-				
-				// Mark system as upgraded
-				gameState.achievementSystemVersion = 2;
-				
-				const newCount = gameState.stats.achievements.length - oldAchievements.length;
-				if (newCount > 0) {
-					logMessage(`Achievement system upgraded! Earned ${newCount} new achievements.`);
+			logMessage("Checking achievements based on current progress...");
+			
+			let newAchievements = 0;
+			achievements.forEach(achievement => {
+				if (!gameState.stats.achievements.includes(achievement.id) && achievement.trigger()) {
+					gameState.stats.achievements.push(achievement.id);
+					showAchievement(achievement);
+					newAchievements++;
 				}
+			});
+			
+			if (newAchievements > 0) {
+				logMessage(`Earned ${newAchievements} new achievements!`);
+			} else {
+				logMessage("No new achievements available.");
 			}
 		}
 
