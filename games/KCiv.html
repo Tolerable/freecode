@@ -1925,6 +1925,16 @@
 				triggerRandomEvent();
 			}
 			
+			// Positive production events (every 45-90 seconds)
+			if (Math.random() < 0.0003) { // 0.03% chance per second
+				triggerProductionEvent();
+			}
+
+			// Disasters (very rare - every 10-20 minutes)
+			if (Math.random() < 0.00008) { // 0.008% chance per second
+				triggerDisaster();
+			}			
+			
 			updateDisplay();
 		}
 
@@ -1980,6 +1990,99 @@
             logMessage(randomEvent.message);
             randomEvent.effect();
         }
+
+		function triggerProductionEvent() {
+			const events = [
+				{
+					condition: () => gameState.buildings.mine > 0,
+					message: "Your mines struck a rich vein!",
+					effect: () => {
+						const bonus = Math.floor(Math.random() * 20) + 10;
+						gameState.resources.minerals += bonus;
+						logMessage(`The mines produced an extra ${bonus} minerals!`);
+					}
+				},
+				{
+					condition: () => gameState.buildings.catnipField > 5,
+					message: "The catnip fields had an excellent harvest!",
+					effect: () => {
+						const bonus = Math.floor(Math.random() * 50) + 25;
+						gameState.resources.catnip += bonus;
+						logMessage(`The fields yielded an extra ${bonus} catnip!`);
+					}
+				},
+				{
+					condition: () => gameState.buildings.library > 0,
+					message: "Your scholars made a breakthrough!",
+					effect: () => {
+						const bonus = Math.floor(Math.random() * 10) + 5;
+						gameState.resources.science += bonus;
+						logMessage(`Research breakthrough grants ${bonus} science!`);
+					}
+				},
+				{
+					condition: () => gameState.buildings.quarry > 0,
+					message: "The quarry uncovered quality stone!",
+					effect: () => {
+						const bonus = Math.floor(Math.random() * 15) + 8;
+						gameState.resources.stone += bonus;
+						logMessage(`The quarry produced ${bonus} extra stone!`);
+					}
+				}
+			];
+			
+			const availableEvents = events.filter(event => event.condition());
+			if (availableEvents.length > 0) {
+				const randomEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+				randomEvent.effect();
+			}
+		}
+
+		function triggerDisaster() {
+			const disasters = [
+				{
+					condition: () => gameState.buildings.hut > 1,
+					message: "A small fire damages a hut!",
+					effect: () => {
+						gameState.buildings.hut--;
+						gameState.population.kittens = Math.max(1, gameState.population.kittens - 1);
+						logMessage("🔥 A fire destroyed a hut! One kitten moved in with neighbors.");
+					}
+				},
+				{
+					condition: () => gameState.resources.catnip > 100,
+					message: "Heavy rains flood some catnip stores!",
+					effect: () => {
+						const loss = Math.floor(gameState.resources.catnip * 0.03); // 3% loss
+						gameState.resources.catnip -= loss;
+						logMessage(`🌧️ Flooding destroyed ${loss} catnip from your stores.`);
+					}
+				},
+				{
+					condition: () => gameState.stats.season === 1, // Summer
+					message: "A solar eclipse darkens the sky!",
+					effect: () => {
+						gameState.resources.faith = Math.max(0, gameState.resources.faith - 5);
+						logMessage("🌑 The eclipse fills your kittens with unease. Faith decreases.");
+					}
+				},
+				{
+					condition: () => gameState.buildings.catnipField > 3,
+					message: "Locusts swarm the fields!",
+					effect: () => {
+						gameState.buildings.catnipField--;
+						gameState.resourcesProduction.catnip = Math.max(0, gameState.resourcesProduction.catnip - 0.63);
+						logMessage("🦗 Locusts destroyed a catnip field!");
+					}
+				}
+			];
+			
+			const availableDisasters = disasters.filter(disaster => disaster.condition());
+			if (availableDisasters.length > 0) {
+				const randomDisaster = availableDisasters[Math.floor(Math.random() * availableDisasters.length)];
+				randomDisaster.effect();
+			}
+		}
 
         function saveGame() {
             localStorage.setItem('kittenCivilizationSave', JSON.stringify(gameState));
