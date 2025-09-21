@@ -2893,10 +2893,50 @@
 				
 				if (saveData.signature === expectedSignature) {
 					gameState = saveData.gameState;
+					
+					// Ensure trading races exist
+					if (!gameState.tradingRaces) {
+						gameState.tradingRaces = {
+							lizards: { standing: 0, unlocked: false },
+							sharks: { standing: 0, unlocked: false },
+							griffins: { standing: 0, unlocked: false },
+							nagas: { standing: 0, unlocked: false },
+							zebras: { standing: 0, unlocked: false }
+						};
+					}
+
+					// Ensure expeditions exist
+					if (!gameState.expeditions) {
+						gameState.expeditions = {
+							active: [],
+							completed: 0,
+							artifacts: 0,
+							relics: 0,
+							manuscripts: 0
+						};
+					}
+
+					// Ensure space exists
+					if (!gameState.space) {
+						gameState.space = {
+							missions: 0,
+							satellites: 0,
+							spaceStations: 0,
+							moonBases: 0,
+							planetCrackers: 0
+						};
+					}
+					
+					// Auto-unlock trading if trading post exists
+					if (gameState.buildings.tradingPost > 0) {
+						gameState.tradingRaces.lizards.unlocked = true;
+					}
+					
 					recalculateStorageLimits();
 					restoreUIState();
 					loadAchievements();
 					updateDisplay();
+					updateTradeTab();
 					logMessage(`Game loaded! ID: ${saveData.gameId} ✓ Verified`);
 				} else {
 					logMessage("Invalid save file or wrong secret phrase!");
@@ -2907,8 +2947,6 @@
 				logMessage("Error loading save file!");
 			}
 		}
-
-
 
 		function generateGameSignature(gameData, userPhrase) {
 			const dataString = JSON.stringify(gameData) + userPhrase;
