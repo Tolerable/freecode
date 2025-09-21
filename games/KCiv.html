@@ -2140,12 +2140,27 @@
 				huntingButtons.appendChild(exploreButton);
 			}
 			
+			// Send expedition button (for oil and artifacts)
+			const expeditionCost = 500;
+			const canExpedition = currentCatpower >= expeditionCost;
+			
+			const expeditionButton = document.createElement('button');
+			expeditionButton.className = `action-button ${!canExpedition ? 'disabled' : ''}`;
+			expeditionButton.disabled = !canExpedition;
+			expeditionButton.onclick = () => sendExpedition();
+			expeditionButton.innerHTML = `
+				Send Expedition
+				<div class="cost-display">Cost: ${expeditionCost} catpower - Explore distant lands for oil and relics</div>
+			`;
+			huntingButtons.appendChild(expeditionButton);
+			
 			// Display hunting bonus and hunters info
 			const statusDiv = document.createElement('div');
 			statusDiv.className = 'expedition-progress';
 			statusDiv.innerHTML = `
 				<p><strong>Hunting Bonus:</strong> +${((huntingBonus - 1) * 100).toFixed(0)}%</p>
 				<p><strong>Hunters:</strong> ${gameState.population.jobs.hunters || 0} (generating ${((gameState.population.jobs.hunters || 0) * 0.4).toFixed(1)} catpower/sec)</p>
+				<p><strong>Expeditions Completed:</strong> ${gameState.expeditions.completed}</p>
 			`;
 			huntingButtons.appendChild(statusDiv);
 		}
@@ -2733,6 +2748,26 @@
 			}
 			
 			updateTradeTab();
+			updateDisplay();
+		}
+
+		function sendExpedition() {
+			const expeditionCost = 500;
+			if (gameState.resources.catpower < expeditionCost) return;
+			
+			gameState.resources.catpower -= expeditionCost;
+			gameState.expeditions.completed++;
+			
+			// Chance for oil (30%)
+			if (Math.random() < 0.3) {
+				const oilFound = Math.floor(Math.random() * 10) + 5;
+				gameState.resources.oil += oilFound;
+				logMessage(`Expedition found ${oilFound} oil!`);
+			} else {
+				logMessage("Expedition returned with nothing valuable.");
+			}
+			
+			updateHuntingSection();
 			updateDisplay();
 		}
 
