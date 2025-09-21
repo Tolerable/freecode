@@ -482,6 +482,20 @@
                 science: 0,
                 faith: 0
             },
+            resourceLimits: {
+                catnip: 1000,
+                wood: 200,
+                minerals: 250,
+                coal: 150,
+                iron: 100,
+                gold: 50,
+                stone: 250,
+                science: 1000,
+                faith: 100,
+                furs: 200,
+                ivory: 50,
+                unicorns: 10
+            },
             population: {
                 kittens: 1,
                 happiness: 1.0,
@@ -549,6 +563,11 @@
                 effect: "+0.63 catnip per second",
                 unlocked: () => gameState.stats.gatherClicks >= 5,
                 onBuild: () => { 
+                    const currentFields = gameState.buildings.catnipField;
+                    // Scaling cost - each field costs 25% more
+                    const scalingMultiplier = Math.pow(1.25, currentFields);
+                    buildingDefs.catnipField.cost.catnip = Math.floor(10 * scalingMultiplier);
+                    
                     gameState.resourcesProduction.catnip += 0.63;
                     updateGatherButton();
                 }
@@ -577,9 +596,26 @@
                 name: "Barn",
                 description: "Stores catnip and food",
                 cost: { wood: 50 },
-                effect: "+5000 catnip storage",
+                effect: "+5000 catnip storage, +1000 wood storage",
                 unlocked: () => gameState.buildings.hut >= 2,
-                onBuild: () => { /* Storage handled automatically */ }
+                onBuild: () => { 
+                    gameState.resourceLimits.catnip += 5000;
+                    gameState.resourceLimits.wood += 1000;
+                    gameState.resourceLimits.furs += 500;
+                }
+            },
+            warehouse: {
+                name: "Warehouse", 
+                description: "Stores minerals, coal, and stone",
+                cost: { wood: 150, stone: 100 },
+                effect: "+2000 mineral storage, +1500 coal storage",
+                unlocked: () => gameState.resources.stone >= 50,
+                onBuild: () => {
+                    gameState.resourceLimits.minerals += 2000;
+                    gameState.resourceLimits.coal += 1500;
+                    gameState.resourceLimits.stone += 2000;
+                    gameState.resourceLimits.iron += 500;
+                }
             },
             mine: {
                 name: "Mine",
@@ -597,7 +633,7 @@
                 description: "Extracts stone and more minerals",
                 cost: { wood: 50, minerals: 25 },
                 effect: "+0.1 minerals/sec, +0.05 stone/sec",
-                unlocked: () => gameState.technologies.mining && gameState.buildings.mine >= 1,
+                unlocked: () => gameState.resources.minerals >= 15 || gameState.buildings.mine >= 1,
                 onBuild: () => { 
                     gameState.resourcesProduction.minerals = (gameState.resourcesProduction.minerals || 0) + 0.1;
                     gameState.resourcesProduction.stone = (gameState.resourcesProduction.stone || 0) + 0.05;
@@ -658,6 +694,37 @@
                     gameState.population.happiness += 0.1;
                 }
             },
+            academy: {
+                name: "Academy",
+                description: "Advanced learning institution",
+                cost: { wood: 200, minerals: 100, science: 500 },
+                effect: "+1.0 science per second, reduces tech costs",
+                unlocked: () => gameState.buildings.library >= 2 && gameState.resources.science >= 200,
+                onBuild: () => { 
+                    gameState.resourcesProduction.science += 1.0;
+                }
+            },
+            pasture: {
+                name: "Pasture",
+                description: "Raise unicorns and other creatures",
+                cost: { wood: 50, catnip: 500 },
+                effect: "Enables unicorn farming, +happiness",
+                unlocked: () => gameState.resources.unicorns >= 1 || gameState.resources.ivory >= 10,
+                onBuild: () => {
+                    gameState.population.happiness += 0.05;
+                    gameState.resourcesProduction.unicorns = 0.001; // Very slow unicorn production
+                }
+            },
+            tradingPost: {
+                name: "Trading Post",
+                description: "Trade with other civilizations",
+                cost: { wood: 500, minerals: 200, gold: 15 },
+                effect: "Unlocks trading and exotic resources",
+                unlocked: () => gameState.resources.gold >= 10 && gameState.resources.furs >= 50,
+                onBuild: () => {
+                    logMessage("🏪 Trading post built! New trading opportunities available.");
+                }
+            },
             observatory: {
                 name: "Observatory",
                 description: "Study the heavens and stars",
@@ -669,6 +736,7 @@
                     showElement('observe-stars-btn');
                 }
             }
+        };
         };
 
         // Technology Definitions
@@ -1064,11 +1132,26 @@
         }
 
         function updateDisplay() {
-            // Update resources
+            // Update resources with storage info
             for (let resource in gameState.resources) {
                 const element = document.getElementById(resource + '-amount');
                 if (element) {
-                    element.textContent = Math.floor(gameState.resources[resource]).toLocaleString();
+                    const current = Math.floor(gameState.resources[resource]);
+                    const limit = gameState.resourceLimits[resource];
+                    if (limit && limit < Infinity) {
+                        element.textContent = `${current.toLocaleString()}/${limit.toLocaleString()}`;
+                        // Color code based on capacity
+                        if (current >= limit * 0.9) {
+                            element.style.color = '#e74c3c'; // Red when nearly full
+                        } else if (current >= limit * 0.75) {
+                            element.style.color = '#f39c12'; // Orange when 75% full
+                        } else {
+                            element.style.color = '#2ecc71'; // Green when plenty of space
+                        }
+                    } else {
+                        element.textContent = current.toLocaleString();
+                        element.style.color = '#2ecc71';
+                    }
                 }
                 
                 const rateElement = document.getElementById(resource + '-rate');
@@ -1216,12 +1299,18 @@
             
             // Show buildings that require technologies we're close to researching
             if (buildingKey === 'mine' && gameState.resources.science >= 25) return true;
+            if (buildingKey === 'quarry' && (gameState.resources.minerals >= 10 || gameState.buildings.mine >= 1)) return true;
+            if (buildingKey === 'shrine' && gameState.resources.stone >= 10) return true;
+            if (buildingKey === 'warehouse' && gameState.resources.stone >= 25) return true;
             if (buildingKey === 'workshop' && gameState.resources.science >= 100) return true;
             if (buildingKey === 'smelter' && gameState.technologies.mining) return true;
             if (buildingKey === 'goldMine' && gameState.resources.science >= 75) return true;
             if (buildingKey === 'temple' && (gameState.resources.gold >= 5 || gameState.buildings.goldMine > 0)) return true;
             if (buildingKey === 'logHouse' && gameState.resources.science >= 75) return true;
             if (buildingKey === 'observatory' && gameState.resources.science >= 100) return true;
+            if (buildingKey === 'academy' && gameState.buildings.library >= 1 && gameState.resources.science >= 100) return true;
+            if (buildingKey === 'pasture' && (gameState.resources.ivory >= 5 || gameState.resources.unicorns >= 1)) return true;
+            if (buildingKey === 'tradingPost' && gameState.resources.furs >= 25) return true;
             
             return false;
         }
@@ -1229,12 +1318,18 @@
         function getUnlockHint(buildingKey) {
             switch(buildingKey) {
                 case 'mine': return 'Research Mining (50 science)';
+                case 'quarry': return 'Have 15+ minerals OR build a mine';
+                case 'shrine': return 'Gather 15+ stone (from quarries)';
+                case 'warehouse': return 'Gather 50+ stone';
                 case 'workshop': return 'Research Engineering (200 science)';
                 case 'smelter': return 'Research Metal Working + Build Workshop';
                 case 'goldMine': return 'Research Metal Working + Build 2 Mines';
                 case 'temple': return 'Acquire 20+ gold (build Gold Mine)';
                 case 'logHouse': return 'Research Construction (100 science)';
                 case 'observatory': return 'Research Astronomy (150 science)';
+                case 'academy': return 'Build 2+ Libraries + 200 science';
+                case 'pasture': return 'Find unicorns or gather 10+ ivory';
+                case 'tradingPost': return 'Gather 50+ furs + 10+ gold';
                 default: return 'Requirements not met';
             }
         }
@@ -1493,7 +1588,16 @@
                         production *= seasonMultipliers[gameState.stats.season];
                     }
                     
-                    gameState.resources[resource] += production;
+                    // Apply resource caps
+                    const currentAmount = gameState.resources[resource];
+                    const limit = gameState.resourceLimits[resource] || Infinity;
+                    const newAmount = Math.min(limit, currentAmount + production);
+                    gameState.resources[resource] = newAmount;
+                    
+                    // Warn if hitting caps
+                    if (newAmount >= limit && Math.random() < 0.01) {
+                        logMessage(`⚠️ ${resource} storage is full! Build more storage buildings.`);
+                    }
                 }
             }
             
