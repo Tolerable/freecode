@@ -679,7 +679,9 @@
 				gear: 0,
 				alloy: 0,
 				concrete: 0,
-				catpower: 0 
+				catpower: 0,
+				ships: 0,
+				starcharts: 0
 			},
             resourcesProduction: {
                 catnip: 0,
@@ -1059,7 +1061,7 @@
 				onBuild: () => {
 					gameState.tradingRaces.lizards.unlocked = true;
 					updateTradeTab();
-					logMessage("Trading post built! New trading opportunities available.");
+					logMessage("Trading post built! The Lizards have discovered your civilization.");
 				}
 			},
 			observatory: {
@@ -1074,6 +1076,16 @@
 					showElement('observe-stars-btn');
 				}
 			},
+			harbor: {
+				name: "Harbor",
+				description: "A harbor for storing trade ships",
+				cost: { wood: 75, stone: 50 },
+				effect: "+50 titanium storage",
+				unlocked: () => gameState.technologies.navigation,
+				onBuild: () => {
+					gameState.resourceLimits.titanium = (gameState.resourceLimits.titanium || 250) + 50;
+				}
+			},			
 			launchPad: {
 				name: "Launch Pad",
 				description: "Launch rockets and satellites into space",
@@ -1220,6 +1232,16 @@
                     logMessage("🙏 Theology deepens your faith in Babs!");
                 }
             },
+			navigation: {
+				name: "Navigation",
+				description: "Learn to navigate the seas and build ships",
+				cost: { science: 500 },
+				effect: "Unlocks harbors and trade ship crafting",
+				unlocked: () => gameState.resources.science >= 250,
+				onResearch: () => { 
+					logMessage("🚢 Navigation unlocked! You can now build harbors and craft trade ships.");
+				}
+			},			
 			rocketry: {
 				name: "Rocketry",
 				description: "Propulsion systems for space travel",
@@ -1789,7 +1811,13 @@
 					inputs: { iron: 25, minerals: 1250, coal: 25 },
 					output: { concrete: 1 },
 					unlocked: () => gameState.resources.minerals >= 500
-				}
+				},
+				{
+					name: 'Trade Ship',
+					inputs: { wood: 100, iron: 50, starcharts: 25 },
+					output: { ships: 1 },
+					unlocked: () => gameState.technologies.navigation
+				}				
 			];
 			
 			recipes.forEach(recipe => {
@@ -2189,27 +2217,18 @@
 			
 			gameState.resources.catpower -= exploreCost;
 			
-			// Find next available race to unlock
-			const raceOrder = ['sharks', 'griffins', 'nagas', 'zebras'];
+			const currentYear = gameState.stats.year;
 			let foundRace = null;
 			
-			for (let race of raceOrder) {
-				if (!gameState.tradingRaces[race].unlocked) {
-					// Check if previous race has enough standing
-					if (race === 'sharks' && gameState.tradingRaces.lizards.standing >= 10) {
-						foundRace = race;
-						break;
-					} else if (race === 'griffins' && gameState.tradingRaces.sharks.standing >= 10) {
-						foundRace = race;
-						break;
-					} else if (race === 'nagas' && gameState.tradingRaces.griffins.standing >= 5) {
-						foundRace = race;
-						break;
-					} else if (race === 'zebras' && gameState.tradingRaces.nagas.standing >= 5) {
-						foundRace = race;
-						break;
-					}
-				}
+			// Simple year-based unlocks (like original)
+			if (!gameState.tradingRaces.sharks.unlocked && currentYear >= 20) {
+				foundRace = 'sharks';
+			} else if (!gameState.tradingRaces.griffins.unlocked && currentYear >= 20) {
+				foundRace = 'griffins';
+			} else if (!gameState.tradingRaces.nagas.unlocked && currentYear >= 35) {
+				foundRace = 'nagas';
+			} else if (!gameState.tradingRaces.zebras.unlocked && (gameState.resources.ships || 0) >= 1) {
+				foundRace = 'zebras';
 			}
 			
 			if (foundRace) {
@@ -2217,7 +2236,7 @@
 				logMessage(`Your explorers discovered the ${foundRace}! New trading opportunities available.`);
 			} else {
 				logMessage("Your explorers found no new civilizations.");
-				gameState.resources.catpower += 950; // Refund most catpower
+				gameState.resources.catpower += 950;
 			}
 			
 			updateTradeTab();
