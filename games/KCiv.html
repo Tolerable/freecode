@@ -485,13 +485,14 @@
         <div class="panel main-panel">
             <h1>🐱 Kitten Civilization 🐱</h1>
             
-            <div class="tab-container">
-                <button class="tab active" onclick="showTab('gather')">Gather</button>
-                <button class="tab" onclick="showTab('buildings')">Buildings</button>
-                <button class="tab" onclick="showTab('technology')">Technology</button>
-                <button class="tab" onclick="showTab('religion')">Religion</button>
-                <button class="tab" onclick="showTab('trade')">Trade</button>
-            </div>
+			<div class="tab-container">
+				<button class="tab active" onclick="showTab('gather')">Gather</button>
+				<button class="tab" onclick="showTab('buildings')">Buildings</button>
+				<button class="tab" onclick="showTab('technology')">Technology</button>
+				<button class="tab" onclick="showTab('religion')">Religion</button>
+				<button class="tab" onclick="showTab('trade')">Trade</button>
+				<button class="tab" onclick="showTab('workshop')">Workshop</button>
+			</div>
 
 			<!-- Gathering Tab -->
 			<div id="gather-tab" class="tab-content active">
@@ -511,10 +512,11 @@
 					<div class="cost-display">Turn catnip into wood (Cost: 100 catnip)</div>
 				</button>
 
-				<button class="action-button hidden" id="hunt-btn" onclick="hunt()">
-					Send hunters
-					<div class="cost-display">Hunt for furs and ivory</div>
-				</button>
+				<div id="expedition-section" class="hidden">
+					<h3>Expeditions</h3>
+					<div id="expedition-buttons"></div>
+					<div id="active-expeditions"></div>
+				</div>
 
 				<button class="action-button hidden" id="observe-stars-btn" onclick="observeStars()">
 					Observe the sky
@@ -568,6 +570,14 @@
 			</div>
         </div>
 
+		<!-- Workshop Tab -->
+		<div id="workshop-tab" class="tab-content">
+			<h3>Workshop</h3>
+			<div id="workshop-content">
+				<p>Build a workshop to unlock crafting...</p>
+			</div>
+		</div>
+
         <!-- Right Panel: Log and Status -->
         <div class="panel">
             <h2>Civilization Status</h2>
@@ -589,20 +599,24 @@
         // Game State
 		let pendingAction = null;
         let gameState = {
-            resources: {
-                catnip: 0,
-                wood: 0,
-                minerals: 0,
-                coal: 0,
-                iron: 0,
-                gold: 0,
-                stone: 0,
-                science: 0,
-                faith: 0,
-                furs: 0,
-                ivory: 0,
-                unicorns: 0
-            },
+			resources: {
+				catnip: 0,
+				wood: 0,
+				minerals: 0,
+				coal: 0,
+				iron: 0,
+				gold: 0,
+				stone: 0,
+				science: 0,
+				faith: 0,
+				furs: 0,
+				ivory: 0,
+				unicorns: 0,
+				titanium: 0,
+				steel: 0,
+				oil: 0,
+				uranium: 0
+			},
             resourcesProduction: {
                 catnip: 0,
                 wood: 0,
@@ -691,6 +705,20 @@
 				griffins: { standing: 0, unlocked: false },
 				nagas: { standing: 0, unlocked: false },
 				zebras: { standing: 0, unlocked: false }
+			},
+			expeditions: {
+				active: [],
+				completed: 0,
+				artifacts: 0,
+				relics: 0,
+				manuscripts: 0
+			},
+			space: {
+				missions: 0,
+				satellites: 0,
+				spaceStations: 0,
+				moonBases: 0,
+				planetCrackers: 0
 			},			
             stats: {
                 totalCatnipGathered: 0,
@@ -810,11 +838,12 @@
                 cost: { wood: 100, minerals: 100 },
                 effect: "Enables advanced crafting and smelting",
                 unlocked: () => gameState.technologies.engineering,
-                onBuild: () => { 
-                    showElement('refine-catnip-btn');
-                    // Workshop also provides some iron through smelting
-                    gameState.resourcesProduction.iron = (gameState.resourcesProduction.iron || 0) + 0.01;
-                }
+				onBuild: () => { 
+					showElement('refine-catnip-btn');
+					updateWorkshopTab();
+					gameState.resourcesProduction.iron = (gameState.resourcesProduction.iron || 0) + 0.01;
+					logMessage("Workshop unlocks crafting recipes!");
+				}
             },
             smelter: {
                 name: "Smelter",
@@ -902,7 +931,54 @@
                     gameState.resourcesProduction.science += 0.25; 
                     showElement('observe-stars-btn');
                 }
-            }
+            },
+			launchPad: {
+				name: "Launch Pad",
+				description: "Launch rockets and satellites into space",
+				cost: { steel: 25, concrete: 15, alloy: 5 },
+				effect: "Unlocks space missions and satellites",
+				unlocked: () => gameState.resources.steel >= 10 && gameState.resources.concrete >= 5,
+				onBuild: () => {
+					logMessage("🚀 Launch pad constructed! Space program initiated.");
+				}
+			},
+			sattelite: {
+				name: "Satellite",
+				description: "Advanced orbital observation platform",
+				cost: { alloy: 15, steel: 25, science: 1000 },
+				effect: "+0.1 science per second, unlocks advanced space tech",
+				unlocked: () => gameState.buildings.launchPad >= 1,
+				onBuild: () => {
+					gameState.space.satellites++;
+					gameState.resourcesProduction.science += 0.1;
+					logMessage("🛰️ Satellite launched successfully!");
+				}
+			},
+			spaceStation: {
+				name: "Space Station", 
+				description: "Orbital research and manufacturing facility",
+				cost: { alloy: 50, steel: 125, concrete: 25, science: 10000 },
+				effect: "+0.5 science per second, enables deep space missions",
+				unlocked: () => gameState.space.satellites >= 2,
+				onBuild: () => {
+					gameState.space.spaceStations++;
+					gameState.resourcesProduction.science += 0.5;
+					logMessage("🏗️ Space station operational!");
+				}
+			},
+			moonBase: {
+				name: "Moon Base",
+				description: "Permanent lunar colony and mining facility", 
+				cost: { alloy: 100, steel: 250, concrete: 75, uranium: 15 },
+				effect: "+moon minerals, enables interplanetary travel",
+				unlocked: () => gameState.space.spaceStations >= 1,
+				onBuild: () => {
+					gameState.space.moonBases++;
+					gameState.resourcesProduction.minerals += 2.0;
+					gameState.resourcesProduction.uranium = (gameState.resourcesProduction.uranium || 0) + 0.01;
+					logMessage("🌙 Moon base established! Mining operations begun.");
+				}
+			}			
         };
 
         // Technology Definitions
@@ -928,17 +1004,17 @@
                     logMessage("📅 Calendar helps predict and prepare for seasons!");
                 }
             },
-            archery: {
-                name: "Archery", 
-                description: "Hunt more effectively with bows",
-                cost: { science: 25 },
-                effect: "Unlocks hunting for furs and ivory",
-                unlocked: () => gameState.resources.science >= 15,
-                onResearch: () => { 
-                    showElement('hunt-btn');
-                    logMessage("🏹 Your kittens can now hunt!");
-                }
-            },
+			archery: {
+				name: "Archery", 
+				description: "Hunt more effectively with bows",
+				cost: { science: 25 },
+				effect: "Unlocks expeditions for rare resources",
+				unlocked: () => gameState.resources.science >= 15,
+				onResearch: () => { 
+					updateExpeditionSection();
+					logMessage("🏹 Your kittens can now send hunting expeditions!");
+				}
+			},
             mining: {
                 name: "Mining",
                 description: "Extract minerals and coal from the earth",
@@ -999,7 +1075,48 @@
                     gameState.resourcesProduction.faith += 0.2;
                     logMessage("🙏 Theology deepens your faith in Babs!");
                 }
-            }
+            },
+			rocketry: {
+				name: "Rocketry",
+				description: "Propulsion systems for space travel",
+				cost: { science: 2500, oil: 250 },
+				effect: "Unlocks space program and launch pads",
+				unlocked: () => gameState.resources.oil >= 100 && gameState.buildings.observatory >= 1,
+				onResearch: () => {
+					addSpaceTab();
+					logMessage("🚀 Rocketry mastered! The stars await your kittens.");
+				}
+			},
+			sattelites: {
+				name: "Satellites",
+				description: "Orbital observation and communication systems", 
+				cost: { science: 5000, alloy: 25 },
+				effect: "Unlocks satellite construction",
+				unlocked: () => gameState.technologies.rocketry && gameState.resources.alloy >= 10,
+				onResearch: () => {
+					logMessage("🛰️ Satellite technology developed!");
+				}
+			},
+			orbitalEngineering: {
+				name: "Orbital Engineering",
+				description: "Large-scale construction in space",
+				cost: { science: 15000, alloy: 75 },
+				effect: "Unlocks space stations and advanced orbital structures",
+				unlocked: () => gameState.technologies.sattelites && gameState.space.satellites >= 1,
+				onResearch: () => {
+					logMessage("🏗️ Orbital engineering enables space construction!");
+				}
+			},
+			lunarOutpost: {
+				name: "Lunar Outpost",
+				description: "Permanent settlement on celestial bodies",
+				cost: { science: 35000, uranium: 25 },
+				effect: "Unlocks moon bases and lunar mining",
+				unlocked: () => gameState.technologies.orbitalEngineering && gameState.space.spaceStations >= 1,
+				onResearch: () => {
+					logMessage("🌙 Lunar colonization technology achieved!");
+				}
+			}			
         };
 
         // Religion Definitions
@@ -1161,6 +1278,386 @@
 			}
 			
 			updateDisplay();
+		}
+
+		function updateExpeditionSection() {
+			if (!gameState.technologies.archery) return;
+			
+			showElement('expedition-section');
+			
+			const expeditionButtons = document.getElementById('expedition-buttons');
+			const activeExpeditions = document.getElementById('active-expeditions');
+			
+			// Available expeditions
+			const expeditions = [
+				{
+					name: 'Forest Expedition',
+					hunters: 1,
+					duration: 120, // 2 minutes
+					rewards: { furs: [5, 15], ivory: [0, 2], artifacts: 0.1 },
+					unlocked: () => true
+				},
+				{
+					name: 'Mountain Expedition', 
+					hunters: 2,
+					duration: 300, // 5 minutes
+					rewards: { minerals: [20, 50], coal: [5, 15], relics: 0.05 },
+					unlocked: () => gameState.buildings.mine > 0
+				},
+				{
+					name: 'Ocean Expedition',
+					hunters: 3, 
+					duration: 480, // 8 minutes
+					rewards: { oil: [1, 5], uranium: [0, 1], manuscripts: 0.02 },
+					unlocked: () => gameState.expeditions.completed >= 10
+				}
+			];
+			
+			expeditionButtons.innerHTML = '';
+			
+			expeditions.forEach((exp, index) => {
+				if (exp.unlocked()) {
+					const availableHunters = gameState.population.jobs.hunters - getActiveHunters();
+					const canSend = availableHunters >= exp.hunters;
+					
+					const button = document.createElement('button');
+					button.className = `action-button ${!canSend ? 'disabled' : ''}`;
+					button.disabled = !canSend;
+					button.onclick = () => startExpedition(index);
+					button.innerHTML = `
+						${exp.name}
+						<div class="cost-display">${exp.hunters} hunters, ${Math.floor(exp.duration/60)}min ${exp.duration%60}s</div>
+					`;
+					expeditionButtons.appendChild(button);
+				}
+			});
+			
+			// Show active expeditions
+			activeExpeditions.innerHTML = '';
+			gameState.expeditions.active.forEach((exp, index) => {
+				const timeLeft = Math.max(0, exp.endTime - Date.now());
+				const progress = Math.max(0, 100 - (timeLeft / (exp.duration * 1000)) * 100);
+				
+				const div = document.createElement('div');
+				div.className = 'expedition-progress';
+				div.innerHTML = `
+					<div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0;">
+						<span>${exp.name} (${exp.hunters} hunters)</span>
+						<span>${Math.ceil(timeLeft/1000)}s remaining</span>
+					</div>
+					<div class="progress-bar">
+						<div class="progress-fill" style="width: ${progress}%;"></div>
+					</div>
+				`;
+				activeExpeditions.appendChild(div);
+			});
+		}
+
+		function getActiveHunters() {
+			return gameState.expeditions.active.reduce((sum, exp) => sum + exp.hunters, 0);
+		}
+
+		function startExpedition(expeditionIndex) {
+			const expeditions = [
+				{
+					name: 'Forest Expedition',
+					hunters: 1,
+					duration: 120,
+					rewards: { furs: [5, 15], ivory: [0, 2], artifacts: 0.1 }
+				},
+				{
+					name: 'Mountain Expedition',
+					hunters: 2, 
+					duration: 300,
+					rewards: { minerals: [20, 50], coal: [5, 15], relics: 0.05 }
+				},
+				{
+					name: 'Ocean Expedition',
+					hunters: 3,
+					duration: 480,
+					rewards: { oil: [1, 5], uranium: [0, 1], manuscripts: 0.02 }
+				}
+			];
+			
+			const expedition = expeditions[expeditionIndex];
+			const availableHunters = gameState.population.jobs.hunters - getActiveHunters();
+			
+			if (availableHunters >= expedition.hunters) {
+				const activeExp = {
+					...expedition,
+					startTime: Date.now(),
+					endTime: Date.now() + (expedition.duration * 1000)
+				};
+				
+				gameState.expeditions.active.push(activeExp);
+				logMessage(`${expedition.name} departed with ${expedition.hunters} hunters!`);
+				updateExpeditionSection();
+			}
+		}
+
+		function checkExpeditions() {
+			const currentTime = Date.now();
+			const completedIndices = [];
+			
+			gameState.expeditions.active.forEach((exp, index) => {
+				if (currentTime >= exp.endTime) {
+					// Expedition completed
+					completedIndices.push(index);
+					
+					// Calculate rewards
+					let foundSomething = false;
+					for (let resource in exp.rewards) {
+						const reward = exp.rewards[resource];
+						if (Array.isArray(reward)) {
+							// Random amount between min and max
+							const amount = Math.floor(Math.random() * (reward[1] - reward[0] + 1)) + reward[0];
+							if (amount > 0) {
+								gameState.resources[resource] = (gameState.resources[resource] || 0) + amount;
+								logMessage(`${exp.name} returned with ${amount} ${resource}!`);
+								foundSomething = true;
+							}
+						} else {
+							// Chance for special item
+							if (Math.random() < reward) {
+								gameState.expeditions[resource]++;
+								logMessage(`${exp.name} discovered a rare ${resource}!`);
+								foundSomething = true;
+							}
+						}
+					}
+					
+					if (!foundSomething) {
+						logMessage(`${exp.name} returned empty-handed but safely.`);
+					}
+					
+					gameState.expeditions.completed++;
+				}
+			});
+			
+			// Remove completed expeditions (in reverse order to maintain indices)
+			completedIndices.reverse().forEach(index => {
+				gameState.expeditions.active.splice(index, 1);
+			});
+			
+			if (completedIndices.length > 0) {
+				updateExpeditionSection();
+				updateDisplay();
+			}
+		}
+
+		function updateWorkshopTab() {
+			const workshopContent = document.getElementById('workshop-content');
+			
+			if (gameState.buildings.workshop === 0) {
+				workshopContent.innerHTML = '<p>Build a workshop to unlock crafting...</p>';
+				return;
+			}
+			
+			workshopContent.innerHTML = '<h4>Available Recipes</h4>';
+			
+			const recipes = [
+				{
+					name: 'Steel',
+					inputs: { iron: 10, coal: 5 },
+					output: { steel: 1 },
+					unlocked: () => gameState.resources.iron >= 5 && gameState.resources.coal >= 5
+				},
+				{
+					name: 'Gear',
+					inputs: { steel: 5, coal: 10 },
+					output: { gear: 1 },
+					unlocked: () => gameState.resources.steel >= 1
+				},
+				{
+					name: 'Alloy',
+					inputs: { iron: 25, titanium: 10 },
+					output: { alloy: 1 },
+					unlocked: () => gameState.resources.titanium >= 5
+				},
+				{
+					name: 'Concrete',
+					inputs: { iron: 25, minerals: 1250, coal: 25 },
+					output: { concrete: 1 },
+					unlocked: () => gameState.resources.minerals >= 500
+				}
+			];
+			
+			recipes.forEach(recipe => {
+				if (recipe.unlocked()) {
+					let canCraft = true;
+					let inputText = '';
+					
+					for (let resource in recipe.inputs) {
+						const needed = recipe.inputs[resource];
+						const available = gameState.resources[resource] || 0;
+						if (available < needed) canCraft = false;
+						inputText += `${needed} ${resource}, `;
+					}
+					inputText = inputText.slice(0, -2);
+					
+					let outputText = '';
+					for (let resource in recipe.output) {
+						outputText += `${recipe.output[resource]} ${resource}`;
+					}
+					
+					const div = document.createElement('div');
+					div.className = 'building-item';
+					div.innerHTML = `
+						<h4>${recipe.name}</h4>
+						<p>Craft: ${inputText} → ${outputText}</p>
+						<button class="action-button" 
+								onclick="craft('${recipe.name}')" 
+								${!canCraft ? 'disabled' : ''}>
+							Craft ${recipe.name}
+						</button>
+					`;
+					workshopContent.appendChild(div);
+				}
+			});
+		}
+
+		function craft(recipeName) {
+			const recipes = {
+				'Steel': {
+					inputs: { iron: 10, coal: 5 },
+					output: { steel: 1 }
+				},
+				'Gear': {
+					inputs: { steel: 5, coal: 10 },
+					output: { gear: 1 }
+				},
+				'Alloy': {
+					inputs: { iron: 25, titanium: 10 },
+					output: { alloy: 1 }
+				},
+				'Concrete': {
+					inputs: { iron: 25, minerals: 1250, coal: 25 },
+					output: { concrete: 1 }
+				}
+			};
+			
+			const recipe = recipes[recipeName];
+			if (!recipe) return;
+			
+			// Check if we can afford it
+			let canCraft = true;
+			for (let resource in recipe.inputs) {
+				if ((gameState.resources[resource] || 0) < recipe.inputs[resource]) {
+					canCraft = false;
+					break;
+				}
+			}
+			
+			if (!canCraft) return;
+			
+			// Pay the cost
+			for (let resource in recipe.inputs) {
+				gameState.resources[resource] -= recipe.inputs[resource];
+			}
+			
+			// Add the output
+			for (let resource in recipe.output) {
+				if (!gameState.resources[resource]) gameState.resources[resource] = 0;
+				gameState.resources[resource] += recipe.output[resource];
+			}
+			
+			logMessage(`Crafted ${recipeName}!`);
+			updateWorkshopTab();
+			updateDisplay();
+		}
+
+		function addSpaceTab() {
+			if (gameState.technologies.rocketry) {
+				// Add space tab to the tab container
+				const tabContainer = document.querySelector('.tab-container');
+				if (!document.querySelector('.tab[onclick*="space"]')) {
+					const spaceTabButton = document.createElement('button');
+					spaceTabButton.className = 'tab';
+					spaceTabButton.onclick = () => showTab('space');
+					spaceTabButton.textContent = 'Space';
+					tabContainer.appendChild(spaceTabButton);
+					
+					// Add space tab content after workshop tab
+					const workshopTab = document.getElementById('workshop-tab');
+					const spaceTab = document.createElement('div');
+					spaceTab.id = 'space-tab';
+					spaceTab.className = 'tab-content';
+					spaceTab.innerHTML = `
+						<h3>Space Program</h3>
+						<div id="space-missions">
+							<h4>Mission Control</h4>
+							<button class="action-button" onclick="launchMission('orbit')" 
+									${!canLaunchMission('orbit') ? 'disabled' : ''}>
+								Launch Orbital Mission
+								<div class="cost-display">Cost: 50 oil, 25 science - Gain science and space experience</div>
+							</button>
+							<button class="action-button" onclick="launchMission('moon')" 
+									${!canLaunchMission('moon') ? 'disabled' : ''}>
+								Launch Moon Mission  
+								<div class="cost-display">Cost: 150 oil, 100 science - High-value lunar exploration</div>
+							</button>
+						</div>
+						<div id="space-progress">
+							<p><strong>Missions Completed:</strong> <span id="mission-count">${gameState.space.missions}</span></p>
+							<p><strong>Space Infrastructure:</strong></p>
+							<ul>
+								<li>Satellites: <span id="satellite-count">${gameState.space.satellites}</span></li>
+								<li>Space Stations: <span id="station-count">${gameState.space.spaceStations}</span></li>
+								<li>Moon Bases: <span id="moonbase-count">${gameState.space.moonBases}</span></li>
+							</ul>
+						</div>
+					`;
+					workshopTab.parentNode.insertBefore(spaceTab, workshopTab.nextSibling);
+				}
+			}
+		}
+
+		function canLaunchMission(type) {
+			if (gameState.buildings.launchPad === 0) return false;
+			
+			if (type === 'orbit') {
+				return gameState.resources.oil >= 50 && gameState.resources.science >= 25;
+			} else if (type === 'moon') {
+				return gameState.resources.oil >= 150 && gameState.resources.science >= 100 && gameState.space.satellites >= 1;
+			}
+			return false;
+		}
+
+		function launchMission(type) {
+			if (!canLaunchMission(type)) return;
+			
+			if (type === 'orbit') {
+				gameState.resources.oil -= 50;
+				gameState.resources.science -= 25;
+				gameState.space.missions++;
+				
+				const scienceGain = Math.floor(Math.random() * 500) + 200;
+				gameState.resources.science += scienceGain;
+				logMessage(`🚀 Orbital mission successful! Gained ${scienceGain} science.`);
+				
+			} else if (type === 'moon') {
+				gameState.resources.oil -= 150;
+				gameState.resources.science -= 100;
+				gameState.space.missions++;
+				
+				const uraniumGain = Math.floor(Math.random() * 5) + 2;
+				const scienceGain = Math.floor(Math.random() * 1500) + 800;
+				gameState.resources.uranium = (gameState.resources.uranium || 0) + uraniumGain;
+				gameState.resources.science += scienceGain;
+				logMessage(`🌙 Moon mission successful! Found ${uraniumGain} uranium and ${scienceGain} science.`);
+			}
+			
+			updateSpaceTab();
+			updateDisplay();
+		}
+
+		function updateSpaceTab() {
+			if (document.getElementById('mission-count')) {
+				document.getElementById('mission-count').textContent = gameState.space.missions;
+				document.getElementById('satellite-count').textContent = gameState.space.satellites;
+				document.getElementById('station-count').textContent = gameState.space.spaceStations;
+				document.getElementById('moonbase-count').textContent = gameState.space.moonBases;
+			}
 		}
 
         function plantCatnip() {
@@ -2150,6 +2647,7 @@
 				triggerDisaster();
 			}			
 			
+			checkExpeditions();
 			updateDisplay();
 		}
 
