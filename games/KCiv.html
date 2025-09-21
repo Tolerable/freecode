@@ -2120,21 +2120,18 @@
 					}
 					
 					const standing = gameState.tradingRaces[race.key].standing;
-					const standingBonus = 1 + (standing * 0.01); // 1% better rates per standing
-					const adjustedRatio = {};
-
-					for (let resource in race.ratio) {
-						adjustedRatio[resource] = Math.floor(race.ratio[resource] * standingBonus);
-					}
-
-					const adjustedCost = Math.floor(race.ratio[race.wants] * standingBonus);
-					const canTrade = gameState.resources[race.wants] >= adjustedCost;
+					const standingBonus = 1 + (standing * 0.01);
+					
+					const cost = Math.floor(race.ratio[race.wants] / standingBonus);
+					const gain = Math.floor(race.ratio[race.gives] * standingBonus);
+					
+					const canTrade = (gameState.resources[race.wants] || 0) >= cost;
 					
 					const div = document.createElement('div');
 					div.className = 'building-item';
 					div.innerHTML = `
 						<h4>${race.name} (Standing: ${standing})</h4>
-						<p>Trade ${adjustedRatio[race.wants]} ${race.wants} for ${adjustedRatio[race.gives]} ${race.gives}</p>
+						<p>Trade ${cost} ${race.wants} for ${gain} ${race.gives}</p>
 						<button class="action-button" 
 								onclick="tradeWith('${race.key}')" 
 								${!canTrade ? 'disabled' : ''}>
