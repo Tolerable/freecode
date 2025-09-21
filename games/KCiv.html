@@ -1673,11 +1673,10 @@
 			`;
 			huntingButtons.appendChild(huntButton);
 			
-			// Display current catpower and hunting bonus
+			// Display hunting bonus and hunters info (remove catpower display from here)
 			const statusDiv = document.createElement('div');
 			statusDiv.className = 'expedition-progress';
 			statusDiv.innerHTML = `
-				<p><strong>Catpower:</strong> ${Math.floor(currentCatpower)}/${gameState.resourceLimits.catpower || 1000}</p>
 				<p><strong>Hunting Bonus:</strong> +${((huntingBonus - 1) * 100).toFixed(0)}%</p>
 				<p><strong>Hunters:</strong> ${gameState.population.jobs.hunters || 0} (generating ${((gameState.population.jobs.hunters || 0) * 0.4).toFixed(1)} catpower/sec)</p>
 			`;
@@ -2890,8 +2889,6 @@
 				if (gameState.resourcesProduction[resource] > 0 || gameState.population.jobs.hunters > 0 && resource === 'catpower') {
 					let production = gameState.resourcesProduction[resource];
 					
-					production *= (1 + (gameState.paragonBonus || 0));
-					
 					// Add job bonuses without modifying base rates
 					if (resource === 'catnip') {
 						production += gameState.population.jobs.farmers * 0.25;
@@ -2911,6 +2908,8 @@
 					if (resource === 'catpower') {
 						production += gameState.population.jobs.hunters * 0.4;
 					}
+					
+					production *= (1 + (gameState.paragonBonus || 0));
 					
 					// Season effects on catnip
 					if (resource === 'catnip') {
