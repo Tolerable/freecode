@@ -1831,40 +1831,76 @@
             // Don't log save messages - they're too frequent
         }
 
-        function loadGame() {
-            const savedGame = localStorage.getItem('kittenCivilizationSave');
-            if (savedGame) {
-                try {
-                    const loadedState = JSON.parse(savedGame);
-                    
-                    // Merge saved state with current state to ensure all properties exist
-                    gameState = Object.assign({}, gameState, loadedState);
-                    
-                    // Ensure all nested objects exist
-                    gameState.buildings = Object.assign({}, {
-                        catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0, 
-                        quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0, 
-                        logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0
-                    }, loadedState.buildings || {});
-                    
-                    gameState.technologies = Object.assign({}, {
-                        agriculture: false, archery: false, mining: false, metalWorking: false,
-                        construction: false, engineering: false, astronomy: false, theology: false,
-                        philosophy: false, mathematics: false, optics: false, physics: false, calendar: false
-                    }, loadedState.technologies || {});
-                    
-                    logMessage("Game loaded successfully!");
-                    restoreUIState();
-                    loadAchievements();
-                    updateDisplay();
-                } catch (error) {
-                    logMessage("Error loading saved game - starting fresh!");
-                    console.error("Save load error:", error);
-                }
-            } else {
-                logMessage("No saved game found!");
-            }
-        }
+		function loadGame() {
+			const savedGame = localStorage.getItem('kittenCivilizationSave');
+			if (savedGame) {
+				try {
+					const loadedState = JSON.parse(savedGame);
+					
+					// Merge saved state with current state to ensure all properties exist
+					gameState = Object.assign({}, gameState, loadedState);
+					
+					// Ensure all nested objects exist
+					gameState.buildings = Object.assign({}, {
+						catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0, 
+						quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0, 
+						logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0
+					}, loadedState.buildings || {});
+					
+					gameState.technologies = Object.assign({}, {
+						agriculture: false, archery: false, mining: false, metalWorking: false,
+						construction: false, engineering: false, astronomy: false, theology: false,
+						philosophy: false, mathematics: false, optics: false, physics: false, calendar: false
+					}, loadedState.technologies || {});
+					
+					// IMPORTANT: Recalculate storage limits based on buildings owned
+					recalculateStorageLimits();
+					
+					logMessage("Game loaded successfully!");
+					restoreUIState();
+					loadAchievements();
+					updateDisplay();
+				} catch (error) {
+					logMessage("Error loading saved game - starting fresh!");
+					console.error("Save load error:", error);
+				}
+			} else {
+				logMessage("No saved game found!");
+			}
+		}
+
+		function recalculateStorageLimits() {
+			// Reset to base limits
+			gameState.resourceLimits = {
+				catnip: 5000,
+				wood: 1000,
+				minerals: 1000,
+				coal: 500,
+				iron: 300,
+				gold: 200,
+				stone: 1000,
+				science: 2000,
+				faith: 500,
+				furs: 500,
+				ivory: 100,
+				unicorns: 50
+			};
+			
+			// Add storage from barns
+			if (gameState.buildings.barn > 0) {
+				gameState.resourceLimits.catnip += gameState.buildings.barn * 10000;
+				gameState.resourceLimits.wood += gameState.buildings.barn * 2000;
+				gameState.resourceLimits.furs += gameState.buildings.barn * 1000;
+			}
+			
+			// Add storage from warehouses
+			if (gameState.buildings.warehouse > 0) {
+				gameState.resourceLimits.minerals += gameState.buildings.warehouse * 2000;
+				gameState.resourceLimits.coal += gameState.buildings.warehouse * 1500;
+				gameState.resourceLimits.stone += gameState.buildings.warehouse * 2000;
+				gameState.resourceLimits.iron += gameState.buildings.warehouse * 500;
+			}
+		}
 
         function restoreUIState() {
             // Show previously unlocked elements based on game state
@@ -1918,6 +1954,7 @@
                         philosophy: false, mathematics: false, optics: false, physics: false, calendar: false
                     }, loadedState.technologies || {});
                     
+					recalculateStorageLimits();
                     restoreUIState();
                     loadAchievements();
                 } catch (error) {
