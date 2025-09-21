@@ -782,6 +782,17 @@
 				mineralHoes: false,
 				ironHoes: false,
 				compositeBow: false
+			},
+			unlockedRecipes: {
+				steel: false,
+				gear: false,
+				alloy: false,
+				concrete: false,
+				tradeShip: false,
+				scaffold: false,
+				plate: false,
+				parchment: false,
+				manuscript: false
 			},			
 			religion: {
                 faithLevel: 0,
@@ -2216,6 +2227,21 @@
 				return;
 			}
 			
+			// Initialize unlocked recipes if it doesn't exist
+			if (!gameState.unlockedRecipes) {
+				gameState.unlockedRecipes = {
+					steel: false,
+					gear: false,
+					alloy: false,
+					concrete: false,
+					tradeShip: false,
+					scaffold: false,
+					plate: false,
+					parchment: false,
+					manuscript: false
+				};
+			}
+			
 			workshopContent.innerHTML = '<h4>Workshop Upgrades</h4><div id="workshop-upgrades"></div><h4>Available Recipes</h4>';
 			
 			// Workshop Upgrades Section
@@ -2249,7 +2275,7 @@
 					let canAfford = true;
 					let costText = '';
 					for (let resource in upgrade.cost) {
-						if (gameState.resources[resource] < upgrade.cost[resource]) {
+						if (Math.floor(gameState.resources[resource]) < upgrade.cost[resource]) {
 							canAfford = false;
 						}
 						costText += `${upgrade.cost[resource]} ${resource}, `;
@@ -2280,66 +2306,74 @@
 				}
 			});
 			
-			// Crafting Section (your existing code)
+			// Crafting Section with permanent unlocking
 			const recipes = [
 				{
 					name: 'Steel',
 					inputs: { iron: 10, coal: 5 },
 					output: { steel: 1 },
-					unlocked: () => gameState.resources.iron >= 5 && gameState.resources.coal >= 5
+					unlocked: () => gameState.unlockedRecipes.steel || (gameState.resources.iron >= 5 && gameState.resources.coal >= 5)
 				},
 				{
 					name: 'Gear',
 					inputs: { steel: 5, coal: 10 },
 					output: { gear: 1 },
-					unlocked: () => gameState.resources.steel >= 1
+					unlocked: () => gameState.unlockedRecipes.gear || gameState.resources.steel >= 1
 				},
 				{
 					name: 'Alloy',
 					inputs: { iron: 25, titanium: 10 },
 					output: { alloy: 1 },
-					unlocked: () => gameState.resources.titanium >= 5
+					unlocked: () => gameState.unlockedRecipes.alloy || gameState.resources.titanium >= 5
 				},
 				{
 					name: 'Concrete',
 					inputs: { iron: 25, minerals: 1250, coal: 25 },
 					output: { concrete: 1 },
-					unlocked: () => gameState.resources.minerals >= 500
+					unlocked: () => gameState.unlockedRecipes.concrete || gameState.resources.minerals >= 500
 				},
 				{
 					name: 'Trade Ship',
 					inputs: { wood: 100, iron: 50, starcharts: 25 },
 					output: { ships: 1 },
-					unlocked: () => gameState.technologies.navigation && gameState.resources.starcharts >= 10
+					unlocked: () => gameState.unlockedRecipes.tradeShip || (gameState.technologies.navigation && gameState.resources.starcharts >= 10)
 				},
 				{
 					name: 'Scaffold',
 					inputs: { wood: 50 },
 					output: { scaffolds: 1 },
-					unlocked: () => gameState.buildings.workshop >= 1
+					unlocked: () => gameState.unlockedRecipes.scaffold || gameState.buildings.workshop >= 1
 				},
 				{
 					name: 'Plate',
 					inputs: { iron: 125 },
 					output: { plates: 1 },
-					unlocked: () => gameState.resources.iron >= 100
+					unlocked: () => gameState.unlockedRecipes.plate || gameState.resources.iron >= 100
 				},
 				{
 					name: 'Parchment',
 					inputs: { furs: 175 },
 					output: { parchment: 1 },
-					unlocked: () => gameState.resources.furs >= 100 || gameState.resources.parchment > 0
+					unlocked: () => gameState.unlockedRecipes.parchment || gameState.resources.furs >= 100
 				},
 				{
 					name: 'Manuscript',
 					inputs: { parchment: 25, culture: 400 },
 					output: { manuscripts: 1 },
-					unlocked: () => (gameState.resources.parchment >= 10 && gameState.resources.culture >= 200) || gameState.resources.manuscripts > 0
+					unlocked: () => gameState.unlockedRecipes.manuscript || (gameState.resources.parchment >= 10 && gameState.resources.culture >= 200)
 				}				
 			];
 			
 			recipes.forEach(recipe => {
 				if (recipe.unlocked()) {
+					// Mark recipe as permanently unlocked
+					const recipeName = recipe.name.toLowerCase().replace(' ', '');
+					if (recipeName === 'tradeship') {
+						gameState.unlockedRecipes.tradeShip = true;
+					} else {
+						gameState.unlockedRecipes[recipeName] = true;
+					}
+					
 					let canCraft = true;
 					let inputText = '';
 					
