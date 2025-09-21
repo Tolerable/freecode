@@ -2918,9 +2918,6 @@
 					if (resource === 'faith') {
 						production += gameState.population.jobs.priests * 0.02;
 					}
-					if (resource === 'catpower') {
-						production += gameState.population.jobs.hunters * 0.4;
-					}
 					
 					production *= (1 + (gameState.paragonBonus || 0));
 					
@@ -2941,6 +2938,17 @@
 						logMessage(`⚠️ ${resource} storage is full! Build more storage buildings.`);
 					}
 				}
+			}
+			
+			// Handle catpower separately since it only comes from hunters
+			if (gameState.population.jobs.hunters > 0) {
+				let catpowerProduction = gameState.population.jobs.hunters * 0.4;
+				catpowerProduction *= (1 + (gameState.paragonBonus || 0));
+				
+				const currentAmount = gameState.resources.catpower;
+				const limit = gameState.resourceLimits.catpower || Infinity;
+				const newAmount = Math.min(limit, currentAmount + catpowerProduction);
+				gameState.resources.catpower = newAmount;
 			}
 			
 			// Hunters hunt automatically
