@@ -1425,6 +1425,10 @@
 					const button = document.createElement('button');
 					button.className = `action-button ${!canSend ? 'disabled' : ''}`;
 					button.disabled = !canSend;
+					button.style.cursor = !canSend ? 'not-allowed' : 'pointer';
+					if (!canSend) {
+						button.title = `Need ${exp.hunters} available hunters (${availableHunters} available)`;
+					}
 					button.onclick = () => startExpedition(index);
 					button.innerHTML = `
 						${exp.name}
@@ -1434,23 +1438,34 @@
 				}
 			});
 			
-			// Show active expeditions
+			// Show active expeditions  
 			activeExpeditions.innerHTML = '';
 			gameState.expeditions.active.forEach((exp, index) => {
 				const timeLeft = Math.max(0, exp.endTime - Date.now());
-				const progress = Math.max(0, 100 - (timeLeft / (exp.duration * 1000)) * 100);
+				const progress = Math.min(100, Math.max(0, 100 - (timeLeft / (exp.duration * 1000)) * 100));
 				
 				const div = document.createElement('div');
 				div.className = 'expedition-progress';
-				div.innerHTML = `
-					<div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0;">
-						<span>${exp.name} (${exp.hunters} hunters)</span>
-						<span>${Math.ceil(timeLeft/1000)}s remaining</span>
-					</div>
-					<div class="progress-bar">
-						<div class="progress-fill" style="width: ${progress}%;"></div>
-					</div>
-				`;
+				
+				if (timeLeft > 0) {
+					const minutes = Math.floor(timeLeft / 60000);
+					const seconds = Math.floor((timeLeft % 60000) / 1000);
+					div.innerHTML = `
+						<div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0;">
+							<span>${exp.name} (${exp.hunters} hunters busy)</span>
+							<span>${minutes}m ${seconds}s remaining</span>
+						</div>
+						<div class="progress-bar">
+							<div class="progress-fill" style="width: ${progress}%;"></div>
+						</div>
+					`;
+				} else {
+					div.innerHTML = `
+						<div style="color: #2ecc71; margin: 10px 0;">
+							${exp.name} completed! Check activity log for results.
+						</div>
+					`;
+				}
 				activeExpeditions.appendChild(div);
 			});
 		}
@@ -2751,6 +2766,7 @@
 			}			
 			
 			checkExpeditions();
+			updateExpeditionSection();
 			updateDisplay();
 		}
 
