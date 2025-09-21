@@ -2387,16 +2387,11 @@
 			
 			// Check if we can afford it
 			let canCraft = true;
-			for (let resource in recipe.output) {
-				if (!gameState.resources[resource]) gameState.resources[resource] = 0;
-				let outputAmount = recipe.output[resource];
-				
-				// Apply workshop crafting bonus
-				if (gameState.craftingBonus) {
-					outputAmount *= (1 + gameState.craftingBonus);
+			for (let resource in recipe.inputs) {
+				if ((gameState.resources[resource] || 0) < recipe.inputs[resource]) {
+					canCraft = false;
+					break;
 				}
-				
-				gameState.resources[resource] += outputAmount;
 			}
 			
 			if (!canCraft) return;
@@ -2409,7 +2404,14 @@
 			// Add the output
 			for (let resource in recipe.output) {
 				if (!gameState.resources[resource]) gameState.resources[resource] = 0;
-				gameState.resources[resource] += recipe.output[resource];
+				let outputAmount = recipe.output[resource];
+				
+				// Apply workshop crafting bonus
+				if (gameState.craftingBonus) {
+					outputAmount *= (1 + gameState.craftingBonus);
+				}
+				
+				gameState.resources[resource] += outputAmount;
 			}
 			
 			logMessage(`Crafted ${recipeName}!`);
