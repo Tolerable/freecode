@@ -472,6 +472,9 @@
 					<input type="checkbox" id="auto-assign-jobs" style="margin-right: 10px;">
 					Auto-assign new kittens to jobs
 				</label>
+				<button class="modal-button" onclick="upgradeAchievementSystem()" style="margin-top: 15px; width: 100%;">
+					Refresh Achievements
+				</button>
 			</div>
 			<div class="modal-buttons">
 				<button class="modal-button cancel" onclick="closeSettings()">Close</button>
@@ -862,7 +865,8 @@
 				microwarpReactors: false,
 				thoriumReactors: false,
 				hubbleSpaceTelescope: false
-			}			
+			},
+			achievementSystemVersion: 1,
         };
 
         // Building Definitions
@@ -1530,6 +1534,36 @@
 			{ id: 'paragon_master', name: 'Paragon Master', desc: 'Accumulate 500 paragon', trigger: () => gameState.prestige.paragon >= 500 }
 		];
 
+		function upgradeAchievementSystem() {
+			// Check if we need to upgrade the achievement system
+			if (!gameState.achievementSystemVersion || gameState.achievementSystemVersion < 2) {
+				logMessage("Upgrading achievement system...");
+				
+				// Store old achievements to avoid losing them
+				const oldAchievements = gameState.stats.achievements || [];
+				
+				// Clear and recheck all achievements
+				gameState.stats.achievements = [];
+				
+				achievements.forEach(achievement => {
+					if (achievement.trigger()) {
+						gameState.stats.achievements.push(achievement.id);
+						// Only show notification if it's a new achievement
+						if (!oldAchievements.includes(achievement.id)) {
+							showAchievement(achievement);
+						}
+					}
+				});
+				
+				// Mark system as upgraded
+				gameState.achievementSystemVersion = 2;
+				
+				const newCount = gameState.stats.achievements.length - oldAchievements.length;
+				if (newCount > 0) {
+					logMessage(`Achievement system upgraded! Earned ${newCount} new achievements.`);
+				}
+			}
+		}
 
 		function showTranscendenceConfirmation() {
 			const rewards = calculateResetRewards();
@@ -4262,6 +4296,9 @@
 					console.error("Error loading save:", error);
 				}
 			}
+
+			// Upgrade achievement system automatically
+			upgradeAchievementSystem();
 			
 			// Start game loop
 			setInterval(gameLoop, 1000); // Run every second
