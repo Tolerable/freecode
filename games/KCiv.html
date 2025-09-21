@@ -765,6 +765,11 @@
                 calendar: false
 			},
 			craftingBonus: 0,
+			workshopUpgrades: {
+				mineralHoes: false,
+				ironHoes: false,
+				compositeBow: false
+			},			
 			religion: {
                 faithLevel: 0,
                 solarRevolution: false,
@@ -1550,6 +1555,40 @@
 			buildingDefs.academy.cost.science = 500;
 		}
 
+		function purchaseUpgrade(upgradeKey) {
+			const upgrades = {
+				mineralHoes: { cost: { science: 100, minerals: 50 } },
+				ironHoes: { cost: { science: 200, iron: 25 } },
+				compositeBow: { cost: { science: 200, wood: 75 } }
+			};
+			
+			const upgrade = upgrades[upgradeKey];
+			if (!upgrade) return;
+			
+			let canAfford = true;
+			for (let resource in upgrade.cost) {
+				if (gameState.resources[resource] < upgrade.cost[resource]) {
+					canAfford = false;
+					break;
+				}
+			}
+			
+			if (!canAfford) return;
+			
+			for (let resource in upgrade.cost) {
+				gameState.resources[resource] -= upgrade.cost[resource];
+			}
+			
+			gameState.workshopUpgrades[upgradeKey] = true;
+			
+			if (upgradeKey === 'compositeBow') {
+				gameState.resourceLimits.catpower += 100;
+			}
+			
+			logMessage(`Purchased ${upgradeKey}!`);
+			updateWorkshopTab();
+			updateDisplay();
+		}
 
 		function updateObjectives() {
 			const objectivesPanel = document.getElementById('objectives-panel');
@@ -1796,8 +1835,71 @@
 				return;
 			}
 			
-			workshopContent.innerHTML = '<h4>Available Recipes</h4>';
+			workshopContent.innerHTML = '<h4>Workshop Upgrades</h4><div id="workshop-upgrades"></div><h4>Available Recipes</h4>';
 			
+			// Workshop Upgrades Section
+			const upgradesDiv = document.getElementById('workshop-upgrades');
+			const upgrades = [
+				{
+					name: 'Mineral Hoes',
+					cost: { science: 100, minerals: 50 },
+					effect: 'Farmers 50% more effective',
+					unlocked: () => gameState.population.jobs.farmers > 0,
+					key: 'mineralHoes'
+				},
+				{
+					name: 'Iron Hoes', 
+					cost: { science: 200, iron: 25 },
+					effect: 'Farmers 30% more effective',
+					unlocked: () => gameState.workshopUpgrades.mineralHoes && gameState.resources.iron >= 10,
+					key: 'ironHoes'
+				},
+				{
+					name: 'Composite Bow',
+					cost: { science: 200, wood: 75 },
+					effect: 'Hunters 50% more effective, +100 catpower cap',
+					unlocked: () => gameState.technologies.archery,
+					key: 'compositeBow'
+				}
+			];
+			
+			upgrades.forEach(upgrade => {
+				if (upgrade.unlocked() && !gameState.workshopUpgrades[upgrade.key]) {
+					let canAfford = true;
+					let costText = '';
+					for (let resource in upgrade.cost) {
+						if (gameState.resources[resource] < upgrade.cost[resource]) {
+							canAfford = false;
+						}
+						costText += `${upgrade.cost[resource]} ${resource}, `;
+					}
+					costText = costText.slice(0, -2);
+					
+					const div = document.createElement('div');
+					div.className = 'building-item';
+					div.innerHTML = `
+						<h4>${upgrade.name}</h4>
+						<p>${upgrade.effect}</p>
+						<button class="action-button tech-button" 
+								onclick="purchaseUpgrade('${upgrade.key}')" 
+								${!canAfford ? 'disabled' : ''}>
+							Purchase (${costText})
+						</button>
+					`;
+					upgradesDiv.appendChild(div);
+				} else if (gameState.workshopUpgrades[upgrade.key]) {
+					const div = document.createElement('div');
+					div.className = 'building-item';
+					div.innerHTML = `
+						<h4>${upgrade.name}</h4>
+						<p>${upgrade.effect}</p>
+						<p style="color: #2ecc71;">✓ Purchased</p>
+					`;
+					upgradesDiv.appendChild(div);
+				}
+			});
+			
+			// Crafting Section (your existing code)
 			const recipes = [
 				{
 					name: 'Steel',
@@ -1823,7 +1925,6 @@
 					output: { concrete: 1 },
 					unlocked: () => gameState.resources.minerals >= 500
 				},
-				// ADD THESE NEW RECIPES:
 				{
 					name: 'Trade Ship',
 					inputs: { wood: 100, iron: 50, starcharts: 25 },
