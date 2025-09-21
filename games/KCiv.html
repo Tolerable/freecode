@@ -683,6 +683,10 @@
 				concrete: 0,
 				catpower: 0,
 				ships: 0,
+				culture: 0,
+				parchment: 0,
+				manuscripts: 0,
+				unobtainium: 0,
 				starcharts: 0
 			},
             resourcesProduction: {
@@ -695,6 +699,7 @@
                 stone: 0,
                 science: 0,
                 faith: 0,
+				culture: 0,
 				catpower: 0
             },
 			resourceLimits: {
@@ -713,6 +718,9 @@
 				ivory: 100,
 				unicorns: 50,
 				catpower: 1000,
+				culture: 200,
+				manuscripts: 100,
+				unobtainium: 150,
 				titanium: 250
 			},
 			population: {
@@ -798,6 +806,9 @@
 				satellites: 0,
 				spaceStations: 0,
 				moonBases: 0,
+				orbitalLaunches: 0,
+				moonMissions: 0,
+				duneMissions: 0,
 				planetCrackers: 0
 			},			
             stats: {
@@ -1080,6 +1091,17 @@
 					logMessage("Trading post built! The Lizards have discovered your civilization.");
 				}
 			},
+			amphitheatre: {
+				name: "Amphitheatre",
+				description: "A place for cultural gatherings and performances",
+				cost: { wood: 200, minerals: 100 },
+				effect: "+0.1 culture per second",
+				unlocked: () => gameState.technologies.construction && gameState.resources.minerals >= 50,
+				onBuild: () => {
+					gameState.resourcesProduction.culture = (gameState.resourcesProduction.culture || 0) + 0.1;
+					gameState.resources.culture += 1; // Starting culture
+				}
+			},			
 			observatory: {
 				name: "Observatory",
 				description: "Study the heavens and stars",
@@ -1100,6 +1122,16 @@
 				unlocked: () => gameState.technologies.navigation,
 				onBuild: () => {
 					gameState.resourceLimits.titanium = (gameState.resourceLimits.titanium || 250) + 50;
+				}
+			},
+			oilWell: {
+				name: "Oil Well",
+				description: "Extracts oil from deep underground",
+				cost: { steel: 50, gear: 25 },
+				effect: "+0.02 oil/sec",
+				unlocked: () => gameState.technologies.physics && gameState.expeditions.completed >= 10,
+				onBuild: () => {
+					gameState.resourcesProduction.oil = (gameState.resourcesProduction.oil || 0) + 0.02;
 				}
 			},			
 			launchPad: {
@@ -1298,6 +1330,58 @@
 				onResearch: () => {
 					logMessage("🌙 Lunar colonization technology achieved!");
 				}
+			},
+			philosophy: {
+				name: "Philosophy",
+				description: "Deep thinking about existence and knowledge",
+				cost: { science: 750, manuscripts: 1 },
+				effect: "Unlocks advanced religious and scientific concepts",
+				unlocked: () => gameState.resources.manuscripts >= 1,
+				onResearch: () => {
+					logMessage("Philosophy expands your kittens' minds!");
+				}
+			},
+			physics: {
+				name: "Physics",
+				description: "Understand the fundamental laws of reality",
+				cost: { science: 2500, manuscripts: 5 },
+				effect: "Unlocks advanced crafting and energy systems",
+				unlocked: () => gameState.technologies.philosophy && gameState.resources.manuscripts >= 3,
+				onResearch: () => {
+					logMessage("Physics unlocks the secrets of matter and energy!");
+				}
+			},
+			rocketry: {
+				name: "Rocketry",
+				description: "Propulsion systems for space travel",
+				cost: { science: 5000, oil: 250, manuscripts: 25 },
+				effect: "Unlocks space program and space tab",
+				unlocked: () => gameState.technologies.physics && gameState.resources.oil >= 100,
+				onResearch: () => {
+					// Add space tab to UI
+					const tabContainer = document.querySelector('.tab-container');
+					if (!document.querySelector('.tab[onclick*="space"]')) {
+						const spaceTab = document.createElement('button');
+						spaceTab.className = 'tab';
+						spaceTab.onclick = () => showTab('space');
+						spaceTab.textContent = 'Space';
+						tabContainer.appendChild(spaceTab);
+						
+						// Add space tab content
+						const lastTab = document.querySelector('.tab-content:last-of-type');
+						const spaceTabContent = document.createElement('div');
+						spaceTabContent.id = 'space-tab';
+						spaceTabContent.className = 'tab-content';
+						spaceTabContent.innerHTML = `
+							<h3>Space Program</h3>
+							<div id="space-missions"></div>
+							<div id="space-buildings"></div>
+						`;
+						lastTab.parentNode.appendChild(spaceTabContent);
+					}
+					updateSpaceTab();
+					logMessage("🚀 Rocketry mastered! Space program initiated.");
+				}
 			}			
         };
 
@@ -1405,6 +1489,105 @@
 			localStorage.setItem('kittenCivSettings', JSON.stringify(gameSettings));
 			updateDisplay();
 			updateFieldDisplay();
+		}
+
+		function updateSpaceTab() {
+			const missionsDiv = document.getElementById('space-missions');
+			const buildingsDiv = document.getElementById('space-buildings');
+			
+			if (!missionsDiv) return;
+			
+			const missions = [
+				{
+					name: 'Orbital Launch',
+					cost: { starcharts: 250, oil: 15000 },
+					reward: 'Unlocks satellite construction',
+					completed: () => gameState.space.orbitalLaunches > 0,
+					unlocked: () => true
+				},
+				{
+					name: 'Moon Mission', 
+					cost: { starcharts: 500, oil: 45000 },
+					reward: 'Unlocks moon bases and unobtainium',
+					completed: () => gameState.space.moonMissions > 0,
+					unlocked: () => gameState.space.orbitalLaunches > 0
+				},
+				{
+					name: 'Dune Mission',
+					cost: { starcharts: 1000, oil: 70000 },
+					reward: 'Unlocks planet crackers and massive uranium',
+					completed: () => gameState.space.duneMissions > 0,
+					unlocked: () => gameState.space.moonMissions > 0
+				}
+			];
+			
+			missionsDiv.innerHTML = '<h4>Available Missions</h4>';
+			
+			missions.forEach(mission => {
+				if (mission.unlocked() && !mission.completed()) {
+					let canAfford = true;
+					let costText = '';
+					for (let resource in mission.cost) {
+						if ((gameState.resources[resource] || 0) < mission.cost[resource]) {
+							canAfford = false;
+						}
+						costText += `${mission.cost[resource].toLocaleString()} ${resource}, `;
+					}
+					costText = costText.slice(0, -2);
+					
+					const div = document.createElement('div');
+					div.className = 'building-item';
+					div.innerHTML = `
+						<h4>${mission.name}</h4>
+						<p>${mission.reward}</p>
+						<button class="action-button" 
+								onclick="launchMission('${mission.name.toLowerCase().replace(' ', '')}')" 
+								${!canAfford ? 'disabled' : ''}>
+							Launch (${costText})
+						</button>
+					`;
+					missionsDiv.appendChild(div);
+				}
+			});
+		}
+
+		function launchMission(missionKey) {
+			const missions = {
+				orbitallauneh: { cost: { starcharts: 250, oil: 15000 }, key: 'orbitalLaunches' },
+				moonmission: { cost: { starcharts: 500, oil: 45000 }, key: 'moonMissions' },
+				dunemission: { cost: { starcharts: 1000, oil: 70000 }, key: 'duneMissions' }
+			};
+			
+			const mission = missions[missionKey];
+			if (!mission) return;
+			
+			// Check costs
+			let canAfford = true;
+			for (let resource in mission.cost) {
+				if ((gameState.resources[resource] || 0) < mission.cost[resource]) {
+					canAfford = false;
+					break;
+				}
+			}
+			
+			if (!canAfford) return;
+			
+			// Pay costs
+			for (let resource in mission.cost) {
+				gameState.resources[resource] -= mission.cost[resource];
+			}
+			
+			// Complete mission
+			gameState.space[mission.key]++;
+			
+			// Mission rewards
+			if (missionKey === 'moonmission') {
+				gameState.resources.unobtainium = (gameState.resources.unobtainium || 0) + 50;
+				logMessage("🌙 Moon mission successful! Discovered unobtainium!");
+			}
+			
+			updateSpaceTab();
+			updateDisplay();
 		}
 
 		function calculateResetRewards() {
@@ -1942,7 +2125,19 @@
 					inputs: { iron: 125 },
 					output: { plates: 1 },
 					unlocked: () => gameState.resources.iron >= 100
-				}
+				},
+				{
+					name: 'Parchment',
+					inputs: { furs: 175 },
+					output: { parchment: 1 },
+					unlocked: () => gameState.resources.furs >= 100
+				},
+				{
+					name: 'Manuscript',
+					inputs: { parchment: 25, culture: 400 },
+					output: { manuscripts: 1 },
+					unlocked: () => gameState.resources.parchment >= 10 && gameState.resources.culture >= 200
+				}				
 			];
 			
 			recipes.forEach(recipe => {
@@ -2446,10 +2641,11 @@
 				const science = Math.random() * 5 + 2;
 				gameState.resources.science += science;
 				
-				// Generate starcharts
-				if (Math.random() < 0.1) { // 10% chance
-					gameState.resources.starcharts += 1;
-					logMessage("Observing the stars grants starcharts for navigation!");
+				// ALWAYS give starcharts if astronomy is researched
+				if (gameState.technologies.astronomy) {
+					const starcharts = Math.floor(Math.random() * 2) + 1; // 1-2 starcharts
+					gameState.resources.starcharts += starcharts;
+					logMessage(`Observing the stars grants ${starcharts} starcharts!`);
 				}
 				
 				logMessage(`Observing the stars grants ${science.toFixed(1)} science.`);
