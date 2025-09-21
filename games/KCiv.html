@@ -675,6 +675,8 @@
 				titanium: 0,
 				steel: 0,
 				oil: 0,
+				scaffolds: 0,
+				plates: 0,
 				uranium: 0,
 				gear: 0,
 				alloy: 0,
@@ -703,6 +705,8 @@
 				iron: 300,
 				gold: 200,
 				stone: 1000,
+				scaffolds: 1000,
+				plates: 500,
 				science: 2000,
 				faith: 500,
 				furs: 500,
@@ -1814,12 +1818,25 @@
 					output: { concrete: 1 },
 					unlocked: () => gameState.resources.minerals >= 500
 				},
+				// ADD THESE NEW RECIPES:
 				{
 					name: 'Trade Ship',
 					inputs: { wood: 100, iron: 50, starcharts: 25 },
 					output: { ships: 1 },
-					unlocked: () => gameState.technologies.navigation
-				}				
+					unlocked: () => gameState.technologies.navigation && gameState.resources.starcharts >= 10
+				},
+				{
+					name: 'Scaffold',
+					inputs: { wood: 50 },
+					output: { scaffolds: 1 },
+					unlocked: () => gameState.buildings.workshop >= 1
+				},
+				{
+					name: 'Plate',
+					inputs: { iron: 125 },
+					output: { plates: 1 },
+					unlocked: () => gameState.resources.iron >= 100
+				}
 			];
 			
 			recipes.forEach(recipe => {
@@ -2300,19 +2317,26 @@
             updateDisplay();
         }
 
-        function observeStars() {
-            if (gameState.buildings.observatory > 0) {
-                const science = Math.random() * 5 + 2;
-                gameState.resources.science += science;
-                logMessage(`Observing the stars grants ${science.toFixed(1)} science.`);
-                
-                if (Math.random() < 0.01) {
-                    gameState.resources.unicorns += 1;
-                    logMessage("A unicorn appears from the cosmic void!");
-                }
-                updateDisplay();
-            }
-        }
+		function observeStars() {
+			if (gameState.buildings.observatory > 0) {
+				const science = Math.random() * 5 + 2;
+				gameState.resources.science += science;
+				
+				// Generate starcharts
+				if (Math.random() < 0.1) { // 10% chance
+					gameState.resources.starcharts += 1;
+					logMessage("Observing the stars grants starcharts for navigation!");
+				}
+				
+				logMessage(`Observing the stars grants ${science.toFixed(1)} science.`);
+				
+				if (Math.random() < 0.01) {
+					gameState.resources.unicorns += 1;
+					logMessage("A unicorn appears from the cosmic void!");
+				}
+				updateDisplay();
+			}
+		}
 
         function buildBuilding(buildingKey) {
             const building = buildingDefs[buildingKey];
