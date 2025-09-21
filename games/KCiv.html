@@ -1537,9 +1537,21 @@
 		function upgradeAchievementSystem() {
 			logMessage("Checking achievements based on current progress...");
 			
+			// Ensure achievements array exists
+			if (!gameState.stats.achievements) {
+				gameState.stats.achievements = [];
+			}
+			
 			let newAchievements = 0;
+			
 			achievements.forEach(achievement => {
-				if (!gameState.stats.achievements.includes(achievement.id) && achievement.trigger()) {
+				// Check if we don't have this achievement AND we qualify for it
+				const hasAchievement = gameState.stats.achievements.includes(achievement.id);
+				const qualifiesForAchievement = achievement.trigger();
+				
+				console.log(`${achievement.id}: has=${hasAchievement}, qualifies=${qualifiesForAchievement}`);
+				
+				if (!hasAchievement && qualifiesForAchievement) {
 					gameState.stats.achievements.push(achievement.id);
 					showAchievement(achievement);
 					newAchievements++;
@@ -1548,6 +1560,7 @@
 			
 			if (newAchievements > 0) {
 				logMessage(`Earned ${newAchievements} new achievements!`);
+				loadAchievements(); // Refresh the display
 			} else {
 				logMessage("No new achievements available.");
 			}
