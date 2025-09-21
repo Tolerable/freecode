@@ -427,6 +427,7 @@
         <button class="save-button" onclick="saveGame()">Save Game</button>
         <button class="save-button" onclick="loadGame()">Load Game</button>
         <button class="save-button" onclick="resetGame()">Reset Game</button>
+		<button class="save-button" onclick="toggleSettings()">⚙️</button>
     </div>
 
 	<div id="phrase-modal" class="modal">
@@ -437,6 +438,26 @@
 			<div class="modal-buttons">
 				<button class="modal-button" onclick="confirmPhrase()">OK</button>
 				<button class="modal-button cancel" onclick="cancelPhrase()">Cancel</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="settings-modal" class="modal">
+		<div class="modal-content">
+			<h3>Game Settings</h3>
+			<div style="text-align: left; margin: 20px 0;">
+				<label style="display: block; margin: 10px 0;">
+					<input type="checkbox" id="hide-sell-buttons" style="margin-right: 10px;">
+					Hide all sell buttons (prevents accidental sales)
+				</label>
+				<label style="display: block; margin: 10px 0;">
+					<input type="checkbox" id="auto-assign-jobs" style="margin-right: 10px;">
+					Auto-assign new kittens to jobs
+				</label>
+			</div>
+			<div class="modal-buttons">
+				<button class="modal-button" onclick="applySettings()">Apply</button>
+				<button class="modal-button cancel" onclick="closeSettings()">Cancel</button>
 			</div>
 		</div>
 	</div>
@@ -593,11 +614,21 @@
             <div id="game-log">
                 <div class="log-entry">Welcome to your kitten civilization! Click 'Gather catnip' to begin.</div>
             </div>
+			
+			<h3>Current Objectives</h3>
+			<div id="objectives-panel">
+				<div class="log-entry">Complete basic research to unlock new goals...</div>
+			</div>			
+			
         </div>
     </div>
 
     <script>
         // Game State
+		let gameSettings = {
+			hideSellButtons: false,
+			autoAssignJobs: false
+		};
 		let pendingAction = null;
         let gameState = {
 			resources: {
@@ -1206,6 +1237,72 @@
             }
         }
 
+		function toggleSettings() {
+			document.getElementById('settings-modal').style.display = 'block';
+			document.getElementById('hide-sell-buttons').checked = gameSettings.hideSellButtons;
+			document.getElementById('auto-assign-jobs').checked = gameSettings.autoAssignJobs;
+		}
+
+		function closeSettings() {
+			document.getElementById('settings-modal').style.display = 'none';
+		}
+
+		function applySettings() {
+			gameSettings.hideSellButtons = document.getElementById('hide-sell-buttons').checked;
+			gameSettings.autoAssignJobs = document.getElementById('auto-assign-jobs').checked;
+			closeSettings();
+			updateDisplay(); // Refresh to apply sell button visibility
+		}
+
+		function updateObjectives() {
+			const objectivesPanel = document.getElementById('objectives-panel');
+			if (!objectivesPanel) return;
+			
+			let objectives = [];
+			
+			// Early game objectives
+			if (gameState.stats.gatherClicks < 10) {
+				objectives.push("🎯 Gather catnip and plant your first fields");
+			} else if (gameState.buildings.hut < 2) {
+				objectives.push("🏠 Build huts to house more kittens (Need: 5 wood each)");
+			} else if (!gameState.technologies.archery) {
+				objectives.push("🏹 Research Archery to unlock expeditions (Need: 25 science)");
+			} else if (gameState.expeditions.completed < 5) {
+				objectives.push("🗺️ Complete expeditions to find oil and rare resources");
+			} else if (!gameState.technologies.engineering) {
+				objectives.push("⚙️ Research Engineering to unlock workshops (Need: 200 science)");
+			} else if (gameState.buildings.workshop === 0) {
+				objectives.push("🔨 Build a Workshop to craft advanced materials (Need: 100 wood, 100 minerals)");
+			} else if (gameState.resources.steel === 0) {
+				objectives.push("🔩 Craft Steel in workshop (Need: 10 iron, 5 coal)");
+			} else if (!gameState.technologies.rocketry) {
+				objectives.push("🚀 Research Rocketry to reach space (Need: 2500 science, 250 oil)");
+			} else if (gameState.buildings.launchPad === 0) {
+				objectives.push("🛸 Build Launch Pad for space missions (Need: 25 steel, 15 concrete, 5 alloy)");
+			} else {
+				objectives.push("🌌 Launch space missions and explore the cosmos!");
+			}
+			
+			// Resource hints
+			if (gameState.resources.oil === 0 && gameState.expeditions.completed >= 3) {
+				objectives.push("💡 TIP: Ocean expeditions can find oil (Need: 10+ expeditions completed)");
+			}
+			
+			if (gameState.resources.concrete === 0 && gameState.resources.minerals >= 500) {
+				objectives.push("💡 TIP: Craft concrete in workshop (Need: 25 iron, 1250 minerals, 25 coal)");
+			}
+			
+			objectivesPanel.innerHTML = '';
+			objectives.forEach(obj => {
+				const div = document.createElement('div');
+				div.className = 'log-entry';
+				div.style.backgroundColor = 'rgba(52, 152, 219, 0.2)';
+				div.style.borderLeftColor = '#3498db';
+				div.textContent = obj;
+				objectivesPanel.appendChild(div);
+			});
+		}
+
 		function updateJobManagement() {
 			const jobList = document.getElementById('job-list');
 			if (!jobList) return;
@@ -1714,7 +1811,7 @@
                     <div class="field-display">
                         <div class="field-header">
                             <span class="field-title">Catnip Field (${gameState.buildings.catnipField})</span>
-                            <button class="sell-button" onclick="sellCatnipField()">sell</button>
+                            <button class="sell-button" onclick="sellCatnipField()" ${gameSettings.hideSellButtons ? 'style="display: none;"' : ''}>sell</button>
                         </div>
                         <p>Plant some catnip to grow in the village.<br>
                         Fields have +50% production in Spring and -75% production in Winter</p>
@@ -2111,6 +2208,7 @@
 			updateTechList();
 			updateReligionList();
 			updateFieldDisplay();
+			updateObjectives();
 		}
 
         function updateCatnipFieldsSummary() {
