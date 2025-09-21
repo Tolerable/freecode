@@ -687,6 +687,7 @@
 				parchment: 0,
 				manuscripts: 0,
 				unobtainium: 0,
+				timeCrystals: 0,
 				starcharts: 0
 			},
             resourcesProduction: {
@@ -721,6 +722,7 @@
 				culture: 200,
 				manuscripts: 100,
 				unobtainium: 150,
+				timeCrystals: 10,
 				titanium: 250
 			},
 			population: {
@@ -1181,6 +1183,16 @@
 					gameState.resourcesProduction.uranium = (gameState.resourcesProduction.uranium || 0) + 0.01;
 					logMessage("🌙 Moon base established! Mining operations begun.");
 				}
+			},
+			chronosphere: {
+				name: "Chronosphere",
+				description: "Preserves resources through time resets",
+				cost: { steel: 10, titanium: 5, unobtainium: 1 },
+				effect: "Preserves 1.5% of resources on reset",
+				unlocked: () => gameState.resources.unobtainium >= 1,
+				onBuild: () => {
+					logMessage("Chronosphere built! You can now perform transcendent resets.");
+				}
 			}			
         };
 
@@ -1408,17 +1420,16 @@
                     }
                 }
             },
-            transcendence: {
-                name: "Transcendence",
-                description: "Achieve oneness with Babs",
-                cost: { faith: 1000, unicorns: 10 },
-                effect: "Reset progress but gain powerful bonuses",
-                unlocked: () => gameState.resources.unicorns >= 1,
-                onPurchase: () => { 
-                    // This would trigger a "prestige" reset
-                    logMessage("You have achieved transcendence! Your civilization ascends to a higher plane...");
-                }
-            }
+			transcendence: {
+				name: "Transcendence",
+				description: "Reset your civilization for powerful bonuses",
+				cost: { faith: 1000, unicorns: 10 },
+				effect: "Reset progress but gain karma and paragon",
+				unlocked: () => gameState.resources.unicorns >= 5 && gameState.buildings.chronosphere > 0,
+				onPurchase: () => {
+					showTranscendenceConfirmation();
+				}
+			}
         };
 
         // Achievement Definitions
@@ -1432,6 +1443,169 @@
             { id: 'year_survivor', name: 'One Year Strong', desc: 'Survive your first year', trigger: () => gameState.stats.year >= 2 },
             { id: 'dedicated_clicker', name: 'Dedicated Gatherer', desc: 'Click gather 100 times', trigger: () => gameState.stats.gatherClicks >= 100 }
         ];
+
+
+		function showTranscendenceConfirmation() {
+			const rewards = calculateResetRewards();
+			const chronospheres = gameState.buildings.chronosphere;
+			const preservePercent = (chronospheres * 1.5).toFixed(1);
+			
+			const confirmText = `Transcend your civilization?\n\nYou will gain:\n• ${rewards.karma} Karma (happiness bonus)\n• ${rewards.paragon} Paragon (production bonus)\n\nYour ${chronospheres} Chronosphere(s) will preserve ${preservePercent}% of your resources.\n\nThis cannot be undone!`;
+			
+			if (confirm(confirmText)) {
+				performTranscendence(rewards);
+			}
+		}
+
+		function performTranscendence(rewards) {
+			// Calculate resource preservation
+			const preserveRate = gameState.buildings.chronosphere * 0.015; // 1.5% per chronosphere
+			const preservedResources = {};
+			
+			for (let resource in gameState.resources) {
+				if (resource !== 'kittens') {
+					preservedResources[resource] = Math.floor(gameState.resources[resource] * preserveRate);
+				}
+			}
+			
+			// Add prestige currency
+			gameState.prestige.karma += rewards.karma;
+			gameState.prestige.paragon += rewards.paragon;
+			gameState.prestige.totalResets++;
+			
+			// Reset civilization
+			performReset(rewards);
+			
+			// Restore preserved resources
+			for (let resource in preservedResources) {
+				gameState.resources[resource] = preservedResources[resource];
+			}
+			
+			logMessage(`Transcendence complete! Preserved ${Math.floor(preserveRate * 100)}% of resources through chronospheres.`);
+			logMessage(`Gained ${rewards.karma} karma and ${rewards.paragon} paragon.`);
+		}
+
+		// Add metaphysics tab when unobtainium > 0
+		function checkMetaphysicsUnlock() {
+			if (gameState.resources.unobtainium > 0 && !document.querySelector('.tab[onclick*="metaphysics"]')) {
+				const tabContainer = document.querySelector('.tab-container');
+				const metaphysicsTab = document.createElement('button');
+				metaphysicsTab.className = 'tab';
+				metaphysicsTab.onclick = () => showTab('metaphysics');
+				metaphysicsTab.textContent = 'Metaphysics';
+				tabContainer.appendChild(metaphysicsTab);
+				
+				// Add metaphysics tab content
+				const lastTab = document.querySelector('.tab-content:last-of-type');
+				const metaphysicsTabContent = document.createElement('div');
+				metaphysicsTabContent.id = 'metaphysics-tab';
+				metaphysicsTabContent.className = 'tab-content';
+				metaphysicsTabContent.innerHTML = `
+					<h3>Metaphysics</h3>
+					<p>Spend paragon to unlock permanent bonuses that carry over between resets.</p>
+					<div id="metaphysics-upgrades"></div>
+				`;
+				lastTab.parentNode.appendChild(metaphysicsTabContent);
+			}
+		}
+
+		function updateMetaphysicsTab() {
+			const upgradesDiv = document.getElementById('metaphysics-upgrades');
+			if (!upgradesDiv) return;
+			
+			const metaphysicsUpgrades = [
+				{
+					name: 'Engineering',
+					cost: { paragon: 25 },
+					effect: 'Workshop upgrades are 10% more effective',
+					key: 'engineering',
+					unlocked: () => gameState.prestige.paragon >= 20
+				},
+				{
+					name: 'Golden Ratio',
+					cost: { paragon: 50 },
+					effect: 'All building costs reduced by 1.618%',
+					key: 'goldenRatio',
+					unlocked: () => gameState.metaphysics.engineering
+				},
+				{
+					name: 'Divine Proportion',
+					cost: { paragon: 100 },
+					effect: 'All building costs reduced by 3.236%',
+					key: 'divineProportion',
+					unlocked: () => gameState.metaphysics.goldenRatio
+				},
+				{
+					name: 'Diplomacy',
+					cost: { paragon: 5 },
+					effect: 'Trades cost 5 less catpower, races unlock earlier',
+					key: 'diplomacy',
+					unlocked: () => gameState.tradingRaces.zebras.unlocked
+				},
+				{
+					name: 'Chronomancy',
+					cost: { paragon: 25 },
+					effect: 'Astronomical events happen 50% more often',
+					key: 'chronomancy',
+					unlocked: () => gameState.buildings.chronosphere > 0
+				}
+			];
+			
+			upgradesDiv.innerHTML = '<h4>Available Upgrades</h4>';
+			
+			metaphysicsUpgrades.forEach(upgrade => {
+				if (upgrade.unlocked() && !gameState.metaphysics[upgrade.key]) {
+					const canAfford = gameState.prestige.paragon >= upgrade.cost.paragon;
+					
+					const div = document.createElement('div');
+					div.className = 'building-item';
+					div.innerHTML = `
+						<h4>${upgrade.name}</h4>
+						<p>${upgrade.effect}</p>
+						<button class="action-button religion-button" 
+								onclick="purchaseMetaphysics('${upgrade.key}')" 
+								${!canAfford ? 'disabled' : ''}>
+							Purchase (${upgrade.cost.paragon} paragon)
+						</button>
+					`;
+					upgradesDiv.appendChild(div);
+				} else if (gameState.metaphysics[upgrade.key]) {
+					const div = document.createElement('div');
+					div.className = 'building-item';
+					div.innerHTML = `
+						<h4>${upgrade.name}</h4>
+						<p>${upgrade.effect}</p>
+						<p style="color: #2ecc71;">✓ Purchased</p>
+					`;
+					upgradesDiv.appendChild(div);
+				}
+			});
+			
+			// Show paragon balance
+			const balanceDiv = document.createElement('div');
+			balanceDiv.innerHTML = `<p><strong>Available Paragon:</strong> ${gameState.prestige.paragon}</p>`;
+			upgradesDiv.appendChild(balanceDiv);
+		}
+
+		function purchaseMetaphysics(upgradeKey) {
+			const costs = {
+				engineering: 25,
+				goldenRatio: 50,
+				divineProportion: 100,
+				diplomacy: 5,
+				chronomancy: 25
+			};
+			
+			const cost = costs[upgradeKey];
+			if (gameState.prestige.paragon >= cost) {
+				gameState.prestige.paragon -= cost;
+				gameState.metaphysics[upgradeKey] = true;
+				
+				logMessage(`Purchased ${upgradeKey} metaphysics upgrade!`);
+				updateMetaphysicsTab();
+				updateDisplay();
+			}
+		}
 
         // Game Functions
 		function gatherCatnip() {
@@ -2774,6 +2948,13 @@
             }
         }
 
+		function getMetaphysicsDiscount() {
+			let discount = 0;
+			if (gameState.metaphysics.goldenRatio) discount += 0.01618;
+			if (gameState.metaphysics.divineProportion) discount += 0.03236;
+			return discount;
+		}
+
 		function updateDisplay() {
 			// Update resources with storage info
 			for (let resource in gameState.resources) {
@@ -2832,7 +3013,6 @@
 			document.getElementById('faith-amount').textContent = Math.floor(gameState.resources.faith);
 			document.getElementById('science-amount').textContent = Math.floor(gameState.resources.science);
 
-			// ADD THESE LINES:
 			if (gameState.prestige.karma > 0 || gameState.prestige.paragon > 0) {
 				let prestigeText = '';
 				if (gameState.prestige.karma > 0) prestigeText += `<p><strong>Karma:</strong> <span style="color: #e74c3c;">${gameState.prestige.karma}</span></p>`;
@@ -2858,6 +3038,9 @@
 			updateTradeTab();
 			if (gameState.technologies.archery) {
 				updateHuntingSection();
+			}
+			if (document.getElementById('metaphysics-upgrades')) {
+				updateMetaphysicsTab();
 			}
 		}
 
@@ -2890,13 +3073,15 @@
 					const div = document.createElement('div');
 					div.className = 'building-item';
 					
+					const discount = getMetaphysicsDiscount();
 					let canAfford = true;
 					let costText = '';
 					for (let resource in building.cost) {
-						if (gameState.resources[resource] < building.cost[resource]) {
+						const actualCost = Math.floor(building.cost[resource] * (1 - discount));
+						if (gameState.resources[resource] < actualCost) {
 							canAfford = false;
 						}
-						costText += `${building.cost[resource]} ${resource}, `;
+						costText += `${actualCost} ${resource}, `;
 					}
 					costText = costText.slice(0, -2);
 					
@@ -2970,10 +3155,14 @@
 				if (quantity <= 0) return;
 			}
 			
+			// Apply metaphysics discount to costs
+			const discount = getMetaphysicsDiscount();
+			
 			// Check if we can afford the quantity requested
 			let canAfford = true;
 			for (let resource in building.cost) {
-				if (gameState.resources[resource] < building.cost[resource] * quantity) {
+				const actualCost = Math.floor(building.cost[resource] * (1 - discount)) * quantity;
+				if (gameState.resources[resource] < actualCost) {
 					canAfford = false;
 					break;
 				}
@@ -2981,9 +3170,10 @@
 			
 			if (!canAfford) return;
 			
-			// Pay the cost for all buildings
+			// Pay the discounted cost for all buildings
 			for (let resource in building.cost) {
-				gameState.resources[resource] -= building.cost[resource] * quantity;
+				const actualCost = Math.floor(building.cost[resource] * (1 - discount)) * quantity;
+				gameState.resources[resource] -= actualCost;
 			}
 			
 			// Build them and apply effects
@@ -3374,6 +3564,11 @@
 				const limit = gameState.resourceLimits.catpower || Infinity;
 				const newAmount = Math.min(limit, currentAmount + catpowerProduction);
 				gameState.resources.catpower = newAmount;
+			}
+			
+			// Check metaphysics unlock
+			if (gameState.resources.unobtainium > 0) {
+				checkMetaphysicsUnlock();
 			}
 			
 			// Hunters hunt automatically
