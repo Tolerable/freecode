@@ -1991,6 +1991,18 @@
 						philosophy: false, mathematics: false, optics: false, physics: false, calendar: false
 					}, loadedState.technologies || {});
 					
+					// Ensure jobs object exists
+					if (!gameState.population.jobs) {
+						gameState.population.jobs = {
+							farmers: 0,
+							woodcutters: 0,
+							miners: 0,
+							scholars: 0,
+							hunters: 0,
+							priests: 0
+						};
+					}
+					
 					// IMPORTANT: Recalculate storage limits based on buildings owned
 					recalculateStorageLimits();
 					
@@ -2071,46 +2083,58 @@
         }
 
         // Initialize game
-        document.addEventListener('DOMContentLoaded', function() {
-            // Try to load saved game first
-            const savedGame = localStorage.getItem('kittenCivilizationSave');
-            if (savedGame) {
-                try {
-                    const loadedState = JSON.parse(savedGame);
-                    gameState = Object.assign({}, gameState, loadedState);
-                    
-                    // Ensure all nested objects exist
-                    gameState.buildings = Object.assign({}, {
-                        catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0, 
-                        quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0, 
-                        logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0
-                    }, loadedState.buildings || {});
-                    
-                    gameState.technologies = Object.assign({}, {
-                        agriculture: false, archery: false, mining: false, metalWorking: false,
-                        construction: false, engineering: false, astronomy: false, theology: false,
-                        philosophy: false, mathematics: false, optics: false, physics: false, calendar: false
-                    }, loadedState.technologies || {});
-                    
+		document.addEventListener('DOMContentLoaded', function() {
+			// Try to load saved game first
+			const savedGame = localStorage.getItem('kittenCivilizationSave');
+			if (savedGame) {
+				try {
+					const loadedState = JSON.parse(savedGame);
+					gameState = Object.assign({}, gameState, loadedState);
+					
+					// Ensure all nested objects exist
+					gameState.buildings = Object.assign({}, {
+						catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0, 
+						quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0, 
+						logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0
+					}, loadedState.buildings || {});
+					
+					gameState.technologies = Object.assign({}, {
+						agriculture: false, archery: false, mining: false, metalWorking: false,
+						construction: false, engineering: false, astronomy: false, theology: false,
+						philosophy: false, mathematics: false, optics: false, physics: false, calendar: false
+					}, loadedState.technologies || {});
+					
+					// Ensure jobs object exists
+					if (!gameState.population.jobs) {
+						gameState.population.jobs = {
+							farmers: 0,
+							woodcutters: 0,
+							miners: 0,
+							scholars: 0,
+							hunters: 0,
+							priests: 0
+						};
+					}
+					
 					recalculateStorageLimits();
-                    restoreUIState();
-                    loadAchievements();
-                } catch (error) {
-                    console.error("Error loading save:", error);
-                }
-            }
-            
-            // Start game loop
-            setInterval(gameLoop, 1000); // Run every second
-            
-            // Auto-save every 10 seconds (more frequent)
-            setInterval(saveGame, 10000);
-            
-            // Initial display update
-            updateDisplay();
-            
-            logMessage("Welcome to Kitten Civilization! Your journey begins...");
-        });
+					restoreUIState();
+					loadAchievements();
+				} catch (error) {
+					console.error("Error loading save:", error);
+				}
+			}
+			
+			// Start game loop
+			setInterval(gameLoop, 1000); // Run every second
+			
+			// Auto-save every 10 seconds (more frequent)
+			setInterval(saveGame, 10000);
+			
+			// Initial display update
+			updateDisplay();
+			
+			logMessage("Welcome to Kitten Civilization! Your journey begins...");
+		});
 
         // Add some additional resources to the display when they become available
         function addResourceToDisplay(resourceName, productionName = null) {
