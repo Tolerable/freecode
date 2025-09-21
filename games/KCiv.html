@@ -313,6 +313,12 @@
             margin-top: 8px;
         }
 
+        .effect-line {
+            color: #f1c40f;
+            font-size: 14px;
+            margin: 2px 0;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -404,6 +410,12 @@
                     Observe the sky
                     <div class="cost-display">Study the stars for science</div>
                 </button>
+
+                <!-- Field Management Section -->
+                <div id="field-management" class="hidden">
+                    <h3>Field Management</h3>
+                    <div id="catnip-fields-display"></div>
+                </div>
             </div>
 
             <!-- Buildings Tab -->
@@ -506,19 +518,24 @@
                 hunters: 0
             },
             buildings: {
+                catnipField: 0,
                 hut: 0,
-                logHouse: 0,
-                mansion: 0,
                 library: 0,
-                temple: 0,
-                workshop: 0,
                 barn: 0,
                 warehouse: 0,
                 mine: 0,
                 quarry: 0,
-                catnipFields: 0,
+                goldMine: 0,
+                smelter: 0,
+                workshop: 0,
+                shrine: 0,
+                temple: 0,
+                logHouse: 0,
+                mansion: 0,
+                tradingPost: 0,
                 observatory: 0,
-                academy: 0
+                academy: 0,
+                pasture: 0
             },
             technologies: {
                 agriculture: false,
@@ -532,7 +549,8 @@
                 philosophy: false,
                 mathematics: false,
                 optics: false,
-                physics: false
+                physics: false,
+                calendar: false
             },
             religion: {
                 faithLevel: 0,
@@ -669,6 +687,17 @@
                 unlocked: () => gameState.technologies.metalWorking && gameState.buildings.workshop >= 1,
                 onBuild: () => { 
                     gameState.resourcesProduction.iron = (gameState.resourcesProduction.iron || 0) + 0.05;
+                }
+            },
+            shrine: {
+                name: "Shrine",
+                description: "A small shrine to Babs",
+                cost: { wood: 50, stone: 25 },
+                effect: "+0.05 faith per second",
+                unlocked: () => gameState.resources.stone >= 15,
+                onBuild: () => { 
+                    gameState.resourcesProduction.faith += 0.05;
+                    gameState.resources.faith += 1; // Starting faith
                 }
             },
             temple: {
@@ -918,11 +947,16 @@
         }
 
         function plantCatnip() {
-            if (gameState.resources.catnip >= 10) {
-                gameState.resources.catnip -= 10;
+            const cost = buildingDefs.catnipField.cost.catnip;
+            if (gameState.resources.catnip >= cost) {
+                gameState.resources.catnip -= cost;
                 gameState.buildings.catnipField++;
                 gameState.resourcesProduction.catnip += 0.63;
                 logMessage("You planted a catnip field! It will grow catnip automatically.");
+                
+                // Update cost for next field
+                const newCost = Math.floor(cost * 1.25);
+                buildingDefs.catnipField.cost.catnip = newCost;
                 
                 // Show field management section
                 showElement('field-management');
@@ -1465,52 +1499,52 @@
             return 'Requirements not met';
         }
 
-        function updateReligionList() {
-            const religionList = document.getElementById('religion-list');
-            religionList.innerHTML = '';
-            
-            if (gameState.resources.faith < 1) {
-                religionList.innerHTML = '<p>You must gather faith before you can worship Babs, the great cat goddess...</p>';
-                return;
-            }
-            
-            religionList.innerHTML = '<p>🐱 <em>"In the beginning, there was Babs, the great black cat goddess who created all kittens in her divine image..."</em></p>';
-            
-            for (let religionKey in religionDefs) {
-                const religion = religionDefs[religionKey];
-                if (religion.unlocked()) {
-                    const div = document.createElement('div');
-                    div.className = 'religion-item';
-                    
-                    let canAfford = true;
-                    let costText = '';
-                    for (let resource in religion.cost) {
-                        if (gameState.resources[resource] < religion.cost[resource]) {
-                            canAfford = false;
-                        }
-                        costText += `${religion.cost[resource]} ${resource}, `;
-                    }
-                    costText = costText.slice(0, -2);
-                    
-                    const count = religionKey === 'sunAltar' ? ` (${gameState.religion.sunAltar})` : '';
-                    const purchased = gameState.religion[religionKey] === true;
-                    
-                    div.innerHTML = `
-                        <h4>${religion.name}${count}</h4>
-                        <p>${religion.description}</p>
-                        <p><strong>Effect:</strong> ${religion.effect}</p>
-                        ${!purchased ? `
-                            <button class="action-button religion-button" 
-                                    onclick="purchaseReligion('${religionKey}')" 
-                                    ${!canAfford ? 'disabled' : ''}>
-                                ${religionKey === 'sunAltar' ? 'Build' : 'Purchase'} (${costText})
-                            </button>
-                        ` : '<p style="color: #2ecc71;">✓ Acquired</p>'}
-                    `;
-                    religionList.appendChild(div);
-                }
-            }
-        }
+		function updateReligionList() {
+			const religionList = document.getElementById('religion-list');
+			religionList.innerHTML = '';
+			
+			if (gameState.resources.faith < 1) {
+				religionList.innerHTML = '<p>You must gather faith before you can worship Babs, the great cat goddess...</p>';
+				return;
+			}
+			
+			religionList.innerHTML = '<p>🐱 <em>"In the beginning, there was Babs, the great black cat goddess who created all kittens in her divine image..."</em></p>';
+			
+			for (let religionKey in religionDefs) {
+				const religion = religionDefs[religionKey];
+				if (religion.unlocked()) {
+					const div = document.createElement('div');
+					div.className = 'religion-item';
+					
+					let canAfford = true;
+					let costText = '';
+					for (let resource in religion.cost) {
+						if (gameState.resources[resource] < religion.cost[resource]) {
+							canAfford = false;
+						}
+						costText += `${religion.cost[resource]} ${resource}, `;
+					}
+					costText = costText.slice(0, -2);
+					
+					const count = religionKey === 'sunAltar' ? ` (${gameState.religion.sunAltar})` : '';
+					const purchased = gameState.religion[religionKey] === true;
+					
+					div.innerHTML = `
+						<h4>${religion.name}${count}</h4>
+						<p>${religion.description}</p>
+						<p><strong>Effect:</strong> ${religion.effect}</p>
+						${!purchased ? `
+							<button class="action-button religion-button" 
+									onclick="purchaseReligion('${religionKey}')" 
+									${!canAfford ? 'disabled' : ''}>
+								${religionKey === 'sunAltar' ? 'Build' : 'Purchase'} (${costText})
+							</button>
+						` : '<p style="color: #2ecc71;">✓ Acquired</p>'}
+					`;
+					religionList.appendChild(div);
+				}
+			}
+		}
 
         function checkAchievements() {
             achievements.forEach(achievement => {
@@ -1703,33 +1737,59 @@
         function loadGame() {
             const savedGame = localStorage.getItem('kittenCivilizationSave');
             if (savedGame) {
-                gameState = JSON.parse(savedGame);
-                logMessage("Game loaded successfully!");
-                
-                // Show previously unlocked elements
-                if (gameState.stats.gatherClicks >= 5) {
-                    showElement('plant-catnip-btn');
+                try {
+                    const loadedState = JSON.parse(savedGame);
+                    
+                    // Merge saved state with current state to ensure all properties exist
+                    gameState = Object.assign({}, gameState, loadedState);
+                    
+                    // Ensure all nested objects exist
+                    gameState.buildings = Object.assign({}, {
+                        catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0, 
+                        quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0, 
+                        logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0
+                    }, loadedState.buildings || {});
+                    
+                    gameState.technologies = Object.assign({}, {
+                        agriculture: false, archery: false, mining: false, metalWorking: false,
+                        construction: false, engineering: false, astronomy: false, theology: false,
+                        philosophy: false, mathematics: false, optics: false, physics: false, calendar: false
+                    }, loadedState.technologies || {});
+                    
+                    logMessage("Game loaded successfully!");
+                    restoreUIState();
+                    loadAchievements();
+                    updateDisplay();
+                } catch (error) {
+                    logMessage("Error loading saved game - starting fresh!");
+                    console.error("Save load error:", error);
                 }
-                if (gameState.stats.gatherClicks >= 3) {
-                    showElement('refine-catnip-btn');
-                }
-                if (gameState.technologies.archery) {
-                    showElement('hunt-btn');
-                }
-                if (gameState.buildings.observatory > 0) {
-                    showElement('observe-stars-btn');
-                }
-                if (gameState.buildings.catnipField > 0) {
-                    showElement('field-management');
-                }
-                
-                updateGatherButton();
-                updateFieldDisplay();
-                
-                updateDisplay();
             } else {
                 logMessage("No saved game found!");
             }
+        }
+
+        function restoreUIState() {
+            // Show previously unlocked elements based on game state
+            if (gameState.stats.gatherClicks >= 5 || gameState.buildings.catnipField > 0) {
+                showElement('plant-catnip-btn');
+            }
+            if (gameState.stats.gatherClicks >= 3 || gameState.resources.wood > 0) {
+                showElement('refine-catnip-btn');
+            }
+            if (gameState.technologies.archery) {
+                showElement('hunt-btn');
+            }
+            if (gameState.buildings.observatory > 0) {
+                showElement('observe-stars-btn');
+            }
+            if (gameState.buildings.catnipField > 0) {
+                showElement('field-management');
+                showElement('catnip-fields-summary');
+            }
+            
+            updateGatherButton();
+            updateFieldDisplay();
         }
 
         function resetGame() {
@@ -1741,33 +1801,38 @@
 
         // Initialize game
         document.addEventListener('DOMContentLoaded', function() {
-            // Try to load saved game
+            // Try to load saved game first
             const savedGame = localStorage.getItem('kittenCivilizationSave');
             if (savedGame) {
-                gameState = JSON.parse(savedGame);
-                
-                // Show previously unlocked elements
-                if (gameState.stats.gatherClicks >= 5) {
-                    showElement('plant-catnip-btn');
+                try {
+                    const loadedState = JSON.parse(savedGame);
+                    gameState = Object.assign({}, gameState, loadedState);
+                    
+                    // Ensure all nested objects exist
+                    gameState.buildings = Object.assign({}, {
+                        catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0, 
+                        quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0, 
+                        logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0
+                    }, loadedState.buildings || {});
+                    
+                    gameState.technologies = Object.assign({}, {
+                        agriculture: false, archery: false, mining: false, metalWorking: false,
+                        construction: false, engineering: false, astronomy: false, theology: false,
+                        philosophy: false, mathematics: false, optics: false, physics: false, calendar: false
+                    }, loadedState.technologies || {});
+                    
+                    restoreUIState();
+                    loadAchievements();
+                } catch (error) {
+                    console.error("Error loading save:", error);
                 }
-                if (gameState.stats.gatherClicks >= 3) {
-                    showElement('refine-catnip-btn');
-                }
-                if (gameState.technologies.archery) {
-                    showElement('hunt-btn');
-                }
-                if (gameState.buildings.observatory > 0) {
-                    showElement('observe-stars-btn');
-                }
-                
-                updateGatherButton();
             }
             
             // Start game loop
             setInterval(gameLoop, 1000); // Run every second
             
-            // Auto-save every 30 seconds
-            setInterval(saveGame, 30000);
+            // Auto-save every 10 seconds (more frequent)
+            setInterval(saveGame, 10000);
             
             // Initial display update
             updateDisplay();
@@ -1821,6 +1886,9 @@
             if (gameState.resources.iron > 0 && !document.getElementById('iron-amount')) {
                 addResourceToDisplay('iron');
             }
+            if (gameState.resources.stone > 0 && !document.getElementById('stone-amount')) {
+                addResourceToDisplay('stone');
+            }
             if (gameState.resources.unicorns > 0 && !document.getElementById('unicorns-amount')) {
                 addResourceToDisplay('unicorns');
             }
@@ -1830,5 +1898,4 @@
         setInterval(checkNewResources, 2000);
     </script>
 </body>
-
-</html>
+</html>								
