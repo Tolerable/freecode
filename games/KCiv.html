@@ -629,15 +629,20 @@
                 cost: { catnip: 10 },
                 effect: "+0.63 catnip per second",
                 unlocked: () => gameState.stats.gatherClicks >= 5,
-                onBuild: () => { 
-                    const currentFields = gameState.buildings.catnipField;
-                    // Scaling cost - each field costs 25% more
-                    const scalingMultiplier = Math.pow(1.25, currentFields);
-                    buildingDefs.catnipField.cost.catnip = Math.floor(10 * scalingMultiplier);
-                    
-                    gameState.resourcesProduction.catnip += 0.63;
-                    updateGatherButton();
-                }
+				onBuild: () => { 
+					const currentFields = gameState.buildings.catnipField;
+					// Balanced scaling: exponential for first 20, then linear
+					let cost;
+					if (currentFields < 20) {
+						cost = 10 * Math.pow(1.15, currentFields);
+					} else {
+						cost = 10 * Math.pow(1.15, 20) + (currentFields - 20) * 50;
+					}
+					buildingDefs.catnipField.cost.catnip = Math.floor(cost);
+					
+					gameState.resourcesProduction.catnip += 0.63;
+					updateGatherButton();
+				}
             },
             hut: {
                 name: "Hut",
