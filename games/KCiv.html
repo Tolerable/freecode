@@ -3676,14 +3676,21 @@
 			const achievementsList = document.getElementById('achievements-list');
 			achievementsList.innerHTML = '';
 			
-			// Show ALL earned achievements (most recent first), not just 5
+			// Show earned achievements (most recent first)
 			const earnedAchievements = gameState.stats.achievements.slice().reverse();
-			earnedAchievements.forEach(achievementId => {
+			
+			if (earnedAchievements.length === 0) {
+				achievementsList.innerHTML = '<p style="color: #7f8c8d; font-style: italic;">No achievements yet...</p>';
+				return;
+			}
+			
+			// Show recent achievements (first 5)
+			const recentAchievements = earnedAchievements.slice(0, 5);
+			recentAchievements.forEach(achievementId => {
 				const achievement = achievements.find(a => a.id === achievementId);
 				if (achievement) {
 					const div = document.createElement('div');
 					div.className = 'achievement';
-					div.setAttribute('data-achievement-id', achievement.id);
 					div.innerHTML = `
 						<strong>${achievement.name}</strong><br>
 						<small>${achievement.desc}</small>
@@ -3692,9 +3699,48 @@
 				}
 			});
 			
-			// Add a counter
+			// If there are more than 5, add a scrollable area for older ones
+			if (earnedAchievements.length > 5) {
+				const olderAchievements = earnedAchievements.slice(5);
+				const expandButton = document.createElement('button');
+				expandButton.innerHTML = `Show ${olderAchievements.length} more achievements...`;
+				expandButton.style.cssText = 'width: 100%; padding: 5px; background: #34495e; color: #ecf0f1; border: 1px solid #3498db; border-radius: 3px; cursor: pointer; font-size: 11px; margin-top: 5px;';
+				
+				const olderContainer = document.createElement('div');
+				olderContainer.style.cssText = 'max-height: 150px; overflow-y: auto; margin-top: 5px; display: none; border: 1px solid #34495e; border-radius: 3px; padding: 5px;';
+				
+				olderAchievements.forEach(achievementId => {
+					const achievement = achievements.find(a => a.id === achievementId);
+					if (achievement) {
+						const div = document.createElement('div');
+						div.className = 'achievement';
+						div.style.fontSize = '11px';
+						div.style.margin = '3px 0';
+						div.innerHTML = `
+							<strong>${achievement.name}</strong><br>
+							<small>${achievement.desc}</small>
+						`;
+						olderContainer.appendChild(div);
+					}
+				});
+				
+				expandButton.onclick = () => {
+					if (olderContainer.style.display === 'none') {
+						olderContainer.style.display = 'block';
+						expandButton.innerHTML = 'Hide older achievements';
+					} else {
+						olderContainer.style.display = 'none';
+						expandButton.innerHTML = `Show ${olderAchievements.length} more achievements...`;
+					}
+				};
+				
+				achievementsList.appendChild(expandButton);
+				achievementsList.appendChild(olderContainer);
+			}
+			
+			// Add counter
 			const counterDiv = document.createElement('div');
-			counterDiv.innerHTML = `<p style="text-align: center; color: #bdc3c7; margin-top: 10px;">Total: ${earnedAchievements.length} achievements</p>`;
+			counterDiv.innerHTML = `<p style="text-align: center; color: #bdc3c7; margin-top: 8px; font-size: 12px;">Total: ${earnedAchievements.length} achievements</p>`;
 			achievementsList.appendChild(counterDiv);
 		}
 
