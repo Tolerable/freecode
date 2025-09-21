@@ -1660,7 +1660,8 @@
 			
 			// Main hunt button
 			const huntCost = 100;
-			const canHunt = gameState.resources.catpower >= huntCost;
+			const currentCatpower = gameState.resources.catpower || 0;
+			const canHunt = currentCatpower >= huntCost;
 			
 			const huntButton = document.createElement('button');
 			huntButton.className = `action-button ${!canHunt ? 'disabled' : ''}`;
@@ -1676,9 +1677,9 @@
 			const statusDiv = document.createElement('div');
 			statusDiv.className = 'expedition-progress';
 			statusDiv.innerHTML = `
-				<p><strong>Catpower:</strong> ${Math.floor(gameState.resources.catpower)}/${gameState.resourceLimits.catpower}</p>
+				<p><strong>Catpower:</strong> ${Math.floor(currentCatpower)}/${gameState.resourceLimits.catpower || 1000}</p>
 				<p><strong>Hunting Bonus:</strong> +${((huntingBonus - 1) * 100).toFixed(0)}%</p>
-				<p><strong>Hunters:</strong> ${gameState.population.jobs.hunters} (generating ${(gameState.population.jobs.hunters * 0.4).toFixed(1)} catpower/sec)</p>
+				<p><strong>Hunters:</strong> ${gameState.population.jobs.hunters || 0} (generating ${((gameState.population.jobs.hunters || 0) * 0.4).toFixed(1)} catpower/sec)</p>
 			`;
 			huntingButtons.appendChild(statusDiv);
 		}
