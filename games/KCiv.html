@@ -763,8 +763,9 @@
                 optics: false,
                 physics: false,
                 calendar: false
-            },
-            religion: {
+			},
+			craftingBonus: 0,
+			religion: {
                 faithLevel: 0,
                 solarRevolution: false,
                 scholasticism: false,
@@ -954,8 +955,12 @@
 				onBuild: () => { 
 					showElement('refine-catnip-btn');
 					updateWorkshopTab();
-					gameState.resourcesProduction.iron = (gameState.resourcesProduction.iron || 0) + 0.01;
-					logMessage("Workshop unlocks crafting recipes!");
+					
+					// Each workshop provides +50% crafting bonus (like original)
+					if (!gameState.craftingBonus) gameState.craftingBonus = 0;
+					gameState.craftingBonus += 0.5;
+					
+					logMessage("Workshop built! Crafting efficiency increased by 50%.");
 				}
             },
 			smelter: {
@@ -1926,11 +1931,16 @@
 			
 			// Check if we can afford it
 			let canCraft = true;
-			for (let resource in recipe.inputs) {
-				if ((gameState.resources[resource] || 0) < recipe.inputs[resource]) {
-					canCraft = false;
-					break;
+			for (let resource in recipe.output) {
+				if (!gameState.resources[resource]) gameState.resources[resource] = 0;
+				let outputAmount = recipe.output[resource];
+				
+				// Apply workshop crafting bonus
+				if (gameState.craftingBonus) {
+					outputAmount *= (1 + gameState.craftingBonus);
 				}
+				
+				gameState.resources[resource] += outputAmount;
 			}
 			
 			if (!canCraft) return;
