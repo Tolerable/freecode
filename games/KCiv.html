@@ -888,14 +888,17 @@
 					updateGatherButton();
 				}
             },
-            hut: {
-                name: "Hut",
-                description: "A small hut for kittens",
-                cost: { wood: 5 },
-                effect: "Houses 2 kittens",
-                unlocked: () => gameState.resources.wood >= 5,
-                onBuild: () => { gameState.population.kittens += 2; }
-            },
+			hut: {
+				name: "Hut",
+				description: "A small hut for kittens",
+				cost: { wood: 5 },
+				effect: "Houses 2 kittens",
+				unlocked: () => gameState.resources.wood >= 5,
+				onBuild: () => { 
+					gameState.population.kittens += 2;
+					autoAssignNewKittens();
+				}
+			},
             library: {
                 name: "Library", 
                 description: "A place of learning and research",
@@ -1050,17 +1053,18 @@
 					if (currentCount === 0) gameState.resources.faith += 5; // Only first temple gives starting faith
 				}
 			},
-            logHouse: {
-                name: "Log House",
-                description: "A sturdy log house for more kittens",
-                cost: { wood: 200, minerals: 250 },
-                effect: "Houses 6 kittens, +10% happiness",
-                unlocked: () => gameState.technologies.construction,
-                onBuild: () => { 
-                    gameState.population.kittens += 6; 
-                    gameState.population.happiness += 0.1;
-                }
-            },
+			logHouse: {
+				name: "Log House",
+				description: "A sturdy log house for more kittens",
+				cost: { wood: 200, minerals: 250 },
+				effect: "Houses 6 kittens, +10% happiness",
+				unlocked: () => gameState.technologies.construction,
+				onBuild: () => { 
+					gameState.population.kittens += 6; 
+					gameState.population.happiness += 0.1;
+					autoAssignNewKittens();
+				}
+			},
 			academy: {
 				name: "Academy",
 				description: "Advanced learning institution",
@@ -3322,6 +3326,36 @@
             }
         }
 
+		function autoAssignNewKittens() {
+			if (!gameSettings.autoAssignJobs) return;
+			
+			const totalKittens = gameState.population.kittens;
+			const assignedKittens = Object.values(gameState.population.jobs).reduce((sum, count) => sum + count, 0);
+			const freeKittens = totalKittens - assignedKittens;
+			
+			if (freeKittens <= 0) return;
+			
+			// Priority order for auto-assignment
+			const jobPriority = [
+				{ key: 'farmers', condition: () => gameState.buildings.catnipField > 0 },
+				{ key: 'woodcutters', condition: () => gameState.resources.wood > 0 },
+				{ key: 'scholars', condition: () => gameState.buildings.library > 0 },
+				{ key: 'miners', condition: () => gameState.buildings.mine > 0 },
+				{ key: 'hunters', condition: () => gameState.technologies.archery },
+				{ key: 'priests', condition: () => gameState.buildings.shrine > 0 || gameState.buildings.temple > 0 }
+			];
+			
+			for (let i = 0; i < freeKittens; i++) {
+				for (let job of jobPriority) {
+					if (job.condition()) {
+						gameState.population.jobs[job.key]++;
+						logMessage(`Auto-assigned a kitten to work as ${job.key.slice(0, -1)}.`);
+						break;
+					}
+				}
+			}
+		}
+
         function updateTechList() {
             const techList = document.getElementById('tech-list');
             techList.innerHTML = '';
@@ -3623,6 +3657,8 @@
 			if (gameState.resources.unobtainium > 0) {
 				checkMetaphysicsUnlock();
 			}
+			
+			autoAssignNewKittens();
 			
 			// Hunters hunt automatically
 			if (gameState.population.jobs.hunters > 0 && Math.random() < 0.1 * gameState.population.jobs.hunters) {
