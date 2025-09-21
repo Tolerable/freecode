@@ -630,6 +630,10 @@
 			autoAssignJobs: false
 		};
 		let pendingAction = null;
+
+		let lastGatherTime = 0;
+		const gatherCooldown = 100; // 100ms minimum between gathers
+		
         let gameState = {
 			resources: {
 				catnip: 0,
@@ -1204,18 +1208,24 @@
         ];
 
         // Game Functions
-        function gatherCatnip() {
-            const amount = Math.random() * 3 + 1; // 1-4 catnip per click
-            gameState.resources.catnip += amount;
-            gameState.stats.totalCatnipGathered += amount;
-            gameState.stats.gatherClicks++;
-            
-            logMessage(`You gathered ${amount.toFixed(1)} catnip.`);
-            updateGatherButton();
-            
-            checkAchievements();
-            updateDisplay();
-        }
+		function gatherCatnip() {
+			const currentTime = Date.now();
+			if (currentTime - lastGatherTime < gatherCooldown) {
+				return; // Prevent rapid-fire gathering
+			}
+			lastGatherTime = currentTime;
+			
+			const amount = Math.random() * 3 + 1; // 1-4 catnip per click
+			gameState.resources.catnip += amount;
+			gameState.stats.totalCatnipGathered += amount;
+			gameState.stats.gatherClicks++;
+			
+			logMessage(`You gathered ${amount.toFixed(1)} catnip.`);
+			updateGatherButton();
+			
+			checkAchievements();
+			updateDisplay();
+		}
 
         function updateGatherButton() {
             const gatherBtn = document.getElementById('gather-catnip-btn');
@@ -3213,32 +3223,35 @@
 				updateTradeTab();
 			}
 			
-			logMessage("Welcome to Kitten Civilization! Your journey begins...");
-		});
-
-		// Add this event listener to prevent modal from closing when clicking inside
-		document.addEventListener('DOMContentLoaded', function() {
+			// Modal event listeners
 			const modal = document.getElementById('phrase-modal');
 			const modalContent = modal.querySelector('.modal-content');
 			
 			modal.addEventListener('click', function(e) {
 				if (e.target === modal) {
-					// Only close if clicking outside the modal content
 					cancelPhrase();
 				}
 			});
 			
-			// Prevent clicks inside modal content from bubbling up
 			modalContent.addEventListener('click', function(e) {
 				e.stopPropagation();
 			});
 			
-			// Allow Enter key to confirm
 			document.getElementById('phrase-input').addEventListener('keypress', function(e) {
 				if (e.key === 'Enter') {
 					confirmPhrase();
 				}
 			});
+			
+			// Prevent Enter key spam on gather button
+			document.getElementById('gather-catnip-btn').addEventListener('keydown', function(e) {
+				if (e.key === 'Enter') {
+					e.preventDefault();
+					gatherCatnip();
+				}
+			});
+			
+			logMessage("Welcome to Kitten Civilization! Your journey begins...");
 		});
 
         // Add some additional resources to the display when they become available
@@ -3257,43 +3270,65 @@
         }
 
         // Monitor for new resources and add them to display
-        function checkNewResources() {
-            const displayedResources = ['catnip'];
-            
-            if (gameState.resources.wood > 0 && !document.getElementById('wood-amount')) {
-                addResourceToDisplay('wood');
-            }
-            if (gameState.resources.science > 0 && !document.getElementById('science-amount')) {
-                addResourceToDisplay('science', 'science');
-            }
-            if (gameState.resources.faith > 0 && !document.getElementById('faith-amount')) {
-                addResourceToDisplay('faith', 'faith');
-            }
-            if (gameState.resources.furs > 0 && !document.getElementById('furs-amount')) {
-                addResourceToDisplay('furs');
-            }
-            if (gameState.resources.ivory > 0 && !document.getElementById('ivory-amount')) {
-                addResourceToDisplay('ivory');
-            }
-            if (gameState.resources.gold > 0 && !document.getElementById('gold-amount')) {
-                addResourceToDisplay('gold');
-            }
-            if (gameState.resources.minerals > 0 && !document.getElementById('minerals-amount')) {
-                addResourceToDisplay('minerals');
-            }
-            if (gameState.resources.coal > 0 && !document.getElementById('coal-amount')) {
-                addResourceToDisplay('coal');
-            }
-            if (gameState.resources.iron > 0 && !document.getElementById('iron-amount')) {
-                addResourceToDisplay('iron');
-            }
-            if (gameState.resources.stone > 0 && !document.getElementById('stone-amount')) {
-                addResourceToDisplay('stone');
-            }
-            if (gameState.resources.unicorns > 0 && !document.getElementById('unicorns-amount')) {
-                addResourceToDisplay('unicorns');
-            }
-        }
+		function checkNewResources() {
+			const displayedResources = ['catnip'];
+			
+			if (gameState.resources.wood > 0 && !document.getElementById('wood-amount')) {
+				addResourceToDisplay('wood');
+			}
+			if (gameState.resources.science > 0 && !document.getElementById('science-amount')) {
+				addResourceToDisplay('science', 'science');
+			}
+			if (gameState.resources.faith > 0 && !document.getElementById('faith-amount')) {
+				addResourceToDisplay('faith', 'faith');
+			}
+			if (gameState.resources.furs > 0 && !document.getElementById('furs-amount')) {
+				addResourceToDisplay('furs');
+			}
+			if (gameState.resources.ivory > 0 && !document.getElementById('ivory-amount')) {
+				addResourceToDisplay('ivory');
+			}
+			if (gameState.resources.gold > 0 && !document.getElementById('gold-amount')) {
+				addResourceToDisplay('gold');
+			}
+			if (gameState.resources.minerals > 0 && !document.getElementById('minerals-amount')) {
+				addResourceToDisplay('minerals');
+			}
+			if (gameState.resources.coal > 0 && !document.getElementById('coal-amount')) {
+				addResourceToDisplay('coal');
+			}
+			if (gameState.resources.iron > 0 && !document.getElementById('iron-amount')) {
+				addResourceToDisplay('iron');
+			}
+			if (gameState.resources.stone > 0 && !document.getElementById('stone-amount')) {
+				addResourceToDisplay('stone');
+			}
+			if (gameState.resources.unicorns > 0 && !document.getElementById('unicorns-amount')) {
+				addResourceToDisplay('unicorns');
+			}
+			// ADD THESE LINES:
+			if (gameState.resources.steel > 0 && !document.getElementById('steel-amount')) {
+				addResourceToDisplay('steel');
+			}
+			if (gameState.resources.gear > 0 && !document.getElementById('gear-amount')) {
+				addResourceToDisplay('gear');
+			}
+			if (gameState.resources.concrete > 0 && !document.getElementById('concrete-amount')) {
+				addResourceToDisplay('concrete');
+			}
+			if (gameState.resources.alloy > 0 && !document.getElementById('alloy-amount')) {
+				addResourceToDisplay('alloy');
+			}
+			if (gameState.resources.titanium > 0 && !document.getElementById('titanium-amount')) {
+				addResourceToDisplay('titanium');
+			}
+			if (gameState.resources.oil > 0 && !document.getElementById('oil-amount')) {
+				addResourceToDisplay('oil');
+			}
+			if (gameState.resources.uranium > 0 && !document.getElementById('uranium-amount')) {
+				addResourceToDisplay('uranium');
+			}
+		}
 
         // Enhanced game loop to check for new resources
         setInterval(checkNewResources, 2000);
