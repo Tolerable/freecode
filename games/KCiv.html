@@ -2998,14 +2998,18 @@
 			
 			const standing = gameState.tradingRaces[raceKey].standing;
 			const standingBonus = 1 + (standing * 0.01);
+			
+			// NEW: Trade ships provide 2% bonus per ship (max 50% bonus)
+			const shipCount = gameState.resources.ships || 0;
+			const shipBonus = Math.min(0.5, shipCount * 0.02); // Cap at 50%
+			const totalBonus = standingBonus + shipBonus;
 
-			const cost = Math.floor(race.ratio[race.wants] / standingBonus);  // Divide by bonus
-			const gain = Math.floor(race.ratio[race.gives] * standingBonus);  // Multiply gain by bonus
+			const cost = Math.floor(race.ratio[race.wants] / totalBonus);
+			const gain = Math.floor(race.ratio[race.gives] * totalBonus);
 			
 			if (Math.floor(gameState.resources[race.wants]) >= cost) {
 				gameState.resources[race.wants] -= cost;
 				
-				// Add titanium to resources if trading with zebras
 				if (race.gives === 'titanium') {
 					if (!gameState.resources.titanium) gameState.resources.titanium = 0;
 					gameState.resources.titanium += gain;
@@ -3013,13 +3017,10 @@
 					gameState.resources[race.gives] += gain;
 				}
 				
-				// Increase standing
 				gameState.tradingRaces[raceKey].standing++;
-				
-				// Track trades for achievements
 				gameState.stats.tradesCompleted = (gameState.stats.tradesCompleted || 0) + 1;
 				
-				logMessage(`Traded ${cost} ${race.wants} for ${gain} ${race.gives} with the ${raceKey}!`);
+				logMessage(`Traded ${cost} ${race.wants} for ${gain} ${race.gives} with the ${raceKey}! (${shipCount} ships provided +${(shipBonus*100).toFixed(0)}% bonus)`);
 				updateTradeTab();
 				updateDisplay();
 				checkAchievements();
