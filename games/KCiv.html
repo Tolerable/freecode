@@ -1122,13 +1122,17 @@
 				name: "Amphitheatre",
 				description: "A place for cultural gatherings and performances",
 				cost: { wood: 200, minerals: 100 },
-				effect: "+0.1 culture per second",
+				effect: "+0.1 culture per second, +500 culture storage",
 				unlocked: () => gameState.technologies.construction && (gameState.resources.minerals >= 50 || gameState.buildings.amphitheatre > 0),
 				onBuild: () => {
 					if (!gameState.resourcesProduction.culture) gameState.resourcesProduction.culture = 0;
 					gameState.resourcesProduction.culture += 0.1;
 					if (!gameState.resources.culture) gameState.resources.culture = 0;
 					gameState.resources.culture += 1;
+					
+					// Add culture storage
+					gameState.resourceLimits.culture += 500;
+					
 					logMessage("Amphitheatre built! Culture production started.");
 				}
 			},			
@@ -4299,6 +4303,11 @@
 			if (gameState.workshopUpgrades && gameState.workshopUpgrades.compositeBow) {
 				gameState.resourceLimits.catpower += 100;
 			}
+			
+			// Add storage from amphitheatres
+			if (gameState.buildings.amphitheatre > 0) {
+				gameState.resourceLimits.culture += gameState.buildings.amphitheatre * 500;
+			}			
 			
 			// Add faith storage from religious buildings
 			if (gameState.buildings.temple > 0) {
