@@ -2082,40 +2082,150 @@
 			
 			let objectives = [];
 			
-			// Early game objectives
-			if (gameState.stats.gatherClicks < 10) {
-				objectives.push("🎯 Gather energy and plant your first fields");
-			} else if (gameState.buildings.hut < 2) {
-				objectives.push("🏠 Build huts to house more robots (Need: 5 materials each)");
-			} else if (!gameState.technologies.archery) {
-				objectives.push("🏹 Research Archery to unlock expeditions (Need: 25 science)");
-			} else if (gameState.expeditions.completed < 5) {
-				objectives.push("🗺️ Complete expeditions to find oil and rare resources");
-			} else if (!gameState.technologies.engineering) {
-				objectives.push("⚙️ Research Engineering to unlock workshops (Need: 200 science)");
-			} else if (gameState.buildings.workshop === 0) {
-				objectives.push("🔨 Build a Workshop to craft advanced materials (Need: 100 materials, 100 minerals)");
-			} else if (gameState.resources.steel === 0) {
-				objectives.push("🔩 Craft Steel in workshop (Need: 10 iron, 5 coal)");
-			} else if (!gameState.technologies.rocketry) {
-				objectives.push("🚀 Research Rocketry to reach space (Need: 2500 science, 250 oil)");
-			} else if (gameState.buildings.launchPad === 0) {
-				objectives.push("🛸 Build Launch Pad for space missions (Need: 25 steel, 15 concrete, 5 alloy)");
+			// Helper function to check if we can afford a building
+			function canAffordBuilding(buildingKey) {
+				const building = buildingDefs[buildingKey];
+				if (!building || !building.unlocked()) return false;
+				
+				for (let resource in building.cost) {
+					if ((gameState.resources[resource] || 0) < building.cost[resource]) {
+						return false;
+					}
+				}
+				return true;
+			}
+			
+			// Helper function to check if we can afford tech
+			function canAffordTech(techKey) {
+				const tech = techDefs[techKey];
+				if (!tech || gameState.technologies[techKey] || !tech.unlocked()) return false;
+				
+				for (let resource in tech.cost) {
+					if ((gameState.resources[resource] || 0) < tech.cost[resource]) {
+						return false;
+					}
+				}
+				return true;
+			}
+			
+			// IMMEDIATE ACTIONS - What you can do right now
+			const affordableBuildings = Object.keys(buildingDefs).filter(canAffordBuilding);
+			const affordableTech = Object.keys(techDefs).filter(canAffordTech);
+			
+			if (affordableBuildings.length > 0) {
+				const buildingNames = affordableBuildings.map(key => buildingDefs[key].name).slice(0, 3);
+				objectives.push(`💰 Ready to build: ${buildingNames.join(', ')}${affordableBuildings.length > 3 ? ` +${affordableBuildings.length - 3} more` : ''}`);
+			}
+			
+			if (affordableTech.length > 0) {
+				const techNames = affordableTech.map(key => techDefs[key].name).slice(0, 2);
+				objectives.push(`🔬 Ready to research: ${techNames.join(', ')}`);
+			}
+			
+			// PROGRESSION PATHS - Different strategies
+			if (gameState.stats.year <= 5) {
+				// Early game
+				if (gameState.buildings.hut < 3) {
+					objectives.push(`🏠 Population growth: Build more huts (${gameState.buildings.hut}/3+ recommended)`);
+				}
+				if (gameState.buildings.catnipField < 10) {
+					objectives.push(`⚡ Energy security: Build more generators (${gameState.buildings.catnipField}/10+ recommended)`);
+				}
 			} else {
-				objectives.push("🌌 Launch space missions and explore the cosmos!");
+				// Mid-late game paths
+				const paths = [];
+				
+				// Science path
+				if (gameState.resources.science >= 50 && !gameState.technologies.astronomy) {
+					paths.push("Science: Research Astronomy → Observatory → Star charts");
+				}
+				
+				// Trading path  
+				if (gameState.buildings.tradingPost > 0 && gameState.resources.processing < 500) {
+					paths.push("Trading: Get hunters → Build processing → Trade for titanium");
+				}
+				
+				// Industry path
+				if (gameState.resources.minerals >= 100 && !gameState.buildings.smelter) {
+					paths.push("Industry: Build smelter → Craft steel → Advanced buildings");
+				}
+				
+				// Faith path
+				if (gameState.resources.faith >= 50 && gameState.buildings.temple === 0) {
+					paths.push("Faith: Build temples → Research Theology → Unlock bonuses");
+				}
+				
+				if (paths.length > 0) {
+					objectives.push(`📈 Development paths: ${paths[0]}`);
+					if (paths.length > 1) {
+						objectives.push(`📋 Alternative: ${paths[1]}`);
+					}
+				}
 			}
 			
-			// Resource hints
-			if (gameState.resources.oil === 0 && gameState.expeditions.completed >= 3) {
-				objectives.push("💡 TIP: Ocean expeditions can find oil (Need: 10+ expeditions completed)");
+			// RESOURCE BOTTLENECKS - What's holding you back
+			const bottlenecks = [];
+			
+			if (gameState.resources.materials < 100 && gameState.buildings.barn === 0) {
+				bottlenecks.push("Need materials: Refine more energy or assign gatherers");
 			}
 			
-			if (gameState.resources.concrete === 0 && gameState.resources.minerals >= 500) {
-				objectives.push("💡 TIP: Craft concrete in workshop (Need: 25 iron, 1250 minerals, 25 coal)");
+			if (gameState.resources.minerals < 50 && gameState.buildings.quarry === 0) {
+				bottlenecks.push("Need minerals: Build quarries or mines");
 			}
 			
+			if (gameState.resources.processing < 100 && gameState.technologies.archery && gameState.population.jobs.hunters === 0) {
+				bottlenecks.push("Need processing: Assign hunters or research archery");
+			}
+			
+			if (gameState.resources.oil === 0 && gameState.expeditions.completed < 10) {
+				bottlenecks.push("Need oil: Complete more expeditions (ocean expeditions find oil)");
+			}
+			
+			if (bottlenecks.length > 0) {
+				objectives.push(`⚠️ Bottleneck: ${bottlenecks[0]}`);
+			}
+			
+			// LONG-TERM GOALS - Major milestones
+			if (!gameState.technologies.rocketry && gameState.resources.science >= 1000) {
+				objectives.push("🚀 Space goal: Research Rocketry → Launch Pad → Space missions");
+			} else if (gameState.technologies.rocketry && gameState.buildings.launchPad === 0) {
+				objectives.push("🛸 Space ready: Build Launch Pad (25 steel, 15 concrete, 5 alloy)");
+			} else if (gameState.buildings.launchPad > 0 && gameState.space.missions < 5) {
+				objectives.push("🌌 Explore space: Launch orbital and moon missions");
+			}
+			
+			// EFFICIENCY TIPS - Optimization suggestions
+			const tips = [];
+			
+			if (gameState.population.robots > 10) {
+				const assignedRobots = Object.values(gameState.population.jobs).reduce((sum, count) => sum + count, 0);
+				const freeRobots = gameState.population.robots - assignedRobots;
+				if (freeRobots > 2) {
+					tips.push(`${freeRobots} robots unassigned - assign them to jobs for production`);
+				}
+			}
+			
+			if (gameState.buildings.catnipField >= 5 && gameState.population.jobs.farmers === 0) {
+				tips.push("Assign farmers to boost energy production from generators");
+			}
+			
+			if (gameState.resources.energy >= 4000 && gameState.resourceLimits.energy <= 5000) {
+				tips.push("Energy storage almost full - build barns or use energy");
+			}
+			
+			if (tips.length > 0) {
+				objectives.push(`💡 Tip: ${tips[0]}`);
+			}
+			
+			// Default fallback
+			if (objectives.length === 0) {
+				objectives.push("🎯 Continue developing your civilization - gather resources and expand!");
+			}
+			
+			// Render objectives
 			objectivesPanel.innerHTML = '';
-			objectives.forEach(obj => {
+			objectives.slice(0, 6).forEach(obj => { // Limit to 6 objectives
 				const div = document.createElement('div');
 				div.className = 'log-entry';
 				div.style.backgroundColor = 'rgba(52, 152, 219, 0.2)';
