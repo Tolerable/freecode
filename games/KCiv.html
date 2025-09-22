@@ -1166,8 +1166,7 @@
 				maxBuildable: 1,
 				unlocked: () => gameState.technologies.astronomy,
 				onBuild: () => { 
-					gameState.resourcesProduction.science += 0.25; 
-					showElement('observe-stars-btn');
+					gameState.resourcesProduction.science += 0.25;
 				}
 			},
 			harbor: {
@@ -2120,6 +2119,45 @@
 				div.textContent = obj;
 				objectivesPanel.appendChild(div);
 			});
+		}
+
+		function updateObserveButton() {
+			const observeBtn = document.getElementById('observe-stars-btn');
+			if (!observeBtn || gameState.buildings.observatory === 0) return;
+			
+			if (!gameState.astronomy.eventActive) {
+				observeBtn.classList.add('hidden');
+				return;
+			}
+			
+			// Show button during events
+			observeBtn.classList.remove('hidden');
+			
+			const currentTime = Date.now();
+			const cooldownRemaining = 300000 - (currentTime - gameState.astronomy.lastObservation);
+			const onCooldown = cooldownRemaining > 0;
+			const noObservationsLeft = gameState.astronomy.observationsLeft <= 0;
+			
+			if (onCooldown) {
+				const timeLeft = Math.ceil(cooldownRemaining / 60000);
+				observeBtn.disabled = true;
+				observeBtn.innerHTML = `
+					Observe the sky
+					<div class="cost-display">Cooldown: ${timeLeft} minutes remaining</div>
+				`;
+			} else if (noObservationsLeft) {
+				observeBtn.disabled = true;
+				observeBtn.innerHTML = `
+					Observe the sky
+					<div class="cost-display">No observations left for this ${gameState.astronomy.eventType}</div>
+				`;
+			} else {
+				observeBtn.disabled = false;
+				observeBtn.innerHTML = `
+					Observe the ${gameState.astronomy.eventType}
+					<div class="cost-display">Observations left: ${gameState.astronomy.observationsLeft}</div>
+				`;
+			}
 		}
 
 		function updateJobManagement() {
@@ -4034,6 +4072,11 @@
 				gameState.astronomy.eventType = events[Math.floor(Math.random() * events.length)];
 				gameState.astronomy.observationsLeft = 3 + Math.floor(Math.random() * 3); // 3-5 observations
 				logMessage(`A ${gameState.astronomy.eventType} begins! You can observe the sky.`);
+			}
+
+			// Update observe button status
+			if (gameState.buildings.observatory > 0) {
+				updateObserveButton();
 			}
 
 			if (gameState.technologies.archery) {
