@@ -844,7 +844,7 @@
 				moonMissions: 0,
 				duneMissions: 0,
 				planetCrackers: 0
-			},			
+			},		
             stats: {
                 totalCatnipGathered: 0,
                 totalCatnipRefined: 0,
@@ -854,6 +854,12 @@
                 year: 1,
                 gatherClicks: 0
             },
+			astronomy: {
+				eventActive: false,
+				eventType: null,
+				observationsLeft: 0,
+				lastObservation: 0
+			},			
 			prestige: {
 				karma: 0,
 				paragon: 0,
@@ -3045,25 +3051,55 @@
         }
 
 		function observeStars() {
-			if (gameState.buildings.observatory > 0) {
-				const science = Math.random() * 5 + 2;
-				gameState.resources.science += science;
-				
-				// ALWAYS give starcharts if astronomy is researched
-				if (gameState.technologies.astronomy) {
-					const starcharts = Math.floor(Math.random() * 2) + 1; // 1-2 starcharts
-					gameState.resources.starcharts += starcharts;
-					logMessage(`Observing the stars grants ${starcharts} starcharts!`);
-				}
-				
-				logMessage(`Observing the stars grants ${science.toFixed(1)} science.`);
-				
-				if (Math.random() < 0.01) {
-					gameState.resources.unicorns += 1;
-					logMessage("A unicorn appears from the cosmic void!");
-				}
-				updateDisplay();
+			if (gameState.buildings.observatory === 0) return;
+			
+			const currentTime = Date.now();
+			
+			// Check if there's an active event
+			if (!gameState.astronomy.eventActive) {
+				logMessage("The sky is quiet. Wait for a celestial event to observe.");
+				return;
 			}
+			
+			// Check cooldown (5 minutes between observations)
+			if (currentTime - gameState.astronomy.lastObservation < 300000) {
+				const timeLeft = Math.ceil((300000 - (currentTime - gameState.astronomy.lastObservation)) / 60000);
+				logMessage(`You must wait ${timeLeft} more minutes before observing again.`);
+				return;
+			}
+			
+			if (gameState.astronomy.observationsLeft <= 0) {
+				logMessage("You have exhausted your observations for this celestial event.");
+				return;
+			}
+			
+			// Successful observation
+			gameState.astronomy.observationsLeft--;
+			gameState.astronomy.lastObservation = currentTime;
+			
+			const science = Math.random() * 10 + 5;
+			gameState.resources.science += science;
+			
+			if (gameState.technologies.astronomy) {
+				const starcharts = Math.floor(Math.random() * 3) + 1;
+				gameState.resources.starcharts += starcharts;
+				logMessage(`Observing the ${gameState.astronomy.eventType} grants ${science.toFixed(1)} science and ${starcharts} starcharts!`);
+			} else {
+				logMessage(`Observing the ${gameState.astronomy.eventType} grants ${science.toFixed(1)} science.`);
+			}
+			
+			if (Math.random() < 0.05) {
+				gameState.resources.unicorns += 1;
+				logMessage("A unicorn appears from the cosmic void!");
+			}
+			
+			if (gameState.astronomy.observationsLeft === 0) {
+				gameState.astronomy.eventActive = false;
+				logMessage(`The ${gameState.astronomy.eventType} has ended.`);
+				gameState.astronomy.eventType = null;
+			}
+			
+			updateDisplay();
 		}
 
         function buildBuilding(buildingKey) {
@@ -3990,6 +4026,19 @@
 			if (Math.random() < 0.00008) { // 0.008% chance per second
 				triggerDisaster();
 			}			
+
+			// Astronomical events (every 30-60 minutes)
+			if (!gameState.astronomy.eventActive && gameState.buildings.observatory > 0 && Math.random() < 0.0003) {
+				const events = ['lunar eclipse', 'meteor shower', 'solar flare', 'comet passage', 'aurora borealis'];
+				gameState.astronomy.eventActive = true;
+				gameState.astronomy.eventType = events[Math.floor(Math.random() * events.length)];
+				gameState.astronomy.observationsLeft = 3 + Math.floor(Math.random() * 3); // 3-5 observations
+				logMessage(`A ${gameState.astronomy.eventType} begins! You can observe the sky.`);
+			}
+
+			if (gameState.technologies.archery) {
+				updateHuntingSection();
+			}
 			
 			if (gameState.technologies.archery) {
 				updateHuntingSection();
