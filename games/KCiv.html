@@ -2539,10 +2539,14 @@
 					for (let resource in recipe.inputs) {
 						const needed = recipe.inputs[resource];
 						const available = Math.floor(gameState.resources[resource] || 0);
-						if (available < needed) canCraft = false;
+						const hasEnough = available >= needed;
+						const color = hasEnough ? '#2ecc71' : '#e74c3c';
+						
+						if (!hasEnough) canCraft = false;
 						if (available < needed * 10) canCraft10 = false;
 						if (available < needed * 100) canCraft100 = false;
-						inputText += `${needed} ${resource}, `;
+						
+						inputText += `<span style="color: ${color};">${needed} ${resource}</span>, `;
 					}
 					inputText = inputText.slice(0, -2);
 					
@@ -3332,10 +3336,14 @@
 					let costText = '';
 					for (let resource in building.cost) {
 						const actualCost = Math.floor(building.cost[resource] * (1 - discount));
-						if (Math.floor(gameState.resources[resource]) < actualCost) {
+						const available = Math.floor(gameState.resources[resource] || 0);
+						const hasEnough = available >= actualCost;
+						const color = hasEnough ? '#2ecc71' : '#e74c3c';
+						
+						if (!hasEnough) {
 							canAfford = false;
 						}
-						costText += `${actualCost} ${resource}, `;
+						costText += `<span style="color: ${color};">${actualCost} ${resource}</span>, `;
 					}
 					costText = costText.slice(0, -2);
 					
@@ -3587,12 +3595,17 @@
                     
                     let canAfford = true;
                     let costText = '';
-                    for (let resource in tech.cost) {
-                        if (Math.floor(gameState.resources[resource]) < tech.cost[resource]) {
-                            canAfford = false;
-                        }
-                        costText += `${tech.cost[resource]} ${resource}, `;
-                    }
+					for (let resource in tech.cost) {
+						const needed = tech.cost[resource];
+						const available = Math.floor(gameState.resources[resource] || 0);
+						const hasEnough = available >= needed;
+						const color = hasEnough ? '#2ecc71' : '#e74c3c';
+						
+						if (!hasEnough) {
+							canAfford = false;
+						}
+						costText += `<span style="color: ${color};">${needed} ${resource}</span>, `;
+					}
                     costText = costText.slice(0, -2);
                     
                     div.innerHTML = `
