@@ -3324,6 +3324,9 @@
 					const div = document.createElement('div');
 					div.className = 'building-item';
 					
+					// Check if building is at max capacity
+					const isAtMaxCapacity = building.maxBuildable && buildingCount >= building.maxBuildable;
+					
 					const discount = getMetaphysicsDiscount();
 					let canAfford = true;
 					let costText = '';
@@ -3336,43 +3339,60 @@
 					}
 					costText = costText.slice(0, -2);
 					
-					// Check if we can afford multiples
-					let canAfford10 = true;
-					let canAfford100 = true;
-					for (let resource in building.cost) {
-						if (gameState.resources[resource] < building.cost[resource] * 10) {
-							canAfford10 = false;
-						}
-						if (gameState.resources[resource] < building.cost[resource] * 100) {
-							canAfford100 = false;
+					// Don't check for multiples if at max capacity
+					let canAfford10 = false;
+					let canAfford100 = false;
+					
+					if (!isAtMaxCapacity) {
+						canAfford10 = true;
+						canAfford100 = true;
+						
+						// Calculate how many we can actually build (respecting limits)
+						const remainingCapacity = building.maxBuildable ? (building.maxBuildable - buildingCount) : Infinity;
+						const maxToBuild10 = Math.min(10, remainingCapacity);
+						const maxToBuild100 = Math.min(100, remainingCapacity);
+						
+						if (maxToBuild10 < 10) canAfford10 = false;
+						if (maxToBuild100 < 100) canAfford100 = false;
+						
+						for (let resource in building.cost) {
+							if (gameState.resources[resource] < building.cost[resource] * maxToBuild10) {
+								canAfford10 = false;
+							}
+							if (gameState.resources[resource] < building.cost[resource] * maxToBuild100) {
+								canAfford100 = false;
+							}
 						}
 					}
 					
-					const buttonDisabled = !canAfford;
+					const buttonDisabled = !canAfford || isAtMaxCapacity;
 					const buttonClass = buttonDisabled ? 'building-button disabled' : 'building-button';
 					
 					div.innerHTML = `
-						<h4>${building.name} ${buildingCount > 0 ? `(${buildingCount})` : ''}${building.maxBuildable ? ` [LIMIT: ${building.maxBuildable}]` : ''}</h4>
+						<h4>${building.name} ${buildingCount > 0 ? `(${buildingCount})` : ''}${building.maxBuildable ? ` [${buildingCount}/${building.maxBuildable}]` : ''}</h4>
 						<p>${building.description}</p>
 						<p><strong>Effect:</strong> ${building.effect}</p>
 						${buildingCount > 0 ? 
 							`<p style="color: #2ecc71;"><strong>✓ Built:</strong> ${buildingCount}${building.maxBuildable ? `/${building.maxBuildable}` : ''}</p>` : ''
+						}
+						${isAtMaxCapacity ? 
+							`<p style="color: #e74c3c;"><strong>⚠ Maximum reached!</strong></p>` : ''
 						}
 						<div style="display: flex; gap: 5px; align-items: center;">
 							<button class="action-button ${buttonClass}" 
 									onclick="buildBuilding('${buildingKey}', 1)" 
 									${buttonDisabled ? 'disabled' : ''}
 									style="flex: 1;">
-								Build (${costText})
+								${isAtMaxCapacity ? 'Maximum Built' : `Build (${costText})`}
 							</button>
-							${canAfford10 ? `
+							${canAfford10 && !isAtMaxCapacity ? `
 								<button class="action-button building-button" 
 										onclick="buildBuilding('${buildingKey}', 10)" 
 										style="width: 60px; font-size: 12px;">
 									x10
 								</button>
 							` : ''}
-							${canAfford100 ? `
+							${canAfford100 && !isAtMaxCapacity ? `
 								<button class="action-button building-button" 
 										onclick="buildBuilding('${buildingKey}', 100)" 
 										style="width: 60px; font-size: 12px;">
