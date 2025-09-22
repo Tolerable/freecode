@@ -257,10 +257,11 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 20px;
             overflow: hidden;
-            transition: all 0.5s ease, opacity 0.4s ease, transform 0.4s ease;
+            transition: all 0.5s ease;
             cursor: pointer;
             border: 2px solid transparent;
             position: relative;
+            opacity: 1; /* Always visible by default */
         }
 
         .product-card:hover {
@@ -385,6 +386,24 @@
 
         .footer-section a:hover {
             color: var(--accent-color);
+        }
+
+        /* Selected card styles */
+        .selected {
+            border-color: var(--accent-color) !important;
+            box-shadow: 0 0 30px var(--accent-glow) !important;
+        }
+
+        /* Fade in animation for scroll */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Responsive Design */
@@ -653,7 +672,7 @@
             }
         });
 
-        // Animate cards on scroll
+        // FIXED: Only animate feature cards and app features, NOT product cards
         const observerOptions = {
             threshold: 0.1,
             rootMargin: '0px 0px -100px 0px'
@@ -667,27 +686,12 @@
             });
         }, observerOptions);
 
-        document.querySelectorAll('.feature-card, .product-card, .app-feature').forEach(el => {
+        // ONLY observe feature cards and app features, NOT product cards
+        document.querySelectorAll('.feature-card, .app-feature').forEach(el => {
             observer.observe(el);
             el.style.opacity = '0';
             el.style.transform = 'translateY(30px)';
         });
-
-        // Add CSS for fade in animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeInUp {
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-            .selected {
-                border-color: var(--accent-color) !important;
-                box-shadow: 0 0 30px var(--accent-glow) !important;
-            }
-        `;
-        document.head.appendChild(style);
     </script>
 </body>
 </html>
