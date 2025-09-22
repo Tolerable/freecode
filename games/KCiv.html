@@ -3697,6 +3697,10 @@
 
 		function loadAchievements() {
 			const achievementsList = document.getElementById('achievements-list');
+			// Remember if achievements were expanded before clearing
+			const wasExpanded = document.querySelector('#achievements-list .older-achievements-container') && 
+							   document.querySelector('#achievements-list .older-achievements-container').style.display === 'block';
+			
 			achievementsList.innerHTML = '';
 			
 			// Show earned achievements (most recent first)
@@ -3730,6 +3734,7 @@
 				expandButton.style.cssText = 'width: 100%; padding: 5px; background: #34495e; color: #ecf0f1; border: 1px solid #3498db; border-radius: 3px; cursor: pointer; font-size: 11px; margin-top: 5px;';
 				
 				const olderContainer = document.createElement('div');
+				olderContainer.className = 'older-achievements-container';
 				olderContainer.style.cssText = 'max-height: 150px; overflow-y: auto; margin-top: 5px; display: none; border: 1px solid #34495e; border-radius: 3px; padding: 5px;';
 				
 				olderAchievements.forEach(achievementId => {
@@ -3759,6 +3764,12 @@
 				
 				achievementsList.appendChild(expandButton);
 				achievementsList.appendChild(olderContainer);
+				
+				// If achievements were expanded before, expand them again
+				if (wasExpanded) {
+					olderContainer.style.display = 'block';
+					expandButton.innerHTML = 'Hide older achievements';
+				}
 			}
 			
 			// Add counter
