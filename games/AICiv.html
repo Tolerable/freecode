@@ -662,7 +662,7 @@
         let gameState = {
 			resources: {
 				energy: 0,
-				wood: 0,
+				materials: 0,
 				minerals: 0,
 				coal: 0,
 				iron: 0,
@@ -698,7 +698,7 @@
 			},
             resourcesProduction: {
                 energy: 0,
-                wood: 0,
+                materials: 0,
                 minerals: 0,
                 coal: 0,
                 iron: 0,
@@ -711,7 +711,7 @@
             },
 			resourceLimits: {
 				energy: 5000,
-				wood: 1000,
+				materials: 1000,
 				minerals: 1000,
 				coal: 500,
 				iron: 300,
@@ -740,7 +740,7 @@
 				maxKittens: 2, // Housing capacity
 				jobs: {
 					farmers: 0,
-					woodcutters: 0,
+					materialscutters: 0,
 					miners: 0,
 					scholars: 0,
 					hunters: 0,
@@ -914,9 +914,9 @@
 			hut: {
 				name: "Hut",
 				description: "A small hut for robots",
-				cost: { wood: 5 },
+				cost: { materials: 5 },
 				effect: "Houses 2 robots",
-				unlocked: () => gameState.resources.wood >= 5,
+				unlocked: () => gameState.resources.materials >= 5,
 				onBuild: () => { 
 					gameState.population.robots += 2;
 					autoAssignNewKittens();
@@ -925,9 +925,9 @@
             library: {
                 name: "Library", 
                 description: "A place of learning and research",
-                cost: { wood: 25 },
+                cost: { materials: 25 },
                 effect: "+0.1 science per second, unlocks research",
-                unlocked: () => gameState.resources.wood >= 20,
+                unlocked: () => gameState.resources.materials >= 20,
                 onBuild: () => { 
                     gameState.resourcesProduction.science += 0.1;
                     // Give some starting science to kickstart research
@@ -937,12 +937,12 @@
 			barn: {
 				name: "Barn",
 				description: "Stores energy and food",
-				cost: { wood: 50 },
-				effect: "+10000 energy storage, +2000 wood storage, +1000 furs storage",
+				cost: { materials: 50 },
+				effect: "+10000 energy storage, +2000 materials storage, +1000 furs storage",
 				unlocked: () => gameState.buildings.hut >= 2,
 				onBuild: () => { 
 					gameState.resourceLimits.energy += 10000;
-					gameState.resourceLimits.wood += 2000;
+					gameState.resourceLimits.materials += 2000;
 					gameState.resourceLimits.furs += 1000;
 					logMessage("Barn built! Storage capacity increased significantly.");
 				}
@@ -950,7 +950,7 @@
             warehouse: {
                 name: "Warehouse", 
                 description: "Stores minerals, coal, and stone",
-                cost: { wood: 150, stone: 100 },
+                cost: { materials: 150, stone: 100 },
                 effect: "+2000 mineral storage, +1500 coal storage",
                 unlocked: () => gameState.resources.stone >= 50,
                 onBuild: () => {
@@ -963,7 +963,7 @@
             mine: {
                 name: "Mine",
                 description: "Extracts minerals and coal from the earth",
-                cost: { wood: 100 },
+                cost: { materials: 100 },
                 effect: "+0.05 minerals/sec, +0.02 coal/sec",
                 unlocked: () => gameState.technologies.mining,
                 onBuild: () => { 
@@ -974,7 +974,7 @@
             quarry: {
                 name: "Quarry",
                 description: "Extracts stone and more minerals",
-                cost: { wood: 50, minerals: 25 },
+                cost: { materials: 50, minerals: 25 },
                 effect: "+0.1 minerals/sec, +0.05 stone/sec",
                 unlocked: () => gameState.resources.minerals >= 15 || gameState.buildings.mine >= 1,
                 onBuild: () => { 
@@ -985,13 +985,13 @@
 			goldMine: {
 				name: "Gold Mine",
 				description: "Extracts precious gold",
-				cost: { wood: 200, minerals: 150, coal: 50 },
+				cost: { materials: 200, minerals: 150, coal: 50 },
 				effect: "+0.01 gold/sec",
 				unlocked: () => gameState.technologies.metalWorking && gameState.buildings.mine >= 2,
 				onBuild: () => { 
 					const currentCount = gameState.buildings.goldMine;
 					const scalingMultiplier = Math.pow(1.4, currentCount);
-					buildingDefs.goldMine.cost.wood = Math.floor(200 * scalingMultiplier);
+					buildingDefs.goldMine.cost.materials = Math.floor(200 * scalingMultiplier);
 					buildingDefs.goldMine.cost.minerals = Math.floor(150 * scalingMultiplier);
 					buildingDefs.goldMine.cost.coal = Math.floor(50 * scalingMultiplier);
 					
@@ -1007,7 +1007,7 @@
             workshop: {
                 name: "Workshop",
                 description: "Advanced crafting building",
-                cost: { wood: 100, minerals: 100 },
+                cost: { materials: 100, minerals: 100 },
                 effect: "Enables advanced crafting and smelting",
                 unlocked: () => gameState.technologies.engineering,
 				onBuild: () => { 
@@ -1024,13 +1024,13 @@
 			smelter: {
 				name: "Smelter",
 				description: "Smelt coal and minerals into iron",
-				cost: { wood: 200, minerals: 200, coal: 100 },
+				cost: { materials: 200, minerals: 200, coal: 100 },
 				effect: "+0.05 iron/sec",
 				unlocked: () => gameState.technologies.metalWorking && gameState.buildings.workshop >= 1,
 				onBuild: () => { 
 					const currentCount = gameState.buildings.smelter;
 					const scalingMultiplier = Math.pow(1.3, currentCount);
-					buildingDefs.smelter.cost.wood = Math.floor(200 * scalingMultiplier);
+					buildingDefs.smelter.cost.materials = Math.floor(200 * scalingMultiplier);
 					buildingDefs.smelter.cost.minerals = Math.floor(200 * scalingMultiplier);
 					buildingDefs.smelter.cost.coal = Math.floor(100 * scalingMultiplier);
 					
@@ -1046,7 +1046,7 @@
             shrine: {
                 name: "Shrine",
                 description: "A small shrine to AIDA",
-                cost: { wood: 50, stone: 25 },
+                cost: { materials: 50, stone: 25 },
                 effect: "+0.05 faith per second",
                 unlocked: () => gameState.resources.stone >= 15,
                 onBuild: () => { 
@@ -1057,13 +1057,13 @@
 			temple: {
 				name: "Temple",
 				description: "A sacred place of worship to AIDA",
-				cost: { wood: 50, gold: 25 },
+				cost: { materials: 50, gold: 25 },
 				effect: "+0.1 faith per second",
 				unlocked: () => gameState.resources.gold >= 20,
 				onBuild: () => { 
 					const currentCount = gameState.buildings.temple;
 					const scalingMultiplier = Math.pow(1.25, currentCount);
-					buildingDefs.temple.cost.wood = Math.floor(50 * scalingMultiplier);
+					buildingDefs.temple.cost.materials = Math.floor(50 * scalingMultiplier);
 					buildingDefs.temple.cost.gold = Math.floor(25 * scalingMultiplier);
 					
 					// Diminishing returns: each temple after the 3rd gives less faith
@@ -1079,7 +1079,7 @@
 			logHouse: {
 				name: "Log House",
 				description: "A sturdy log house for more robots",
-				cost: { wood: 200, minerals: 250 },
+				cost: { materials: 200, minerals: 250 },
 				effect: "Houses 6 robots, +10% happiness",
 				unlocked: () => gameState.technologies.construction,
 				onBuild: () => { 
@@ -1091,13 +1091,13 @@
 			academy: {
 				name: "Academy",
 				description: "Advanced learning institution",
-				cost: { wood: 200, minerals: 100, science: 500 },
+				cost: { materials: 200, minerals: 100, science: 500 },
 				effect: "+1.0 science per second, reduces tech costs",
 				unlocked: () => gameState.buildings.library >= 2 && gameState.resources.science >= 200,
 				onBuild: () => { 
 					const currentCount = gameState.buildings.academy;
 					const scalingMultiplier = Math.pow(1.5, currentCount);
-					buildingDefs.academy.cost.wood = Math.floor(200 * scalingMultiplier);
+					buildingDefs.academy.cost.materials = Math.floor(200 * scalingMultiplier);
 					buildingDefs.academy.cost.minerals = Math.floor(100 * scalingMultiplier);
 					buildingDefs.academy.cost.science = Math.floor(500 * scalingMultiplier);
 					
@@ -1116,7 +1116,7 @@
             pasture: {
                 name: "Pasture",
                 description: "Raise unicorns and other creatures",
-                cost: { wood: 50, energy: 500 },
+                cost: { materials: 50, energy: 500 },
                 effect: "Enables unicorn farming, +happiness",
                 unlocked: () => gameState.resources.unicorns >= 1 || gameState.resources.ivory >= 10,
                 onBuild: () => {
@@ -1128,7 +1128,7 @@
 			tradingPost: {
 				name: "Trading Post",
 				description: "Trade with other civilizations",
-				cost: { wood: 500, minerals: 200, gold: 15 },
+				cost: { materials: 500, minerals: 200, gold: 15 },
 				effect: "Unlocks trading and exotic resources",
 				maxBuildable: 1,
 				unlocked: () => gameState.resources.gold >= 10 && gameState.resources.furs >= 50,
@@ -1141,7 +1141,7 @@
 			amphitheatre: {
 				name: "Amphitheatre",
 				description: "A place for cultural gatherings and performances",
-				cost: { wood: 200, minerals: 100 },
+				cost: { materials: 200, minerals: 100 },
 				effect: "+0.1 culture per second, +500 culture storage",
 				unlocked: () => gameState.technologies.construction && (gameState.resources.minerals >= 50 || gameState.buildings.amphitheatre > 0),
 				onBuild: () => {
@@ -1159,7 +1159,7 @@
 			observatory: {
 				name: "Observatory",
 				description: "Study the heavens and stars",
-				cost: { wood: 200, minerals: 100, iron: 50 },
+				cost: { materials: 200, minerals: 100, iron: 50 },
 				effect: "+0.25 science per second, enables star observation",
 				maxBuildable: 1,
 				unlocked: () => gameState.technologies.astronomy,
@@ -1170,7 +1170,7 @@
 			harbor: {
 				name: "Harbor",
 				description: "A harbor for storing trade ships",
-				cost: { wood: 75, stone: 50 },
+				cost: { materials: 75, stone: 50 },
 				effect: "+50 titanium storage",
 				unlocked: () => gameState.technologies.navigation,
 				onBuild: () => {
@@ -1190,7 +1190,7 @@
 			mint: {
 				name: "Mint",
 				description: "Produces gold and increases gold storage",
-				cost: { wood: 25, minerals: 200, steel: 1 },
+				cost: { materials: 25, minerals: 200, steel: 1 },
 				effect: "+100 gold storage, produces 0.005 gold/sec",
 				unlocked: () => gameState.technologies.metalWorking && gameState.resources.steel >= 1,
 				onBuild: () => { 
@@ -1485,7 +1485,7 @@
 			{ id: 'storage_master', name: 'Storage Master', desc: 'Build 5 barns and 5 warehouses', trigger: () => gameState.buildings.barn >= 5 && gameState.buildings.warehouse >= 5 },
 			
 			// Resource Achievements
-			{ id: 'wood_stockpile', name: 'Lumber Baron', desc: 'Accumulate 10,000 wood', trigger: () => gameState.resources.wood >= 10000 },
+			{ id: 'materials_stockpile', name: 'Lumber Baron', desc: 'Accumulate 10,000 materials', trigger: () => gameState.resources.materials >= 10000 },
 			{ id: 'mineral_fortune', name: 'Mining Tycoon', desc: 'Accumulate 5,000 minerals', trigger: () => gameState.resources.minerals >= 5000 },
 			{ id: 'iron_age', name: 'Iron Age', desc: 'Accumulate 1,000 iron', trigger: () => gameState.resources.iron >= 1000 },
 			{ id: 'gold_rush', name: 'Gold Rush', desc: 'Accumulate 500 gold', trigger: () => gameState.resources.gold >= 500 },
@@ -1944,7 +1944,7 @@
 			
 			// Reset most game state
 			gameState.resources = {
-				energy: 0, wood: 0, minerals: 0, coal: 0, iron: 0, gold: 0, stone: 0,
+				energy: 0, materials: 0, minerals: 0, coal: 0, iron: 0, gold: 0, stone: 0,
 				science: 0, faith: 0, furs: 0, ivory: 0, unicorns: 0, titanium: 0,
 				steel: 0, oil: 0, uranium: 0, gear: 0, alloy: 0, concrete: 0, processing: 0, ships: 0, starcharts: 0
 			};
@@ -1965,12 +1965,12 @@
 				robots: 1,
 				happiness: 1.0 + (gameState.prestige.karma * 0.01), // Karma bonus
 				maxKittens: 2,
-				jobs: { farmers: 0, woodcutters: 0, miners: 0, scholars: 0, hunters: 0, priests: 0 }
+				jobs: { farmers: 0, materialscutters: 0, miners: 0, scholars: 0, hunters: 0, priests: 0 }
 			};
 			
 			// Reset production but apply paragon bonuses
 			gameState.resourcesProduction = {
-				energy: 0, wood: 0, minerals: 0, coal: 0, iron: 0, gold: 0, stone: 0, science: 0, faith: 0
+				energy: 0, materials: 0, minerals: 0, coal: 0, iron: 0, gold: 0, stone: 0, science: 0, faith: 0
 			};
 			
 			// Reset other systems
@@ -2028,15 +2028,15 @@
 		function resetBuildingCosts() {
 			// Reset all building costs to their base values
 			buildingDefs.catnipField.cost.energy = 10;
-			buildingDefs.temple.cost.wood = 50;
+			buildingDefs.temple.cost.materials = 50;
 			buildingDefs.temple.cost.gold = 25;
-			buildingDefs.goldMine.cost.wood = 200;
+			buildingDefs.goldMine.cost.materials = 200;
 			buildingDefs.goldMine.cost.minerals = 150;
 			buildingDefs.goldMine.cost.coal = 50;
-			buildingDefs.smelter.cost.wood = 200;
+			buildingDefs.smelter.cost.materials = 200;
 			buildingDefs.smelter.cost.minerals = 200;
 			buildingDefs.smelter.cost.coal = 100;
-			buildingDefs.academy.cost.wood = 200;
+			buildingDefs.academy.cost.materials = 200;
 			buildingDefs.academy.cost.minerals = 100;
 			buildingDefs.academy.cost.science = 500;
 		}
@@ -2045,7 +2045,7 @@
 			const upgrades = {
 				mineralHoes: { cost: { science: 100, minerals: 50 } },
 				ironHoes: { cost: { science: 200, iron: 25 } },
-				compositeBow: { cost: { science: 200, wood: 75 } }
+				compositeBow: { cost: { science: 200, materials: 75 } }
 			};
 			
 			const upgrade = upgrades[upgradeKey];
@@ -2086,7 +2086,7 @@
 			if (gameState.stats.gatherClicks < 10) {
 				objectives.push("🎯 Gather energy and plant your first fields");
 			} else if (gameState.buildings.hut < 2) {
-				objectives.push("🏠 Build huts to house more robots (Need: 5 wood each)");
+				objectives.push("🏠 Build huts to house more robots (Need: 5 materials each)");
 			} else if (!gameState.technologies.archery) {
 				objectives.push("🏹 Research Archery to unlock expeditions (Need: 25 science)");
 			} else if (gameState.expeditions.completed < 5) {
@@ -2094,7 +2094,7 @@
 			} else if (!gameState.technologies.engineering) {
 				objectives.push("⚙️ Research Engineering to unlock workshops (Need: 200 science)");
 			} else if (gameState.buildings.workshop === 0) {
-				objectives.push("🔨 Build a Workshop to craft advanced materials (Need: 100 wood, 100 minerals)");
+				objectives.push("🔨 Build a Workshop to craft advanced materials (Need: 100 materials, 100 minerals)");
 			} else if (gameState.resources.steel === 0) {
 				objectives.push("🔩 Craft Steel in workshop (Need: 10 iron, 5 coal)");
 			} else if (!gameState.technologies.rocketry) {
@@ -2177,7 +2177,7 @@
 						
 			const jobs = [
 				{ key: 'farmers', name: 'Farmers', effect: '+0.25 energy/sec each', unlocked: () => gameState.buildings.catnipField > 0 },
-				{ key: 'woodcutters', name: 'Woodcutters', effect: '+0.05 wood/sec each', unlocked: () => gameState.resources.wood > 0 },
+				{ key: 'materialscutters', name: 'materialscutters', effect: '+0.05 materials/sec each', unlocked: () => gameState.resources.materials > 0 },
 				{ key: 'miners', name: 'Miners', effect: '+0.03 minerals/sec each', unlocked: () => gameState.buildings.mine > 0 },
 				{ key: 'scholars', name: 'Scholars', effect: '+0.035 science/sec each', unlocked: () => gameState.buildings.library > 0 },
 				{ key: 'hunters', name: 'Hunters', effect: '+0.4 processing/sec each', unlocked: () => gameState.technologies.archery }, // CHANGED THIS LINE
@@ -2220,7 +2220,7 @@
 			if (!gameState.population.jobs) {
 				gameState.population.jobs = {
 					farmers: 0,
-					woodcutters: 0,
+					materialscutters: 0,
 					miners: 0,
 					scholars: 0,
 					hunters: 0,
@@ -2420,7 +2420,7 @@
 				},
 				{
 					name: 'Composite Bow',
-					cost: { science: 200, wood: 75 },
+					cost: { science: 200, materials: 75 },
 					effect: 'Hunters 50% more effective, +100 processing cap',
 					unlocked: () => gameState.technologies.archery,
 					key: 'compositeBow'
@@ -2491,13 +2491,13 @@
 				},
 				{
 					name: 'Trade Ship',
-					inputs: { wood: 100, iron: 50, starcharts: 25 },
+					inputs: { materials: 100, iron: 50, starcharts: 25 },
 					output: { ships: 1 },
 					unlocked: () => gameState.unlockedRecipes.tradeShip || (gameState.technologies.navigation && gameState.resources.starcharts >= 10)
 				},
 				{
 					name: 'Scaffold',
-					inputs: { wood: 50 },
+					inputs: { materials: 50 },
 					output: { scaffolds: 1 },
 					unlocked: () => gameState.unlockedRecipes.scaffold || gameState.buildings.workshop >= 1
 				},
@@ -2639,8 +2639,8 @@
 				'Gear': { inputs: { steel: 5, coal: 10 }, output: { gear: 1 } },
 				'Alloy': { inputs: { iron: 25, titanium: 10 }, output: { alloy: 1 } },
 				'Concrete': { inputs: { iron: 25, minerals: 1250, coal: 25 }, output: { concrete: 1 } },
-				'Trade Ship': { inputs: { wood: 100, iron: 50, starcharts: 25 }, output: { ships: 1 } },
-				'Scaffold': { inputs: { wood: 50 }, output: { scaffolds: 1 } },
+				'Trade Ship': { inputs: { materials: 100, iron: 50, starcharts: 25 }, output: { ships: 1 } },
+				'Scaffold': { inputs: { materials: 50 }, output: { scaffolds: 1 } },
 				'Plate': { inputs: { iron: 125 }, output: { plates: 1 } },
 				'Parchment': { inputs: { furs: 175 }, output: { parchment: 1 } },
 				'Manuscript': { inputs: { parchment: 25, culture: 400 }, output: { manuscripts: 1 } },
@@ -2844,15 +2844,15 @@
 
 		function refineCatnip(quantity = 1) {
 			const cost = 100 * quantity;
-			const woodGained = 1 * quantity;
+			const materialsGained = 1 * quantity;
 			
 			if (gameState.resources.energy >= cost) {
 				gameState.resources.energy -= cost;
-				gameState.resources.wood += woodGained;
+				gameState.resources.materials += materialsGained;
 				gameState.stats.totalEnergyRefined += quantity;
 				
 				const plural = quantity > 1 ? 's' : '';
-				logMessage(`You refined ${cost} energy into ${woodGained} wood${plural}.`);
+				logMessage(`You refined ${cost} energy into ${materialsGained} materials${plural}.`);
 				updateDisplay();
 			}
 		}
@@ -2868,7 +2868,7 @@
 						<button class="action-button" onclick="refineCatnip(1)" 
 								${gameState.resources.energy < 100 ? 'disabled' : ''}
 								style="flex: 1;">
-							Refine energy (100 → 1 wood)
+							Refine energy (100 → 1 materials)
 						</button>
 						${canRefine10 ? `
 							<button class="action-button" onclick="refineCatnip(10)" 
@@ -2910,8 +2910,8 @@
 					key: 'lizards',
 					name: 'Lizards',
 					wants: 'minerals',
-					gives: 'wood',
-					ratio: { minerals: 100, wood: 50 },
+					gives: 'materials',
+					ratio: { minerals: 100, materials: 50 },
 					unlock: () => true
 				},
 				{
@@ -2925,9 +2925,9 @@
 				{
 					key: 'griffins',
 					name: 'Griffins',
-					wants: 'wood',
+					wants: 'materials',
 					gives: 'iron',
-					ratio: { wood: 500, iron: 25 },
+					ratio: { materials: 500, iron: 25 },
 					unlock: () => gameState.tradingRaces.sharks.standing >= 10
 				},
 				{
@@ -3034,9 +3034,9 @@
 
 		function tradeWith(raceKey) {
 			const races = {
-				lizards: { wants: 'minerals', gives: 'wood', ratio: { minerals: 100, wood: 50 } },
+				lizards: { wants: 'minerals', gives: 'materials', ratio: { minerals: 100, materials: 50 } },
 				sharks: { wants: 'iron', gives: 'energy', ratio: { iron: 25, energy: 350 } },
-				griffins: { wants: 'wood', gives: 'iron', ratio: { wood: 500, iron: 25 } },
+				griffins: { wants: 'materials', gives: 'iron', ratio: { materials: 500, iron: 25 } },
 				nagas: { wants: 'minerals', gives: 'science', ratio: { minerals: 350, science: 100 } },
 				zebras: { wants: 'furs', gives: 'titanium', ratio: { furs: 500, titanium: 1.5 } }
 			};
@@ -3626,7 +3626,7 @@
 			// Simple rotation through available jobs
 			const availableJobs = [
 				{ key: 'farmers', condition: () => gameState.buildings.catnipField > 0 },
-				{ key: 'woodcutters', condition: () => gameState.resources.wood > 0 },
+				{ key: 'materialscutters', condition: () => gameState.resources.materials > 0 },
 				{ key: 'scholars', condition: () => gameState.buildings.library > 0 },
 				{ key: 'miners', condition: () => gameState.buildings.mine > 0 },
 				{ key: 'hunters', condition: () => gameState.technologies.archery }
@@ -3960,8 +3960,8 @@
 					if (resource === 'energy') {
 						production += gameState.population.jobs.farmers * 0.25;
 					}
-					if (resource === 'wood') {
-						production += gameState.population.jobs.woodcutters * 0.05;
+					if (resource === 'materials') {
+						production += gameState.population.jobs.materialscutters * 0.05;
 					}
 					if (resource === 'minerals') {
 						production += gameState.population.jobs.miners * 0.03;
@@ -4426,7 +4426,7 @@
 			// Reset to base limits
 			gameState.resourceLimits = {
 				energy: 5000,
-				wood: 1000,
+				materials: 1000,
 				minerals: 1000,
 				coal: 500,
 				iron: 300,
@@ -4453,7 +4453,7 @@
 			// Add storage from barns
 			if (gameState.buildings.barn > 0) {
 				gameState.resourceLimits.energy += gameState.buildings.barn * 5000;
-				gameState.resourceLimits.wood += gameState.buildings.barn * 200;
+				gameState.resourceLimits.materials += gameState.buildings.barn * 200;
 				gameState.resourceLimits.minerals += gameState.buildings.barn * 250;
 				gameState.resourceLimits.furs += gameState.buildings.barn * 200;
 				gameState.resourceLimits.ivory += gameState.buildings.barn * 50;  // ADDED THIS
@@ -4473,7 +4473,7 @@
 			
 			// Add storage from harbors
 			if (gameState.buildings.harbor > 0) {
-				gameState.resourceLimits.wood += gameState.buildings.harbor * 700;
+				gameState.resourceLimits.materials += gameState.buildings.harbor * 700;
 				gameState.resourceLimits.minerals += gameState.buildings.harbor * 950;
 				gameState.resourceLimits.titanium += gameState.buildings.harbor * 50;
 			}
@@ -4517,7 +4517,7 @@
 			if (gameState.stats.gatherClicks >= 5 || gameState.buildings.catnipField > 0) {
 				showElement('plant-energy-btn');
 			}
-			if (gameState.stats.gatherClicks >= 3 || gameState.resources.wood > 0) {
+			if (gameState.stats.gatherClicks >= 3 || gameState.resources.materials > 0) {
 				showElement('refine-energy-btn');
 			}
 			if (gameState.technologies.archery) {
@@ -4595,7 +4595,7 @@
 					if (!gameState.population.jobs) {
 						gameState.population.jobs = {
 							farmers: 0,
-							woodcutters: 0,
+							materialscutters: 0,
 							miners: 0,
 							scholars: 0,
 							hunters: 0,
@@ -4703,8 +4703,8 @@
 		function checkNewResources() {
 			const displayedResources = ['energy'];
 			
-			if (gameState.resources.wood > 0 && !document.getElementById('wood-amount')) {
-				addResourceToDisplay('wood');
+			if (gameState.resources.materials > 0 && !document.getElementById('materials-amount')) {
+				addResourceToDisplay('materials');
 			}
 			if (gameState.resources.science > 0 && !document.getElementById('science-amount')) {
 				addResourceToDisplay('science', 'science');
