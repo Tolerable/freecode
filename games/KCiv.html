@@ -771,7 +771,8 @@
 				harbor: 0,
 				amphitheatre: 0,
 				oilWell: 0,
-				chronosphere: 0
+				chronosphere: 0,
+				mint: 0
             },
             technologies: {
                 agriculture: false,
@@ -1179,6 +1180,17 @@
 				unlocked: () => gameState.technologies.physics && gameState.expeditions.completed >= 10,
 				onBuild: () => {
 					gameState.resourcesProduction.oil = (gameState.resourcesProduction.oil || 0) + 0.02;
+				}
+			},
+			mint: {
+				name: "Mint",
+				description: "Produces gold and increases gold storage",
+				cost: { wood: 25, minerals: 200, steel: 1 },
+				effect: "+100 gold storage, produces 0.005 gold/sec",
+				unlocked: () => gameState.technologies.metalWorking && gameState.resources.steel >= 1,
+				onBuild: () => { 
+					gameState.resourceLimits.gold += 100;
+					gameState.resourcesProduction.gold = (gameState.resourcesProduction.gold || 0) + 0.005;
 				}
 			},			
 			launchPad: {
@@ -1961,7 +1973,7 @@
 			gameState.buildings = {
 				catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0,
 				quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0,
-				logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0, harbor: 0
+				logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0, harbor: 0, mint: 0
 			};
 			
 			gameState.technologies = {
@@ -3527,7 +3539,8 @@
             if (buildingKey === 'academy' && gameState.buildings.library >= 1 && gameState.resources.science >= 100) return true;
             if (buildingKey === 'pasture' && (gameState.resources.ivory >= 5 || gameState.resources.unicorns >= 1)) return true;
             if (buildingKey === 'tradingPost' && gameState.resources.furs >= 25) return true;
-            
+            if (buildingKey === 'mint' && gameState.technologies.metalWorking && gameState.resources.steel >= 1) return true;
+
             return false;
         }
 
@@ -3546,6 +3559,7 @@
                 case 'academy': return 'Build 2+ Libraries + 200 science';
                 case 'pasture': return 'Find unicorns or gather 10+ ivory';
                 case 'tradingPost': return 'Gather 50+ furs + 10+ gold';
+				case 'mint': return 'Research Metal Working + Craft Steel';
                 default: return 'Requirements not met';
             }
         }
@@ -4362,22 +4376,37 @@
 				manuscripts: 100,
 				unobtainium: 150,
 				timeCrystals: 10,
-				culture: 200
+				culture: 200,
+				blueprints: 100,
+				compendium: 25,
+				megalith: 10
 			};
 			
 			// Add storage from barns
 			if (gameState.buildings.barn > 0) {
-				gameState.resourceLimits.catnip += gameState.buildings.barn * 10000;
-				gameState.resourceLimits.wood += gameState.buildings.barn * 2000;
-				gameState.resourceLimits.furs += gameState.buildings.barn * 1000;
+				gameState.resourceLimits.catnip += gameState.buildings.barn * 5000;
+				gameState.resourceLimits.wood += gameState.buildings.barn * 200;
+				gameState.resourceLimits.minerals += gameState.buildings.barn * 250;
+				gameState.resourceLimits.furs += gameState.buildings.barn * 200;
+				gameState.resourceLimits.gold += gameState.buildings.barn * 10;
+				gameState.resourceLimits.titanium += gameState.buildings.barn * 2;
 			}
 			
-			// Add storage from warehouses
+			// Add storage from warehouses  
 			if (gameState.buildings.warehouse > 0) {
-				gameState.resourceLimits.minerals += gameState.buildings.warehouse * 2000;
-				gameState.resourceLimits.coal += gameState.buildings.warehouse * 1500;
-				gameState.resourceLimits.stone += gameState.buildings.warehouse * 2000;
-				gameState.resourceLimits.iron += gameState.buildings.warehouse * 500;
+				gameState.resourceLimits.minerals += gameState.buildings.warehouse * 200;
+				gameState.resourceLimits.coal += gameState.buildings.warehouse * 150;
+				gameState.resourceLimits.iron += gameState.buildings.warehouse * 50;
+				gameState.resourceLimits.stone += gameState.buildings.warehouse * 200;
+				gameState.resourceLimits.gold += gameState.buildings.warehouse * 5;
+				gameState.resourceLimits.titanium += gameState.buildings.warehouse * 10;
+			}
+			
+			// Add storage from harbors
+			if (gameState.buildings.harbor > 0) {
+				gameState.resourceLimits.wood += gameState.buildings.harbor * 700;
+				gameState.resourceLimits.minerals += gameState.buildings.harbor * 950;
+				gameState.resourceLimits.titanium += gameState.buildings.harbor * 50;
 			}
 			
 			// Add storage from academies
@@ -4385,20 +4414,15 @@
 				gameState.resourceLimits.science += gameState.buildings.academy * 1000;
 			}
 			
-			// Add storage from harbors
-			if (gameState.buildings.harbor > 0) {
-				gameState.resourceLimits.titanium += gameState.buildings.harbor * 50;
+			// Add storage from amphitheatres
+			if (gameState.buildings.amphitheatre > 0) {
+				gameState.resourceLimits.culture += gameState.buildings.amphitheatre * 500;
 			}
 			
 			// Add catpower storage from composite bow upgrade
 			if (gameState.workshopUpgrades && gameState.workshopUpgrades.compositeBow) {
 				gameState.resourceLimits.catpower += 100;
 			}
-			
-			// Add storage from amphitheatres
-			if (gameState.buildings.amphitheatre > 0) {
-				gameState.resourceLimits.culture += gameState.buildings.amphitheatre * 500;
-			}			
 			
 			// Add faith storage from religious buildings
 			if (gameState.buildings.temple > 0) {
