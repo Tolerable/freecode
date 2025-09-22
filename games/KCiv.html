@@ -2411,7 +2411,7 @@
 				}
 			});
 			
-			// Crafting Section with permanent unlocking
+			// Crafting Section with permanent unlocking and bulk crafting
 			const recipes = [
 				{
 					name: 'Steel',
@@ -2480,12 +2480,16 @@
 					}
 					
 					let canCraft = true;
+					let canCraft10 = true;
+					let canCraft100 = true;
 					let inputText = '';
 					
 					for (let resource in recipe.inputs) {
 						const needed = recipe.inputs[resource];
 						const available = Math.floor(gameState.resources[resource] || 0);
 						if (available < needed) canCraft = false;
+						if (available < needed * 10) canCraft10 = false;
+						if (available < needed * 100) canCraft100 = false;
 						inputText += `${needed} ${resource}, `;
 					}
 					inputText = inputText.slice(0, -2);
@@ -2500,11 +2504,28 @@
 					div.innerHTML = `
 						<h4>${recipe.name}</h4>
 						<p>Craft: ${inputText} → ${outputText}</p>
-						<button class="action-button" 
-								onclick="craft('${recipe.name}')" 
-								${!canCraft ? 'disabled' : ''}>
-							Craft ${recipe.name}
-						</button>
+						<div style="display: flex; gap: 5px; align-items: center;">
+							<button class="action-button" 
+									onclick="craft('${recipe.name}', 1)" 
+									${!canCraft ? 'disabled' : ''}
+									style="flex: 1;">
+								Craft ${recipe.name}
+							</button>
+							${canCraft10 ? `
+								<button class="action-button" 
+										onclick="craft('${recipe.name}', 10)" 
+										style="width: 60px; font-size: 12px;">
+									x10
+								</button>
+							` : ''}
+							${canCraft100 ? `
+								<button class="action-button" 
+										onclick="craft('${recipe.name}', 100)" 
+										style="width: 60px; font-size: 12px;">
+									x100
+								</button>
+							` : ''}
+						</div>
 					`;
 					workshopContent.appendChild(div);
 				}
@@ -2526,7 +2547,7 @@
 			}
 		}
 
-		function craft(recipeName) {
+		function craft(recipeName, quantity = 1) {
 			const recipes = {
 				'Steel': { inputs: { iron: 10, coal: 5 }, output: { steel: 1 } },
 				'Gear': { inputs: { steel: 5, coal: 10 }, output: { gear: 1 } },
@@ -2542,31 +2563,31 @@
 			const recipe = recipes[recipeName];
 			if (!recipe) return;
 			
-			// Check if we can afford all inputs
+			// Check if we can afford all inputs for the quantity
 			for (let resource in recipe.inputs) {
-				if (Math.floor(gameState.resources[resource] || 0) < recipe.inputs[resource]) {
-					logMessage(`Not enough ${resource} to craft ${recipeName}`);
+				if (Math.floor(gameState.resources[resource] || 0) < recipe.inputs[resource] * quantity) {
+					logMessage(`Not enough ${resource} to craft ${quantity}x ${recipeName}`);
 					return;
 				}
 			}
 			
 			// Pay the costs
 			for (let resource in recipe.inputs) {
-				gameState.resources[resource] -= recipe.inputs[resource];
+				gameState.resources[resource] -= recipe.inputs[resource] * quantity;
 			}
 			
 			// Add outputs
 			for (let resource in recipe.output) {
 				if (!gameState.resources[resource]) gameState.resources[resource] = 0;
-				gameState.resources[resource] += recipe.output[resource];
+				gameState.resources[resource] += recipe.output[resource] * quantity;
 			}
 			
 			// Track crafting for achievements
 			if (recipeName === 'Steel') {
-				gameState.stats.steelCrafted = (gameState.stats.steelCrafted || 0) + 1;
+				gameState.stats.steelCrafted = (gameState.stats.steelCrafted || 0) + quantity;
 			}
 			
-			logMessage(`Crafted ${recipeName}!`);
+			logMessage(`Crafted ${quantity}x ${recipeName}!`);
 			updateWorkshopTab();
 			updateDisplay();
 			checkAchievements();
