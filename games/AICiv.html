@@ -3794,10 +3794,15 @@
 					let canAfford = true;
 					let costText = '';
 					for (let resource in religion.cost) {
-						if (Math.floor(gameState.resources[resource]) < religion.cost[resource]) {
+						const needed = religion.cost[resource];
+						const available = Math.floor(gameState.resources[resource] || 0);
+						const hasEnough = available >= needed;
+						const color = hasEnough ? '#2ecc71' : '#e74c3c';
+						
+						if (!hasEnough) {
 							canAfford = false;
 						}
-						costText += `${religion.cost[resource]} ${resource}, `;
+						costText += `<span style="color: ${color};">${needed} ${resource}</span>, `;
 					}
 					costText = costText.slice(0, -2);
 					
