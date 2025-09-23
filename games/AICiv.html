@@ -788,6 +788,7 @@
                 physics: false,
                 calendar: false
 			},
+			smelterActive: 0,
 			craftingBonus: 0,
 			workshopUpgrades: {
 				mineralHoes: false,
@@ -2891,35 +2892,86 @@
             }
         }
 
-        function updateFieldDisplay() {
-            const fieldsDisplay = document.getElementById('energy-fields-display');
-            if (!fieldsDisplay) return; // Safety check
-            
-            if (gameState.buildings.catnipField > 0) {
-                const totalProduction = (gameState.buildings.catnipField * 0.63).toFixed(2);
-                const seasonMultipliers = [1.5, 1.0, 0.75, 0.25];
-                const seasonalProduction = (totalProduction * seasonMultipliers[gameState.stats.season]).toFixed(2);
-                const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
-                
-                fieldsDisplay.innerHTML = `
-                    <div class="field-display">
-                        <div class="field-header">
-                            <span class="field-title">Energy Generator (${gameState.buildings.catnipField})</span>
-                            <button class="sell-button" onclick="sellCatnipField()" style="${gameSettings.hideSellButtons ? 'display: none;' : ''}">sell</button>
-                        </div>
-                        <p>Install energy generators in the facility.<br>
-                        Generators have +50% efficiency in optimal conditions and -75% production in Winter</p>
-                        <div class="field-effects">
-                            <div class="effect-line">Effects:</div>
-                            <div class="effect-line">Energy production: ${seasonalProduction}/sec (${seasons[gameState.stats.season]})</div>
-                            <div class="effect-line">Base production: ${totalProduction}/sec</div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                fieldsDisplay.innerHTML = '';
-            }
-        }
+		function updateFieldDisplay() {
+			const fieldsDisplay = document.getElementById('energy-fields-display');
+			if (!fieldsDisplay) return; // Safety check
+			
+			fieldsDisplay.innerHTML = ''; // Clear existing content
+			
+			// Energy Generator Section
+			if (gameState.buildings.catnipField > 0) {
+				const totalProduction = (gameState.buildings.catnipField * 0.63).toFixed(2);
+				const seasonMultipliers = [1.5, 1.0, 0.75, 0.25];
+				const seasonalProduction = (totalProduction * seasonMultipliers[gameState.stats.season]).toFixed(2);
+				const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+				
+				const energyDiv = document.createElement('div');
+				energyDiv.className = 'field-display';
+				energyDiv.innerHTML = `
+					<div class="field-header">
+						<span class="field-title">Energy Generator (${gameState.buildings.catnipField})</span>
+						<button class="sell-button" onclick="sellCatnipField()" style="${gameSettings.hideSellButtons ? 'display: none;' : ''}">sell</button>
+					</div>
+					<p>Install energy generators in the facility.<br>
+					Generators have +50% efficiency in optimal conditions and -75% production in Winter</p>
+					<div class="field-effects">
+						<div class="effect-line">Effects:</div>
+						<div class="effect-line">Energy production: ${seasonalProduction}/sec (${seasons[gameState.stats.season]})</div>
+						<div class="effect-line">Base production: ${totalProduction}/sec</div>
+					</div>
+				`;
+				fieldsDisplay.appendChild(energyDiv);
+			}
+			
+			// Smelter Management Section
+			if (gameState.buildings.smelter > 0) {
+				const smelterDiv = document.createElement('div');
+				smelterDiv.className = 'field-display';
+				smelterDiv.style.backgroundColor = 'rgba(230, 126, 34, 0.1)';
+				smelterDiv.style.borderColor = '#e67e22';
+				
+				const activeSmelters = gameState.smelterActive || 0;
+				const totalSmelters = gameState.buildings.smelter;
+				
+				smelterDiv.innerHTML = `
+					<div class="field-header">
+						<span class="field-title">Smelter (${activeSmelters}/${totalSmelters})</span>
+						<button class="sell-button" onclick="sellSmelter()" style="${gameSettings.hideSellButtons ? 'display: none;' : ''}">sell</button>
+					</div>
+					<p>Convert minerals to iron when active. Each smelter consumes 100 minerals/sec for 1 iron/sec</p>
+					<div class="job-controls" style="margin-top: 10px;">
+						<button class="job-button" onclick="adjustSmelters(-1)" ${activeSmelters <= 0 ? 'disabled' : ''}>-</button>
+						<span style="min-width: 60px; text-align: center; margin: 0 10px;">${activeSmelters}/${totalSmelters}</span>
+						<button class="job-button" onclick="adjustSmelters(1)" ${activeSmelters >= totalSmelters ? 'disabled' : ''}>+</button>
+					</div>
+				`;
+				
+				fieldsDisplay.appendChild(smelterDiv);
+			}
+		}
+
+		function adjustSmelters(change) {
+			const current = gameState.smelterActive || 0;
+			const total = gameState.buildings.smelter;
+			
+			const newActive = Math.max(0, Math.min(total, current + change));
+			gameState.smelterActive = newActive;
+			
+			updateFieldDisplay();
+			logMessage(`${newActive} smelters now active.`);
+		}
+
+		function sellSmelter() {
+			if (gameState.buildings.smelter > 0) {
+				gameState.buildings.smelter--;
+				gameState.smelterActive = Math.min(gameState.smelterActive || 0, gameState.buildings.smelter);
+				// Return some resources
+				gameState.resources.materials += 100;
+				logMessage("Sold a smelter for 100 materials.");
+				updateFieldDisplay();
+				updateDisplay();
+			}
+		}
 
 		function refineCatnip(quantity = 1) {
 			const cost = 100 * quantity;
