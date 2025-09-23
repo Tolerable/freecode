@@ -2071,6 +2071,15 @@
 			updateSpaceBuildings();
 		}
 
+		function getCurrentSpaceCount(buildingName) {
+			switch(buildingName) {
+				case 'Satellite': return gameState.space.satellites;
+				case 'Space Station': return gameState.space.spaceStations;
+				case 'Moon Base': return gameState.space.moonBases;
+				default: return 0;
+			}
+		}
+
 		function updateSpaceBuildings() {
 			const buildingsList = document.getElementById('space-buildings-list');
 			if (!buildingsList) return;
@@ -2132,9 +2141,11 @@
 					
 					const div = document.createElement('div');
 					div.className = 'building-item';
+					const currentCount = getCurrentSpaceCount(building.name);
 					div.innerHTML = `
-						<h4>${building.name}</h4>
+						<h4>${building.name}${currentCount > 0 ? ` (${currentCount})` : ''}</h4>
 						<p><strong>Effect:</strong> ${building.effect}</p>
+						${currentCount > 0 ? `<p style="color: #2ecc71;"><strong>✓ Built:</strong> ${currentCount}</p>` : ''}
 						<button class="action-button building-button" 
 								onclick="buildSpaceBuilding('${building.name}')" 
 								${!canAfford ? 'disabled' : ''}>
