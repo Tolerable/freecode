@@ -1015,11 +1015,18 @@
 					showElement('refine-energy-btn');
 					updateWorkshopTab();
 					
-					// Each workshop provides +50% crafting bonus (like original)
-					if (!gameState.craftingBonus) gameState.craftingBonus = 0;
-					gameState.craftingBonus += 0.5;
+					// Diminishing returns: each workshop after the 2nd gives less bonus
+					const currentCount = gameState.buildings.workshop;
+					let craftingBonus = 0.5; // Base 50% for first workshop
 					
-					logMessage("Workshop built! Crafting efficiency increased by 50%.");
+					if (currentCount >= 2) {
+						craftingBonus = 0.5 * Math.pow(0.9, currentCount - 1); // 10% less each time
+					}
+					
+					if (!gameState.craftingBonus) gameState.craftingBonus = 0;
+					gameState.craftingBonus += craftingBonus;
+					
+					logMessage(`Workshop built! Crafting efficiency increased by ${(craftingBonus * 100).toFixed(1)}%.`);
 				}
             },
 			smelter: {
