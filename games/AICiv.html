@@ -3534,6 +3534,37 @@
 					// Check if building is at max capacity
 					const isAtMaxCapacity = building.maxBuildable && buildingCount >= building.maxBuildable;
 					
+					// Calculate scaled costs for buildings with scaling
+					if (buildingKey === 'catnipField') {
+						const currentCount = gameState.buildings.catnipField;
+						let scaledCost;
+						if (currentCount < 20) {
+							scaledCost = 10 * Math.pow(1.15, currentCount);
+						} else {
+							scaledCost = 10 * Math.pow(1.15, 20) + (currentCount - 20) * 50;
+						}
+						building.cost.energy = Math.floor(scaledCost);
+					} else if (buildingKey === 'temple') {
+						const currentCount = gameState.buildings.temple;
+						building.cost.materials = Math.floor(50 * Math.pow(1.25, currentCount));
+						building.cost.gold = Math.floor(25 * Math.pow(1.25, currentCount));
+					} else if (buildingKey === 'goldMine') {
+						const currentCount = gameState.buildings.goldMine;
+						building.cost.materials = Math.floor(200 * Math.pow(1.4, currentCount));
+						building.cost.minerals = Math.floor(150 * Math.pow(1.4, currentCount));
+						building.cost.coal = Math.floor(50 * Math.pow(1.4, currentCount));
+					} else if (buildingKey === 'academy') {
+						const currentCount = gameState.buildings.academy;
+						building.cost.materials = Math.floor(200 * Math.pow(1.5, currentCount));
+						building.cost.minerals = Math.floor(100 * Math.pow(1.5, currentCount));
+						building.cost.science = Math.floor(500 * Math.pow(1.5, currentCount));
+					} else if (buildingKey === 'smelter') {
+						const currentCount = gameState.buildings.smelter;
+						building.cost.materials = Math.floor(200 * Math.pow(1.3, currentCount));
+						building.cost.minerals = Math.floor(200 * Math.pow(1.3, currentCount));
+						building.cost.coal = Math.floor(100 * Math.pow(1.3, currentCount));
+					}
+
 					const discount = getMetaphysicsDiscount();
 					let canAfford = true;
 					let costText = '';
