@@ -768,6 +768,7 @@
                 pasture: 0,
 				harbor: 0,
 				amphitheatre: 0,
+				huntingLodge: 0,
 				oilWell: 0,
 				chronosphere: 0,
 				launchPad: 0,
@@ -1145,7 +1146,7 @@
 				name: "Amphitheatre",
 				description: "A place for cultural gatherings and performances",
 				cost: { materials: 200, minerals: 100 },
-				effect: "+0.1 culture per second, +500 culture storage",
+				effect: "+0.1 culture per second, +500 culture storage, +75 processing storage",
 				unlocked: () => gameState.technologies.construction && (gameState.resources.minerals >= 50 || gameState.buildings.amphitheatre > 0),
 				onBuild: () => {
 					if (!gameState.resourcesProduction.culture) gameState.resourcesProduction.culture = 0;
@@ -1153,10 +1154,11 @@
 					if (!gameState.resources.culture) gameState.resources.culture = 0;
 					gameState.resources.culture += 1;
 					
-					// Add culture storage
+					// Add culture and processing storage
 					gameState.resourceLimits.culture += 500;
-					
-					logMessage("Amphitheatre built! Culture production started.");
+					gameState.resourceLimits.processing += 75;
+
+					logMessage("Amphitheatre built! Culture production and processing storage increased.");
 				}
 			},			
 			observatory: {
@@ -1199,6 +1201,17 @@
 				onBuild: () => { 
 					gameState.resourceLimits.gold += 100;
 					gameState.resourcesProduction.gold = (gameState.resourcesProduction.gold || 0) + 0.005;
+				}
+			},
+			huntingLodge: {
+				name: "Hunting Lodge",
+				description: "A lodge for hunters to organize and store equipment",
+				cost: { materials: 200, furs: 50 },
+				effect: "+50 processing storage, hunters +25% more effective",
+				unlocked: () => gameState.technologies.archery && gameState.resources.furs >= 25,
+				onBuild: () => {
+					gameState.resourceLimits.processing += 50;
+					logMessage("Hunting Lodge built! Processing storage increased.");
 				}
 			},			
 			launchPad: {
@@ -1955,7 +1968,9 @@
 			gameState.buildings = {
 				catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0,
 				quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0,
-				logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0, harbor: 0, launchPad: 0, mint: 0
+				logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, 
+				pasture: 0, harbor: 0, amphitheatre: 0, huntingLodge: 0, oilWell: 0, 
+				chronosphere: 0, launchPad: 0, mint: 0
 			};
 			
 			gameState.technologies = {
@@ -4658,6 +4673,16 @@
 			if (gameState.workshopUpgrades && gameState.workshopUpgrades.compositeBow) {
 				gameState.resourceLimits.processing += 100;
 			}
+
+			// Add processing storage from amphitheatres
+			if (gameState.buildings.amphitheatre > 0) {
+				gameState.resourceLimits.processing += gameState.buildings.amphitheatre * 75;
+			}
+
+			// Add processing storage from hunting lodges
+			if (gameState.buildings.huntingLodge > 0) {
+				gameState.resourceLimits.processing += gameState.buildings.huntingLodge * 50;
+			}
 			
 			// Add faith storage from religious buildings
 			if (gameState.buildings.temple > 0) {
@@ -4738,7 +4763,9 @@
 					gameState.buildings = Object.assign({}, {
 						catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0, 
 						quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0, 
-						logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, pasture: 0
+						logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, 
+						pasture: 0, harbor: 0, amphitheatre: 0, huntingLodge: 0, oilWell: 0, 
+						chronosphere: 0, launchPad: 0, mint: 0
 					}, loadedState.buildings || {});
 					
 					gameState.technologies = Object.assign({}, {
