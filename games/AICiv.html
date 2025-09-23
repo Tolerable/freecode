@@ -2938,7 +2938,7 @@
 						<span class="field-title">Smelter (${activeSmelters}/${totalSmelters})</span>
 						<button class="sell-button" onclick="sellSmelter()" style="${gameSettings.hideSellButtons ? 'display: none;' : ''}">sell</button>
 					</div>
-					<p>Convert minerals to iron when active. Each smelter consumes 100 minerals/sec for 1 iron/sec</p>
+					<p>Convert minerals to iron when active. Each smelter consumes 1 mineral/sec for 0.02 iron/sec</p>
 					<div class="job-controls" style="margin-top: 10px;">
 						<button class="job-button" onclick="adjustSmelters(-1)" ${activeSmelters <= 0 ? 'disabled' : ''}>-</button>
 						<span style="min-width: 60px; text-align: center; margin: 0 10px;">${activeSmelters}/${totalSmelters}</span>
@@ -4143,21 +4143,12 @@
 
 			// Handle active smelters
 			if (gameState.smelterActive > 0 && gameState.buildings.smelter > 0) {
-				let totalConversion = 0;
+				const mineralsConsumed = gameState.smelterActive * 1; // 1 mineral per smelter per second
+				const ironProduced = gameState.smelterActive * 0.02; // 0.02 iron per smelter per second
 				
-				// Calculate conversion rate with diminishing returns for ACTIVE smelters only
-				for (let i = 0; i < gameState.smelterActive; i++) {
-					let conversionRate = 0.05; // Base rate per smelter
-					if (i >= 3) {
-						conversionRate = 0.05 * Math.pow(0.8, i - 2); // Same diminishing returns
-					}
-					totalConversion += conversionRate;
-				}
-				
-				const mineralsNeeded = totalConversion * 100; // 100 minerals per iron
-				if (gameState.resources.minerals >= mineralsNeeded) {
-					gameState.resources.minerals -= mineralsNeeded;
-					gameState.resources.iron += totalConversion;
+				if (gameState.resources.minerals >= mineralsConsumed) {
+					gameState.resources.minerals -= mineralsConsumed;
+					gameState.resources.iron += ironProduced;
 				}
 			}
 
