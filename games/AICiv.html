@@ -2100,9 +2100,19 @@
 				}
 			}
 			
-			// Physics unlocks Rocketry
-			else if (!gameState.technologies.physics && gameState.resources.manuscripts >= 3) {
-				objectives.push(`🔬 Research Physics now in Technology tab (unlocks Rocketry)`);
+			// Physics progression tracking - always check actual research cost
+			else if (!gameState.technologies.physics && gameState.technologies.philosophy) {
+				const manuscriptsNeeded = Math.max(0, 5 - gameState.resources.manuscripts);
+				const scienceNeeded = Math.max(0, 2500 - gameState.resources.science);
+				
+				if (manuscriptsNeeded === 0 && scienceNeeded === 0) {
+					objectives.push(`🔬 Research Physics now in Technology tab (unlocks Rocketry)`);
+				} else {
+					let missing = [];
+					if (manuscriptsNeeded > 0) missing.push(`${manuscriptsNeeded} more manuscripts`);
+					if (scienceNeeded > 0) missing.push(`${scienceNeeded} more science`);
+					objectives.push(`🔬 Physics needs: ${missing.join(', ')} to research`);
+				}
 			}
 			
 			// Rocketry unlocks Space program
