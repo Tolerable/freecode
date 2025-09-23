@@ -1023,9 +1023,9 @@
             },
 			smelter: {
 				name: "Smelter",
-				description: "Smelt coal and minerals into iron",
+				description: "Smelt minerals into iron when active",
 				cost: { materials: 200, minerals: 200, coal: 100 },
-				effect: "+0.05 iron/sec",
+				effect: "Converts minerals to iron (toggle on/off)",
 				unlocked: () => gameState.technologies.metalWorking && gameState.buildings.workshop >= 1,
 				onBuild: () => { 
 					const currentCount = gameState.buildings.smelter;
@@ -1034,13 +1034,8 @@
 					buildingDefs.smelter.cost.minerals = Math.floor(200 * scalingMultiplier);
 					buildingDefs.smelter.cost.coal = Math.floor(100 * scalingMultiplier);
 					
-					// Diminishing returns: each smelter after the 3rd gives less iron
-					let ironBonus = 0.05;
-					if (currentCount >= 3) {
-						ironBonus = 0.05 * Math.pow(0.8, currentCount - 2); // 20% less each time
-					}
-					
-					gameState.resourcesProduction.iron = (gameState.resourcesProduction.iron || 0) + ironBonus;
+					// Don't add to automatic production anymore
+					logMessage("Smelter built! Toggle it on/off to convert minerals to iron.");
 				}
 			},
             shrine: {
@@ -4093,7 +4088,27 @@
 				const newAmount = Math.min(limit, currentAmount + catpowerProduction);
 				gameState.resources.processing = newAmount;
 			}
-			
+
+			// Handle active smelters
+			if (gameState.smelterActive && gameState.buildings.smelter > 0) {
+				let totalConversion = 0;
+				
+				// Calculate conversion rate with diminishing returns
+				for (let i = 0; i < gameState.buildings.smelter; i++) {
+					let conversionRate = 0.05; // Base rate per smelter
+					if (i >= 3) {
+						conversionRate = 0.05 * Math.pow(0.8, i - 2); // Same diminishing returns
+					}
+					totalConversion += conversionRate;
+				}
+				
+				const mineralsNeeded = totalConversion * 100; // 100 minerals per iron
+				if (gameState.resources.minerals >= mineralsNeeded) {
+					gameState.resources.minerals -= mineralsNeeded;
+					gameState.resources.iron += totalConversion;
+				}
+			}
+
 			// Check metaphysics unlock
 			if (gameState.resources.unobtainium > 0) {
 				checkMetaphysicsUnlock();
