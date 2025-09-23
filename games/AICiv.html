@@ -2653,13 +2653,14 @@
 			];
 			
 			recipes.forEach(recipe => {
-				if (recipe.unlocked()) {
-					// Mark recipe as permanently unlocked
-					const recipeName = recipe.name.toLowerCase().replace(' ', '');
-					if (recipeName === 'tradeship') {
-						gameState.unlockedRecipes.tradeShip = true;
-					} else {
-						gameState.unlockedRecipes[recipeName] = true;
+				const recipeName = recipe.name.toLowerCase().replace(' ', '');
+				const permanentKey = recipeName === 'tradeship' ? 'tradeShip' : recipeName;
+				const isPermanentlyUnlocked = gameState.unlockedRecipes[permanentKey];
+				
+				if (recipe.unlocked() || isPermanentlyUnlocked) {
+					// Mark recipe as permanently unlocked if not already
+					if (!isPermanentlyUnlocked) {
+						gameState.unlockedRecipes[permanentKey] = true;
 					}
 					
 					let canCraft = true;
