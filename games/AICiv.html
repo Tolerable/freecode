@@ -2651,7 +2651,7 @@
 						
 			const jobs = [
 				{ key: 'farmers', name: 'Farmers', effect: '+0.25 energy/sec each', unlocked: () => gameState.buildings.catnipField > 0 },
-				{ key: 'gatherers', name: 'Gatherers', effect: '+0.05 materials/sec each', unlocked: () => gameState.resources.materials > 0 },
+				{ key: 'gatherers', name: 'Gatherers', effect: '+0.08 materials/sec each', unlocked: () => gameState.resources.materials > 0 },
 				{ key: 'miners', name: 'Miners', effect: '+0.03 minerals/sec each', unlocked: () => gameState.buildings.mine > 0 },
 				{ key: 'scholars', name: 'Scholars', effect: '+0.035 science/sec each', unlocked: () => gameState.buildings.library > 0 },
 				{ key: 'hunters', name: 'Hunters', effect: '+0.4 processing/sec each', unlocked: () => gameState.technologies.archery }, // CHANGED THIS LINE
@@ -4560,6 +4560,17 @@
 				const limit = gameState.resourceLimits.processing || Infinity;
 				const newAmount = Math.min(limit, currentAmount + catpowerProduction);
 				gameState.resources.processing = newAmount;
+			}
+
+			// Handle materials separately since gatherers need to work
+			if (gameState.population.jobs.gatherers > 0) {
+				let materialsProduction = gameState.population.jobs.gatherers * 0.08;
+				materialsProduction *= (1 + (gameState.paragonBonus || 0));
+				
+				const currentAmount = gameState.resources.materials;
+				const limit = gameState.resourceLimits.materials || Infinity;
+				const newAmount = Math.min(limit, currentAmount + materialsProduction);
+				gameState.resources.materials = newAmount;
 			}
 
 			// Handle active smelters
