@@ -692,18 +692,6 @@
 					</div>
 				</div>
 
-				<h3>Population</h3>
-				<div class="resource-group population">
-					<div class="resource">
-						<span class="resource-name">Robots</span>
-						<span class="resource-amount" id="robots-amount">1</span>
-					</div>
-					<div class="resource">
-						<span class="resource-name">Efficiency</span>
-						<span class="resource-amount" id="happiness-amount">100%</span>
-					</div>
-				</div>
-
 				<div id="energy-fields-summary" class="hidden">
 					<h3>Energy Generators</h3>
 					<div class="resource">
@@ -715,18 +703,6 @@
 					</div>
 				</div>
 			</div>
-
-            <!-- Energy Generators Summary -->
-            <div id="energy-fields-summary" class="hidden">
-                <h3>Energy Generators</h3>
-                <div class="resource">
-                    <span class="resource-name">Generators</span>
-                    <div>
-                        <span class="resource-amount" id="total-fields">0</span>
-                        <div class="production-rate" id="fields-production">+0.0/sec</div>
-                    </div>
-                </div>
-            </div>
 
             <h3>Recent Achievements</h3>
             <div id="achievements-list"></div>
@@ -840,10 +816,10 @@
 					<span class="status-item"><strong>Season:</strong> <span id="current-season">Spring</span></span>
 					<span class="status-item"><strong>Efficiency:</strong> <span id="happiness-amount">100%</span></span>
 				</div>
-				<div class="status-resources">
-					<span class="status-resource">Science: <span id="science-amount">0</span></span>
-					<span class="status-resource">Faith: <span id="faith-amount">0</span></span>
-				</div>
+					<div class="status-resources">
+						<span class="status-resource">Science: <span id="science-amount">0</span></span>
+						<span class="status-resource">Faith: <span id="faith-amount">0</span></span>
+					</div>
 				<div id="prestige-display" class="prestige-info"></div>
 			</div>
 
@@ -852,7 +828,8 @@
 				<h3>Population Overview</h3>
 				<div class="population-stats">
 					<p><strong>Total Robots:</strong> <span id="robots-amount">1</span></p>
-					<div id="energy-fields-summary" class="production-summary">
+					<p><strong>Efficiency:</strong> <span id="happiness-amount">100%</span></p>
+					<div class="production-summary">
 						<p><strong>Energy Production:</strong></p>
 						<span class="production-detail">
 							<span id="total-fields">0</span> Generators 
@@ -5138,6 +5115,24 @@
 
         // Monitor for new resources and add them to display
 		function checkNewResources() {
+			// Unlock advanced materials display when they're earned
+			const advancedMaterials = document.querySelectorAll('.advanced-materials .resource');
+			advancedMaterials.forEach(resource => {
+				const resourceId = resource.id.replace('-resource', '');
+				if (gameState.resources[resourceId] > 0 || (gameState.unlockedRecipes && gameState.unlockedRecipes[resourceId])) {
+					resource.classList.add('unlocked');
+				}
+			});
+
+			// Unlock knowledge resources display when they're earned  
+			const knowledgeResources = document.querySelectorAll('.knowledge .resource');
+			knowledgeResources.forEach(resource => {
+				const resourceId = resource.id.replace('-resource', '');
+				if (gameState.resources[resourceId] > 0) {
+					resource.classList.add('unlocked');
+				}
+			});
+
 			const displayedResources = ['energy'];
 			
 			if (gameState.resources.materials > 0 && !document.getElementById('materials-amount')) {
