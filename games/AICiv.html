@@ -978,10 +978,6 @@
 				huntingLodge: 0,
 				oilWell: 0,
 				chronosphere: 0,
-				launchPad: 0,
-				satellite: 0,
-				spaceStation: 0,
-				moonBase: 0,
 				mint: 0
             },
             technologies: {
@@ -1434,54 +1430,6 @@
 					logMessage("Hunting Lodge built! Processing storage increased.");
 				}
 			},			
-			launchPad: {
-				name: "Launch Pad",
-				description: "Launch rockets and satellites into space", 
-				cost: { steel: 25, concrete: 15, alloy: 5 },
-				effect: "Unlocks space missions and satellites",
-				maxBuildable: 1,
-				unlocked: () => gameState.technologies.rocketry,  // Fix this line
-				onBuild: () => {
-					logMessage("Launch pad constructed! Space program initiated.");
-				}
-			},
-			satellite: {
-				name: "Satellite",
-				description: "Advanced orbital observation platform",
-				cost: { alloy: 15, steel: 25, science: 1000 },
-				effect: "+0.1 science per second, unlocks advanced space tech",
-				unlocked: () => gameState.buildings.launchPad >= 1,
-				onBuild: () => {
-					gameState.space.satellites++;
-					gameState.resourcesProduction.science += 0.1;
-					logMessage("🛰️ Satellite launched successfully!");
-				}
-			},
-			spaceStation: {
-				name: "Space Station", 
-				description: "Orbital research and manufacturing facility",
-				cost: { alloy: 50, steel: 125, concrete: 25, science: 10000 },
-				effect: "+0.5 science per second, enables deep space missions",
-				unlocked: () => gameState.space.satellites >= 2,
-				onBuild: () => {
-					gameState.space.spaceStations++;
-					gameState.resourcesProduction.science += 0.5;
-					logMessage("🏗️ Space station operational!");
-				}
-			},
-			moonBase: {
-				name: "Moon Base",
-				description: "Permanent lunar colony and mining facility", 
-				cost: { alloy: 100, steel: 250, concrete: 75, uranium: 15 },
-				effect: "+moon minerals, enables interplanetary travel",
-				unlocked: () => gameState.space.spaceStations >= 1,
-				onBuild: () => {
-					gameState.space.moonBases++;
-					gameState.resourcesProduction.minerals += 2.0;
-					gameState.resourcesProduction.uranium = (gameState.resourcesProduction.uranium || 0) + 0.01;
-					logMessage("🌙 Moon base established! Mining operations begun.");
-				}
-			},
 			chronosphere: {
 				name: "Chronosphere",
 				description: "Preserves resources through time resets",
@@ -2088,6 +2036,117 @@
 					missionsDiv.appendChild(div);
 				}
 			});
+			updateSpaceBuildings();			
+		}
+
+		function updateSpaceBuildings() {
+			const buildingsList = document.getElementById('space-buildings-list');
+			if (!buildingsList) return;
+			
+			buildingsList.innerHTML = '';
+			
+			const spaceBuildings = [
+				{
+					name: 'Satellite',
+					cost: { alloy: 15, steel: 25, science: 1000 },
+					effect: '+0.1 science per second',
+					unlocked: () => gameState.buildings.launchPad >= 1,
+					onBuild: () => {
+						gameState.space.satellites++;
+						gameState.resourcesProduction.science += 0.1;
+						logMessage("🛰️ Satellite launched successfully!");
+					}
+				},
+				{
+					name: 'Space Station',
+					cost: { alloy: 50, steel: 125, concrete: 25, science: 10000 },
+					effect: '+0.5 science per second, enables deep space missions',
+					unlocked: () => gameState.space.satellites >= 2,
+					onBuild: () => {
+						gameState.space.spaceStations++;
+						gameState.resourcesProduction.science += 0.5;
+						logMessage("🏗️ Space station operational!");
+					}
+				},
+				{
+					name: 'Moon Base',
+					cost: { alloy: 100, steel: 250, concrete: 75, uranium: 15 },
+					effect: '+moon minerals, enables interplanetary travel',
+					unlocked: () => gameState.space.spaceStations >= 1,
+					onBuild: () => {
+						gameState.space.moonBases++;
+						gameState.resourcesProduction.minerals += 2.0;
+						gameState.resourcesProduction.uranium = (gameState.resourcesProduction.uranium || 0) + 0.01;
+						logMessage("🌙 Moon base established! Mining operations begun.");
+					}
+				}
+			];
+			
+			spaceBuildings.forEach(building => {
+				if (building.unlocked()) {
+					let canAfford = true;
+					let costText = '';
+					
+					for (let resource in building.cost) {
+						const available = Math.floor(gameState.resources[resource] || 0);
+						const needed = building.cost[resource];
+						const hasEnough = available >= needed;
+						const color = hasEnough ? '#2ecc71' : '#e74c3c';
+						
+						if (!hasEnough) canAfford = false;
+						costText += `<span style="color: ${color};">${needed} ${resource}</span>, `;
+					}
+					costText = costText.slice(0, -2);
+					
+					const div = document.createElement('div');
+					div.className = 'building-item';
+					div.innerHTML = `
+						<h4>${building.name}</h4>
+						<p><strong>Effect:</strong> ${building.effect}</p>
+						<button class="action-button building-button" 
+								onclick="buildSpaceBuilding('${building.name}')" 
+								${!canAfford ? 'disabled' : ''}>
+							Build (${costText})
+						</button>
+					`;
+					buildingsList.appendChild(div);
+				}
+			});
+		}
+
+		function buildSpaceBuilding(buildingName) {
+			const spaceBuildings = {
+				'Satellite': { cost: { alloy: 15, steel: 25, science: 1000 }, onBuild: () => { gameState.space.satellites++; gameState.resourcesProduction.science += 0.1; } },
+				'Space Station': { cost: { alloy: 50, steel: 125, concrete: 25, science: 10000 }, onBuild: () => { gameState.space.spaceStations++; gameState.resourcesProduction.science += 0.5; } },
+				'Moon Base': { cost: { alloy: 100, steel: 250, concrete: 75, uranium: 15 }, onBuild: () => { gameState.space.moonBases++; gameState.resourcesProduction.minerals += 2.0; gameState.resourcesProduction.uranium = (gameState.resourcesProduction.uranium || 0) + 0.01; } }
+			};
+			
+			const building = spaceBuildings[buildingName];
+			if (!building) return;
+			
+			// Check if we can afford it
+			let canAfford = true;
+			for (let resource in building.cost) {
+				if (Math.floor(gameState.resources[resource] || 0) < building.cost[resource]) {
+					canAfford = false;
+					break;
+				}
+			}
+			
+			if (!canAfford) return;
+			
+			// Pay the cost
+			for (let resource in building.cost) {
+				gameState.resources[resource] -= building.cost[resource];
+			}
+			
+			// Build it
+			building.onBuild();
+			
+			logMessage(`Built ${buildingName}!`);
+			updateSpaceTab();
+			updateSpaceBuildings();
+			updateDisplay();
 		}
 
 		function launchMission(missionKey) {
@@ -3036,6 +3095,10 @@
 								Launch Moon Mission  
 								<div class="cost-display">Cost: 150 oil, 100 science - High-value lunar exploration</div>
 							</button>
+						</div>
+						<div id="space-buildings">
+							<h4>Space Construction</h4>
+							<div id="space-buildings-list"></div>
 						</div>
 						<div id="space-progress">
 							<p><strong>Missions Completed:</strong> <span id="mission-count">${gameState.space.missions}</span></p>
