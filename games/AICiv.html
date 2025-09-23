@@ -3206,6 +3206,15 @@
 			const gain = Math.floor(race.ratio[race.gives] * totalBonus);
 			
 			if (Math.floor(gameState.resources[race.wants]) >= cost) {
+				// Check if trade would exceed storage cap
+				const currentAmount = gameState.resources[race.gives] || 0;
+				const storageLimit = gameState.resourceLimits[race.gives] || Infinity;
+				
+				if (currentAmount + gain > storageLimit) {
+					logMessage(`Trade blocked: Not enough ${race.gives} storage space! (${currentAmount}/${storageLimit})`);
+					return;
+				}
+				
 				gameState.resources[race.wants] -= cost;
 				
 				if (race.gives === 'titanium') {
