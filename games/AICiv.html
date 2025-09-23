@@ -2384,8 +2384,22 @@
 				<div class="cost-display">Cost: ${huntCost} processing - Hunt for furs, ivory, and rare resources</div>
 			`;
 			huntingButtons.appendChild(huntButton);
-			
-			// Send explorers button (only show after trading post built)
+
+			// Send expedition button (for oil and artifacts) - 500 cost
+			const expeditionCost = 500;
+			const canExpedition = currentCatpower >= expeditionCost;
+
+			const expeditionButton = document.createElement('button');
+			expeditionButton.className = `action-button ${!canExpedition ? 'disabled' : ''}`;
+			expeditionButton.disabled = !canExpedition;
+			expeditionButton.onclick = () => sendExpedition();
+			expeditionButton.innerHTML = `
+				Send Expedition
+				<div class="cost-display">Cost: ${expeditionCost} processing - Explore distant lands for oil and relics</div>
+			`;
+			huntingButtons.appendChild(expeditionButton);
+
+			// Send explorers button (only show after trading post built) - 1000 cost
 			if (gameState.buildings.tradingPost > 0) {
 				const exploreCost = 1000;
 				const canExplore = currentCatpower >= exploreCost;
@@ -2400,20 +2414,6 @@
 				`;
 				huntingButtons.appendChild(exploreButton);
 			}
-			
-			// Send expedition button (for oil and artifacts)
-			const expeditionCost = 500;
-			const canExpedition = currentCatpower >= expeditionCost;
-			
-			const expeditionButton = document.createElement('button');
-			expeditionButton.className = `action-button ${!canExpedition ? 'disabled' : ''}`;
-			expeditionButton.disabled = !canExpedition;
-			expeditionButton.onclick = () => sendExpedition();
-			expeditionButton.innerHTML = `
-				Send Expedition
-				<div class="cost-display">Cost: ${expeditionCost} processing - Explore distant lands for oil and relics</div>
-			`;
-			huntingButtons.appendChild(expeditionButton);
 			
 			// Display hunting bonus and hunters info
 			const statusDiv = document.createElement('div');
@@ -3131,17 +3131,16 @@
 			
 			gameState.resources.processing -= exploreCost;
 			
-			const currentYear = gameState.stats.year;
 			let foundRace = null;
 			
-			// Simple year-based unlocks (like original)
-			if (!gameState.tradingRaces.sharks.unlocked && currentYear >= 20) {
+			// Check each race with reasonable unlock conditions
+			if (!gameState.tradingRaces.sharks.unlocked && gameState.stats.year >= 5 && Math.random() < 0.35) {
 				foundRace = 'sharks';
-			} else if (!gameState.tradingRaces.griffins.unlocked && currentYear >= 20) {
+			} else if (!gameState.tradingRaces.griffins.unlocked && gameState.stats.year >= 8 && Math.random() < 0.30) {
 				foundRace = 'griffins';
-			} else if (!gameState.tradingRaces.nagas.unlocked && currentYear >= 35) {
+			} else if (!gameState.tradingRaces.nagas.unlocked && gameState.stats.year >= 12 && Math.random() < 0.25) {
 				foundRace = 'nagas';
-			} else if (!gameState.tradingRaces.zebras.unlocked && (gameState.resources.ships || 0) >= 1) {
+			} else if (!gameState.tradingRaces.zebras.unlocked && gameState.stats.year >= 15 && Math.random() < 0.20) {
 				foundRace = 'zebras';
 			}
 			
@@ -3149,8 +3148,9 @@
 				gameState.tradingRaces[foundRace].unlocked = true;
 				logMessage(`Your explorers discovered the ${foundRace}! New trading opportunities available.`);
 			} else {
-				logMessage("Your explorers found no new civilizations.");
-				gameState.resources.processing += 950;
+				logMessage("Your explorers found no new civilizations this time.");
+				// Small refund so it's not a total loss
+				gameState.resources.processing += 200;
 			}
 			
 			updateTradeTab();
