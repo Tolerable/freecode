@@ -3984,38 +3984,22 @@
 			}
 		}
 
-        function checkAchievements() {
-            achievements.forEach(achievement => {
-                if (!gameState.stats.achievements.includes(achievement.id) && achievement.trigger()) {
-                    gameState.stats.achievements.push(achievement.id);
-                    showAchievement(achievement);
-                }
-            });
-        }
-
-        function showAchievement(achievement) {
-            const achievementsList = document.getElementById('achievements-list');
-            const div = document.createElement('div');
-            div.className = 'achievement new';
-            div.setAttribute('data-achievement-id', achievement.id);
-            div.innerHTML = `
-                <strong>${achievement.name}</strong><br>
-                <small>${achievement.desc}</small>
-            `;
-            achievementsList.insertBefore(div, achievementsList.firstChild);
-            
-            // Remove the "new" class after animation
-            setTimeout(() => {
-                div.classList.remove('new');
-            }, 500);
-            
-            // Keep only last 5 achievements visible
-            while (achievementsList.children.length > 5) {
-                achievementsList.removeChild(achievementsList.lastChild);
-            }
-            
-            logMessage(`🏆 Achievement Unlocked: ${achievement.name}`);
-        }
+		function checkAchievements() {
+			let newAchievements = [];
+			achievements.forEach(achievement => {
+				if (!gameState.stats.achievements.includes(achievement.id) && achievement.trigger()) {
+					gameState.stats.achievements.push(achievement.id);
+					newAchievements.push(achievement);
+				}
+			});
+			
+			if (newAchievements.length > 0) {
+				newAchievements.forEach(achievement => {
+					logMessage(`🏆 Achievement Unlocked: ${achievement.name}`);
+				});
+				loadAchievements(); // Always use the proper display
+			}
+		}
 
 		function loadAchievements() {
 			const achievementsList = document.getElementById('achievements-list');
