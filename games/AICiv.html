@@ -753,6 +753,7 @@
                 library: 0,
                 barn: 0,
                 warehouse: 0,
+				aqueduct: 0, 
                 mine: 0,
                 quarry: 0,
                 goldMine: 0,
@@ -930,11 +931,11 @@
                 cost: { materials: 25 },
                 effect: "+0.1 science per second, unlocks research",
                 unlocked: () => gameState.resources.materials >= 20,
-                onBuild: () => { 
-                    gameState.resourcesProduction.science += 0.1;
-                    // Give some starting science to kickstart research
-                    gameState.resources.science += 5;
-                }
+				onBuild: () => { 
+					// Libraries just unlock scholar jobs in OK, don't produce science directly
+					gameState.resources.science += 2; // Small one-time science boost only
+					logMessage("Library built! You can now assign Scholars to research.");
+				}
             },
 			barn: {
 				name: "Barn",
@@ -943,10 +944,19 @@
 				effect: "+10000 energy storage, +2000 materials storage, +1000 furs storage",
 				unlocked: () => gameState.buildings.hut >= 2,
 				onBuild: () => { 
-					gameState.resourceLimits.energy += 10000;
-					gameState.resourceLimits.materials += 2000;
-					gameState.resourceLimits.furs += 1000;
-					logMessage("Barn built! Storage capacity increased significantly.");
+					// OK barns give 75% base storage bonus that gets reduced as you build more
+					const currentBarns = gameState.buildings.barn;
+					let storageBonus = 0.75; // 75% for first barn
+					if (currentBarns > 1) {
+						storageBonus = 0.75 * Math.pow(0.9, currentBarns - 1); // Diminishing returns
+					}
+					
+					// Apply as multiplier to base storage, not flat amount
+					gameState.resourceLimits.energy = Math.floor(gameState.resourceLimits.energy * (1 + storageBonus));
+					gameState.resourceLimits.materials = Math.floor(gameState.resourceLimits.materials * (1 + storageBonus));
+					gameState.resourceLimits.furs = Math.floor(gameState.resourceLimits.furs * (1 + storageBonus));
+					
+					logMessage(`Barn built! Storage capacity increased by ${(storageBonus * 100).toFixed(1)}%.`);
 				}
 			},
             warehouse: {
@@ -1030,6 +1040,17 @@
 					logMessage(`Workshop built! Crafting efficiency increased by ${(craftingBonus * 100).toFixed(1)}%.`);
 				}
             },
+			aqueduct: {
+				name: "Aqueduct",
+				description: "Improves energy production efficiency through better irrigation",
+				cost: { materials: 75, minerals: 25 },
+				effect: "+3% energy production per aqueduct",
+				unlocked: () => gameState.technologies.engineering && (gameState.resources.minerals >= 15 || gameState.buildings.aqueduct > 0),
+				onBuild: () => {
+					// Each aqueduct adds 3% to energy production multiplier
+					logMessage("Aqueduct built! Energy production efficiency improved.");
+				}
+			},			
 			smelter: {
 				name: "Smelter",
 				description: "Smelt minerals into iron when active",
@@ -1966,7 +1987,7 @@
 			
 			gameState.buildings = {
 				catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0,
-				quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0,
+				quarry: 0, goldMine: 0, smelter: 0, workshop: 0, aqueduct: 0, shrine: 0, temple: 0,
 				logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, 
 				pasture: 0, harbor: 0, amphitheatre: 0, huntingLodge: 0, oilWell: 0, 
 				chronosphere: 0, launchPad: 0, mint: 0
@@ -4115,19 +4136,19 @@
 					
 					// Add job bonuses without modifying base rates
 					if (resource === 'energy') {
-						production += gameState.population.jobs.farmers * 0.25;
+						production += gameState.population.jobs.farmers * 1.0; // Match OK's 5/sec base (1 per tick)
 					}
 					if (resource === 'materials') {
-						production += gameState.population.jobs.gatherers * 0.05;
+						production += gameState.population.jobs.gatherers * 0.08;
 					}
 					if (resource === 'minerals') {
-						production += gameState.population.jobs.miners * 0.03;
+						production += gameState.population.jobs.miners * 0.05;
 					}
 					if (resource === 'science') {
-						production += gameState.population.jobs.scholars * 0.035;
+						production += gameState.population.jobs.scholars * 0.25;
 					}
 					if (resource === 'faith') {
-						production += gameState.population.jobs.priests * 0.02;
+						production += gameState.population.jobs.priests * 0.035;
 					}
 					
 					production *= (1 + (gameState.paragonBonus || 0));
@@ -4137,7 +4158,13 @@
 						const seasonMultipliers = [1.5, 1.0, 0.75, 0.25]; // Spring, Summer, Autumn, Winter
 						production *= seasonMultipliers[gameState.stats.season];
 					}
-					
+
+					// Apply aqueduct bonus (3% per aqueduct) to energy
+					if (resource === 'energy' && gameState.buildings.aqueduct > 0) {
+						const aqueductBonus = gameState.buildings.aqueduct * 0.03;
+						production *= (1 + aqueductBonus);
+					}
+		
 					// Apply resource caps
 					const currentAmount = gameState.resources[resource];
 					const limit = gameState.resourceLimits[resource] || Infinity;
@@ -4151,9 +4178,9 @@
 				}
 			}
 			
-			// Handle processing separately since it only comes from hunters
+			// Handle processing separately since it only comes from hunters  
 			if (gameState.population.jobs.hunters > 0) {
-				let catpowerProduction = gameState.population.jobs.hunters * 0.4;
+				let catpowerProduction = gameState.population.jobs.hunters * 0.5;
 				catpowerProduction *= (1 + (gameState.paragonBonus || 0));
 				
 				const currentAmount = gameState.resources.processing;
@@ -4211,7 +4238,7 @@
 			}			
 			
 			// Catnip consumption (robots eat energy)
-			const catnipConsumption = gameState.population.robots * 0.05; // Reduced consumption
+			const catnipConsumption = gameState.population.robots * 0.85; // Match OK's 4.25/sec consumption
 			gameState.resources.energy = Math.max(0, gameState.resources.energy - catnipConsumption);
 			
 			// Happiness calculation
@@ -4761,7 +4788,7 @@
 					// Ensure all nested objects exist
 					gameState.buildings = Object.assign({}, {
 						catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0, 
-						quarry: 0, goldMine: 0, smelter: 0, workshop: 0, shrine: 0, temple: 0, 
+						quarry: 0, goldMine: 0, smelter: 0, workshop: 0, aqueduct: 0, shrine: 0, temple: 0, 
 						logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, 
 						pasture: 0, harbor: 0, amphitheatre: 0, huntingLodge: 0, oilWell: 0, 
 						chronosphere: 0, launchPad: 0, mint: 0
