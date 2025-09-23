@@ -977,6 +977,7 @@
 				amphitheatre: 0,
 				huntingLodge: 0,
 				oilWell: 0,
+				launchPad: 0,
 				chronosphere: 0,
 				mint: 0
             },
@@ -1408,6 +1409,17 @@
 					gameState.resourcesProduction.oil = (gameState.resourcesProduction.oil || 0) + 0.02;
 				}
 			},
+			launchPad: {
+				name: "Launch Pad",
+				description: "Launch rockets and satellites into space", 
+				cost: { steel: 25, concrete: 15, alloy: 5 },
+				effect: "Unlocks space missions and satellites",
+				maxBuildable: 1,
+				unlocked: () => gameState.technologies.rocketry,
+				onBuild: () => {
+					logMessage("Launch pad constructed! Space program initiated.");
+				}
+			},			
 			mint: {
 				name: "Mint",
 				description: "Produces gold and increases gold storage",
@@ -2036,7 +2048,27 @@
 					missionsDiv.appendChild(div);
 				}
 			});
-			updateSpaceBuildings();			
+			
+			// Update infrastructure counts
+			if (document.getElementById('mission-count')) {
+				document.getElementById('mission-count').textContent = gameState.space.missions;
+				document.getElementById('satellite-count').textContent = gameState.space.satellites;
+				document.getElementById('station-count').textContent = gameState.space.spaceStations;
+				document.getElementById('moonbase-count').textContent = gameState.space.moonBases;
+			}
+			
+			// Update mission button states
+			const orbitButton = document.querySelector('button[onclick*="launchMission(\'orbit\')"]');
+			const moonButton = document.querySelector('button[onclick*="launchMission(\'moon\')"]');
+			
+			if (orbitButton) {
+				orbitButton.disabled = !canLaunchMission('orbit');
+			}
+			if (moonButton) {
+				moonButton.disabled = !canLaunchMission('moon');
+			}
+			
+			updateSpaceBuildings();
 		}
 
 		function updateSpaceBuildings() {
@@ -2112,7 +2144,7 @@
 					buildingsList.appendChild(div);
 				}
 			});
-		}
+		}	
 
 		function buildSpaceBuilding(buildingName) {
 			const spaceBuildings = {
@@ -2248,7 +2280,7 @@
 				catnipField: 0, hut: 0, library: 0, barn: 0, warehouse: 0, mine: 0,
 				quarry: 0, goldMine: 0, smelter: 0, workshop: 0, aqueduct: 0, shrine: 0, temple: 0,
 				logHouse: 0, mansion: 0, tradingPost: 0, observatory: 0, academy: 0, 
-				pasture: 0, harbor: 0, amphitheatre: 0, huntingLodge: 0, oilWell: 0, 
+				pasture: 0, harbor: 0, amphitheatre: 0, huntingLodge: 0, oilWell: 0, launchPad: 0, 
 				chronosphere: 0, launchPad: 0, mint: 0
 			};
 			
