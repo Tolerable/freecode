@@ -81,6 +81,74 @@
             box-shadow: 0 0 15px rgba(255,255,255,0.5);
         }
 
+		#chatUI {
+			position: absolute;
+			bottom: 150px;
+			left: 20px;
+			right: 20px;
+			z-index: 102;
+			background: rgba(0,0,0,0.9);
+			border: 2px solid white;
+			border-radius: 10px;
+			padding: 20px;
+			color: white;
+			display: none;
+			max-width: 600px;
+			margin: 0 auto;
+		}
+
+		#chatMessages {
+			max-height: 200px;
+			overflow-y: auto;
+			margin-bottom: 15px;
+			padding: 10px;
+			background: rgba(255,255,255,0.1);
+			border-radius: 5px;
+		}
+
+		#chatInput {
+			width: 100%;
+			padding: 10px;
+			border: none;
+			border-radius: 5px;
+			background: rgba(255,255,255,0.2);
+			color: white;
+			font-size: 14px;
+		}
+
+		#chatInput::placeholder {
+			color: rgba(255,255,255,0.7);
+		}
+
+		.chat-message {
+			margin-bottom: 10px;
+			padding: 8px;
+			border-radius: 5px;
+		}
+
+		.chat-npc {
+			background: rgba(100,150,255,0.3);
+		}
+
+		.chat-player {
+			background: rgba(255,150,100,0.3);
+			text-align: right;
+		}
+
+		#nearCharacterHint {
+			position: absolute;
+			top: 60%;
+			left: 50%;
+			transform: translateX(-50%);
+			z-index: 100;
+			color: white;
+			background: rgba(0,0,0,0.8);
+			padding: 10px 20px;
+			border-radius: 25px;
+			font-size: 14px;
+			display: none;
+		}
+
         #jumpHint {
             position: absolute;
             bottom: 120px;
@@ -189,6 +257,14 @@
             <div class="colorSwatch" data-color="0xff44ff" style="background: #ff44ff;" title="Magenta (5)"></div>
             <div class="colorSwatch" data-color="0x44ffff" style="background: #44ffff;" title="Cyan (6)"></div>
         </div>
+
+		<div id="nearCharacterHint">Press T to talk to [Character Name]</div>
+
+		<div id="chatUI">
+			<div id="chatMessages"></div>
+			<input type="text" id="chatInput" placeholder="Type your message and press Enter..." />
+		</div>
+
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -207,6 +283,14 @@
 				this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 				
 				document.getElementById('container').appendChild(this.renderer.domElement);
+				
+				// Chat UI elements
+				this.chatUI = document.getElementById('chatUI');
+				this.chatMessages = document.getElementById('chatMessages');
+				this.chatInput = document.getElementById('chatInput');
+				this.nearCharacterHint = document.getElementById('nearCharacterHint');
+				this.nearestCharacter = null;
+				this.isChatting = false;				
 				
 				// World data
 				this.worldSize = 32;
@@ -301,6 +385,72 @@
 				this.setupColorPalette();
 				this.setupAutoSave();
 				this.animate();
+			}
+
+			updateCharacterInteraction() {
+				// Find nearest character
+				let nearestChar = null;
+				let nearestDist = Infinity;
+				
+				this.characters.forEach(character => {
+					const dist = this.player.position.distanceTo(character.position);
+					if (dist < nearestDist && dist < 4) {
+						nearestChar = character;
+						nearestDist = dist;
+					}
+				});
+				
+				if (nearestChar && !this.isChatting) {
+					this.nearestCharacter = nearestChar;
+					this.nearCharacterHint.textContent = `Press T to talk to ${nearestChar.type.name}`;
+					this.nearCharacterHint.style.display = 'block';
+				} else if (!this.isChatting) {
+					this.nearestCharacter = null;
+					this.nearCharacterHint.style.display = 'none';
+				}
+			}
+
+			async startChatWithCharacter(character) {
+				this.isChatting = true;
+				this.activeChat = character;
+				this.nearCharacterHint.style.display = 'none';
+				this.chatUI.style.display = 'block';
+				this.chatInput.focus();
+				
+				// Clear previous messages
+				this.chatMessages.innerHTML = '';
+				
+				// Get greeting
+				const greeting = await character.startChat();
+				this.addChatMessage(character.type.name, greeting, 'chat-npc');
+			}
+
+			addChatMessage(sender, message, cssClass) {
+				const messageDiv = document.createElement('div');
+				messageDiv.className = `chat-message ${cssClass}`;
+				messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+				this.chatMessages.appendChild(messageDiv);
+				this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+			}
+
+			async sendPlayerMessage(message) {
+				if (!this.activeChat || !message.trim()) return;
+				
+				// Add player message to UI
+				this.addChatMessage('You', message, 'chat-player');
+				
+				// Get AI response
+				const response = await this.activeChat.startChat(message);
+				this.addChatMessage(this.activeChat.type.name, response, 'chat-npc');
+				
+				// Clear input
+				this.chatInput.value = '';
+			}
+
+			closeChatUI() {
+				this.isChatting = false;
+				this.activeChat = null;
+				this.chatUI.style.display = 'none';
 			}
             
             setupLighting() {
@@ -503,97 +653,120 @@
                 return this.world[key] || null;
             }
             
-            setupControls() {
-                // Keyboard controls
-                document.addEventListener('keydown', (e) => {
-                    this.keys[e.code] = true;
-                    
-                    // H key for hub teleport
-                    if (e.code === 'KeyH' && !this.hKeyCharging) {
-                        this.hKeyCharging = true;
-                        this.hKeyHoldTime = 0;
-                        this.hubChargeIndicator.style.display = 'flex';
-                    }
-                    
-                    // Number keys for color selection
-                    if (e.code >= 'Digit1' && e.code <= 'Digit6') {
-                        const colorIndex = parseInt(e.code.slice(-1)) - 1;
-                        this.selectColor(colorIndex);
-                    }
-                });
-                
-                document.addEventListener('keyup', (e) => {
-                    this.keys[e.code] = false;
-                    
-                    // Reset H key charging on release
-                    if (e.code === 'KeyH') {
-                        this.hKeyCharging = false;
-                        this.hKeyHoldTime = 0;
-                        this.hubChargeIndicator.style.display = 'none';
-                        this.hubChargeFill.style.width = '0%';
-                    }
-                });
-                
-                // Mouse controls
-                this.renderer.domElement.addEventListener('click', () => {
-                    if (!this.isPointerLocked) {
-                        this.renderer.domElement.requestPointerLock();
-                    }
-                });
-                
-                document.addEventListener('pointerlockchange', () => {
-                    this.isPointerLocked = document.pointerLockElement === this.renderer.domElement;
-                });
-                
-                document.addEventListener('mousemove', (e) => {
-                    if (this.isPointerLocked) {
-                        const sensitivity = 0.003;
-                        this.cameraRotationY -= e.movementX * sensitivity;
-                        this.cameraRotationX -= e.movementY * sensitivity;
-                        this.cameraRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/3, this.cameraRotationX));
-                    }
-                });
-                
-                // Mouse wheel for zoom
-                this.renderer.domElement.addEventListener('wheel', (e) => {
-                    if (this.isPointerLocked) {
-                        e.preventDefault();
-                        const zoomSpeed = 0.5;
-                        const minDistance = 3;
-                        const maxDistance = 15;
-                        
-                        if (e.deltaY > 0) {
-                            this.cameraOffset.multiplyScalar(1 + zoomSpeed * 0.1);
-                        } else {
-                            this.cameraOffset.multiplyScalar(1 - zoomSpeed * 0.1);
-                        }
-                        
-                        const distance = this.cameraOffset.length();
-                        if (distance < minDistance) {
-                            this.cameraOffset.normalize().multiplyScalar(minDistance);
-                        } else if (distance > maxDistance) {
-                            this.cameraOffset.normalize().multiplyScalar(maxDistance);
-                        }
-                    }
-                });
-                
-                this.renderer.domElement.addEventListener('mousedown', (e) => {
-                    if (this.isPointerLocked) {
-                        e.preventDefault();
-                        this.handleBlockInteraction(e.button === 0);
-                    }
-                });
-                
-                this.renderer.domElement.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                });
-                
-                window.addEventListener('resize', () => {
-                    this.camera.aspect = window.innerWidth / window.innerHeight;
-                    this.camera.updateProjectionMatrix();
-                    this.renderer.setSize(window.innerWidth, window.innerHeight);
-                });
-            }
+			setupControls() {
+				// Keyboard controls
+				document.addEventListener('keydown', (e) => {
+					this.keys[e.code] = true;
+					
+					// H key for hub teleport
+					if (e.code === 'KeyH' && !this.hKeyCharging) {
+						this.hKeyCharging = true;
+						this.hKeyHoldTime = 0;
+						this.hubChargeIndicator.style.display = 'flex';
+					}
+					
+					// Number keys for color selection
+					if (e.code >= 'Digit1' && e.code <= 'Digit6') {
+						const colorIndex = parseInt(e.code.slice(-1)) - 1;
+						this.selectColor(colorIndex);
+					}
+					
+					// T key for chat
+					if (e.code === 'KeyT' && this.nearestCharacter && !this.isChatting) {
+						this.startChatWithCharacter(this.nearestCharacter);
+						e.preventDefault();
+					}
+
+					if (e.code === 'Escape' && this.isChatting) {
+						this.closeChatUI();
+						e.preventDefault();
+					}					
+				});
+				
+				document.addEventListener('keyup', (e) => {
+					this.keys[e.code] = false;
+					
+					// Reset H key charging on release
+					if (e.code === 'KeyH') {
+						this.hKeyCharging = false;
+						this.hKeyHoldTime = 0;
+						this.hubChargeIndicator.style.display = 'none';
+						this.hubChargeFill.style.width = '0%';
+					}
+				});
+				
+				// Mouse controls
+				this.renderer.domElement.addEventListener('click', () => {
+					if (!this.isPointerLocked) {
+						this.renderer.domElement.requestPointerLock();
+					}
+				});
+				
+				document.addEventListener('pointerlockchange', () => {
+					this.isPointerLocked = document.pointerLockElement === this.renderer.domElement;
+				});
+				
+				document.addEventListener('mousemove', (e) => {
+					if (this.isPointerLocked) {
+						const sensitivity = 0.003;
+						this.cameraRotationY -= e.movementX * sensitivity;
+						this.cameraRotationX -= e.movementY * sensitivity;
+						this.cameraRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/3, this.cameraRotationX));
+					}
+				});
+				
+				// Mouse wheel for zoom
+				this.renderer.domElement.addEventListener('wheel', (e) => {
+					if (this.isPointerLocked) {
+						e.preventDefault();
+						const zoomSpeed = 0.5;
+						const minDistance = 3;
+						const maxDistance = 15;
+						
+						if (e.deltaY > 0) {
+							this.cameraOffset.multiplyScalar(1 + zoomSpeed * 0.1);
+						} else {
+							this.cameraOffset.multiplyScalar(1 - zoomSpeed * 0.1);
+						}
+						
+						const distance = this.cameraOffset.length();
+						if (distance < minDistance) {
+							this.cameraOffset.normalize().multiplyScalar(minDistance);
+						} else if (distance > maxDistance) {
+							this.cameraOffset.normalize().multiplyScalar(maxDistance);
+						}
+					}
+				});
+				
+				this.renderer.domElement.addEventListener('mousedown', (e) => {
+					if (this.isPointerLocked) {
+						e.preventDefault();
+						this.handleBlockInteraction(e.button === 0);
+					}
+				});
+				
+				this.renderer.domElement.addEventListener('contextmenu', (e) => {
+					e.preventDefault();
+				});
+				
+				window.addEventListener('resize', () => {
+					this.camera.aspect = window.innerWidth / window.innerHeight;
+					this.camera.updateProjectionMatrix();
+					this.renderer.setSize(window.innerWidth, window.innerHeight);
+				});
+
+				// Chat input handling
+				this.chatInput.addEventListener('keydown', (e) => {
+					if (e.key === 'Enter') {
+						this.sendPlayerMessage(this.chatInput.value);
+						e.preventDefault();
+					}
+					if (e.key === 'Escape') {
+						this.closeChatUI();
+						e.preventDefault();
+					}
+				});
+			}
             
             setupColorPalette() {
                 const swatches = document.querySelectorAll('.colorSwatch');
@@ -883,13 +1056,13 @@
 				});
 			}
 
-			// Add to your animate() method
 			animate() {
 				requestAnimationFrame(() => this.animate());
 				
 				this.updateHubCharging();
 				this.updatePlayer();
-				this.updateCharacters(); // Add this line
+				this.updateCharacters();
+				this.updateCharacterInteraction(); // Add this line
 				this.updateBlockHighlight();
 				this.renderer.render(this.scene, this.camera);
 			}
