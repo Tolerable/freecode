@@ -103,8 +103,8 @@
             <div>WASD: Move kitten</div>
             <div>Mouse: Look around</div>
             <div>SPACE: Jump</div>
-            <div>Left Click: Remove block</div>
-            <div>Right Click: Place block</div>
+            <div>Left Click: Place block</div>
+            <div>Right Click: Remove block</div>
             <div>Mouse Wheel: Zoom in/out</div>
             <div>Numbers 1-6: Select color</div>
         </div>
@@ -143,9 +143,9 @@
                 this.worldSize = 32;
                 this.world = {};
                 
-                // Player (kitten) properties
+                // Player (kitten) properties - adjust starting height for proper feet positioning
                 this.player = {
-                    position: new THREE.Vector3(0, 3, 0),
+                    position: new THREE.Vector3(0, 3.3, 0), // Higher to account for feet offset
                     velocity: new THREE.Vector3(0, 0, 0),
                     rotation: 0,
                     isGrounded: false,
@@ -295,8 +295,10 @@
                 tail.castShadow = true;
                 kittenGroup.add(tail);
                 
-                // Position the kitten
+                // Position the kitten properly - legs should touch the ground
                 kittenGroup.position.copy(this.player.position);
+                // Offset so the feet (bottom of legs) touch the ground, not the body center
+                kittenGroup.position.y -= 0.3; // Move down so feet touch surface
                 this.scene.add(kittenGroup);
                 this.player.mesh = kittenGroup;
             }
@@ -351,6 +353,16 @@
                 const playerHeadBlock = this.getBlock(Math.floor(x), Math.floor(y + 1), Math.floor(z));
                 
                 return groundBlock && !playerBlock && !playerHeadBlock;
+            }
+            
+            isPositionInsidePlayer(x, y, z) {
+                const playerPos = this.player.position;
+                const dx = Math.abs(x - playerPos.x);
+                const dy = Math.abs(y - playerPos.y);
+                const dz = Math.abs(z - playerPos.z);
+                
+                // More forgiving - only block placement if block would be right inside the kitten's core
+                return dx < 0.6 && dy < 1.0 && dz < 0.6;
             }
             
             getBlockKey(x, y, z) {
@@ -529,28 +541,28 @@
                 if (!targetPos) return;
                 
                 if (isLeftClick) {
-                    // Left click: Remove the block we're looking at
-                    if (this.getBlock(targetPos.remove.x, targetPos.remove.y, targetPos.remove.z)) {
-                        // Don't remove blocks directly under the player
+                    // Left click: Place block where highlight shows
+                    const placePos = targetPos.place;
+                    if (!this.getBlock(placePos.x, placePos.y, placePos.z)) {
+                        // Much more forgiving placement - only prevent if block would be right inside kitten
+                        if (!this.isPositionInsidePlayer(placePos.x, placePos.y, placePos.z)) {
+                            this.setBlock(placePos.x, placePos.y, placePos.z, this.selectedColor);
+                        }
+                    }
+                } else {
+                    // Right click: Remove the block we're looking at
+                    const removePos = targetPos.remove;
+                    if (this.getBlock(removePos.x, removePos.y, removePos.z)) {
+                        // Don't remove blocks directly supporting the player
                         const playerFloor = Math.floor(this.player.position.y - 1);
                         const playerX = Math.floor(this.player.position.x);
                         const playerZ = Math.floor(this.player.position.z);
                         
-                        if (!(Math.abs(targetPos.remove.x - playerX) <= 1 && 
-                              Math.abs(targetPos.remove.z - playerZ) <= 1 &&
-                              targetPos.remove.y >= playerFloor && 
-                              targetPos.remove.y <= playerFloor + 1)) {
-                            this.setBlock(targetPos.remove.x, targetPos.remove.y, targetPos.remove.z, null);
-                        }
-                    }
-                } else {
-                    // Right click: Place block where highlight shows
-                    if (!this.getBlock(targetPos.place.x, targetPos.place.y, targetPos.place.z)) {
-                        // Don't place blocks inside the player
-                        const distance = new THREE.Vector3(targetPos.place.x, targetPos.place.y, targetPos.place.z)
-                            .distanceTo(this.player.position);
-                        if (distance > 1.5) {
-                            this.setBlock(targetPos.place.x, targetPos.place.y, targetPos.place.z, this.selectedColor);
+                        // Only prevent removal if it's the exact block the player is standing on
+                        if (!(removePos.x === playerX && 
+                              removePos.z === playerZ &&
+                              removePos.y === playerFloor)) {
+                            this.setBlock(removePos.x, removePos.y, removePos.z, null);
                         }
                     }
                 }
@@ -599,9 +611,9 @@
                 // Apply vertical movement (gravity/jumping)
                 newPosition.y += this.player.velocity.y;
                 
-                // Advanced collision detection
+                // Advanced collision detection - adjust for kitten feet position
                 const groundHeight = this.getGroundHeight(newPosition.x, newPosition.z);
-                const targetY = groundHeight + 1.0; // Height where kitten should stand
+                const targetY = groundHeight + 1.3; // Height where kitten center should be (feet on ground + body height)
                 
                 // Check if we can step up to a higher block
                 if (direction.length() > 0) { // Only when moving horizontally
@@ -645,9 +657,10 @@
                 
                 this.player.position.copy(newPosition);
                 
-                // Update player mesh
+                // Update player mesh with proper feet positioning
                 if (this.player.mesh) {
                     this.player.mesh.position.copy(this.player.position);
+                    this.player.mesh.position.y -= 0.3; // Offset so feet touch the surface
                     this.player.mesh.rotation.y = this.player.rotation;
                     
                     // Add subtle bounce when walking
