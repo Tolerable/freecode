@@ -414,6 +414,7 @@
 				this.hubChargeFill = document.getElementById('hubChargeFill');
 				this.saveIndicator = document.getElementById('saveIndicator');
 				
+				this.buildMode = false;
 				// Initialize everything
 				this.setupLighting();
 				this.createHighlightMesh();
@@ -735,6 +736,14 @@
 						return;
 					}
 					
+					// Tab key for build mode toggle
+					if (e.code === 'Tab') {
+						this.buildMode = !this.buildMode;
+						console.log('Build mode:', this.buildMode ? 'ON' : 'OFF');
+						e.preventDefault();
+						return;
+					}
+					
 					this.keys[e.code] = true;
 					
 					// H key for hub teleport
@@ -820,7 +829,7 @@
 				this.renderer.domElement.addEventListener('mousedown', (e) => {
 					console.log('Mouse clicked:', e.button, 'Pointer locked:', this.isPointerLocked, 'Chatting:', this.isChatting);
 					
-					if (this.isPointerLocked && !this.isChatting) {
+					if (this.isPointerLocked && !this.isChatting && this.buildMode) {
 						e.preventDefault();
 						console.log('Processing mouse button:', e.button);
 						
@@ -910,7 +919,7 @@
 			}
 						
 			updateBlockHighlight() {
-				if (this.isChatting) {
+				if (this.isChatting || !this.buildMode) {
 					this.highlightMesh.visible = false;
 					document.getElementById('blockDetector').style.display = 'none';
 					return;
@@ -919,19 +928,21 @@
 				const targetPos = this.getTargetBlockPosition();
 				const detector = document.getElementById('blockDetector');
 				
-				if (targetPos && targetPos.remove) {
-					detector.style.display = 'block';
-					detector.textContent = `BLOCK AT ${targetPos.remove.x},${targetPos.remove.y},${targetPos.remove.z}`;
-					detector.style.color = 'red';
-				} else {
-					detector.style.display = 'none';
-				}
-				
 				if (targetPos && targetPos.place) {
+					// Show highlight where block will be PLACED (like Trove)
 					this.highlightMesh.position.copy(targetPos.place);
 					this.highlightMesh.visible = true;
+					
+					if (targetPos.remove) {
+						detector.style.display = 'block';
+						detector.textContent = `WILL PLACE AT ${targetPos.place.x},${targetPos.place.y},${targetPos.place.z}`;
+						detector.style.color = 'green';
+					} else {
+						detector.style.display = 'none';
+					}
 				} else {
 					this.highlightMesh.visible = false;
+					detector.style.display = 'none';
 				}
 			}
             
