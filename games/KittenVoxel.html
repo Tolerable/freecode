@@ -105,6 +105,7 @@
             <div>SPACE: Jump</div>
             <div>Left Click: Remove block</div>
             <div>Right Click: Place block</div>
+            <div>Mouse Wheel: Zoom in/out</div>
             <div>Numbers 1-6: Select color</div>
         </div>
         
@@ -208,8 +209,7 @@
                     color: 0xffffff,
                     transparent: true,
                     opacity: 0.4,
-                    wireframe: true,
-                    linewidth: 2
+                    wireframe: true
                 });
                 this.highlightMesh = new THREE.Mesh(geometry, material);
                 this.highlightMesh.visible = false;
@@ -302,32 +302,17 @@
             }
             
             generateTerrain() {
-                // Create a larger varied terrain
-                for (let x = -20; x < 20; x++) {
-                    for (let z = -20; z < 20; z++) {
-                        // Create some height variation
-                        const height = Math.floor(Math.random() * 2); // 0 or 1
-                        for (let y = 0; y <= height; y++) {
-                            let color = 0x90EE90; // Light green for grass
-                            if (y === 0) color = 0x8B4513; // Brown for dirt
-                            this.setBlock(x, y, z, color);
-                        }
+                // Create a simple flat dirt world - completely empty except for a few dirt blocks
+                for (let x = -5; x <= 5; x++) {
+                    for (let z = -5; z <= 5; z++) {
+                        this.setBlock(x, 0, z, 0x8B4513); // Brown dirt base
                     }
                 }
                 
-                // Add some fun structures
-                this.createPyramid(5, 1, 5, 0xffd700); // Gold pyramid
-                this.createTower(-8, 1, -8, 0x4444ff); // Blue tower
-                
-                // Scatter some colorful blocks
-                for (let i = 0; i < 30; i++) {
-                    const x = Math.floor(Math.random() * 30) - 15;
-                    const z = Math.floor(Math.random() * 30) - 15;
-                    const y = this.getGroundHeight(x, z) + 1;
-                    const colors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44, 0xff44ff, 0x44ffff];
-                    const color = colors[Math.floor(Math.random() * colors.length)];
-                    this.setBlock(x, y, z, color);
-                }
+                // Add just one example structure to show it's working
+                this.setBlock(2, 1, 2, 0x90EE90); // One grass block to test climbing
+                this.setBlock(3, 1, 2, 0x90EE90);
+                this.setBlock(4, 2, 2, 0x90EE90); // Higher block to climb
             }
             
             createPyramid(centerX, baseY, centerZ, color) {
@@ -351,12 +336,21 @@
             
             getGroundHeight(x, z) {
                 // Find the highest solid block at this x,z position
-                for (let y = 10; y >= 0; y--) {
+                for (let y = 20; y >= -5; y--) {
                     if (this.getBlock(x, y, z)) {
                         return y;
                     }
                 }
-                return 0;
+                return -1; // No ground found
+            }
+            
+            canStandAt(x, y, z) {
+                // Check if there's a solid block to stand on and no block where the player would be
+                const groundBlock = this.getBlock(Math.floor(x), Math.floor(y - 1), Math.floor(z));
+                const playerBlock = this.getBlock(Math.floor(x), Math.floor(y), Math.floor(z));
+                const playerHeadBlock = this.getBlock(Math.floor(x), Math.floor(y + 1), Math.floor(z));
+                
+                return groundBlock && !playerBlock && !playerHeadBlock;
             }
             
             getBlockKey(x, y, z) {
@@ -430,7 +424,31 @@
                     }
                 });
                 
-                // Mouse click for block placement/removal
+                // Mouse wheel for zoom
+                this.renderer.domElement.addEventListener('wheel', (e) => {
+                    if (this.isPointerLocked) {
+                        e.preventDefault();
+                        const zoomSpeed = 0.5;
+                        const minDistance = 3;
+                        const maxDistance = 15;
+                        
+                        if (e.deltaY > 0) {
+                            // Zoom out
+                            this.cameraOffset.multiplyScalar(1 + zoomSpeed * 0.1);
+                        } else {
+                            // Zoom in
+                            this.cameraOffset.multiplyScalar(1 - zoomSpeed * 0.1);
+                        }
+                        
+                        // Clamp zoom distance
+                        const distance = this.cameraOffset.length();
+                        if (distance < minDistance) {
+                            this.cameraOffset.normalize().multiplyScalar(minDistance);
+                        } else if (distance > maxDistance) {
+                            this.cameraOffset.normalize().multiplyScalar(maxDistance);
+                        }
+                    }
+                });
                 this.renderer.domElement.addEventListener('mousedown', (e) => {
                     if (this.isPointerLocked) {
                         e.preventDefault();
@@ -539,9 +557,10 @@
             }
             
             updatePlayer() {
-                const speed = 0.15;
-                const jumpStrength = 0.4;
-                const gravity = -0.02;
+                const speed = 0.12;
+                const jumpStrength = 0.35;
+                const gravity = -0.015;
+                const stepHeight = 1.2; // How high the kitten can step up
                 
                 // Apply gravity
                 this.player.velocity.y += gravity;
@@ -569,19 +588,59 @@
                     this.player.isGrounded = false;
                 }
                 
-                // Update position
-                const newPosition = this.player.position.clone();
-                newPosition.add(direction);
+                // Calculate new position
+                const currentPos = this.player.position.clone();
+                const newPosition = currentPos.clone();
+                
+                // Apply horizontal movement
+                newPosition.x += direction.x;
+                newPosition.z += direction.z;
+                
+                // Apply vertical movement (gravity/jumping)
                 newPosition.y += this.player.velocity.y;
                 
-                // Simple collision detection with ground
-                const groundHeight = this.getGroundHeight(newPosition.x, newPosition.z) + 1.1; // Slightly above ground
-                if (newPosition.y <= groundHeight) {
-                    newPosition.y = groundHeight;
-                    this.player.velocity.y = 0;
-                    this.player.isGrounded = true;
+                // Advanced collision detection
+                const groundHeight = this.getGroundHeight(newPosition.x, newPosition.z);
+                const targetY = groundHeight + 1.0; // Height where kitten should stand
+                
+                // Check if we can step up to a higher block
+                if (direction.length() > 0) { // Only when moving horizontally
+                    const currentGroundHeight = this.getGroundHeight(currentPos.x, currentPos.z);
+                    
+                    if (groundHeight > currentGroundHeight && 
+                        groundHeight <= currentGroundHeight + stepHeight &&
+                        this.canStandAt(newPosition.x, targetY, newPosition.z)) {
+                        // Step up onto the block
+                        newPosition.y = Math.max(newPosition.y, targetY);
+                        this.player.velocity.y = 0;
+                        this.player.isGrounded = true;
+                    } else if (groundHeight >= 0) {
+                        // Normal ground collision
+                        if (newPosition.y <= targetY) {
+                            newPosition.y = targetY;
+                            this.player.velocity.y = 0;
+                            this.player.isGrounded = true;
+                        } else {
+                            this.player.isGrounded = false;
+                        }
+                    } else {
+                        // No ground found - falling into void
+                        this.player.isGrounded = false;
+                        if (newPosition.y < -10) {
+                            // Reset to spawn if falling too far
+                            newPosition.set(0, 3, 0);
+                            this.player.velocity.y = 0;
+                        }
+                    }
                 } else {
-                    this.player.isGrounded = false;
+                    // Not moving horizontally, just apply gravity
+                    if (groundHeight >= 0 && newPosition.y <= targetY) {
+                        newPosition.y = targetY;
+                        this.player.velocity.y = 0;
+                        this.player.isGrounded = true;
+                    } else {
+                        this.player.isGrounded = false;
+                    }
                 }
                 
                 this.player.position.copy(newPosition);
@@ -593,7 +652,7 @@
                     
                     // Add subtle bounce when walking
                     if (direction.length() > 0 && this.player.isGrounded) {
-                        const bounce = Math.sin(Date.now() * 0.01) * 0.1;
+                        const bounce = Math.sin(Date.now() * 0.015) * 0.08;
                         this.player.mesh.position.y += bounce;
                     }
                 }
