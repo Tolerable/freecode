@@ -936,32 +936,37 @@
 				}
 			}
             
-            handleBlockInteraction(isLeftClick) {
-                const targetPos = this.getTargetBlockPosition();
-                if (!targetPos) return;
-                
-                if (isLeftClick) {
-                    const placePos = targetPos.place;
-                    if (!this.getBlock(placePos.x, placePos.y, placePos.z)) {
-                        if (!this.isPositionInsidePlayer(placePos.x, placePos.y, placePos.z)) {
-                            this.setBlock(placePos.x, placePos.y, placePos.z, this.selectedColor);
-                        }
-                    }
-                } else {
-                    const removePos = targetPos.remove;
-                    if (this.getBlock(removePos.x, removePos.y, removePos.z)) {
-                        const playerFloor = Math.floor(this.player.position.y - 1);
-                        const playerX = Math.floor(this.player.position.x);
-                        const playerZ = Math.floor(this.player.position.z);
-                        
-                        if (!(removePos.x === playerX && 
-                              removePos.z === playerZ &&
-                              removePos.y === playerFloor)) {
-                            this.setBlock(removePos.x, removePos.y, removePos.z, null);
-                        }
-                    }
-                }
-            }
+			handleBlockInteraction(isLeftClick) {
+				const targetPos = this.getTargetBlockPosition();
+				if (!targetPos) return;
+				
+				if (isLeftClick) {
+					// Place block
+					const placePos = targetPos.place;
+					if (placePos && !this.getBlock(placePos.x, placePos.y, placePos.z)) {
+						if (!this.isPositionInsidePlayer(placePos.x, placePos.y, placePos.z)) {
+							this.setBlock(placePos.x, placePos.y, placePos.z, this.selectedColor);
+						}
+					}
+				} else {
+					// Remove block - need to check if we have a remove target
+					if (targetPos.remove) {
+						const removePos = targetPos.remove;
+						if (this.getBlock(removePos.x, removePos.y, removePos.z)) {
+							// Don't remove the block the player is standing on
+							const playerFloor = Math.floor(this.player.position.y - 1);
+							const playerX = Math.floor(this.player.position.x);
+							const playerZ = Math.floor(this.player.position.z);
+							
+							if (!(removePos.x === playerX && 
+								  removePos.z === playerZ &&
+								  removePos.y === playerFloor)) {
+								this.setBlock(removePos.x, removePos.y, removePos.z, null);
+							}
+						}
+					}
+				}
+			}
             
             updatePlayer() {
                 const speed = 0.12;
