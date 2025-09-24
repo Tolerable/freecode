@@ -656,6 +656,11 @@
 			setupControls() {
 				// Keyboard controls
 				document.addEventListener('keydown', (e) => {
+					// Block all game controls when chatting
+					if (this.isChatting) {
+						return;
+					}
+					
 					this.keys[e.code] = true;
 					
 					// H key for hub teleport
@@ -684,6 +689,11 @@
 				});
 				
 				document.addEventListener('keyup', (e) => {
+					// Block all game controls when chatting
+					if (this.isChatting) {
+						return;
+					}
+					
 					this.keys[e.code] = false;
 					
 					// Reset H key charging on release
@@ -697,7 +707,7 @@
 				
 				// Mouse controls
 				this.renderer.domElement.addEventListener('click', () => {
-					if (!this.isPointerLocked) {
+					if (!this.isPointerLocked && !this.isChatting) {
 						this.renderer.domElement.requestPointerLock();
 					}
 				});
@@ -707,7 +717,7 @@
 				});
 				
 				document.addEventListener('mousemove', (e) => {
-					if (this.isPointerLocked) {
+					if (this.isPointerLocked && !this.isChatting) {
 						const sensitivity = 0.003;
 						this.cameraRotationY -= e.movementX * sensitivity;
 						this.cameraRotationX -= e.movementY * sensitivity;
@@ -717,7 +727,7 @@
 				
 				// Mouse wheel for zoom
 				this.renderer.domElement.addEventListener('wheel', (e) => {
-					if (this.isPointerLocked) {
+					if (this.isPointerLocked && !this.isChatting) {
 						e.preventDefault();
 						const zoomSpeed = 0.5;
 						const minDistance = 3;
@@ -739,7 +749,7 @@
 				});
 				
 				this.renderer.domElement.addEventListener('mousedown', (e) => {
-					if (this.isPointerLocked) {
+					if (this.isPointerLocked && !this.isChatting) {
 						e.preventDefault();
 						this.handleBlockInteraction(e.button === 0);
 					}
@@ -765,6 +775,8 @@
 						this.closeChatUI();
 						e.preventDefault();
 					}
+					// Prevent all other keys from bubbling up to game controls
+					e.stopPropagation();
 				});
 			}
             
