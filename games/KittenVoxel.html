@@ -81,6 +81,104 @@
             box-shadow: 0 0 15px rgba(255,255,255,0.5);
         }
 
+		#chatUI {
+			position: absolute;
+			bottom: 150px;
+			left: 20px;
+			right: 20px;
+			z-index: 102;
+			background: rgba(0,0,0,0.9);
+			border: 2px solid white;
+			border-radius: 10px;
+			padding: 20px;
+			color: white;
+			display: none;
+			max-width: 600px;
+			margin: 0 auto;
+			transition: height 0.3s ease;
+		}
+		
+		#chatHeader {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 10px;
+			border-bottom: 1px solid rgba(255,255,255,0.3);
+			padding-bottom: 5px;
+		}
+
+		#chatExpander {
+			background: rgba(255,255,255,0.2);
+			border: none;
+			color: white;
+			padding: 5px 10px;
+			border-radius: 3px;
+			cursor: pointer;
+			font-size: 12px;
+		}
+
+		#chatExpander:hover {
+			background: rgba(255,255,255,0.4);
+		}
+
+		#chatMessages {
+			height: 200px;
+			overflow-y: auto;
+			margin-bottom: 15px;
+			padding: 10px;
+			background: rgba(255,255,255,0.1);
+			border-radius: 5px;
+			transition: height 0.3s ease;
+		}
+
+		#chatUI.expanded #chatMessages {
+			height: 600px !important;
+		}
+
+		#chatInput {
+			width: calc(100% - 20px);
+			padding: 10px;
+			border: none;
+			border-radius: 5px;
+			background: rgba(255,255,255,0.2);
+			color: white;
+			font-size: 14px;
+			box-sizing: border-box;
+		}
+
+		#chatInput::placeholder {
+			color: rgba(255,255,255,0.7);
+		}
+
+		.chat-message {
+			margin-bottom: 10px;
+			padding: 8px;
+			border-radius: 5px;
+		}
+
+		.chat-npc {
+			background: rgba(100,150,255,0.3);
+		}
+
+		.chat-player {
+			background: rgba(255,150,100,0.3);
+			text-align: right;
+		}
+
+		#nearCharacterHint {
+			position: absolute;
+			top: 60%;
+			left: 50%;
+			transform: translateX(-50%);
+			z-index: 100;
+			color: white;
+			background: rgba(0,0,0,0.8);
+			padding: 10px 20px;
+			border-radius: 25px;
+			font-size: 14px;
+			display: none;
+		}
+
         #jumpHint {
             position: absolute;
             bottom: 120px;
@@ -94,24 +192,95 @@
             font-size: 12px;
             opacity: 0.8;
         }
+
+        #hubChargeIndicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 101;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        #hubChargeBar {
+            width: 200px;
+            height: 20px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid white;
+            border-radius: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        #hubChargeFill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffff00, #ff8800, #ff0000);
+            transition: width 0.1s ease;
+            box-shadow: 0 0 20px rgba(255,255,255,0.8);
+            animation: glow 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+            to { box-shadow: 0 0 30px rgba(255,255,255,1); }
+        }
+
+        #saveIndicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            color: #00ff00;
+            background: rgba(0,0,0,0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #saveIndicator.show {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
     <div id="container">
-        <div id="ui">
-            <div><strong>🐱 Kitten Voxel</strong></div>
-            <div>WASD: Move kitten</div>
-            <div>Mouse: Look around</div>
-            <div>SPACE: Jump</div>
-            <div>Left Click: Place block</div>
-            <div>Right Click: Remove block</div>
-            <div>Mouse Wheel: Zoom in/out</div>
-            <div>Numbers 1-6: Select color</div>
-        </div>
+		<div id="ui">
+			<div><strong>🐱 Kitten Voxel</strong></div>
+			<div>WASD: Move kitten</div>
+			<div>Mouse: Look around</div>
+			<div>SPACE: Jump</div>
+			<div>Left Click: Place block</div>
+			<div>Right Click: Remove block</div>
+			<div>Mouse Wheel: Zoom in/out</div>
+			<div>Numbers 1-6: Select color</div>
+			<div>Hold H (5s): Return to hub</div>
+			<div>T: Talk to character</div>
+			<div>Ctrl+E: Expand chat (when open)</div>
+		</div>
         
         <div id="crosshair"></div>
+		<div id="blockDetector" style="position: absolute; top: 45%; left: 50%; transform: translateX(-50%); z-index: 100; color: red; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; font-size: 16px; font-weight: bold; display: none;">BLOCK DETECTED</div>
         
         <div id="jumpHint">Press SPACE to jump! 🐾</div>
+        
+        <div id="hubChargeIndicator">
+            <div>Returning to Hub...</div>
+            <div id="hubChargeBar">
+                <div id="hubChargeFill"></div>
+            </div>
+        </div>
+
+        <div id="saveIndicator">World Saved!</div>
         
         <div id="colorPalette">
             <div class="colorSwatch selected" data-color="0xff4444" style="background: #ff4444;" title="Red (1)"></div>
@@ -121,68 +290,232 @@
             <div class="colorSwatch" data-color="0xff44ff" style="background: #ff44ff;" title="Magenta (5)"></div>
             <div class="colorSwatch" data-color="0x44ffff" style="background: #44ffff;" title="Cyan (6)"></div>
         </div>
+
+		<div id="nearCharacterHint">Press T to talk to [Character Name]</div>
+
+		<div id="chatUI">
+			<div id="chatHeader">
+				<span id="chatCharacterName"></span>
+				<button id="chatExpander">^</button>
+			</div>
+			<div id="chatMessages"></div>
+			<input type="text" id="chatInput" placeholder="Type your message and press Enter..." />
+		</div>
+
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+	
         class KittenVoxel {
-            constructor() {
-                // Initialize Three.js
-                this.scene = new THREE.Scene();
-                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                this.renderer = new THREE.WebGLRenderer({ antialias: true });
-                
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.setClearColor(0x87CEEB);
-                this.renderer.shadowMap.enabled = true;
-                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                
-                document.getElementById('container').appendChild(this.renderer.domElement);
-                
-                // World data
-                this.worldSize = 32;
-                this.world = {};
-                
-                // Player (kitten) properties - position represents the CENTER of the kitten body
-                this.player = {
-                    position: new THREE.Vector3(0, 2.0, 0), // Lower starting position
-                    velocity: new THREE.Vector3(0, 0, 0),
-                    rotation: 0,
-                    isGrounded: false,
-                    mesh: null,
-                    feetOffset: 1.0 // Distance from player center to bottom of feet
-                };
-                
-                // Camera follows player
-                this.cameraOffset = new THREE.Vector3(0, 5, 8);
-                this.cameraTarget = new THREE.Vector3();
-                
-                // Controls
-                this.keys = {};
-                this.mouse = { x: 0, y: 0 };
-                this.isPointerLocked = false;
-                this.cameraRotationY = 0;
-                this.cameraRotationX = -0.3;
-                
-                // Selected color
-                this.selectedColor = 0xff4444;
-                
-                // Raycaster for block selection
-                this.raycaster = new THREE.Raycaster();
-                this.raycaster.far = 8;
-                
-                // Block highlight
-                this.highlightMesh = null;
-                
-                // Initialize everything
-                this.setupLighting();
-                this.createHighlightMesh();
-                this.createKitten();
-                this.generateTerrain();
-                this.setupControls();
-                this.setupColorPalette();
-                this.animate();
-            }
+			constructor() {
+				// Initialize Three.js
+				this.scene = new THREE.Scene();
+				this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+				this.renderer = new THREE.WebGLRenderer({ antialias: true });
+				
+				this.renderer.setSize(window.innerWidth, window.innerHeight);
+				this.renderer.setClearColor(0x87CEEB);
+				this.renderer.shadowMap.enabled = true;
+				this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				
+				document.getElementById('container').appendChild(this.renderer.domElement);
+				
+				// Chat UI elements
+				this.chatUI = document.getElementById('chatUI');
+				this.chatMessages = document.getElementById('chatMessages');
+				this.chatInput = document.getElementById('chatInput');
+				this.nearCharacterHint = document.getElementById('nearCharacterHint');
+				this.chatCharacterName = document.getElementById('chatCharacterName');
+				this.chatExpander = document.getElementById('chatExpander');
+				this.nearestCharacter = null;
+				this.isChatting = false;
+				this.chatExpanded = false;				
+				
+				// World data
+				this.worldSize = 32;
+				this.world = {};
+				
+				// Player (kitten) properties
+				this.player = {
+					position: new THREE.Vector3(0, 2.0, 0),
+					velocity: new THREE.Vector3(0, 0, 0),
+					rotation: 0,
+					isGrounded: false,
+					mesh: null,
+					feetOffset: 1.0
+				};
+				
+				// Hub system
+				this.hKeyHoldTime = 0;
+				this.hKeyCharging = false;
+				this.hubPosition = new THREE.Vector3(0, 5, 0);
+				
+				// AI Characters system
+				this.characters = [];
+				this.maxCharacters = 3;
+				this.characterTypes = [
+					{
+						name: 'Builder Bob',
+						color: 0x4444ff,
+						personality: 'friendly builder who loves construction',
+						knowledge: {
+							materials: ['red blocks', 'green blocks', 'blue blocks', 'yellow blocks', 'magenta blocks', 'cyan blocks'],
+							structures: ['towers', 'bridges', 'houses', 'walls', 'pyramids'],
+							tools: ['left click to place', 'right click to remove', 'mouse wheel to zoom']
+						}
+					},
+					{
+						name: 'Explorer Emma',
+						color: 0x44ff44,
+						personality: 'curious explorer who loves discovering new places',
+						knowledge: {
+							locations: ['the hub area', 'the brown dirt platform', 'the edge of the world'],
+							activities: ['jumping with space', 'moving with WASD', 'looking around with mouse'],
+							secrets: ['try holding H for 5 seconds', 'use numbers 1-6 to change colors']
+						}
+					},
+					{
+						name: 'Chatty Charlie',
+						color: 0xffff44,
+						personality: 'talkative companion who enjoys conversation',
+						knowledge: {
+							topics: ['building projects', 'exploring the world', 'meeting other characters'],
+							observations: ['the sky is a nice blue color', 'this platform is perfect for building'],
+							questions: ['what are you planning to build?', 'have you explored the edges yet?']
+						}
+					}
+				];
+				this.activeChat = null;
+				
+				// Camera follows player
+				this.cameraOffset = new THREE.Vector3(0, 5, 8);
+				this.cameraTarget = new THREE.Vector3();
+				
+				// Controls
+				this.keys = {};
+				this.mouse = { x: 0, y: 0 };
+				this.isPointerLocked = false;
+				this.cameraRotationY = 0;
+				this.cameraRotationX = -0.3;
+				
+				// Selected color
+				this.selectedColor = 0xff4444;
+				
+				// Raycaster for block selection
+				this.raycaster = new THREE.Raycaster();
+				this.raycaster.far = 8;
+				
+				// Block highlight
+				this.highlightMesh = null;
+				
+				// UI elements
+				this.hubChargeIndicator = document.getElementById('hubChargeIndicator');
+				this.hubChargeFill = document.getElementById('hubChargeFill');
+				this.saveIndicator = document.getElementById('saveIndicator');
+				
+				// Initialize everything
+				this.setupLighting();
+				this.createHighlightMesh();
+				this.createKitten();
+				this.generateTerrain();
+				this.spawnCharacters();
+				this.loadWorld();
+				this.setupControls();
+				this.setupColorPalette();
+				this.setupAutoSave();
+				this.animate();
+			}
+
+			updateCharacterInteraction() {
+				// Find nearest character
+				let nearestChar = null;
+				let nearestDist = Infinity;
+				
+				this.characters.forEach(character => {
+					const dist = this.player.position.distanceTo(character.position);
+					if (dist < nearestDist && dist < 4) {
+						nearestChar = character;
+						nearestDist = dist;
+					}
+				});
+				
+				if (nearestChar && !this.isChatting) {
+					this.nearestCharacter = nearestChar;
+					this.nearCharacterHint.textContent = `Press T to talk to ${nearestChar.type.name}`;
+					this.nearCharacterHint.style.display = 'block';
+				} else if (!this.isChatting) {
+					this.nearestCharacter = null;
+					this.nearCharacterHint.style.display = 'none';
+				}
+			}
+
+			addChatMessage(sender, message, cssClass) {
+				const messageDiv = document.createElement('div');
+				messageDiv.className = `chat-message ${cssClass}`;
+				messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+				this.chatMessages.appendChild(messageDiv);
+				this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+			}
+
+			async startChatWithCharacter(character) {
+				this.isChatting = true;
+				this.activeChat = character;
+				this.nearCharacterHint.style.display = 'none';
+				this.chatUI.style.display = 'block';
+				
+				// Exit pointer lock when chat opens
+				if (document.pointerLockElement) {
+					document.exitPointerLock();
+				}
+				
+				this.chatInput.focus();
+				
+				// Clear previous messages and input
+				this.chatMessages.innerHTML = '';
+				this.chatInput.value = '';
+				this.chatCharacterName.textContent = character.type.name;
+				
+				// Reset expansion state
+				this.chatExpanded = false;
+				this.chatMessages.classList.remove('expanded');
+				this.chatExpander.textContent = '^';
+				
+				// Get greeting
+				const greeting = await character.startChat();
+				this.addChatMessage(character.type.name, greeting, 'chat-npc');
+			}
+
+			async sendPlayerMessage(message) {
+				if (!this.activeChat || !message.trim()) return;
+				
+				// Add player message to UI
+				this.addChatMessage('You', message, 'chat-player');
+				
+				// Clear input immediately
+				this.chatInput.value = '';
+				
+				// Get AI response
+				const response = await this.activeChat.startChat(message);
+				this.addChatMessage(this.activeChat.type.name, response, 'chat-npc');
+			}
+
+			toggleChatExpansion() {
+				this.chatExpanded = !this.chatExpanded;
+				if (this.chatExpanded) {
+					this.chatUI.classList.add('expanded');
+					this.chatExpander.textContent = 'v';
+				} else {
+					this.chatUI.classList.remove('expanded');
+					this.chatExpander.textContent = '^';
+				}
+			}
+
+			closeChatUI() {
+				this.isChatting = false;
+				this.activeChat = null;
+				this.chatUI.style.display = 'none';
+			}
             
             setupLighting() {
                 // Ambient light
@@ -222,7 +555,7 @@
                 
                 // Body (main cube)
                 const bodyGeometry = new THREE.BoxGeometry(1.2, 0.8, 2);
-                const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 }); // Orange
+                const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 });
                 const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
                 body.position.set(0, 0, 0);
                 body.castShadow = true;
@@ -230,7 +563,7 @@
                 
                 // Head
                 const headGeometry = new THREE.BoxGeometry(1, 1, 1);
-                const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 }); // Orange
+                const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 });
                 const head = new THREE.Mesh(headGeometry, headMaterial);
                 head.position.set(0, 0.9, -0.8);
                 head.castShadow = true;
@@ -292,63 +625,40 @@
                 const tailMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 });
                 const tail = new THREE.Mesh(tailGeometry, tailMaterial);
                 tail.position.set(0, 0.5, 1.2);
-                tail.rotation.x = Math.PI / 6; // Curve upward
+                tail.rotation.x = Math.PI / 6;
                 tail.castShadow = true;
                 kittenGroup.add(tail);
                 
-                // Position the kitten properly - this offset is just for visual positioning
                 kittenGroup.position.copy(this.player.position);
-                // The visual model is positioned at the player center, no additional offset needed
                 this.scene.add(kittenGroup);
                 this.player.mesh = kittenGroup;
             }
             
             generateTerrain() {
-                // Create a simple flat dirt world - completely empty except for a few dirt blocks
-                for (let x = -5; x <= 5; x++) {
-                    for (let z = -5; z <= 5; z++) {
-                        this.setBlock(x, 0, z, 0x8B4513); // Brown dirt base
+                // Create larger flat dirt world
+                for (let x = -15; x <= 15; x++) {
+                    for (let z = -15; z <= 15; z++) {
+                        this.setBlock(x, 0, z, 0x8B4513);
                     }
                 }
                 
-                // Add just one example structure to show it's working
-                this.setBlock(2, 1, 2, 0x90EE90); // One grass block to test climbing
+                // Add example structures
+                this.setBlock(2, 1, 2, 0x90EE90);
                 this.setBlock(3, 1, 2, 0x90EE90);
-                this.setBlock(4, 2, 2, 0x90EE90); // Higher block to climb
-            }
-            
-            createPyramid(centerX, baseY, centerZ, color) {
-                const size = 3;
-                for (let level = 0; level < size; level++) {
-                    const y = baseY + level;
-                    const extent = size - level - 1;
-                    for (let x = -extent; x <= extent; x++) {
-                        for (let z = -extent; z <= extent; z++) {
-                            this.setBlock(centerX + x, y, centerZ + z, color);
-                        }
-                    }
-                }
-            }
-            
-            createTower(centerX, baseY, centerZ, color) {
-                for (let y = baseY; y < baseY + 5; y++) {
-                    this.setBlock(centerX, y, centerZ, color);
-                }
+                this.setBlock(4, 2, 2, 0x90EE90);
             }
             
             getGroundHeight(x, z) {
-                // Find the highest solid block at this x,z position
+                // Find the highest solid block and return its TOP surface
                 for (let y = 20; y >= -5; y--) {
                     if (this.getBlock(x, y, z)) {
-                        return y + 1;
+                        return y + 1; // Return top surface of the block
                     }
                 }
-                return -1; // No ground found
+                return -1;
             }
             
             canStandAt(x, y, z) {
-                // Check if there's a solid block to stand on and no block where the player would be
-                // y should be the feet position, so check ground at y-1 and space at y and y+1 for body
                 const groundBlock = this.getBlock(Math.floor(x), Math.floor(y - 1), Math.floor(z));
                 const feetBlock = this.getBlock(Math.floor(x), Math.floor(y), Math.floor(z));
                 const bodyBlock = this.getBlock(Math.floor(x), Math.floor(y + 1), Math.floor(z));
@@ -357,7 +667,6 @@
             }
             
             getFeetPosition() {
-                // Get the position of the kitten's feet (bottom of legs)
                 return {
                     x: this.player.position.x,
                     y: this.player.position.y - this.player.feetOffset,
@@ -371,7 +680,6 @@
                 const dy = Math.abs(y - playerPos.y);
                 const dz = Math.abs(z - playerPos.z);
                 
-                // More forgiving - only block placement if block would be right inside the kitten's core
                 return dx < 0.6 && dy < 1.0 && dz < 0.6;
             }
             
@@ -400,7 +708,6 @@
                     this.scene.add(cube);
                     this.world[key] = cube;
                 } else {
-                    // Remove block
                     delete this.world[key];
                 }
             }
@@ -410,86 +717,154 @@
                 return this.world[key] || null;
             }
             
-            setupControls() {
-                // Keyboard controls
-                document.addEventListener('keydown', (e) => {
-                    this.keys[e.code] = true;
-                    
-                    // Number keys for color selection
-                    if (e.code >= 'Digit1' && e.code <= 'Digit6') {
-                        const colorIndex = parseInt(e.code.slice(-1)) - 1;
-                        this.selectColor(colorIndex);
-                    }
-                });
-                
-                document.addEventListener('keyup', (e) => {
-                    this.keys[e.code] = false;
-                });
-                
-                // Mouse controls - request pointer lock on click
-                this.renderer.domElement.addEventListener('click', () => {
-                    if (!this.isPointerLocked) {
-                        this.renderer.domElement.requestPointerLock();
-                    }
-                });
-                
-                document.addEventListener('pointerlockchange', () => {
-                    this.isPointerLocked = document.pointerLockElement === this.renderer.domElement;
-                });
-                
-                document.addEventListener('mousemove', (e) => {
-                    if (this.isPointerLocked) {
-                        const sensitivity = 0.003;
-                        this.cameraRotationY -= e.movementX * sensitivity;
-                        this.cameraRotationX -= e.movementY * sensitivity;
-                        this.cameraRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/3, this.cameraRotationX));
-                    }
-                });
-                
-                // Mouse wheel for zoom
-                this.renderer.domElement.addEventListener('wheel', (e) => {
-                    if (this.isPointerLocked) {
-                        e.preventDefault();
-                        const zoomSpeed = 0.5;
-                        const minDistance = 3;
-                        const maxDistance = 15;
-                        
-                        if (e.deltaY > 0) {
-                            // Zoom out
-                            this.cameraOffset.multiplyScalar(1 + zoomSpeed * 0.1);
-                        } else {
-                            // Zoom in
-                            this.cameraOffset.multiplyScalar(1 - zoomSpeed * 0.1);
-                        }
-                        
-                        // Clamp zoom distance
-                        const distance = this.cameraOffset.length();
-                        if (distance < minDistance) {
-                            this.cameraOffset.normalize().multiplyScalar(minDistance);
-                        } else if (distance > maxDistance) {
-                            this.cameraOffset.normalize().multiplyScalar(maxDistance);
-                        }
-                    }
-                });
-                this.renderer.domElement.addEventListener('mousedown', (e) => {
-                    if (this.isPointerLocked) {
-                        e.preventDefault();
-                        this.handleBlockInteraction(e.button === 0); // 0 = left, 2 = right
-                    }
-                });
-                
-                // Prevent context menu
-                this.renderer.domElement.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                });
-                
-                // Window resize
-                window.addEventListener('resize', () => {
-                    this.camera.aspect = window.innerWidth / window.innerHeight;
-                    this.camera.updateProjectionMatrix();
-                    this.renderer.setSize(window.innerWidth, window.innerHeight);
-                });
-            }
+			setupControls() {
+				// Keyboard controls
+				document.addEventListener('keydown', (e) => {
+					// Block all game controls when chatting except specific chat controls
+					if (this.isChatting) {
+						// Allow Ctrl+E to expand chat
+						if (e.ctrlKey && e.code === 'KeyE') {
+							this.toggleChatExpansion();
+							e.preventDefault();
+						}
+						// Allow Escape to close chat
+						if (e.code === 'Escape') {
+							this.closeChatUI();
+							e.preventDefault();
+						}
+						return;
+					}
+					
+					this.keys[e.code] = true;
+					
+					// H key for hub teleport
+					if (e.code === 'KeyH' && !this.hKeyCharging) {
+						this.hKeyCharging = true;
+						this.hKeyHoldTime = 0;
+						this.hubChargeIndicator.style.display = 'flex';
+					}
+					
+					// Number keys for color selection
+					if (e.code >= 'Digit1' && e.code <= 'Digit6') {
+						const colorIndex = parseInt(e.code.slice(-1)) - 1;
+						this.selectColor(colorIndex);
+					}
+					
+					// T key for chat
+					if (e.code === 'KeyT' && this.nearestCharacter && !this.isChatting) {
+						this.startChatWithCharacter(this.nearestCharacter);
+						e.preventDefault();
+					}
+				});
+				
+				document.addEventListener('keyup', (e) => {
+					// Block all game controls when chatting
+					if (this.isChatting) {
+						return;
+					}
+					
+					this.keys[e.code] = false;
+					
+					// Reset H key charging on release
+					if (e.code === 'KeyH') {
+						this.hKeyCharging = false;
+						this.hKeyHoldTime = 0;
+						this.hubChargeIndicator.style.display = 'none';
+						this.hubChargeFill.style.width = '0%';
+					}
+				});
+				
+				// Mouse controls
+				this.renderer.domElement.addEventListener('click', () => {
+					if (!this.isPointerLocked && !this.isChatting) {
+						this.renderer.domElement.requestPointerLock();
+					}
+				});
+				
+				document.addEventListener('pointerlockchange', () => {
+					this.isPointerLocked = document.pointerLockElement === this.renderer.domElement;
+				});
+				
+				document.addEventListener('mousemove', (e) => {
+					if (this.isPointerLocked && !this.isChatting) {
+						const sensitivity = 0.003;
+						this.cameraRotationY -= e.movementX * sensitivity;
+						this.cameraRotationX -= e.movementY * sensitivity;
+						this.cameraRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/3, this.cameraRotationX));
+					}
+				});
+				
+				// Mouse wheel for zoom
+				this.renderer.domElement.addEventListener('wheel', (e) => {
+					if (this.isPointerLocked && !this.isChatting) {
+						e.preventDefault();
+						const zoomSpeed = 0.5;
+						const minDistance = 3;
+						const maxDistance = 15;
+						
+						if (e.deltaY > 0) {
+							this.cameraOffset.multiplyScalar(1 + zoomSpeed * 0.1);
+						} else {
+							this.cameraOffset.multiplyScalar(1 - zoomSpeed * 0.1);
+						}
+						
+						const distance = this.cameraOffset.length();
+						if (distance < minDistance) {
+							this.cameraOffset.normalize().multiplyScalar(minDistance);
+						} else if (distance > maxDistance) {
+							this.cameraOffset.normalize().multiplyScalar(maxDistance);
+						}
+					}
+				});
+				
+				this.renderer.domElement.addEventListener('mousedown', (e) => {
+					console.log('Mouse clicked:', e.button, 'Pointer locked:', this.isPointerLocked, 'Chatting:', this.isChatting);
+					
+					if (this.isPointerLocked && !this.isChatting) {
+						e.preventDefault();
+						console.log('Processing mouse button:', e.button);
+						
+						if (e.button === 0) {
+							console.log('LEFT CLICK - placing block');
+							this.handleBlockInteraction(true);
+						} else if (e.button === 2) {
+							console.log('RIGHT CLICK - removing block');
+							this.handleBlockInteraction(false);
+						}
+					} else {
+						console.log('Blocked - pointer locked:', this.isPointerLocked, 'not chatting:', !this.isChatting);
+					}
+				});
+				
+				this.renderer.domElement.addEventListener('contextmenu', (e) => {
+					e.preventDefault();
+				});
+				
+				window.addEventListener('resize', () => {
+					this.camera.aspect = window.innerWidth / window.innerHeight;
+					this.camera.updateProjectionMatrix();
+					this.renderer.setSize(window.innerWidth, window.innerHeight);
+				});
+
+				// Chat input handling
+				this.chatInput.addEventListener('keydown', (e) => {
+					if (e.key === 'Enter') {
+						this.sendPlayerMessage(this.chatInput.value);
+						e.preventDefault();
+					}
+					if (e.key === 'Escape') {
+						this.closeChatUI();
+						e.preventDefault();
+					}
+					// Prevent all other keys from bubbling up to game controls
+					e.stopPropagation();
+				});
+				
+				// Chat expander button
+				this.chatExpander.addEventListener('click', () => {
+					this.toggleChatExpansion();
+				});
+			}
             
             setupColorPalette() {
                 const swatches = document.querySelectorAll('.colorSwatch');
@@ -509,80 +884,84 @@
                 }
             }
             
-            getTargetBlockPosition() {
-                // Cast ray from camera center
-                this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
-                
-                // Get all block objects
-                const objects = Object.values(this.world);
-                const intersects = this.raycaster.intersectObjects(objects);
-                
-                if (intersects.length > 0) {
-                    const intersect = intersects[0];
-                    const blockPos = intersect.object.position;
-                    const normal = intersect.face.normal;
-                    
-                    // Position to place new block (adjacent to clicked face)
-                    const placePos = blockPos.clone().add(normal);
-                    
-                    return {
-                        remove: blockPos.clone(),
-                        place: placePos,
-                        normal: normal
-                    };
-                }
-                return null;
-            }
+			getTargetBlockPosition() {
+				// Cast ray from camera center
+				this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+				
+				// Get all block objects
+				const objects = Object.values(this.world);
+				const intersects = this.raycaster.intersectObjects(objects);
+				
+				if (intersects.length > 0) {
+					const intersect = intersects[0];
+					const blockPos = intersect.object.position;
+					const normal = intersect.face.normal;
+					
+					// Position to place new block (adjacent to clicked face)
+					const placePos = blockPos.clone().add(normal);
+					
+					return {
+						remove: blockPos.clone(),
+						place: placePos,
+						normal: normal
+					};
+				}
+				return null;
+			}
+						
+			updateBlockHighlight() {
+				if (this.isChatting) {
+					this.highlightMesh.visible = false;
+					document.getElementById('blockDetector').style.display = 'none';
+					return;
+				}
+				
+				const targetPos = this.getTargetBlockPosition();
+				const detector = document.getElementById('blockDetector');
+				
+				if (targetPos && targetPos.remove) {
+					detector.style.display = 'block';
+					detector.textContent = `BLOCK AT ${targetPos.remove.x},${targetPos.remove.y},${targetPos.remove.z}`;
+					detector.style.color = 'red';
+				} else {
+					detector.style.display = 'none';
+				}
+				
+				if (targetPos && targetPos.place) {
+					this.highlightMesh.position.copy(targetPos.place);
+					this.highlightMesh.visible = true;
+				} else {
+					this.highlightMesh.visible = false;
+				}
+			}
             
-            updateBlockHighlight() {
-                const targetPos = this.getTargetBlockPosition();
-                
-                if (targetPos) {
-                    // Show highlight on the position where a new block would be placed
-                    this.highlightMesh.position.copy(targetPos.place);
-                    this.highlightMesh.visible = true;
-                } else {
-                    this.highlightMesh.visible = false;
-                }
-            }
-            
-            handleBlockInteraction(isLeftClick) {
-                const targetPos = this.getTargetBlockPosition();
-                if (!targetPos) return;
-                
-                if (isLeftClick) {
-                    // Left click: Place block where highlight shows
-                    const placePos = targetPos.place;
-                    if (!this.getBlock(placePos.x, placePos.y, placePos.z)) {
-                        // Much more forgiving placement - only prevent if block would be right inside kitten
-                        if (!this.isPositionInsidePlayer(placePos.x, placePos.y, placePos.z)) {
-                            this.setBlock(placePos.x, placePos.y, placePos.z, this.selectedColor);
-                        }
-                    }
-                } else {
-                    // Right click: Remove the block we're looking at
-                    const removePos = targetPos.remove;
-                    if (this.getBlock(removePos.x, removePos.y, removePos.z)) {
-                        // Don't remove blocks directly supporting the player
-                        const playerFloor = Math.floor(this.player.position.y - 1);
-                        const playerX = Math.floor(this.player.position.x);
-                        const playerZ = Math.floor(this.player.position.z);
-                        
-                        // Only prevent removal if it's the exact block the player is standing on
-                        if (!(removePos.x === playerX && 
-                              removePos.z === playerZ &&
-                              removePos.y === playerFloor)) {
-                            this.setBlock(removePos.x, removePos.y, removePos.z, null);
-                        }
-                    }
-                }
-            }
+			handleBlockInteraction(isLeftClick) {
+				const targetPos = this.getTargetBlockPosition();
+				if (!targetPos) return;
+				
+				if (isLeftClick) {
+					// Left click: Place block where highlight shows
+					const placePos = targetPos.place;
+					if (!this.getBlock(placePos.x, placePos.y, placePos.z)) {
+						// Much more forgiving placement - only prevent if block would be right inside kitten
+						if (!this.isPositionInsidePlayer(placePos.x, placePos.y, placePos.z)) {
+							this.setBlock(placePos.x, placePos.y, placePos.z, this.selectedColor);
+						}
+					}
+				} else {
+					// Right click: Remove the block we're looking at
+					const removePos = targetPos.remove;
+					if (this.getBlock(removePos.x, removePos.y, removePos.z)) {
+						this.setBlock(removePos.x, removePos.y, removePos.z, null);
+					}
+				}
+			}
             
             updatePlayer() {
                 const speed = 0.12;
                 const jumpStrength = 0.35;
                 const gravity = -0.015;
-                const stepHeight = 1.2; // How high the kitten can step up
+                const stepHeight = 1.2;
                 
                 // Apply gravity
                 this.player.velocity.y += gravity;
@@ -594,13 +973,10 @@
                 if (this.keys['KeyA']) direction.x -= 1;
                 if (this.keys['KeyD']) direction.x += 1;
                 
-                // Apply camera rotation to movement direction (only Y rotation)
                 if (direction.length() > 0) {
                     direction.normalize();
                     direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraRotationY);
                     direction.multiplyScalar(speed);
-                    
-                    // Rotate player to face movement direction
                     this.player.rotation = Math.atan2(direction.x, direction.z);
                 }
                 
@@ -614,30 +990,31 @@
                 const currentPos = this.player.position.clone();
                 const newPosition = currentPos.clone();
                 
-                // Apply horizontal movement
                 newPosition.x += direction.x;
                 newPosition.z += direction.z;
-                
-                // Apply vertical movement (gravity/jumping)
                 newPosition.y += this.player.velocity.y;
                 
-                // Advanced collision detection - adjust for kitten feet position
-                const groundHeight = this.getGroundHeight(newPosition.x, newPosition.z);
-                const targetY = groundHeight + 1.3; // Height where kitten center should be (feet on ground + body height)
+                // World boundaries - prevent falling off edges
+                const worldBoundary = 15;
+                if (Math.abs(newPosition.x) > worldBoundary || Math.abs(newPosition.z) > worldBoundary || newPosition.y < -5) {
+                    newPosition.copy(this.hubPosition);
+                    this.player.velocity.set(0, 0, 0);
+                }
                 
-                // Check if we can step up to a higher block
-                if (direction.length() > 0) { // Only when moving horizontally
+                // Ground collision
+                const groundHeight = this.getGroundHeight(newPosition.x, newPosition.z);
+                const targetY = groundHeight + 0.5; // Corrected height
+                
+                if (direction.length() > 0) {
                     const currentGroundHeight = this.getGroundHeight(currentPos.x, currentPos.z);
                     
                     if (groundHeight > currentGroundHeight && 
                         groundHeight <= currentGroundHeight + stepHeight &&
                         this.canStandAt(newPosition.x, targetY, newPosition.z)) {
-                        // Step up onto the block
                         newPosition.y = Math.max(newPosition.y, targetY);
                         this.player.velocity.y = 0;
                         this.player.isGrounded = true;
                     } else if (groundHeight >= 0) {
-                        // Normal ground collision
                         if (newPosition.y <= targetY) {
                             newPosition.y = targetY;
                             this.player.velocity.y = 0;
@@ -646,16 +1023,13 @@
                             this.player.isGrounded = false;
                         }
                     } else {
-                        // No ground found - falling into void
                         this.player.isGrounded = false;
                         if (newPosition.y < -10) {
-                            // Reset to spawn if falling too far
-                            newPosition.set(0, 3, 0);
+                            newPosition.copy(this.hubPosition);
                             this.player.velocity.y = 0;
                         }
                     }
                 } else {
-                    // Not moving horizontally, just apply gravity
                     if (groundHeight >= 0 && newPosition.y <= targetY) {
                         newPosition.y = targetY;
                         this.player.velocity.y = 0;
@@ -667,23 +1041,22 @@
                 
                 this.player.position.copy(newPosition);
                 
-				// Update player mesh position
-				if (this.player.mesh) {
-					this.player.mesh.position.copy(this.player.position);
-					this.player.mesh.rotation.y = this.player.rotation;
-					
-					// Add subtle bounce when walking
-					if (direction.length() > 0 && this.player.isGrounded) {
-						const bounce = Math.sin(Date.now() * 0.015) * 0.06;
-						this.player.mesh.position.y += Math.max(0, bounce);
-					}
-				}
+                // Update player mesh position
+                if (this.player.mesh) {
+                    this.player.mesh.position.copy(this.player.position);
+                    this.player.mesh.rotation.y = this.player.rotation;
+                    
+                    // Add subtle bounce when walking
+                    if (direction.length() > 0 && this.player.isGrounded) {
+                        const bounce = Math.sin(Date.now() * 0.015) * 0.06;
+                        this.player.mesh.position.y += Math.max(0, bounce);
+                    }
+                }
                 
-                // Update camera to follow player
                 this.updateCamera();
             }
-            
-            updateCamera() {
+			
+			updateCamera() {
                 // Third-person camera that follows the kitten
                 const offset = this.cameraOffset.clone();
                 
@@ -699,19 +1072,495 @@
                 this.camera.lookAt(this.cameraTarget);
             }
             
-            animate() {
-                requestAnimationFrame(() => this.animate());
-                
-                this.updatePlayer();
-                this.updateBlockHighlight();
-                this.renderer.render(this.scene, this.camera);
+            updateHubCharging() {
+                if (this.hKeyCharging && this.keys['KeyH']) {
+                    this.hKeyHoldTime += 16; // Approximate ms per frame
+                    const progress = Math.min(this.hKeyHoldTime / 5000, 1); // 5 seconds
+                    
+                    // Update charge bar
+                    this.hubChargeFill.style.width = `${progress * 100}%`;
+                    
+                    // Teleport when fully charged
+                    if (this.hKeyHoldTime >= 5000) {
+                        this.player.position.copy(this.hubPosition);
+                        this.player.velocity.set(0, 0, 0);
+                        this.hKeyCharging = false;
+                        this.hKeyHoldTime = 0;
+                        this.hubChargeIndicator.style.display = 'none';
+                        this.hubChargeFill.style.width = '0%';
+                        
+                        // Flash effect
+                        document.body.style.background = '#ffffff';
+                        setTimeout(() => {
+                            document.body.style.background = '#87CEEB';
+                        }, 200);
+                    }
+                }
             }
+            
+            setupAutoSave() {
+                // Auto-save every 30 seconds
+                setInterval(() => {
+                    this.saveWorld();
+                    this.showSaveIndicator();
+                }, 30000);
+            }
+            
+			saveWorld() {
+				const worldData = {};
+				
+				// Get all AI building block positions to exclude from save
+				const aiBuildingBlocks = new Set();
+				this.characters.forEach(character => {
+					character.buildingBlocks.forEach(block => {
+						aiBuildingBlocks.add(`${block.x},${block.y},${block.z}`);
+					});
+				});
+				
+				for (const [key, block] of Object.entries(this.world)) {
+					// Don't save AI building blocks
+					if (!aiBuildingBlocks.has(key)) {
+						worldData[key] = block.material.color.getHex();
+					}
+				}
+				try {
+					localStorage.setItem('kittenVoxelWorld', JSON.stringify(worldData));
+					console.log('World saved!');
+				} catch (e) {
+					console.warn('Could not save world:', e);
+				}
+			}
+            
+			markBlockAsAIBuilding(x, y, z, character) {
+				const key = this.getBlockKey(x, y, z);
+				if (!this.aiBlocks) this.aiBlocks = new Set();
+				this.aiBlocks.add(key);
+			}			
+			
+			loadWorld() {
+				try {
+					const saved = localStorage.getItem('kittenVoxelWorld');
+					if (saved) {
+						const worldData = JSON.parse(saved);
+						
+						// Clear any existing blocks first (except terrain)
+						Object.keys(this.world).forEach(key => {
+							const [x, y, z] = key.split(',').map(Number);
+							// Keep terrain blocks (y = 0), remove everything else
+							if (y > 0) {
+								this.scene.remove(this.world[key]);
+								delete this.world[key];
+							}
+						});
+						
+						// Load saved blocks
+						for (const [key, color] of Object.entries(worldData)) {
+							const [x, y, z] = key.split(',').map(Number);
+							// Only load blocks above terrain level
+							if (y > 0) {
+								this.setBlock(x, y, z, color);
+							}
+						}
+						console.log('World loaded!');
+					}
+				} catch (e) {
+					console.warn('Could not load world:', e);
+					localStorage.removeItem('kittenVoxelWorld');
+				}
+			}
+            
+            showSaveIndicator() {
+                this.saveIndicator.classList.add('show');
+                setTimeout(() => {
+                    this.saveIndicator.classList.remove('show');
+                }, 2000);
+            }
+			
+			spawnCharacters() {
+				// Create a shuffled copy of character types to ensure uniqueness
+				const shuffledTypes = [...this.characterTypes].sort(() => Math.random() - 0.5);
+				
+				for (let i = 0; i < this.maxCharacters; i++) {
+					// Use modulo to cycle through types if we have more characters than types
+					const characterType = shuffledTypes[i % shuffledTypes.length];
+					
+					const angle = (i / this.maxCharacters) * Math.PI * 2;
+					const distance = 5 + Math.random() * 5;
+					
+					const position = new THREE.Vector3(
+						Math.cos(angle) * distance,
+						1.5,
+						Math.sin(angle) * distance
+					);
+					
+					this.characters.push(new AICharacter(characterType, position, this.scene));
+				}
+			}
+			
+			updateCharacters(game) {
+				this.characters.forEach(character => {
+					character.update(this.player.position, 15, game);
+				});
+			}
+
+			animate() {
+				requestAnimationFrame(() => this.animate());
+				
+				this.updateHubCharging();
+				this.updatePlayer();
+				this.updateCharacters(this);
+				this.updateCharacterInteraction(); // Add this line
+				this.updateBlockHighlight();
+				this.renderer.render(this.scene, this.camera);
+			}
+			
         }
         
+		class AICharacter {
+			constructor(type, position, scene) {
+				this.type = type;
+				this.position = position.clone();
+				this.targetPosition = position.clone();
+				this.mesh = null;
+				this.scene = scene;
+				this.state = 'wandering'; // wandering, building, chatting, idle
+				this.stateTimer = 0;
+				this.chatHistory = [];
+				this.isNearPlayer = false;
+				
+				this.createMesh();
+				this.chooseNewTarget();
+				
+				this.buildingProject = null;
+				this.buildingBlocks = [];
+				this.buildTimer = 0;
+				this.nextActionTime = Math.random() * 10000 + 5000; // 5-15 seconds
+				this.projectPhase = 'none'; // 'building', 'displaying', 'removing'				
+			}
+			
+			createMesh() {
+				const group = new THREE.Group();
+				
+				// Simple character body
+				const bodyGeom = new THREE.BoxGeometry(0.8, 1.2, 0.8);
+				const bodyMat = new THREE.MeshLambertMaterial({ color: this.type.color });
+				const body = new THREE.Mesh(bodyGeom, bodyMat);
+				body.position.y = 0;
+				body.castShadow = true;
+				group.add(body);
+				
+				// Head
+				const headGeom = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+				const headMat = new THREE.MeshLambertMaterial({ color: this.type.color });
+				const head = new THREE.Mesh(headGeom, headMat);
+				head.position.y = 0.9;
+				head.castShadow = true;
+				group.add(head);
+				
+				// Simple eyes
+				const eyeGeom = new THREE.BoxGeometry(0.1, 0.1, 0.05);
+				const eyeMat = new THREE.MeshLambertMaterial({ color: 0x000000 });
+				
+				const leftEye = new THREE.Mesh(eyeGeom, eyeMat);
+				leftEye.position.set(-0.15, 0.95, 0.25);
+				group.add(leftEye);
+				
+				const rightEye = new THREE.Mesh(eyeGeom, eyeMat);
+				rightEye.position.set(0.15, 0.95, 0.25);
+				group.add(rightEye);
+				
+				group.position.copy(this.position);
+				this.scene.add(group);
+				this.mesh = group;
+			}
+			
+			update(playerPosition, worldBounds, game) {
+				this.stateTimer += 16;
+				
+				// Check if near player
+				const distToPlayer = this.position.distanceTo(playerPosition);
+				this.isNearPlayer = distToPlayer < 4;
+				
+				// Building project management
+				if (this.projectPhase === 'building') {
+					this.updateBuilding(game);
+				} else if (this.projectPhase === 'displaying') {
+					this.updateDisplaying();
+				} else if (this.projectPhase === 'removing') {
+					this.updateRemoving(game);
+				} else if (this.state === 'wandering' && Date.now() > this.nextActionTime) {
+					// Randomly decide to start building
+					if (Math.random() < 0.4) { // 40% chance
+						this.startBuildingProject(game);
+					} else {
+						this.nextActionTime = Date.now() + Math.random() * 15000 + 5000;
+					}
+				}
+				
+				// Simple state machine
+				switch(this.state) {
+					case 'wandering':
+						this.updateWandering(worldBounds);
+						break;
+					case 'building':
+						// Building movement is handled in updateBuilding
+						break;
+					case 'idle':
+						this.updateIdle();
+						break;
+				}
+				
+				// Update mesh position
+				if (this.mesh) {
+					this.mesh.position.lerp(this.position, 0.1);
+				}
+			}
+			
+			updateWandering(worldBounds) {
+				const speed = 0.02;
+				const direction = this.targetPosition.clone().sub(this.position);
+				
+				if (direction.length() < 0.5 || this.stateTimer > 5000) {
+					this.chooseNewTarget(worldBounds);
+					this.stateTimer = 0;
+				} else {
+					direction.normalize().multiplyScalar(speed);
+					this.position.add(direction);
+				}
+			}
+			
+			updateIdle() {
+				if (this.stateTimer > 3000) {
+					this.state = 'wandering';
+					this.stateTimer = 0;
+				}
+			}
+			
+			chooseNewTarget(worldBounds = 10) {
+				const angle = Math.random() * Math.PI * 2;
+				const distance = 2 + Math.random() * 5;
+				
+				this.targetPosition.set(
+					Math.cos(angle) * distance,
+					this.position.y,
+					Math.sin(angle) * distance
+				);
+				
+				// Keep within bounds
+				this.targetPosition.x = Math.max(-worldBounds, Math.min(worldBounds, this.targetPosition.x));
+				this.targetPosition.z = Math.max(-worldBounds, Math.min(worldBounds, this.targetPosition.z));
+			}
+
+			canBuildAt(x, y, z, game) {
+				// Check if position is clear
+				if (game.getBlock(x, y, z)) return false;
+				
+				// Check distance from other characters' projects
+				for (let char of game.characters) {
+					if (char !== this && char.buildingBlocks.length > 0) {
+						const minDist = char.buildingBlocks.some(block => 
+							Math.abs(block.x - x) < 3 && Math.abs(block.z - z) < 3
+						);
+						if (minDist) return false;
+					}
+				}
+				
+				// Check distance from player structures (simple heuristic)
+				const nearbyBlocks = [
+					game.getBlock(x-1, y, z), game.getBlock(x+1, y, z),
+					game.getBlock(x, y, z-1), game.getBlock(x, y, z+1)
+				];
+				const hasNearbyPlayerBlocks = nearbyBlocks.some(block => 
+					block && !this.buildingBlocks.find(b => 
+						b.x === block.position.x && b.y === block.position.y && b.z === block.position.z
+					)
+				);
+				
+				return !hasNearbyPlayerBlocks;
+			}
+
+			startBuildingProject(game) {
+				const patterns = [
+					{ name: 'line', blocks: [[0,1,0], [1,1,0], [2,1,0], [3,1,0]] },
+					{ name: 'tower', blocks: [[0,1,0], [0,2,0], [0,3,0]] },
+					{ name: 'cross', blocks: [[0,1,0], [1,1,0], [-1,1,0], [0,1,1], [0,1,-1]] },
+					{ name: 'wall', blocks: [[0,1,0], [1,1,0], [2,1,0], [0,2,0], [1,2,0], [2,2,0]] },
+					{ name: 'zigzag', blocks: [[0,1,0], [1,1,0], [1,1,1], [2,1,1], [2,1,2]] }
+				];
+				
+				const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+				const startX = Math.floor(this.position.x);
+				const startZ = Math.floor(this.position.z);
+				
+				// Find a clear area for the pattern
+				let validPosition = null;
+				for (let attempts = 0; attempts < 10; attempts++) {
+					const testX = startX + (Math.random() - 0.5) * 6;
+					const testZ = startZ + (Math.random() - 0.5) * 6;
+					
+					const canBuildAll = pattern.blocks.every(([dx, dy, dz]) => 
+						this.canBuildAt(testX + dx, dy, testZ + dz, game)
+					);
+					
+					if (canBuildAll) {
+						validPosition = { x: testX, z: testZ };
+						break;
+					}
+				}
+				
+				if (validPosition) {
+					this.buildingProject = {
+						pattern: pattern,
+						baseX: validPosition.x,
+						baseZ: validPosition.z,
+						currentBlock: 0
+					};
+					this.projectPhase = 'building';
+					this.buildTimer = 0;
+					this.state = 'building';
+				}
+			}
+
+			updateBuilding(game) {
+				this.buildTimer += 16;
+				
+				if (this.buildTimer >= 2000) { // Place block every 2 seconds
+					const project = this.buildingProject;
+					const blockData = project.pattern.blocks[project.currentBlock];
+					
+					if (blockData) {
+						const [dx, dy, dz] = blockData;
+						const x = project.baseX + dx;
+						const y = dy;
+						const z = project.baseZ + dz;
+						
+						// Place the block
+						game.setBlock(x, y, z, this.type.color);
+						this.buildingBlocks.push({ x, y, z });
+						game.markBlockAsAIBuilding(x, y, z, this);
+						
+						project.currentBlock++;
+						this.buildTimer = 0;
+						
+						// Move towards the block being built
+						this.targetPosition.set(x, this.position.y, z);
+					}
+					
+					// Check if building is complete
+					if (project.currentBlock >= project.pattern.blocks.length) {
+						this.projectPhase = 'displaying';
+						this.stateTimer = 0;
+					}
+				}
+			}
+
+			updateDisplaying() {
+				if (this.stateTimer > 8000) { // Display for 8 seconds
+					this.projectPhase = 'removing';
+					this.buildingProject.currentBlock = this.buildingBlocks.length - 1;
+					this.stateTimer = 0;
+					this.buildTimer = 0;
+				}
+			}
+
+			updateRemoving(game) {
+				this.buildTimer += 16;
+				
+				if (this.buildTimer >= 1500) { // Remove block every 1.5 seconds
+					if (this.buildingBlocks.length > 0) {
+						const block = this.buildingBlocks.pop();
+						game.setBlock(block.x, block.y, block.z, null);
+						
+						// Move towards the block being removed
+						this.targetPosition.set(block.x, this.position.y, block.z);
+						this.buildTimer = 0;
+					}
+					
+					// Check if removal is complete
+					if (this.buildingBlocks.length === 0) {
+						this.projectPhase = 'none';
+						this.buildingProject = null;
+						this.state = 'wandering';
+						this.nextActionTime = Date.now() + Math.random() * 20000 + 10000; // 10-30 seconds
+					}
+				}
+			}
+			
+			async startChat(playerMessage = null) {
+				const knowledge = this.type.knowledge;
+				const knowledgeText = Object.entries(knowledge)
+					.map(([key, values]) => `${key}: ${values.join(', ')}`)
+					.join('. ');
+					
+				const systemPrompt = `You are ${this.type.name}, a ${this.type.personality} in a voxel building game. 
+				Available information: ${knowledgeText}.
+				Keep responses under 40 words. Be helpful and stay in character. 
+				Only reference information provided above or ask questions about what the player is doing.`;
+				
+				const messages = [
+					{ role: 'system', content: systemPrompt }
+				];
+				
+				// Add recent chat history
+				if (this.chatHistory.length > 0) {
+					messages.push(...this.chatHistory.slice(-4));
+				}
+				
+				if (playerMessage) {
+					messages.push({ role: 'user', content: playerMessage });
+					this.chatHistory.push({ role: 'user', content: playerMessage });
+				} else {
+					// Greeting based on character knowledge
+					const greeting = this.generateGreeting();
+					return greeting;
+				}
+				
+				try {
+					const response = await fetch('https://text.pollinations.ai/openai', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							model: 'openai',
+							messages: messages,
+							max_tokens: 60
+						})
+					});
+					
+					const data = await response.json();
+					const reply = data.choices[0].message.content;
+					
+					this.chatHistory.push({ role: 'assistant', content: reply });
+					return reply;
+					
+				} catch (error) {
+					console.error('Chat error:', error);
+					return this.getFallbackResponse();
+				}
+			}
+			
+			generateGreeting() {
+				const greetings = [
+					`Hi! I'm ${this.type.name}. ${Object.values(this.type.knowledge)[0][0]} sounds interesting!`,
+					`Hello there! Want to chat about ${Object.keys(this.type.knowledge)[0]}?`,
+					`Hey! I'm ${this.type.name}. What are you building today?`
+				];
+				return greetings[Math.floor(Math.random() * greetings.length)];
+			}
+			
+			getFallbackResponse() {
+				const responses = [
+					"That's interesting! Tell me more about your building plans.",
+					"I love exploring this world! What have you discovered?",
+					"Building together makes everything more fun!"
+				];
+				return responses[Math.floor(Math.random() * responses.length)];
+			}
+		}
+		
         // Initialize the game when page loads
         window.addEventListener('load', () => {
             new KittenVoxel();
         });
     </script>
 </body>
-</html>
+</html>			
