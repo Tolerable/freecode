@@ -269,6 +269,7 @@
 		</div>
         
         <div id="crosshair"></div>
+		<div id="blockDetector" style="position: absolute; top: 45%; left: 50%; transform: translateX(-50%); z-index: 100; color: red; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; font-size: 16px; font-weight: bold; display: none;">BLOCK DETECTED</div>
         
         <div id="jumpHint">Press SPACE to jump! 🐾</div>
         
@@ -944,10 +945,20 @@
 			updateBlockHighlight() {
 				if (this.isChatting) {
 					this.highlightMesh.visible = false;
+					document.getElementById('blockDetector').style.display = 'none';
 					return;
 				}
 				
 				const targetPos = this.getTargetBlockPosition();
+				const detector = document.getElementById('blockDetector');
+				
+				if (targetPos && targetPos.remove) {
+					detector.style.display = 'block';
+					detector.textContent = `BLOCK AT ${targetPos.remove.x},${targetPos.remove.y},${targetPos.remove.z}`;
+					detector.style.color = 'red';
+				} else {
+					detector.style.display = 'none';
+				}
 				
 				if (targetPos && targetPos.place) {
 					this.highlightMesh.position.copy(targetPos.place);
