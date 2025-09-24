@@ -126,6 +126,7 @@
     <script>
         class KittenVoxel {
             constructor() {
+                // Initialize Three.js
                 this.scene = new THREE.Scene();
                 this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
                 this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -143,7 +144,7 @@
                 
                 // Player (kitten) properties
                 this.player = {
-                    position: new THREE.Vector3(0, 2, 0),
+                    position: new THREE.Vector3(0, 3, 0),
                     velocity: new THREE.Vector3(0, 0, 0),
                     rotation: 0,
                     isGrounded: false,
@@ -166,9 +167,14 @@
                 
                 // Raycaster for block selection
                 this.raycaster = new THREE.Raycaster();
-                this.raycaster.far = 10;
+                this.raycaster.far = 8;
                 
+                // Block highlight
+                this.highlightMesh = null;
+                
+                // Initialize everything
                 this.setupLighting();
+                this.createHighlightMesh();
                 this.createKitten();
                 this.generateTerrain();
                 this.setupControls();
@@ -194,6 +200,20 @@
                 directionalLight.shadow.camera.top = 50;
                 directionalLight.shadow.camera.bottom = -50;
                 this.scene.add(directionalLight);
+            }
+            
+            createHighlightMesh() {
+                const geometry = new THREE.BoxGeometry(1.02, 1.02, 1.02);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.4,
+                    wireframe: true,
+                    linewidth: 2
+                });
+                this.highlightMesh = new THREE.Mesh(geometry, material);
+                this.highlightMesh.visible = false;
+                this.scene.add(this.highlightMesh);
             }
             
             createKitten() {
@@ -390,8 +410,8 @@
                     this.keys[e.code] = false;
                 });
                 
-                // Mouse controls
-                document.addEventListener('click', () => {
+                // Mouse controls - request pointer lock on click
+                this.renderer.domElement.addEventListener('click', () => {
                     if (!this.isPointerLocked) {
                         this.renderer.domElement.requestPointerLock();
                     }
@@ -411,14 +431,17 @@
                 });
                 
                 // Mouse click for block placement/removal
-                document.addEventListener('mousedown', (e) => {
+                this.renderer.domElement.addEventListener('mousedown', (e) => {
                     if (this.isPointerLocked) {
-                        this.handleBlockInteraction(e.button === 0);
+                        e.preventDefault();
+                        this.handleBlockInteraction(e.button === 0); // 0 = left, 2 = right
                     }
                 });
                 
                 // Prevent context menu
-                document.addEventListener('contextmenu', (e) => e.preventDefault());
+                this.renderer.domElement.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                });
                 
                 // Window resize
                 window.addEventListener('resize', () => {
@@ -440,38 +463,76 @@
             selectColor(index) {
                 const swatches = document.querySelectorAll('.colorSwatch');
                 swatches.forEach(s => s.classList.remove('selected'));
-                swatches[index].classList.add('selected');
-                this.selectedColor = parseInt(swatches[index].dataset.color);
+                if (swatches[index]) {
+                    swatches[index].classList.add('selected');
+                    this.selectedColor = parseInt(swatches[index].dataset.color);
+                }
             }
             
-            handleBlockInteraction(isRemoving) {
-                // Cast ray from camera
-                this.raycaster.setFromCamera({ x: 0, y: 0 }, this.camera);
+            getTargetBlockPosition() {
+                // Cast ray from camera center
+                this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
                 
-                // Find intersected blocks
+                // Get all block objects
                 const objects = Object.values(this.world);
                 const intersects = this.raycaster.intersectObjects(objects);
                 
                 if (intersects.length > 0) {
                     const intersect = intersects[0];
                     const blockPos = intersect.object.position;
+                    const normal = intersect.face.normal;
                     
-                    if (isRemoving) {
-                        // Don't remove blocks under the player
-                        if (Math.abs(blockPos.x - this.player.position.x) > 1 || 
-                            Math.abs(blockPos.z - this.player.position.z) > 1 ||
-                            blockPos.y < this.player.position.y - 1) {
-                            this.setBlock(blockPos.x, blockPos.y, blockPos.z, null);
-                        }
-                    } else {
-                        // Place block adjacent to the intersected face
-                        const normal = intersect.face.normal;
-                        const newPos = blockPos.clone().add(normal);
+                    // Position to place new block (adjacent to clicked face)
+                    const placePos = blockPos.clone().add(normal);
+                    
+                    return {
+                        remove: blockPos.clone(),
+                        place: placePos,
+                        normal: normal
+                    };
+                }
+                return null;
+            }
+            
+            updateBlockHighlight() {
+                const targetPos = this.getTargetBlockPosition();
+                
+                if (targetPos) {
+                    // Show highlight on the position where a new block would be placed
+                    this.highlightMesh.position.copy(targetPos.place);
+                    this.highlightMesh.visible = true;
+                } else {
+                    this.highlightMesh.visible = false;
+                }
+            }
+            
+            handleBlockInteraction(isLeftClick) {
+                const targetPos = this.getTargetBlockPosition();
+                if (!targetPos) return;
+                
+                if (isLeftClick) {
+                    // Left click: Remove the block we're looking at
+                    if (this.getBlock(targetPos.remove.x, targetPos.remove.y, targetPos.remove.z)) {
+                        // Don't remove blocks directly under the player
+                        const playerFloor = Math.floor(this.player.position.y - 1);
+                        const playerX = Math.floor(this.player.position.x);
+                        const playerZ = Math.floor(this.player.position.z);
                         
-                        // Don't place blocks where the player would be
-                        const distance = newPos.distanceTo(this.player.position);
-                        if (distance > 2) {
-                            this.setBlock(newPos.x, newPos.y, newPos.z, this.selectedColor);
+                        if (!(Math.abs(targetPos.remove.x - playerX) <= 1 && 
+                              Math.abs(targetPos.remove.z - playerZ) <= 1 &&
+                              targetPos.remove.y >= playerFloor && 
+                              targetPos.remove.y <= playerFloor + 1)) {
+                            this.setBlock(targetPos.remove.x, targetPos.remove.y, targetPos.remove.z, null);
+                        }
+                    }
+                } else {
+                    // Right click: Place block where highlight shows
+                    if (!this.getBlock(targetPos.place.x, targetPos.place.y, targetPos.place.z)) {
+                        // Don't place blocks inside the player
+                        const distance = new THREE.Vector3(targetPos.place.x, targetPos.place.y, targetPos.place.z)
+                            .distanceTo(this.player.position);
+                        if (distance > 1.5) {
+                            this.setBlock(targetPos.place.x, targetPos.place.y, targetPos.place.z, this.selectedColor);
                         }
                     }
                 }
@@ -514,7 +575,7 @@
                 newPosition.y += this.player.velocity.y;
                 
                 // Simple collision detection with ground
-                const groundHeight = this.getGroundHeight(newPosition.x, newPosition.z) + 1;
+                const groundHeight = this.getGroundHeight(newPosition.x, newPosition.z) + 1.1; // Slightly above ground
                 if (newPosition.y <= groundHeight) {
                     newPosition.y = groundHeight;
                     this.player.velocity.y = 0;
@@ -561,6 +622,7 @@
                 requestAnimationFrame(() => this.animate());
                 
                 this.updatePlayer();
+                this.updateBlockHighlight();
                 this.renderer.render(this.scene, this.camera);
             }
         }
