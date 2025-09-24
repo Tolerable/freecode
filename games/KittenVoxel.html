@@ -420,7 +420,7 @@
 				
 				// Raycaster for block selection
 				this.raycaster = new THREE.Raycaster();
-				this.raycaster.far = 8;
+				this.raycaster.far = 50;
 				
 				// Block highlight
 				this.highlightMesh = null;
@@ -664,8 +664,24 @@
                 this.setBlock(2, 1, 2, 0x90EE90);
                 this.setBlock(3, 1, 2, 0x90EE90);
                 this.setBlock(4, 2, 2, 0x90EE90);
+					
+				for (let x = -15; x <= 15; x++) {
+					for (let z = -15; z <= 15; z++) {
+						const planeGeometry = new THREE.PlaneGeometry(0.99, 0.99);
+						const planeMaterial = new THREE.MeshBasicMaterial({ 
+							transparent: true, 
+							opacity: 0,
+							side: THREE.DoubleSide 
+						});
+						const buildPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+						buildPlane.rotation.x = -Math.PI / 2;
+						buildPlane.position.set(x, 0.501, z);
+						this.scene.add(buildPlane);
+						this.world[`plane_${x}_${z}`] = buildPlane;
+					}
+				}
             }
-            
+			
             getGroundHeight(x, z) {
                 // Find the highest solid block and return its TOP surface
                 for (let y = 20; y >= -5; y--) {
