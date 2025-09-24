@@ -340,7 +340,7 @@
                 // Find the highest solid block at this x,z position
                 for (let y = 20; y >= -5; y--) {
                     if (this.getBlock(x, y, z)) {
-                        return y;
+                        return y + 1;
                     }
                 }
                 return -1; // No ground found
@@ -667,19 +667,17 @@
                 
                 this.player.position.copy(newPosition);
                 
-                // Update player mesh with consistent positioning
-                if (this.player.mesh) {
-                    // Always position the visual mesh so feet touch the ground
-                    this.player.mesh.position.copy(this.player.position);
-                    this.player.mesh.position.y -= 1.0; // Position so feet touch ground (leg height + leg offset)
-                    this.player.mesh.rotation.y = this.player.rotation;
-                    
-                    // Add subtle bounce when walking (but maintain proper ground contact)
-                    if (direction.length() > 0 && this.player.isGrounded) {
-                        const bounce = Math.sin(Date.now() * 0.015) * 0.06; // Reduced bounce to prevent clipping
-                        this.player.mesh.position.y += Math.max(0, bounce * 0.5); // Reduced bounce, only upward
-                    }
-                }
+				// Update player mesh position
+				if (this.player.mesh) {
+					this.player.mesh.position.copy(this.player.position);
+					this.player.mesh.rotation.y = this.player.rotation;
+					
+					// Add subtle bounce when walking
+					if (direction.length() > 0 && this.player.isGrounded) {
+						const bounce = Math.sin(Date.now() * 0.015) * 0.06;
+						this.player.mesh.position.y += Math.max(0, bounce);
+					}
+				}
                 
                 // Update camera to follow player
                 this.updateCamera();
