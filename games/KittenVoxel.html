@@ -885,19 +885,21 @@
 				
 				if (intersects.length > 0) {
 					const intersect = intersects[0];
-					const blockPos = intersect.object.position.clone();
-					const normal = intersect.face.normal.clone();
 					
+					// Get the exact position from the intersected object (which is already integer-positioned)
+					const blockPos = new THREE.Vector3(
+						intersect.object.position.x,
+						intersect.object.position.y,
+						intersect.object.position.z
+					);
+					
+					const normal = intersect.face.normal.clone();
 					const placePos = blockPos.clone().add(normal);
 					
-					// Floor the coordinates to ensure integer positions
+					// Floor only the placement position to ensure integer positions
 					placePos.x = Math.floor(placePos.x);
 					placePos.y = Math.floor(placePos.y);
 					placePos.z = Math.floor(placePos.z);
-					
-					blockPos.x = Math.floor(blockPos.x);
-					blockPos.y = Math.floor(blockPos.y);
-					blockPos.z = Math.floor(blockPos.z);
 					
 					// Prevent placing blocks below ground level
 					if (placePos.y < 1) {
