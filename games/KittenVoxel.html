@@ -94,6 +94,64 @@
             font-size: 12px;
             opacity: 0.8;
         }
+
+        #hubChargeIndicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 101;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        #hubChargeBar {
+            width: 200px;
+            height: 20px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid white;
+            border-radius: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        #hubChargeFill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffff00, #ff8800, #ff0000);
+            transition: width 0.1s ease;
+            box-shadow: 0 0 20px rgba(255,255,255,0.8);
+            animation: glow 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+            to { box-shadow: 0 0 30px rgba(255,255,255,1); }
+        }
+
+        #saveIndicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            color: #00ff00;
+            background: rgba(0,0,0,0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #saveIndicator.show {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -107,11 +165,21 @@
             <div>Right Click: Remove block</div>
             <div>Mouse Wheel: Zoom in/out</div>
             <div>Numbers 1-6: Select color</div>
+            <div>Hold H (5s): Return to hub</div>
         </div>
         
         <div id="crosshair"></div>
         
         <div id="jumpHint">Press SPACE to jump! 🐾</div>
+        
+        <div id="hubChargeIndicator">
+            <div>Returning to Hub...</div>
+            <div id="hubChargeBar">
+                <div id="hubChargeFill"></div>
+            </div>
+        </div>
+
+        <div id="saveIndicator">World Saved!</div>
         
         <div id="colorPalette">
             <div class="colorSwatch selected" data-color="0xff4444" style="background: #ff4444;" title="Red (1)"></div>
@@ -143,15 +211,20 @@
                 this.worldSize = 32;
                 this.world = {};
                 
-                // Player (kitten) properties - position represents the CENTER of the kitten body
+                // Player (kitten) properties
                 this.player = {
-                    position: new THREE.Vector3(0, 2.0, 0), // Lower starting position
+                    position: new THREE.Vector3(0, 2.0, 0),
                     velocity: new THREE.Vector3(0, 0, 0),
                     rotation: 0,
                     isGrounded: false,
                     mesh: null,
-                    feetOffset: 1.0 // Distance from player center to bottom of feet
+                    feetOffset: 1.0
                 };
+                
+                // Hub system
+                this.hKeyHoldTime = 0;
+                this.hKeyCharging = false;
+                this.hubPosition = new THREE.Vector3(0, 5, 0);
                 
                 // Camera follows player
                 this.cameraOffset = new THREE.Vector3(0, 5, 8);
@@ -174,13 +247,20 @@
                 // Block highlight
                 this.highlightMesh = null;
                 
+                // UI elements
+                this.hubChargeIndicator = document.getElementById('hubChargeIndicator');
+                this.hubChargeFill = document.getElementById('hubChargeFill');
+                this.saveIndicator = document.getElementById('saveIndicator');
+                
                 // Initialize everything
                 this.setupLighting();
                 this.createHighlightMesh();
                 this.createKitten();
                 this.generateTerrain();
+                this.loadWorld();
                 this.setupControls();
                 this.setupColorPalette();
+                this.setupAutoSave();
                 this.animate();
             }
             
@@ -222,7 +302,7 @@
                 
                 // Body (main cube)
                 const bodyGeometry = new THREE.BoxGeometry(1.2, 0.8, 2);
-                const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 }); // Orange
+                const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 });
                 const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
                 body.position.set(0, 0, 0);
                 body.castShadow = true;
@@ -230,7 +310,7 @@
                 
                 // Head
                 const headGeometry = new THREE.BoxGeometry(1, 1, 1);
-                const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 }); // Orange
+                const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 });
                 const head = new THREE.Mesh(headGeometry, headMaterial);
                 head.position.set(0, 0.9, -0.8);
                 head.castShadow = true;
@@ -292,63 +372,40 @@
                 const tailMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 });
                 const tail = new THREE.Mesh(tailGeometry, tailMaterial);
                 tail.position.set(0, 0.5, 1.2);
-                tail.rotation.x = Math.PI / 6; // Curve upward
+                tail.rotation.x = Math.PI / 6;
                 tail.castShadow = true;
                 kittenGroup.add(tail);
                 
-                // Position the kitten properly - this offset is just for visual positioning
                 kittenGroup.position.copy(this.player.position);
-                // The visual model is positioned at the player center, no additional offset needed
                 this.scene.add(kittenGroup);
                 this.player.mesh = kittenGroup;
             }
             
             generateTerrain() {
-                // Create a simple flat dirt world - completely empty except for a few dirt blocks
-                for (let x = -5; x <= 5; x++) {
-                    for (let z = -5; z <= 5; z++) {
-                        this.setBlock(x, 0, z, 0x8B4513); // Brown dirt base
+                // Create larger flat dirt world
+                for (let x = -15; x <= 15; x++) {
+                    for (let z = -15; z <= 15; z++) {
+                        this.setBlock(x, 0, z, 0x8B4513);
                     }
                 }
                 
-                // Add just one example structure to show it's working
-                this.setBlock(2, 1, 2, 0x90EE90); // One grass block to test climbing
+                // Add example structures
+                this.setBlock(2, 1, 2, 0x90EE90);
                 this.setBlock(3, 1, 2, 0x90EE90);
-                this.setBlock(4, 2, 2, 0x90EE90); // Higher block to climb
-            }
-            
-            createPyramid(centerX, baseY, centerZ, color) {
-                const size = 3;
-                for (let level = 0; level < size; level++) {
-                    const y = baseY + level;
-                    const extent = size - level - 1;
-                    for (let x = -extent; x <= extent; x++) {
-                        for (let z = -extent; z <= extent; z++) {
-                            this.setBlock(centerX + x, y, centerZ + z, color);
-                        }
-                    }
-                }
-            }
-            
-            createTower(centerX, baseY, centerZ, color) {
-                for (let y = baseY; y < baseY + 5; y++) {
-                    this.setBlock(centerX, y, centerZ, color);
-                }
+                this.setBlock(4, 2, 2, 0x90EE90);
             }
             
             getGroundHeight(x, z) {
-                // Find the highest solid block at this x,z position
+                // Find the highest solid block and return its TOP surface
                 for (let y = 20; y >= -5; y--) {
                     if (this.getBlock(x, y, z)) {
-                        return y + 1;
+                        return y + 1; // Return top surface of the block
                     }
                 }
-                return -1; // No ground found
+                return -1;
             }
             
             canStandAt(x, y, z) {
-                // Check if there's a solid block to stand on and no block where the player would be
-                // y should be the feet position, so check ground at y-1 and space at y and y+1 for body
                 const groundBlock = this.getBlock(Math.floor(x), Math.floor(y - 1), Math.floor(z));
                 const feetBlock = this.getBlock(Math.floor(x), Math.floor(y), Math.floor(z));
                 const bodyBlock = this.getBlock(Math.floor(x), Math.floor(y + 1), Math.floor(z));
@@ -357,7 +414,6 @@
             }
             
             getFeetPosition() {
-                // Get the position of the kitten's feet (bottom of legs)
                 return {
                     x: this.player.position.x,
                     y: this.player.position.y - this.player.feetOffset,
@@ -371,7 +427,6 @@
                 const dy = Math.abs(y - playerPos.y);
                 const dz = Math.abs(z - playerPos.z);
                 
-                // More forgiving - only block placement if block would be right inside the kitten's core
                 return dx < 0.6 && dy < 1.0 && dz < 0.6;
             }
             
@@ -400,7 +455,6 @@
                     this.scene.add(cube);
                     this.world[key] = cube;
                 } else {
-                    // Remove block
                     delete this.world[key];
                 }
             }
@@ -415,6 +469,13 @@
                 document.addEventListener('keydown', (e) => {
                     this.keys[e.code] = true;
                     
+                    // H key for hub teleport
+                    if (e.code === 'KeyH' && !this.hKeyCharging) {
+                        this.hKeyCharging = true;
+                        this.hKeyHoldTime = 0;
+                        this.hubChargeIndicator.style.display = 'flex';
+                    }
+                    
                     // Number keys for color selection
                     if (e.code >= 'Digit1' && e.code <= 'Digit6') {
                         const colorIndex = parseInt(e.code.slice(-1)) - 1;
@@ -424,9 +485,17 @@
                 
                 document.addEventListener('keyup', (e) => {
                     this.keys[e.code] = false;
+                    
+                    // Reset H key charging on release
+                    if (e.code === 'KeyH') {
+                        this.hKeyCharging = false;
+                        this.hKeyHoldTime = 0;
+                        this.hubChargeIndicator.style.display = 'none';
+                        this.hubChargeFill.style.width = '0%';
+                    }
                 });
                 
-                // Mouse controls - request pointer lock on click
+                // Mouse controls
                 this.renderer.domElement.addEventListener('click', () => {
                     if (!this.isPointerLocked) {
                         this.renderer.domElement.requestPointerLock();
@@ -455,14 +524,11 @@
                         const maxDistance = 15;
                         
                         if (e.deltaY > 0) {
-                            // Zoom out
                             this.cameraOffset.multiplyScalar(1 + zoomSpeed * 0.1);
                         } else {
-                            // Zoom in
                             this.cameraOffset.multiplyScalar(1 - zoomSpeed * 0.1);
                         }
                         
-                        // Clamp zoom distance
                         const distance = this.cameraOffset.length();
                         if (distance < minDistance) {
                             this.cameraOffset.normalize().multiplyScalar(minDistance);
@@ -471,19 +537,18 @@
                         }
                     }
                 });
+                
                 this.renderer.domElement.addEventListener('mousedown', (e) => {
                     if (this.isPointerLocked) {
                         e.preventDefault();
-                        this.handleBlockInteraction(e.button === 0); // 0 = left, 2 = right
+                        this.handleBlockInteraction(e.button === 0);
                     }
                 });
                 
-                // Prevent context menu
                 this.renderer.domElement.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                 });
                 
-                // Window resize
                 window.addEventListener('resize', () => {
                     this.camera.aspect = window.innerWidth / window.innerHeight;
                     this.camera.updateProjectionMatrix();
@@ -510,10 +575,12 @@
             }
             
             getTargetBlockPosition() {
-                // Cast ray from camera center
                 this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
                 
-                // Get all block objects
+                // Set max range based on camera distance to prevent under-world placement
+                const cameraDistance = this.camera.position.distanceTo(this.player.position);
+                this.raycaster.far = Math.min(8, cameraDistance * 0.8);
+                
                 const objects = Object.values(this.world);
                 const intersects = this.raycaster.intersectObjects(objects);
                 
@@ -521,8 +588,6 @@
                     const intersect = intersects[0];
                     const blockPos = intersect.object.position;
                     const normal = intersect.face.normal;
-                    
-                    // Position to place new block (adjacent to clicked face)
                     const placePos = blockPos.clone().add(normal);
                     
                     return {
@@ -538,7 +603,6 @@
                 const targetPos = this.getTargetBlockPosition();
                 
                 if (targetPos) {
-                    // Show highlight on the position where a new block would be placed
                     this.highlightMesh.position.copy(targetPos.place);
                     this.highlightMesh.visible = true;
                 } else {
@@ -551,24 +615,19 @@
                 if (!targetPos) return;
                 
                 if (isLeftClick) {
-                    // Left click: Place block where highlight shows
                     const placePos = targetPos.place;
                     if (!this.getBlock(placePos.x, placePos.y, placePos.z)) {
-                        // Much more forgiving placement - only prevent if block would be right inside kitten
                         if (!this.isPositionInsidePlayer(placePos.x, placePos.y, placePos.z)) {
                             this.setBlock(placePos.x, placePos.y, placePos.z, this.selectedColor);
                         }
                     }
                 } else {
-                    // Right click: Remove the block we're looking at
                     const removePos = targetPos.remove;
                     if (this.getBlock(removePos.x, removePos.y, removePos.z)) {
-                        // Don't remove blocks directly supporting the player
                         const playerFloor = Math.floor(this.player.position.y - 1);
                         const playerX = Math.floor(this.player.position.x);
                         const playerZ = Math.floor(this.player.position.z);
                         
-                        // Only prevent removal if it's the exact block the player is standing on
                         if (!(removePos.x === playerX && 
                               removePos.z === playerZ &&
                               removePos.y === playerFloor)) {
@@ -582,7 +641,7 @@
                 const speed = 0.12;
                 const jumpStrength = 0.35;
                 const gravity = -0.015;
-                const stepHeight = 1.2; // How high the kitten can step up
+                const stepHeight = 1.2;
                 
                 // Apply gravity
                 this.player.velocity.y += gravity;
@@ -594,13 +653,10 @@
                 if (this.keys['KeyA']) direction.x -= 1;
                 if (this.keys['KeyD']) direction.x += 1;
                 
-                // Apply camera rotation to movement direction (only Y rotation)
                 if (direction.length() > 0) {
                     direction.normalize();
                     direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraRotationY);
                     direction.multiplyScalar(speed);
-                    
-                    // Rotate player to face movement direction
                     this.player.rotation = Math.atan2(direction.x, direction.z);
                 }
                 
@@ -614,30 +670,31 @@
                 const currentPos = this.player.position.clone();
                 const newPosition = currentPos.clone();
                 
-                // Apply horizontal movement
                 newPosition.x += direction.x;
                 newPosition.z += direction.z;
-                
-                // Apply vertical movement (gravity/jumping)
                 newPosition.y += this.player.velocity.y;
                 
-                // Advanced collision detection - adjust for kitten feet position
-                const groundHeight = this.getGroundHeight(newPosition.x, newPosition.z);
-                const targetY = groundHeight + 0.5; // Height where kitten center should be (feet on ground + body height)
+                // World boundaries - prevent falling off edges
+                const worldBoundary = 15;
+                if (Math.abs(newPosition.x) > worldBoundary || Math.abs(newPosition.z) > worldBoundary || newPosition.y < -5) {
+                    newPosition.copy(this.hubPosition);
+                    this.player.velocity.set(0, 0, 0);
+                }
                 
-                // Check if we can step up to a higher block
-                if (direction.length() > 0) { // Only when moving horizontally
+                // Ground collision
+                const groundHeight = this.getGroundHeight(newPosition.x, newPosition.z);
+                const targetY = groundHeight + 0.5; // Corrected height
+                
+                if (direction.length() > 0) {
                     const currentGroundHeight = this.getGroundHeight(currentPos.x, currentPos.z);
                     
                     if (groundHeight > currentGroundHeight && 
                         groundHeight <= currentGroundHeight + stepHeight &&
                         this.canStandAt(newPosition.x, targetY, newPosition.z)) {
-                        // Step up onto the block
                         newPosition.y = Math.max(newPosition.y, targetY);
                         this.player.velocity.y = 0;
                         this.player.isGrounded = true;
                     } else if (groundHeight >= 0) {
-                        // Normal ground collision
                         if (newPosition.y <= targetY) {
                             newPosition.y = targetY;
                             this.player.velocity.y = 0;
@@ -646,16 +703,13 @@
                             this.player.isGrounded = false;
                         }
                     } else {
-                        // No ground found - falling into void
                         this.player.isGrounded = false;
                         if (newPosition.y < -10) {
-                            // Reset to spawn if falling too far
-                            newPosition.set(0, 3, 0);
+                            newPosition.copy(this.hubPosition);
                             this.player.velocity.y = 0;
                         }
                     }
                 } else {
-                    // Not moving horizontally, just apply gravity
                     if (groundHeight >= 0 && newPosition.y <= targetY) {
                         newPosition.y = targetY;
                         this.player.velocity.y = 0;
@@ -667,23 +721,22 @@
                 
                 this.player.position.copy(newPosition);
                 
-				// Update player mesh position
-				if (this.player.mesh) {
-					this.player.mesh.position.copy(this.player.position);
-					this.player.mesh.rotation.y = this.player.rotation;
-					
-					// Add subtle bounce when walking
-					if (direction.length() > 0 && this.player.isGrounded) {
-						const bounce = Math.sin(Date.now() * 0.015) * 0.06;
-						this.player.mesh.position.y += Math.max(0, bounce);
-					}
-				}
+                // Update player mesh position
+                if (this.player.mesh) {
+                    this.player.mesh.position.copy(this.player.position);
+                    this.player.mesh.rotation.y = this.player.rotation;
+                    
+                    // Add subtle bounce when walking
+                    if (direction.length() > 0 && this.player.isGrounded) {
+                        const bounce = Math.sin(Date.now() * 0.015) * 0.06;
+                        this.player.mesh.position.y += Math.max(0, bounce);
+                    }
+                }
                 
-                // Update camera to follow player
                 this.updateCamera();
             }
-            
-            updateCamera() {
+			
+updateCamera() {
                 // Third-person camera that follows the kitten
                 const offset = this.cameraOffset.clone();
                 
@@ -699,9 +752,80 @@
                 this.camera.lookAt(this.cameraTarget);
             }
             
+            updateHubCharging() {
+                if (this.hKeyCharging && this.keys['KeyH']) {
+                    this.hKeyHoldTime += 16; // Approximate ms per frame
+                    const progress = Math.min(this.hKeyHoldTime / 5000, 1); // 5 seconds
+                    
+                    // Update charge bar
+                    this.hubChargeFill.style.width = `${progress * 100}%`;
+                    
+                    // Teleport when fully charged
+                    if (this.hKeyHoldTime >= 5000) {
+                        this.player.position.copy(this.hubPosition);
+                        this.player.velocity.set(0, 0, 0);
+                        this.hKeyCharging = false;
+                        this.hKeyHoldTime = 0;
+                        this.hubChargeIndicator.style.display = 'none';
+                        this.hubChargeFill.style.width = '0%';
+                        
+                        // Flash effect
+                        document.body.style.background = '#ffffff';
+                        setTimeout(() => {
+                            document.body.style.background = '#87CEEB';
+                        }, 200);
+                    }
+                }
+            }
+            
+            setupAutoSave() {
+                // Auto-save every 30 seconds
+                setInterval(() => {
+                    this.saveWorld();
+                    this.showSaveIndicator();
+                }, 30000);
+            }
+            
+            saveWorld() {
+                const worldData = {};
+                for (const [key, block] of Object.entries(this.world)) {
+                    worldData[key] = block.material.color.getHex();
+                }
+                try {
+                    localStorage.setItem('kittenVoxelWorld', JSON.stringify(worldData));
+                    console.log('World saved!');
+                } catch (e) {
+                    console.warn('Could not save world:', e);
+                }
+            }
+            
+            loadWorld() {
+                try {
+                    const saved = localStorage.getItem('kittenVoxelWorld');
+                    if (saved) {
+                        const worldData = JSON.parse(saved);
+                        for (const [key, color] of Object.entries(worldData)) {
+                            const [x, y, z] = key.split(',').map(Number);
+                            this.setBlock(x, y, z, color);
+                        }
+                        console.log('World loaded!');
+                    }
+                } catch (e) {
+                    console.warn('Could not load world:', e);
+                }
+            }
+            
+            showSaveIndicator() {
+                this.saveIndicator.classList.add('show');
+                setTimeout(() => {
+                    this.saveIndicator.classList.remove('show');
+                }, 2000);
+            }
+            
             animate() {
                 requestAnimationFrame(() => this.animate());
                 
+                this.updateHubCharging();
                 this.updatePlayer();
                 this.updateBlockHighlight();
                 this.renderer.render(this.scene, this.camera);
@@ -714,4 +838,4 @@
         });
     </script>
 </body>
-</html>
+</html>			
