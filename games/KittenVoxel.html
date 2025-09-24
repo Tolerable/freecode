@@ -817,14 +817,21 @@
 				});
 				
 				this.renderer.domElement.addEventListener('mousedown', (e) => {
+					console.log('Mouse clicked:', e.button, 'Pointer locked:', this.isPointerLocked, 'Chatting:', this.isChatting);
+					
 					if (this.isPointerLocked && !this.isChatting) {
 						e.preventDefault();
-						console.log('Mouse button:', e.button); // Debug line
+						console.log('Processing mouse button:', e.button);
+						
 						if (e.button === 0) {
+							console.log('LEFT CLICK - placing block');
 							this.handleBlockInteraction(true);
 						} else if (e.button === 2) {
+							console.log('RIGHT CLICK - removing block');
 							this.handleBlockInteraction(false);
 						}
+					} else {
+						console.log('Blocked - pointer locked:', this.isPointerLocked, 'not chatting:', !this.isChatting);
 					}
 				});
 				
@@ -1151,21 +1158,37 @@
 				this.aiBlocks.add(key);
 			}			
 			
-            loadWorld() {
-                try {
-                    const saved = localStorage.getItem('kittenVoxelWorld');
-                    if (saved) {
-                        const worldData = JSON.parse(saved);
-                        for (const [key, color] of Object.entries(worldData)) {
-                            const [x, y, z] = key.split(',').map(Number);
-                            this.setBlock(x, y, z, color);
-                        }
-                        console.log('World loaded!');
-                    }
-                } catch (e) {
-                    console.warn('Could not load world:', e);
-                }
-            }
+			loadWorld() {
+				try {
+					const saved = localStorage.getItem('kittenVoxelWorld');
+					if (saved) {
+						const worldData = JSON.parse(saved);
+						
+						// Clear any existing blocks first (except terrain)
+						Object.keys(this.world).forEach(key => {
+							const [x, y, z] = key.split(',').map(Number);
+							// Keep terrain blocks (y = 0), remove everything else
+							if (y > 0) {
+								this.scene.remove(this.world[key]);
+								delete this.world[key];
+							}
+						});
+						
+						// Load saved blocks
+						for (const [key, color] of Object.entries(worldData)) {
+							const [x, y, z] = key.split(',').map(Number);
+							// Only load blocks above terrain level
+							if (y > 0) {
+								this.setBlock(x, y, z, color);
+							}
+						}
+						console.log('World loaded!');
+					}
+				} catch (e) {
+					console.warn('Could not load world:', e);
+					localStorage.removeItem('kittenVoxelWorld');
+				}
+			}
             
             showSaveIndicator() {
                 this.saveIndicator.classList.add('show');
