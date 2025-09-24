@@ -2194,7 +2194,7 @@
 					div.innerHTML = `
 						<h4>${building.name}${currentCount > 0 ? ` (${currentCount})` : ''}</h4>
 						<p><strong>Effect:</strong> ${building.effect}</p>
-						${currentCount > 0 ? `<p style="color: #2ecc71;"><strong>✓ Built:</strong> ${currentCount}</p>` : ''}
+						${currentCount > 0 ? `<p style="color: #2ecc71;"><strong>✅ Built:</strong> ${currentCount}</p>` : ''}
 						<button class="action-button building-button" 
 								onclick="buildSpaceBuilding('${building.name}')" 
 								${!canAfford ? 'disabled' : ''}>
@@ -3736,34 +3736,34 @@
             updateDisplay();
         }
 
-        function researchTech(techKey) {
-            const tech = techDefs[techKey];
-            if (!tech || gameState.technologies[techKey]) return;
-            
-            // Check if we can afford it
-            let canAfford = true;
-            for (let resource in tech.cost) {
-                if (Math.floor(gameState.resources[resource]) < tech.cost[resource]) {
-                    canAfford = false;
-                    break;
-                }
-            }
-            
-            if (!canAfford) return;
-            
-            // Pay the cost
-            for (let resource in tech.cost) {
-                gameState.resources[resource] -= tech.cost[resource];
-            }
-            
-            // Research it
-            gameState.technologies[techKey] = true;
-            tech.onResearch();
-            
-            logMessage(`Researched ${tech.name}!`);
-            checkAchievements();
-            updateDisplay();
-        }
+		function researchTech(techKey) {
+			const tech = techDefs[techKey];
+			if (!tech || gameState.technologies[techKey]) return;
+			
+			// Check if we can afford it
+			let canAfford = true;
+			for (let resource in tech.cost) {
+				if ((gameState.resources[resource] || 0) < tech.cost[resource]) {
+					canAfford = false;
+					break;
+				}
+			}
+			
+			if (!canAfford) return;
+			
+			// Pay the cost
+			for (let resource in tech.cost) {
+				gameState.resources[resource] -= tech.cost[resource];
+			}
+			
+			// Research it
+			gameState.technologies[techKey] = true;
+			tech.onResearch();
+			
+			logMessage(`Researched ${tech.name}!`);
+			checkAchievements();
+			updateDisplay();
+		}
 
 		function purchaseReligion(religionKey) {
 			const religion = religionDefs[religionKey];
