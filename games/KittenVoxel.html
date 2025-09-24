@@ -873,7 +873,7 @@
             
 			getTargetBlockPosition() {
 				this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
-				this.raycaster.far = 8; // Remove the dynamic distance calculation that was causing issues
+				this.raycaster.far = 8;
 				
 				const objects = Object.values(this.world);
 				const intersects = this.raycaster.intersectObjects(objects);
@@ -883,10 +883,18 @@
 					const blockPos = intersect.object.position.clone();
 					const normal = intersect.face.normal.clone();
 					
-					// Ensure we're placing on top of blocks, not underneath
 					const placePos = blockPos.clone().add(normal);
 					
-					// Prevent placing blocks below ground level (y = 0)
+					// Floor the coordinates to ensure integer positions
+					placePos.x = Math.floor(placePos.x);
+					placePos.y = Math.floor(placePos.y);
+					placePos.z = Math.floor(placePos.z);
+					
+					blockPos.x = Math.floor(blockPos.x);
+					blockPos.y = Math.floor(blockPos.y);
+					blockPos.z = Math.floor(blockPos.z);
+					
+					// Prevent placing blocks below ground level
 					if (placePos.y < 1) {
 						placePos.y = 1;
 					}
@@ -903,7 +911,6 @@
 				const groundIntersect = new THREE.Vector3();
 				
 				if (this.raycaster.ray.intersectPlane(groundPlane, groundIntersect)) {
-					// Only allow placement within world bounds
 					if (Math.abs(groundIntersect.x) <= 15 && Math.abs(groundIntersect.z) <= 15) {
 						return {
 							remove: null,
@@ -919,7 +926,7 @@
 				
 				return null;
 			}
-            
+						
 			updateBlockHighlight() {
 				if (this.isChatting) {
 					this.highlightMesh.visible = false;
@@ -949,18 +956,22 @@
 						}
 					}
 				} else {
-					// Remove block - need to check if we have a remove target
+					// Remove block
 					if (targetPos.remove) {
 						const removePos = targetPos.remove;
-						if (this.getBlock(removePos.x, removePos.y, removePos.z)) {
-							// Don't remove the block the player is standing on
-							const playerFloor = Math.floor(this.player.position.y - 1);
+						const blockToRemove = this.getBlock(removePos.x, removePos.y, removePos.z);
+						if (blockToRemove) {
+							// Don't remove the ground level blocks the player might be standing on
+							const playerFloorY = Math.floor(this.player.position.y - 1);
 							const playerX = Math.floor(this.player.position.x);
 							const playerZ = Math.floor(this.player.position.z);
 							
-							if (!(removePos.x === playerX && 
-								  removePos.z === playerZ &&
-								  removePos.y === playerFloor)) {
+							// Allow removal if it's not the exact block the player is standing on
+							const isPlayerStandingBlock = (removePos.x === playerX && 
+														 removePos.z === playerZ &&
+														 removePos.y === playerFloorY);
+							
+							if (!isPlayerStandingBlock) {
 								this.setBlock(removePos.x, removePos.y, removePos.z, null);
 							}
 						}
@@ -1117,19 +1128,37 @@
                 }, 30000);
             }
             
-            saveWorld() {
-                const worldData = {};
-                for (const [key, block] of Object.entries(this.world)) {
-                    worldData[key] = block.material.color.getHex();
-                }
-                try {
-                    localStorage.setItem('kittenVoxelWorld', JSON.stringify(worldData));
-                    console.log('World saved!');
-                } catch (e) {
-                    console.warn('Could not save world:', e);
-                }
-            }
+			saveWorld() {
+				const worldData = {};
+				
+				// Get all AI building block positions to exclude from save
+				const aiBuildingBlocks = new Set();
+				this.characters.forEach(character => {
+					character.buildingBlocks.forEach(block => {
+						aiBuildingBlocks.add(`${block.x},${block.y},${block.z}`);
+					});
+				});
+				
+				for (const [key, block] of Object.entries(this.world)) {
+					// Don't save AI building blocks
+					if (!aiBuildingBlocks.has(key)) {
+						worldData[key] = block.material.color.getHex();
+					}
+				}
+				try {
+					localStorage.setItem('kittenVoxelWorld', JSON.stringify(worldData));
+					console.log('World saved!');
+				} catch (e) {
+					console.warn('Could not save world:', e);
+				}
+			}
             
+			markBlockAsAIBuilding(x, y, z, character) {
+				const key = this.getBlockKey(x, y, z);
+				if (!this.aiBlocks) this.aiBlocks = new Set();
+				this.aiBlocks.add(key);
+			}			
+			
             loadWorld() {
                 try {
                     const saved = localStorage.getItem('kittenVoxelWorld');
@@ -1414,6 +1443,7 @@
 						// Place the block
 						game.setBlock(x, y, z, this.type.color);
 						this.buildingBlocks.push({ x, y, z });
+						game.markBlockAsAIBuilding(x, y, z, this);
 						
 						project.currentBlock++;
 						this.buildTimer = 0;
