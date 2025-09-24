@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Voxel World</title>
+    <title>Kitten Voxel</title>
     <style>
         body {
             margin: 0;
@@ -25,10 +25,11 @@
             left: 20px;
             z-index: 100;
             color: white;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.8);
             padding: 15px;
             border-radius: 10px;
             font-size: 14px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
         
         #crosshair {
@@ -38,27 +39,11 @@
             transform: translate(-50%, -50%);
             z-index: 100;
             pointer-events: none;
-        }
-        
-        #crosshair::before,
-        #crosshair::after {
-            content: '';
-            position: absolute;
-            background: rgba(255,255,255,0.8);
-        }
-        
-        #crosshair::before {
-            width: 20px;
-            height: 2px;
-            left: -10px;
-            top: -1px;
-        }
-        
-        #crosshair::after {
-            width: 2px;
-            height: 20px;
-            left: -1px;
-            top: -10px;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.5);
         }
         
         #colorPalette {
@@ -69,42 +54,63 @@
             z-index: 100;
             display: flex;
             gap: 10px;
-            background: rgba(0,0,0,0.7);
-            padding: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
             border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
         
         .colorSwatch {
             width: 40px;
             height: 40px;
             border: 3px solid transparent;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .colorSwatch:hover {
             transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
         }
         
         .colorSwatch.selected {
-            border-color: white;
-            transform: scale(1.2);
+            border-color: #fff;
+            transform: scale(1.15);
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+        }
+
+        #jumpHint {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            opacity: 0.8;
         }
     </style>
 </head>
 <body>
     <div id="container">
         <div id="ui">
-            <div><strong>Voxel World Demo</strong></div>
-            <div>WASD: Move</div>
+            <div><strong>🐱 Kitten Voxel</strong></div>
+            <div>WASD: Move kitten</div>
             <div>Mouse: Look around</div>
+            <div>SPACE: Jump</div>
             <div>Left Click: Remove block</div>
             <div>Right Click: Place block</div>
             <div>Numbers 1-6: Select color</div>
         </div>
         
         <div id="crosshair"></div>
+        
+        <div id="jumpHint">Press SPACE to jump! 🐾</div>
         
         <div id="colorPalette">
             <div class="colorSwatch selected" data-color="0xff4444" style="background: #ff4444;" title="Red (1)"></div>
@@ -118,7 +124,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        class VoxelWorld {
+        class KittenVoxel {
             constructor() {
                 this.scene = new THREE.Scene();
                 this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -131,19 +137,29 @@
                 
                 document.getElementById('container').appendChild(this.renderer.domElement);
                 
-                // World data - 3D array to store block types
+                // World data
                 this.worldSize = 32;
                 this.world = {};
                 
-                // Player properties
-                this.camera.position.set(0, 5, 0);
-                this.velocity = new THREE.Vector3();
-                this.isGrounded = false;
+                // Player (kitten) properties
+                this.player = {
+                    position: new THREE.Vector3(0, 2, 0),
+                    velocity: new THREE.Vector3(0, 0, 0),
+                    rotation: 0,
+                    isGrounded: false,
+                    mesh: null
+                };
+                
+                // Camera follows player
+                this.cameraOffset = new THREE.Vector3(0, 5, 8);
+                this.cameraTarget = new THREE.Vector3();
                 
                 // Controls
                 this.keys = {};
                 this.mouse = { x: 0, y: 0 };
                 this.isPointerLocked = false;
+                this.cameraRotationY = 0;
+                this.cameraRotationX = -0.3;
                 
                 // Selected color
                 this.selectedColor = 0xff4444;
@@ -153,6 +169,7 @@
                 this.raycaster.far = 10;
                 
                 this.setupLighting();
+                this.createKitten();
                 this.generateTerrain();
                 this.setupControls();
                 this.setupColorPalette();
@@ -179,30 +196,151 @@
                 this.scene.add(directionalLight);
             }
             
+            createKitten() {
+                const kittenGroup = new THREE.Group();
+                
+                // Body (main cube)
+                const bodyGeometry = new THREE.BoxGeometry(1.2, 0.8, 2);
+                const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 }); // Orange
+                const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                body.position.set(0, 0, 0);
+                body.castShadow = true;
+                kittenGroup.add(body);
+                
+                // Head
+                const headGeometry = new THREE.BoxGeometry(1, 1, 1);
+                const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 }); // Orange
+                const head = new THREE.Mesh(headGeometry, headMaterial);
+                head.position.set(0, 0.9, -0.8);
+                head.castShadow = true;
+                kittenGroup.add(head);
+                
+                // Ears
+                const earGeometry = new THREE.ConeGeometry(0.2, 0.4, 4);
+                const earMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 });
+                
+                const leftEar = new THREE.Mesh(earGeometry, earMaterial);
+                leftEar.position.set(-0.3, 1.4, -0.8);
+                leftEar.castShadow = true;
+                kittenGroup.add(leftEar);
+                
+                const rightEar = new THREE.Mesh(earGeometry, earMaterial);
+                rightEar.position.set(0.3, 1.4, -0.8);
+                rightEar.castShadow = true;
+                kittenGroup.add(rightEar);
+                
+                // Eyes
+                const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+                
+                const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                leftEye.position.set(-0.2, 1, -1.2);
+                kittenGroup.add(leftEye);
+                
+                const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                rightEye.position.set(0.2, 1, -1.2);
+                kittenGroup.add(rightEye);
+                
+                // Nose
+                const noseGeometry = new THREE.SphereGeometry(0.05, 6, 6);
+                const noseMaterial = new THREE.MeshLambertMaterial({ color: 0xff6699 });
+                const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+                nose.position.set(0, 0.85, -1.3);
+                kittenGroup.add(nose);
+                
+                // Legs
+                const legGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.6);
+                const legMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 });
+                
+                const positions = [
+                    [-0.4, -0.7, -0.6], // Front left
+                    [0.4, -0.7, -0.6],  // Front right
+                    [-0.4, -0.7, 0.6],  // Back left
+                    [0.4, -0.7, 0.6]    // Back right
+                ];
+                
+                positions.forEach(pos => {
+                    const leg = new THREE.Mesh(legGeometry, legMaterial);
+                    leg.position.set(pos[0], pos[1], pos[2]);
+                    leg.castShadow = true;
+                    kittenGroup.add(leg);
+                });
+                
+                // Tail
+                const tailGeometry = new THREE.CylinderGeometry(0.1, 0.05, 1.5);
+                const tailMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa55 });
+                const tail = new THREE.Mesh(tailGeometry, tailMaterial);
+                tail.position.set(0, 0.5, 1.2);
+                tail.rotation.x = Math.PI / 6; // Curve upward
+                tail.castShadow = true;
+                kittenGroup.add(tail);
+                
+                // Position the kitten
+                kittenGroup.position.copy(this.player.position);
+                this.scene.add(kittenGroup);
+                this.player.mesh = kittenGroup;
+            }
+            
             generateTerrain() {
-                // Create a simple flat terrain
-                for (let x = -16; x < 16; x++) {
-                    for (let z = -16; z < 16; z++) {
-                        this.setBlock(x, 0, z, 0x90EE90); // Light green for grass
+                // Create a larger varied terrain
+                for (let x = -20; x < 20; x++) {
+                    for (let z = -20; z < 20; z++) {
+                        // Create some height variation
+                        const height = Math.floor(Math.random() * 2); // 0 or 1
+                        for (let y = 0; y <= height; y++) {
+                            let color = 0x90EE90; // Light green for grass
+                            if (y === 0) color = 0x8B4513; // Brown for dirt
+                            this.setBlock(x, y, z, color);
+                        }
                     }
                 }
                 
-                // Add some random blocks for testing
-                for (let i = 0; i < 20; i++) {
-                    const x = Math.floor(Math.random() * 16) - 8;
-                    const z = Math.floor(Math.random() * 16) - 8;
-                    const height = Math.floor(Math.random() * 3) + 1;
-                    const colors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44];
+                // Add some fun structures
+                this.createPyramid(5, 1, 5, 0xffd700); // Gold pyramid
+                this.createTower(-8, 1, -8, 0x4444ff); // Blue tower
+                
+                // Scatter some colorful blocks
+                for (let i = 0; i < 30; i++) {
+                    const x = Math.floor(Math.random() * 30) - 15;
+                    const z = Math.floor(Math.random() * 30) - 15;
+                    const y = this.getGroundHeight(x, z) + 1;
+                    const colors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44, 0xff44ff, 0x44ffff];
                     const color = colors[Math.floor(Math.random() * colors.length)];
-                    
-                    for (let y = 1; y <= height; y++) {
-                        this.setBlock(x, y, z, color);
+                    this.setBlock(x, y, z, color);
+                }
+            }
+            
+            createPyramid(centerX, baseY, centerZ, color) {
+                const size = 3;
+                for (let level = 0; level < size; level++) {
+                    const y = baseY + level;
+                    const extent = size - level - 1;
+                    for (let x = -extent; x <= extent; x++) {
+                        for (let z = -extent; z <= extent; z++) {
+                            this.setBlock(centerX + x, y, centerZ + z, color);
+                        }
                     }
                 }
             }
             
+            createTower(centerX, baseY, centerZ, color) {
+                for (let y = baseY; y < baseY + 5; y++) {
+                    this.setBlock(centerX, y, centerZ, color);
+                }
+            }
+            
+            getGroundHeight(x, z) {
+                // Find the highest solid block at this x,z position
+                for (let y = 10; y >= 0; y--) {
+                    if (this.getBlock(x, y, z)) {
+                        return y;
+                    }
+                }
+                return 0;
+            }
+            
             getBlockKey(x, y, z) {
-                return `${x},${y},${z}`;
+                return `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`;
             }
             
             setBlock(x, y, z, color) {
@@ -265,17 +403,17 @@
                 
                 document.addEventListener('mousemove', (e) => {
                     if (this.isPointerLocked) {
-                        const sensitivity = 0.002;
-                        this.camera.rotation.y -= e.movementX * sensitivity;
-                        this.camera.rotation.x -= e.movementY * sensitivity;
-                        this.camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.camera.rotation.x));
+                        const sensitivity = 0.003;
+                        this.cameraRotationY -= e.movementX * sensitivity;
+                        this.cameraRotationX -= e.movementY * sensitivity;
+                        this.cameraRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/3, this.cameraRotationX));
                     }
                 });
                 
                 // Mouse click for block placement/removal
                 document.addEventListener('mousedown', (e) => {
                     if (this.isPointerLocked) {
-                        this.handleBlockInteraction(e.button === 0); // true for left click (remove), false for right click (place)
+                        this.handleBlockInteraction(e.button === 0);
                     }
                 });
                 
@@ -319,17 +457,20 @@
                     const blockPos = intersect.object.position;
                     
                     if (isRemoving) {
-                        // Remove the intersected block
-                        this.setBlock(blockPos.x, blockPos.y, blockPos.z, null);
+                        // Don't remove blocks under the player
+                        if (Math.abs(blockPos.x - this.player.position.x) > 1 || 
+                            Math.abs(blockPos.z - this.player.position.z) > 1 ||
+                            blockPos.y < this.player.position.y - 1) {
+                            this.setBlock(blockPos.x, blockPos.y, blockPos.z, null);
+                        }
                     } else {
                         // Place block adjacent to the intersected face
                         const normal = intersect.face.normal;
                         const newPos = blockPos.clone().add(normal);
                         
-                        // Don't place blocks where the player is standing
-                        const playerPos = this.camera.position;
-                        const distance = newPos.distanceTo(playerPos);
-                        if (distance > 1.5) {
+                        // Don't place blocks where the player would be
+                        const distance = newPos.distanceTo(this.player.position);
+                        if (distance > 2) {
                             this.setBlock(newPos.x, newPos.y, newPos.z, this.selectedColor);
                         }
                     }
@@ -337,24 +478,83 @@
             }
             
             updatePlayer() {
-                const speed = 0.1;
-                const direction = new THREE.Vector3();
+                const speed = 0.15;
+                const jumpStrength = 0.4;
+                const gravity = -0.02;
+                
+                // Apply gravity
+                this.player.velocity.y += gravity;
                 
                 // Movement input
+                const direction = new THREE.Vector3();
                 if (this.keys['KeyW']) direction.z -= 1;
                 if (this.keys['KeyS']) direction.z += 1;
                 if (this.keys['KeyA']) direction.x -= 1;
                 if (this.keys['KeyD']) direction.x += 1;
                 
-                // Apply camera rotation to movement direction
-                direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.camera.rotation.y);
-                direction.multiplyScalar(speed);
+                // Apply camera rotation to movement direction (only Y rotation)
+                if (direction.length() > 0) {
+                    direction.normalize();
+                    direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraRotationY);
+                    direction.multiplyScalar(speed);
+                    
+                    // Rotate player to face movement direction
+                    this.player.rotation = Math.atan2(direction.x, direction.z);
+                }
                 
-                // Simple collision detection - keep player above ground
-                const newPos = this.camera.position.clone().add(direction);
-                if (newPos.y < 1.5) newPos.y = 1.5;
+                // Jumping
+                if (this.keys['Space'] && this.player.isGrounded) {
+                    this.player.velocity.y = jumpStrength;
+                    this.player.isGrounded = false;
+                }
                 
-                this.camera.position.copy(newPos);
+                // Update position
+                const newPosition = this.player.position.clone();
+                newPosition.add(direction);
+                newPosition.y += this.player.velocity.y;
+                
+                // Simple collision detection with ground
+                const groundHeight = this.getGroundHeight(newPosition.x, newPosition.z) + 1;
+                if (newPosition.y <= groundHeight) {
+                    newPosition.y = groundHeight;
+                    this.player.velocity.y = 0;
+                    this.player.isGrounded = true;
+                } else {
+                    this.player.isGrounded = false;
+                }
+                
+                this.player.position.copy(newPosition);
+                
+                // Update player mesh
+                if (this.player.mesh) {
+                    this.player.mesh.position.copy(this.player.position);
+                    this.player.mesh.rotation.y = this.player.rotation;
+                    
+                    // Add subtle bounce when walking
+                    if (direction.length() > 0 && this.player.isGrounded) {
+                        const bounce = Math.sin(Date.now() * 0.01) * 0.1;
+                        this.player.mesh.position.y += bounce;
+                    }
+                }
+                
+                // Update camera to follow player
+                this.updateCamera();
+            }
+            
+            updateCamera() {
+                // Third-person camera that follows the kitten
+                const offset = this.cameraOffset.clone();
+                
+                // Apply camera rotations
+                offset.applyAxisAngle(new THREE.Vector3(1, 0, 0), this.cameraRotationX);
+                offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraRotationY);
+                
+                this.camera.position.copy(this.player.position).add(offset);
+                
+                // Look at point slightly ahead of player
+                this.cameraTarget.copy(this.player.position);
+                this.cameraTarget.y += 1;
+                this.camera.lookAt(this.cameraTarget);
             }
             
             animate() {
@@ -365,9 +565,9 @@
             }
         }
         
-        // Initialize the voxel world when page loads
+        // Initialize the game when page loads
         window.addEventListener('load', () => {
-            new VoxelWorld();
+            new KittenVoxel();
         });
     </script>
 </body>
