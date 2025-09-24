@@ -143,13 +143,14 @@
                 this.worldSize = 32;
                 this.world = {};
                 
-                // Player (kitten) properties - adjust starting height for proper feet positioning
+                // Player (kitten) properties - position represents the CENTER of the kitten body
                 this.player = {
-                    position: new THREE.Vector3(0, 3.3, 0), // Higher to account for feet offset
+                    position: new THREE.Vector3(0, 2.0, 0), // Lower starting position
                     velocity: new THREE.Vector3(0, 0, 0),
                     rotation: 0,
                     isGrounded: false,
-                    mesh: null
+                    mesh: null,
+                    feetOffset: 1.0 // Distance from player center to bottom of feet
                 };
                 
                 // Camera follows player
@@ -295,10 +296,9 @@
                 tail.castShadow = true;
                 kittenGroup.add(tail);
                 
-                // Position the kitten properly - legs should touch the ground
+                // Position the kitten properly - this offset is just for visual positioning
                 kittenGroup.position.copy(this.player.position);
-                // Offset so the feet (bottom of legs) touch the ground, not the body center
-                kittenGroup.position.y -= 0.3; // Move down so feet touch surface
+                // The visual model is positioned at the player center, no additional offset needed
                 this.scene.add(kittenGroup);
                 this.player.mesh = kittenGroup;
             }
@@ -348,11 +348,21 @@
             
             canStandAt(x, y, z) {
                 // Check if there's a solid block to stand on and no block where the player would be
+                // y should be the feet position, so check ground at y-1 and space at y and y+1 for body
                 const groundBlock = this.getBlock(Math.floor(x), Math.floor(y - 1), Math.floor(z));
-                const playerBlock = this.getBlock(Math.floor(x), Math.floor(y), Math.floor(z));
-                const playerHeadBlock = this.getBlock(Math.floor(x), Math.floor(y + 1), Math.floor(z));
+                const feetBlock = this.getBlock(Math.floor(x), Math.floor(y), Math.floor(z));
+                const bodyBlock = this.getBlock(Math.floor(x), Math.floor(y + 1), Math.floor(z));
                 
-                return groundBlock && !playerBlock && !playerHeadBlock;
+                return groundBlock && !feetBlock && !bodyBlock;
+            }
+            
+            getFeetPosition() {
+                // Get the position of the kitten's feet (bottom of legs)
+                return {
+                    x: this.player.position.x,
+                    y: this.player.position.y - this.player.feetOffset,
+                    z: this.player.position.z
+                };
             }
             
             isPositionInsidePlayer(x, y, z) {
