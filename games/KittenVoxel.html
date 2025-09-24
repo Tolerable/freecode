@@ -871,41 +871,70 @@
                 }
             }
             
-            getTargetBlockPosition() {
-                this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
-                
-                // Set max range based on camera distance to prevent under-world placement
-                const cameraDistance = this.camera.position.distanceTo(this.player.position);
-                this.raycaster.far = Math.min(8, cameraDistance * 0.8);
-                
-                const objects = Object.values(this.world);
-                const intersects = this.raycaster.intersectObjects(objects);
-                
-                if (intersects.length > 0) {
-                    const intersect = intersects[0];
-                    const blockPos = intersect.object.position;
-                    const normal = intersect.face.normal;
-                    const placePos = blockPos.clone().add(normal);
-                    
-                    return {
-                        remove: blockPos.clone(),
-                        place: placePos,
-                        normal: normal
-                    };
-                }
-                return null;
-            }
+			getTargetBlockPosition() {
+				this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+				this.raycaster.far = 8; // Remove the dynamic distance calculation that was causing issues
+				
+				const objects = Object.values(this.world);
+				const intersects = this.raycaster.intersectObjects(objects);
+				
+				if (intersects.length > 0) {
+					const intersect = intersects[0];
+					const blockPos = intersect.object.position.clone();
+					const normal = intersect.face.normal.clone();
+					
+					// Ensure we're placing on top of blocks, not underneath
+					const placePos = blockPos.clone().add(normal);
+					
+					// Prevent placing blocks below ground level (y = 0)
+					if (placePos.y < 1) {
+						placePos.y = 1;
+					}
+					
+					return {
+						remove: blockPos,
+						place: placePos,
+						normal: normal
+					};
+				}
+				
+				// If no block intersection, try to place on ground plane
+				const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+				const groundIntersect = new THREE.Vector3();
+				
+				if (this.raycaster.ray.intersectPlane(groundPlane, groundIntersect)) {
+					// Only allow placement within world bounds
+					if (Math.abs(groundIntersect.x) <= 15 && Math.abs(groundIntersect.z) <= 15) {
+						return {
+							remove: null,
+							place: new THREE.Vector3(
+								Math.floor(groundIntersect.x), 
+								1, 
+								Math.floor(groundIntersect.z)
+							),
+							normal: new THREE.Vector3(0, 1, 0)
+						};
+					}
+				}
+				
+				return null;
+			}
             
-            updateBlockHighlight() {
-                const targetPos = this.getTargetBlockPosition();
-                
-                if (targetPos) {
-                    this.highlightMesh.position.copy(targetPos.place);
-                    this.highlightMesh.visible = true;
-                } else {
-                    this.highlightMesh.visible = false;
-                }
-            }
+			updateBlockHighlight() {
+				if (this.isChatting) {
+					this.highlightMesh.visible = false;
+					return;
+				}
+				
+				const targetPos = this.getTargetBlockPosition();
+				
+				if (targetPos && targetPos.place) {
+					this.highlightMesh.position.copy(targetPos.place);
+					this.highlightMesh.visible = true;
+				} else {
+					this.highlightMesh.visible = false;
+				}
+			}
             
             handleBlockInteraction(isLeftClick) {
                 const targetPos = this.getTargetBlockPosition();
