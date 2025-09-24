@@ -1107,8 +1107,14 @@
             }
 			
 			spawnCharacters() {
-				for (let i = 0; i < this.maxCharacters; i++) {
-					const characterType = this.characterTypes[Math.floor(Math.random() * this.characterTypes.length)];
+				// Ensure each character gets a unique type
+				const availableTypes = [...this.characterTypes]; // Copy array
+				
+				for (let i = 0; i < Math.min(this.maxCharacters, availableTypes.length); i++) {
+					// Remove a random type from available types to prevent duplicates
+					const typeIndex = Math.floor(Math.random() * availableTypes.length);
+					const characterType = availableTypes.splice(typeIndex, 1)[0];
+					
 					const angle = (i / this.maxCharacters) * Math.PI * 2;
 					const distance = 5 + Math.random() * 5;
 					
