@@ -513,13 +513,6 @@
 				this.isChatting = false;
 				this.activeChat = null;
 				this.chatUI.style.display = 'none';
-				
-				// Re-request pointer lock when chat closes
-				setTimeout(() => {
-					if (!document.pointerLockElement) {
-						this.renderer.domElement.requestPointerLock();
-					}
-				}, 100);
 			}
             
             setupLighting() {
@@ -722,26 +715,21 @@
                 return this.world[key] || null;
             }
             
-			document.addEventListener('keydown', (e) => {
-				// Block all game controls when chatting except specific chat controls
-				if (this.isChatting) {
-					// Allow Ctrl+E to expand chat
-					if (e.ctrlKey && e.code === 'KeyE') {
-						this.toggleChatExpansion();
-						e.preventDefault();
-					}
-					// Allow Escape to close chat
-					if (e.code === 'Escape') {
-						this.closeChatUI();
-						e.preventDefault();
-					}
-					return;
-				}
-				
+			setupControls() {
 				// Keyboard controls
 				document.addEventListener('keydown', (e) => {
-					// Block all game controls when chatting
+					// Block all game controls when chatting except specific chat controls
 					if (this.isChatting) {
+						// Allow Ctrl+E to expand chat
+						if (e.ctrlKey && e.code === 'KeyE') {
+							this.toggleChatExpansion();
+							e.preventDefault();
+						}
+						// Allow Escape to close chat
+						if (e.code === 'Escape') {
+							this.closeChatUI();
+							e.preventDefault();
+						}
 						return;
 					}
 					
@@ -765,11 +753,6 @@
 						this.startChatWithCharacter(this.nearestCharacter);
 						e.preventDefault();
 					}
-
-					if (e.code === 'Escape' && this.isChatting) {
-						this.closeChatUI();
-						e.preventDefault();
-					}					
 				});
 				
 				document.addEventListener('keyup', (e) => {
@@ -866,8 +849,7 @@
 				// Chat expander button
 				this.chatExpander.addEventListener('click', () => {
 					this.toggleChatExpansion();
-				});				
-				
+				});
 			}
             
             setupColorPalette() {
