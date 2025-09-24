@@ -1626,7 +1626,7 @@
 				description: "Orbital observation and communication systems", 
 				cost: { science: 5000, alloy: 25 },
 				effect: "Unlocks satellite construction",
-				unlocked: () => gameState.technologies.rocketry && gameState.resources.alloy >= 10,
+				unlocked: () => gameState.technologies.rocketry && gameState.buildings.launchPad > 0,
 				onResearch: () => {
 					logMessage("🛰️ Satellite technology developed!");
 				}
@@ -2141,7 +2141,7 @@
 					name: 'Satellite',
 					cost: { alloy: 15, steel: 25, science: 1000 },
 					effect: '+0.1 science per second',
-					unlocked: () => gameState.buildings.launchPad > 0,
+					unlocked: () => gameState.technologies.satellites,
 					onBuild: () => {
 						gameState.space.satellites++;
 						gameState.resourcesProduction.science += 0.1;
@@ -2152,7 +2152,7 @@
 					name: 'Space Station',
 					cost: { alloy: 50, steel: 125, concrete: 25, science: 10000 },
 					effect: '+0.5 science per second, enables deep space missions',
-					unlocked: () => gameState.space.satellites >= 2,
+					unlocked: () => gameState.technologies.orbitalEngineering,
 					onBuild: () => {
 						gameState.space.spaceStations++;
 						gameState.resourcesProduction.science += 0.5;
@@ -2163,7 +2163,7 @@
 					name: 'Moon Base',
 					cost: { alloy: 100, steel: 250, concrete: 75, uranium: 15 },
 					effect: '+moon minerals, enables interplanetary travel',
-					unlocked: () => gameState.space.spaceStations >= 1,
+					unlocked: () => gameState.technologies.lunarOutpost,
 					onBuild: () => {
 						gameState.space.moonBases++;
 						gameState.resourcesProduction.minerals += 2.0;
@@ -2546,10 +2546,36 @@
 				}
 			}
 			
-			// Space missions unlock advanced content
-			else if (gameState.buildings.launchPad && gameState.space.missions < 5) {
-				objectives.push(`🌌 Launch space missions in Space tab for uranium and advanced unlocks`);
+			// Research Satellites technology
+			else if (gameState.buildings.launchPad && !gameState.technologies.satellites) {
+				const req = techDefs.satellites;
+				const needAlloy = Math.max(0, req.cost.alloy - (gameState.resources.alloy || 0));
+				const needScience = Math.max(0, req.cost.science - gameState.resources.science);
+				
+				let missing = [];
+				if (needAlloy > 0) missing.push(`${needAlloy} alloy`);
+				if (needScience > 0) missing.push(`${needScience} science`);
+				
+				if (missing.length === 0) {
+					objectives.push(`🛰️ Research Satellites technology now (unlocks satellite construction)`);
+				} else {
+					objectives.push(`🛰️ Satellites technology needs: ${missing.join(', ')}`);
+				}
 			}
+
+			// Build satellites after researching technology
+			else if (gameState.technologies.satellites && gameState.space.satellites < 2) {
+				objectives.push(`🛰️ Build satellites in Space tab for science production`);
+			}
+
+			// Research Orbital Engineering
+			else if (gameState.space.satellites >= 1 && !gameState.technologies.orbitalEngineering) {
+				objectives.push(`🏗️ Research Orbital Engineering (unlocks space stations)`);
+			}
+
+			// Build space stations
+			else if (gameState.technologies.orbitalEngineering && gameState.space.spaceStations < 1) {
+				objectives.push(`🏗️ Build space station in Space tab for advanced space operations`);																						
 			
 			// Academy unlocks advanced research
 			if (gameState.buildings.library >= 2 && gameState.resources.science >= 200 && !gameState.buildings.academy) {
@@ -2576,10 +2602,12 @@
 				objectives.push(`⭐ Build Gold Mine (unlocked: Metal Working + 2 mines) for wealth`);
 			}
 			
-			// Default progression hint
+			// Default progression hint - UPDATE THIS SECTION
 			if (objectives.length === 0) {
-				if (gameState.resources.science >= 2500 && gameState.technologies.rocketry) {
-					objectives.push(`🌟 Focus on space missions and advanced crafting`);
+				if (gameState.technologies.rocketry && gameState.buildings.launchPad) {
+					objectives.push(`🌟 Research space technologies: Satellites → Orbital Engineering → Lunar Outpost`);
+				} else if (gameState.resources.science >= 2500 && gameState.technologies.rocketry) {
+					objectives.push(`🌟 Focus on space program: build Launch Pad and research space technologies`);
 				} else if (gameState.resources.science >= 500) {
 					objectives.push(`🔬 Research advanced technologies to unlock new content`);
 				} else {
