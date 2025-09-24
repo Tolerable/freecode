@@ -253,17 +253,19 @@
 </head>
 <body>
     <div id="container">
-        <div id="ui">
-            <div><strong>🐱 Kitten Voxel</strong></div>
-            <div>WASD: Move kitten</div>
-            <div>Mouse: Look around</div>
-            <div>SPACE: Jump</div>
-            <div>Left Click: Place block</div>
-            <div>Right Click: Remove block</div>
-            <div>Mouse Wheel: Zoom in/out</div>
-            <div>Numbers 1-6: Select color</div>
-            <div>Hold H (5s): Return to hub</div>
-        </div>
+		<div id="ui">
+			<div><strong>🐱 Kitten Voxel</strong></div>
+			<div>WASD: Move kitten</div>
+			<div>Mouse: Look around</div>
+			<div>SPACE: Jump</div>
+			<div>Left Click: Place block</div>
+			<div>Right Click: Remove block</div>
+			<div>Mouse Wheel: Zoom in/out</div>
+			<div>Numbers 1-6: Select color</div>
+			<div>Hold H (5s): Return to hub</div>
+			<div>T: Talk to character</div>
+			<div>Ctrl+E: Expand chat (when open)</div>
+		</div>
         
         <div id="crosshair"></div>
         
@@ -459,6 +461,12 @@
 				this.activeChat = character;
 				this.nearCharacterHint.style.display = 'none';
 				this.chatUI.style.display = 'block';
+				
+				// Exit pointer lock when chat opens
+				if (document.pointerLockElement) {
+					document.exitPointerLock();
+				}
+				
 				this.chatInput.focus();
 				
 				// Clear previous messages and input
@@ -505,6 +513,13 @@
 				this.isChatting = false;
 				this.activeChat = null;
 				this.chatUI.style.display = 'none';
+				
+				// Re-request pointer lock when chat closes
+				setTimeout(() => {
+					if (!document.pointerLockElement) {
+						this.renderer.domElement.requestPointerLock();
+					}
+				}, 100);
 			}
             
             setupLighting() {
@@ -707,7 +722,22 @@
                 return this.world[key] || null;
             }
             
-			setupControls() {
+			document.addEventListener('keydown', (e) => {
+				// Block all game controls when chatting except specific chat controls
+				if (this.isChatting) {
+					// Allow Ctrl+E to expand chat
+					if (e.ctrlKey && e.code === 'KeyE') {
+						this.toggleChatExpansion();
+						e.preventDefault();
+					}
+					// Allow Escape to close chat
+					if (e.code === 'Escape') {
+						this.closeChatUI();
+						e.preventDefault();
+					}
+					return;
+				}
+				
 				// Keyboard controls
 				document.addEventListener('keydown', (e) => {
 					// Block all game controls when chatting
