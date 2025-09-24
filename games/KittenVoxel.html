@@ -1107,13 +1107,12 @@
             }
 			
 			spawnCharacters() {
-				// Ensure each character gets a unique type
-				const availableTypes = [...this.characterTypes]; // Copy array
+				// Create a shuffled copy of character types to ensure uniqueness
+				const shuffledTypes = [...this.characterTypes].sort(() => Math.random() - 0.5);
 				
-				for (let i = 0; i < Math.min(this.maxCharacters, availableTypes.length); i++) {
-					// Remove a random type from available types to prevent duplicates
-					const typeIndex = Math.floor(Math.random() * availableTypes.length);
-					const characterType = availableTypes.splice(typeIndex, 1)[0];
+				for (let i = 0; i < this.maxCharacters; i++) {
+					// Use modulo to cycle through types if we have more characters than types
+					const characterType = shuffledTypes[i % shuffledTypes.length];
 					
 					const angle = (i / this.maxCharacters) * Math.PI * 2;
 					const distance = 5 + Math.random() * 5;
@@ -1127,7 +1126,7 @@
 					this.characters.push(new AICharacter(characterType, position, this.scene));
 				}
 			}
-
+			
 			updateCharacters() {
 				this.characters.forEach(character => {
 					character.update(this.player.position, 15);
