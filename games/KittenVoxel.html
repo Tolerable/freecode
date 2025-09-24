@@ -95,7 +95,45 @@
 			display: none;
 			max-width: 600px;
 			margin: 0 auto;
+			transition: height 0.3s ease;
 		}
+		
+		#chatHeader {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 10px;
+			border-bottom: 1px solid rgba(255,255,255,0.3);
+			padding-bottom: 5px;
+		}
+
+		#chatExpander {
+			background: rgba(255,255,255,0.2);
+			border: none;
+			color: white;
+			padding: 5px 10px;
+			border-radius: 3px;
+			cursor: pointer;
+			font-size: 12px;
+		}
+
+		#chatExpander:hover {
+			background: rgba(255,255,255,0.4);
+		}
+
+		#chatMessages {
+			max-height: 200px;
+			overflow-y: auto;
+			margin-bottom: 15px;
+			padding: 10px;
+			background: rgba(255,255,255,0.1);
+			border-radius: 5px;
+			transition: max-height 0.3s ease;
+		}
+
+		#chatMessages.expanded {
+			max-height: 600px;
+		}		
 
 		#chatMessages {
 			max-height: 200px;
@@ -261,6 +299,10 @@
 		<div id="nearCharacterHint">Press T to talk to [Character Name]</div>
 
 		<div id="chatUI">
+			<div id="chatHeader">
+				<span id="chatCharacterName"></span>
+				<button id="chatExpander">^</button>
+			</div>
 			<div id="chatMessages"></div>
 			<input type="text" id="chatInput" placeholder="Type your message and press Enter..." />
 		</div>
@@ -289,8 +331,11 @@
 				this.chatMessages = document.getElementById('chatMessages');
 				this.chatInput = document.getElementById('chatInput');
 				this.nearCharacterHint = document.getElementById('nearCharacterHint');
+				this.chatCharacterName = document.getElementById('chatCharacterName');
+				this.chatExpander = document.getElementById('chatExpander');
 				this.nearestCharacter = null;
-				this.isChatting = false;				
+				this.isChatting = false;
+				this.chatExpanded = false;				
 				
 				// World data
 				this.worldSize = 32;
@@ -410,21 +455,6 @@
 				}
 			}
 
-			async startChatWithCharacter(character) {
-				this.isChatting = true;
-				this.activeChat = character;
-				this.nearCharacterHint.style.display = 'none';
-				this.chatUI.style.display = 'block';
-				this.chatInput.focus();
-				
-				// Clear previous messages
-				this.chatMessages.innerHTML = '';
-				
-				// Get greeting
-				const greeting = await character.startChat();
-				this.addChatMessage(character.type.name, greeting, 'chat-npc');
-			}
-
 			addChatMessage(sender, message, cssClass) {
 				const messageDiv = document.createElement('div');
 				messageDiv.className = `chat-message ${cssClass}`;
@@ -433,18 +463,51 @@
 				this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
 			}
 
+			async startChatWithCharacter(character) {
+				this.isChatting = true;
+				this.activeChat = character;
+				this.nearCharacterHint.style.display = 'none';
+				this.chatUI.style.display = 'block';
+				this.chatInput.focus();
+				
+				// Clear previous messages and input
+				this.chatMessages.innerHTML = '';
+				this.chatInput.value = '';
+				this.chatCharacterName.textContent = character.type.name;
+				
+				// Reset expansion state
+				this.chatExpanded = false;
+				this.chatMessages.classList.remove('expanded');
+				this.chatExpander.textContent = '^';
+				
+				// Get greeting
+				const greeting = await character.startChat();
+				this.addChatMessage(character.type.name, greeting, 'chat-npc');
+			}
+
 			async sendPlayerMessage(message) {
 				if (!this.activeChat || !message.trim()) return;
 				
 				// Add player message to UI
 				this.addChatMessage('You', message, 'chat-player');
 				
+				// Clear input immediately
+				this.chatInput.value = '';
+				
 				// Get AI response
 				const response = await this.activeChat.startChat(message);
 				this.addChatMessage(this.activeChat.type.name, response, 'chat-npc');
-				
-				// Clear input
-				this.chatInput.value = '';
+			}
+
+			toggleChatExpansion() {
+				this.chatExpanded = !this.chatExpanded;
+				if (this.chatExpanded) {
+					this.chatMessages.classList.add('expanded');
+					this.chatExpander.textContent = 'v';
+				} else {
+					this.chatMessages.classList.remove('expanded');
+					this.chatExpander.textContent = '^';
+				}
 			}
 
 			closeChatUI() {
@@ -778,6 +841,12 @@
 					// Prevent all other keys from bubbling up to game controls
 					e.stopPropagation();
 				});
+				
+				// Chat expander button
+				this.chatExpander.addEventListener('click', () => {
+					this.toggleChatExpansion();
+				});				
+				
 			}
             
             setupColorPalette() {
