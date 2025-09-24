@@ -1140,9 +1140,9 @@
 				}
 			}
 			
-			updateCharacters() {
+			updateCharacters(game) {
 				this.characters.forEach(character => {
-					character.update(this.player.position, 15);
+					character.update(this.player.position, 15, game);
 				});
 			}
 
@@ -1151,7 +1151,7 @@
 				
 				this.updateHubCharging();
 				this.updatePlayer();
-				this.updateCharacters();
+				this.updateCharacters(this);
 				this.updateCharacterInteraction(); // Add this line
 				this.updateBlockHighlight();
 				this.renderer.render(this.scene, this.camera);
@@ -1173,6 +1173,12 @@
 				
 				this.createMesh();
 				this.chooseNewTarget();
+				
+				this.buildingProject = null;
+				this.buildingBlocks = [];
+				this.buildTimer = 0;
+				this.nextActionTime = Math.random() * 10000 + 5000; // 5-15 seconds
+				this.projectPhase = 'none'; // 'building', 'displaying', 'removing'				
 			}
 			
 			createMesh() {
@@ -1211,17 +1217,36 @@
 				this.mesh = group;
 			}
 			
-			update(playerPosition, worldBounds) {
+			update(playerPosition, worldBounds, game) {
 				this.stateTimer += 16;
 				
 				// Check if near player
 				const distToPlayer = this.position.distanceTo(playerPosition);
 				this.isNearPlayer = distToPlayer < 4;
 				
+				// Building project management
+				if (this.projectPhase === 'building') {
+					this.updateBuilding(game);
+				} else if (this.projectPhase === 'displaying') {
+					this.updateDisplaying();
+				} else if (this.projectPhase === 'removing') {
+					this.updateRemoving(game);
+				} else if (this.state === 'wandering' && Date.now() > this.nextActionTime) {
+					// Randomly decide to start building
+					if (Math.random() < 0.4) { // 40% chance
+						this.startBuildingProject(game);
+					} else {
+						this.nextActionTime = Date.now() + Math.random() * 15000 + 5000;
+					}
+				}
+				
 				// Simple state machine
 				switch(this.state) {
 					case 'wandering':
 						this.updateWandering(worldBounds);
+						break;
+					case 'building':
+						// Building movement is handled in updateBuilding
 						break;
 					case 'idle':
 						this.updateIdle();
@@ -1267,6 +1292,140 @@
 				// Keep within bounds
 				this.targetPosition.x = Math.max(-worldBounds, Math.min(worldBounds, this.targetPosition.x));
 				this.targetPosition.z = Math.max(-worldBounds, Math.min(worldBounds, this.targetPosition.z));
+			}
+
+			canBuildAt(x, y, z, game) {
+				// Check if position is clear
+				if (game.getBlock(x, y, z)) return false;
+				
+				// Check distance from other characters' projects
+				for (let char of game.characters) {
+					if (char !== this && char.buildingBlocks.length > 0) {
+						const minDist = char.buildingBlocks.some(block => 
+							Math.abs(block.x - x) < 3 && Math.abs(block.z - z) < 3
+						);
+						if (minDist) return false;
+					}
+				}
+				
+				// Check distance from player structures (simple heuristic)
+				const nearbyBlocks = [
+					game.getBlock(x-1, y, z), game.getBlock(x+1, y, z),
+					game.getBlock(x, y, z-1), game.getBlock(x, y, z+1)
+				];
+				const hasNearbyPlayerBlocks = nearbyBlocks.some(block => 
+					block && !this.buildingBlocks.find(b => 
+						b.x === block.position.x && b.y === block.position.y && b.z === block.position.z
+					)
+				);
+				
+				return !hasNearbyPlayerBlocks;
+			}
+
+			startBuildingProject(game) {
+				const patterns = [
+					{ name: 'line', blocks: [[0,1,0], [1,1,0], [2,1,0], [3,1,0]] },
+					{ name: 'tower', blocks: [[0,1,0], [0,2,0], [0,3,0]] },
+					{ name: 'cross', blocks: [[0,1,0], [1,1,0], [-1,1,0], [0,1,1], [0,1,-1]] },
+					{ name: 'wall', blocks: [[0,1,0], [1,1,0], [2,1,0], [0,2,0], [1,2,0], [2,2,0]] },
+					{ name: 'zigzag', blocks: [[0,1,0], [1,1,0], [1,1,1], [2,1,1], [2,1,2]] }
+				];
+				
+				const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+				const startX = Math.floor(this.position.x);
+				const startZ = Math.floor(this.position.z);
+				
+				// Find a clear area for the pattern
+				let validPosition = null;
+				for (let attempts = 0; attempts < 10; attempts++) {
+					const testX = startX + (Math.random() - 0.5) * 6;
+					const testZ = startZ + (Math.random() - 0.5) * 6;
+					
+					const canBuildAll = pattern.blocks.every(([dx, dy, dz]) => 
+						this.canBuildAt(testX + dx, dy, testZ + dz, game)
+					);
+					
+					if (canBuildAll) {
+						validPosition = { x: testX, z: testZ };
+						break;
+					}
+				}
+				
+				if (validPosition) {
+					this.buildingProject = {
+						pattern: pattern,
+						baseX: validPosition.x,
+						baseZ: validPosition.z,
+						currentBlock: 0
+					};
+					this.projectPhase = 'building';
+					this.buildTimer = 0;
+					this.state = 'building';
+				}
+			}
+
+			updateBuilding(game) {
+				this.buildTimer += 16;
+				
+				if (this.buildTimer >= 2000) { // Place block every 2 seconds
+					const project = this.buildingProject;
+					const blockData = project.pattern.blocks[project.currentBlock];
+					
+					if (blockData) {
+						const [dx, dy, dz] = blockData;
+						const x = project.baseX + dx;
+						const y = dy;
+						const z = project.baseZ + dz;
+						
+						// Place the block
+						game.setBlock(x, y, z, this.type.color);
+						this.buildingBlocks.push({ x, y, z });
+						
+						project.currentBlock++;
+						this.buildTimer = 0;
+						
+						// Move towards the block being built
+						this.targetPosition.set(x, this.position.y, z);
+					}
+					
+					// Check if building is complete
+					if (project.currentBlock >= project.pattern.blocks.length) {
+						this.projectPhase = 'displaying';
+						this.stateTimer = 0;
+					}
+				}
+			}
+
+			updateDisplaying() {
+				if (this.stateTimer > 8000) { // Display for 8 seconds
+					this.projectPhase = 'removing';
+					this.buildingProject.currentBlock = this.buildingBlocks.length - 1;
+					this.stateTimer = 0;
+					this.buildTimer = 0;
+				}
+			}
+
+			updateRemoving(game) {
+				this.buildTimer += 16;
+				
+				if (this.buildTimer >= 1500) { // Remove block every 1.5 seconds
+					if (this.buildingBlocks.length > 0) {
+						const block = this.buildingBlocks.pop();
+						game.setBlock(block.x, block.y, block.z, null);
+						
+						// Move towards the block being removed
+						this.targetPosition.set(block.x, this.position.y, block.z);
+						this.buildTimer = 0;
+					}
+					
+					// Check if removal is complete
+					if (this.buildingBlocks.length === 0) {
+						this.projectPhase = 'none';
+						this.buildingProject = null;
+						this.state = 'wandering';
+						this.nextActionTime = Date.now() + Math.random() * 20000 + 10000; // 10-30 seconds
+					}
+				}
 			}
 			
 			async startChat(playerMessage = null) {
