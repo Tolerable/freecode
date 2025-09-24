@@ -657,16 +657,17 @@
                 
                 this.player.position.copy(newPosition);
                 
-                // Update player mesh with proper feet positioning
+                // Update player mesh with consistent positioning
                 if (this.player.mesh) {
+                    // Always position the visual mesh so feet touch the ground
                     this.player.mesh.position.copy(this.player.position);
-                    this.player.mesh.position.y -= 0.3; // Offset so feet touch the surface
+                    this.player.mesh.position.y -= 0.3; // Consistent offset so feet always touch surface
                     this.player.mesh.rotation.y = this.player.rotation;
                     
-                    // Add subtle bounce when walking
+                    // Add subtle bounce when walking (but maintain proper ground contact)
                     if (direction.length() > 0 && this.player.isGrounded) {
-                        const bounce = Math.sin(Date.now() * 0.015) * 0.08;
-                        this.player.mesh.position.y += bounce;
+                        const bounce = Math.sin(Date.now() * 0.015) * 0.06; // Reduced bounce to prevent clipping
+                        this.player.mesh.position.y += Math.max(0, bounce); // Only bounce upward
                     }
                 }
                 
