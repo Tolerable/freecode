@@ -4231,24 +4231,24 @@
 			}
 		}
 
-        function updateTechList() {
-            const techList = document.getElementById('tech-list');
-            techList.innerHTML = '';
-            
-            // Available technologies
-            const availableDiv = document.createElement('div');
-            availableDiv.innerHTML = '<h4>Available Research:</h4>';
-            let hasAvailable = false;
-            
-            for (let techKey in techDefs) {
-                const tech = techDefs[techKey];
-                if (tech.unlocked() && !gameState.technologies[techKey]) {
-                    hasAvailable = true;
-                    const div = document.createElement('div');
-                    div.className = 'tech-item';
-                    
-                    let canAfford = true;
-                    let costText = '';
+		function updateTechList() {
+			const techList = document.getElementById('tech-list');
+			techList.innerHTML = '';
+			
+			// Available technologies
+			const availableDiv = document.createElement('div');
+			availableDiv.innerHTML = '<h4>Available Research:</h4>';
+			let hasAvailable = false;
+			
+			for (let techKey in techDefs) {
+				const tech = techDefs[techKey];
+				if (tech.unlocked() && !gameState.technologies[techKey]) {
+					hasAvailable = true;
+					const div = document.createElement('div');
+					div.className = 'tech-item';
+					
+					let canAfford = true;
+					let costText = '';
 					for (let resource in tech.cost) {
 						const needed = tech.cost[resource];
 						const available = Math.floor(gameState.resources[resource] || 0);
@@ -4260,109 +4260,123 @@
 						}
 						costText += `<span style="color: ${color};">${needed} ${resource}</span>, `;
 					}
-                    costText = costText.slice(0, -2);
-                    
-                    div.innerHTML = `
-                        <h4>${tech.name}</h4>
-                        <p>${tech.description}</p>
-                        <p><strong>Effect:</strong> ${tech.effect}</p>
-                        <button class="action-button tech-button" 
-                                onclick="researchTech('${techKey}')" 
-                                ${!canAfford ? 'disabled' : ''}>
-                            Research (${costText})
-                        </button>
-                    `;
-                    availableDiv.appendChild(div);
-                }
-            }
-            
-            if (hasAvailable) {
-                techList.appendChild(availableDiv);
-            }
-            
-            // Researched technologies
-            const researchedDiv = document.createElement('div');
-            researchedDiv.innerHTML = '<h4 style="margin-top: 20px;">Researched Technologies:</h4>';
-            let hasResearched = false;
-            
-            for (let techKey in gameState.technologies) {
-                if (gameState.technologies[techKey] && techDefs[techKey]) {
-                    hasResearched = true;
-                    const p = document.createElement('p');
-                    p.innerHTML = `✓ <strong>${techDefs[techKey].name}</strong> - ${techDefs[techKey].effect}`;
-                    p.style.color = '#2ecc71';
-                    p.style.margin = '8px 0';
-                    researchedDiv.appendChild(p);
-                }
-            }
-            
-            if (hasResearched) {
-                techList.appendChild(researchedDiv);
-            }
-            
-            // Coming soon technologies  
-            const comingSoonDiv = document.createElement('div');
-            comingSoonDiv.innerHTML = '<h4 style="color: #95a5a6; margin-top: 20px;">Future Research:</h4>';
-            let hasComingSoon = false;
-            
-            for (let techKey in techDefs) {
-                const tech = techDefs[techKey];
-                if (!tech.unlocked() && !gameState.technologies[techKey] && isCloseToResearching(techKey)) {
-                    hasComingSoon = true;
-                    const div = document.createElement('div');
-                    div.className = 'tech-item';
-                    div.style.opacity = '0.6';
-                    div.style.border = '2px dashed #7f8c8d';
-                    
-                    let costText = '';
-                    for (let resource in tech.cost) {
-                        costText += `${tech.cost[resource]} ${resource}, `;
-                    }
-                    costText = costText.slice(0, -2);
-                    
-                    div.innerHTML = `
-                        <h4>${tech.name} 🔒</h4>
-                        <p>${tech.description}</p>
-                        <p><strong>Effect:</strong> ${tech.effect}</p>
-                        <p style="color: #f39c12;"><strong>Requirement:</strong> ${getResearchHint(techKey)}</p>
-                        <button class="action-button tech-button" disabled>
-                            Locked (${costText})
-                        </button>
-                    `;
-                    comingSoonDiv.appendChild(div);
-                }
-            }
-            
-            if (hasComingSoon) {
-                techList.appendChild(comingSoonDiv);
-            }
-        }
+					costText = costText.slice(0, -2);
+					
+					div.innerHTML = `
+						<h4>${tech.name}</h4>
+						<p>${tech.description}</p>
+						<p><strong>Effect:</strong> ${tech.effect}</p>
+						<button class="action-button tech-button" 
+								onclick="researchTech('${techKey}')" 
+								${!canAfford ? 'disabled' : ''}>
+							Research (${costText})
+						</button>
+					`;
+					availableDiv.appendChild(div);
+				}
+			}
+			
+			if (hasAvailable) {
+				techList.appendChild(availableDiv);
+			}
+			
+			// Researched technologies
+			const researchedDiv = document.createElement('div');
+			researchedDiv.innerHTML = '<h4 style="margin-top: 20px;">Researched Technologies:</h4>';
+			let hasResearched = false;
+			
+			for (let techKey in gameState.technologies) {
+				if (gameState.technologies[techKey] && techDefs[techKey]) {
+					hasResearched = true;
+					const p = document.createElement('p');
+					p.innerHTML = `✅ <strong>${techDefs[techKey].name}</strong> - ${techDefs[techKey].effect}`;
+					p.style.color = '#2ecc71';
+					p.style.margin = '8px 0';
+					researchedDiv.appendChild(p);
+				}
+			}
+			
+			if (hasResearched) {
+				techList.appendChild(researchedDiv);
+			}
+			
+			// Coming soon technologies  
+			const comingSoonDiv = document.createElement('div');
+			comingSoonDiv.innerHTML = '<h4 style="color: #95a5a6; margin-top: 20px;">Future Research:</h4>';
+			let hasComingSoon = false;
+			
+			for (let techKey in techDefs) {
+				const tech = techDefs[techKey];
+				if (!tech.unlocked() && !gameState.technologies[techKey] && isCloseToResearching(techKey)) {
+					hasComingSoon = true;
+					const div = document.createElement('div');
+					div.className = 'tech-item';
+					div.style.opacity = '0.6';
+					div.style.border = '2px dashed #7f8c8d';
+					
+					let costText = '';
+					for (let resource in tech.cost) {
+						costText += `${tech.cost[resource]} ${resource}, `;
+					}
+					costText = costText.slice(0, -2);
+					
+					div.innerHTML = `
+						<h4>${tech.name} 🔒</h4>
+						<p>${tech.description}</p>
+						<p><strong>Effect:</strong> ${tech.effect}</p>
+						<p style="color: #f39c12;"><strong>Requirement:</strong> ${getResearchHint(techKey)}</p>
+						<button class="action-button tech-button" disabled>
+							Locked (${costText})
+						</button>
+					`;
+					comingSoonDiv.appendChild(div);
+				}
+			}
+			
+			if (hasComingSoon) {
+				techList.appendChild(comingSoonDiv);
+			}
+		}
 
-        function isCloseToResearching(techKey) {
-            if (techKey === 'agriculture' && gameState.resources.science >= 2) return true;
-            if (techKey === 'calendar' && gameState.resources.science >= 10) return true;
-            if (techKey === 'archery' && gameState.resources.science >= 10) return true;
-            if (techKey === 'mining' && gameState.resources.science >= 15) return true;
-            if (techKey === 'construction' && gameState.resources.science >= 30) return true;
-            if (techKey === 'astronomy' && gameState.resources.science >= 50) return true;
-            if (techKey === 'metalWorking' && gameState.technologies.mining && gameState.resources.science >= 50) return true;
-            if (techKey === 'engineering' && gameState.resources.science >= 75) return true;
-            if (techKey === 'theology' && gameState.resources.faith >= 5) return true;
-            return false;
-        }
+		function isCloseToResearching(techKey) {
+			if (techKey === 'agriculture' && gameState.resources.science >= 2) return true;
+			if (techKey === 'calendar' && gameState.resources.science >= 10) return true;
+			if (techKey === 'archery' && gameState.resources.science >= 10) return true;
+			if (techKey === 'mining' && gameState.resources.science >= 15) return true;
+			if (techKey === 'construction' && gameState.resources.science >= 30) return true;
+			if (techKey === 'astronomy' && gameState.resources.science >= 50) return true;
+			if (techKey === 'metalWorking' && gameState.technologies.mining && gameState.resources.science >= 50) return true;
+			if (techKey === 'engineering' && gameState.resources.science >= 75) return true;
+			if (techKey === 'theology' && gameState.resources.faith >= 5) return true;
+			if (techKey === 'navigation' && gameState.resources.science >= 250) return true;
+			if (techKey === 'philosophy' && gameState.resources.manuscripts >= 1) return true;
+			if (techKey === 'physics' && gameState.technologies.philosophy && gameState.resources.manuscripts >= 3) return true;
+			if (techKey === 'rocketry' && gameState.technologies.physics && gameState.resources.oil >= 100) return true;
+			if (techKey === 'satellites' && gameState.technologies.rocketry && gameState.buildings.launchPad > 0) return true;
+			if (techKey === 'orbitalEngineering' && gameState.technologies.satellites && gameState.space.satellites >= 1) return true;
+			if (techKey === 'lunarOutpost' && gameState.technologies.orbitalEngineering && gameState.space.spaceStations >= 1) return true;
+			return false;
+		}
 
-        function getResearchHint(techKey) {
-            if (techKey === 'agriculture') return 'Need 5+ science';
-            if (techKey === 'calendar') return 'Need 15+ science';
-            if (techKey === 'archery') return 'Need 15+ science';
-            if (techKey === 'mining') return 'Need 25+ science';
-            if (techKey === 'construction') return 'Need 50+ science';
-            if (techKey === 'astronomy') return 'Need 75+ science';
-            if (techKey === 'metalWorking') return 'Need Mining + 75+ science';
-            if (techKey === 'engineering') return 'Need 100+ science';
-            if (techKey === 'theology') return 'Need 10+ faith';
-            return 'Requirements not met';
-        }
+		function getResearchHint(techKey) {
+			if (techKey === 'agriculture') return 'Need 5+ science';
+			if (techKey === 'calendar') return 'Need 15+ science';
+			if (techKey === 'archery') return 'Need 15+ science';
+			if (techKey === 'mining') return 'Need 25+ science';
+			if (techKey === 'construction') return 'Need 50+ science';
+			if (techKey === 'astronomy') return 'Need 75+ science';
+			if (techKey === 'metalWorking') return 'Need Mining + 75+ science';
+			if (techKey === 'engineering') return 'Need 100+ science';
+			if (techKey === 'theology') return 'Need 10+ faith';
+			if (techKey === 'navigation') return 'Need 500+ science';
+			if (techKey === 'philosophy') return 'Need 1+ manuscripts (craft from parchment + culture)';
+			if (techKey === 'physics') return 'Need Philosophy + 5 manuscripts + 2500 science';
+			if (techKey === 'rocketry') return 'Need Physics + 250 oil + 5000 science + 25 manuscripts';
+			if (techKey === 'satellites') return 'Need Rocketry + Launch Pad built';
+			if (techKey === 'orbitalEngineering') return 'Need Satellites + 1 satellite built';
+			if (techKey === 'lunarOutpost') return 'Need Orbital Engineering + 1 space station built';
+			return 'Requirements not met';
+		}
 
 		function updateReligionList() {
 			const religionList = document.getElementById('religion-list');
