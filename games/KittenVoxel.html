@@ -193,114 +193,115 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-	// AI Characters system
-	this.characters = [];
-	this.maxCharacters = 3;
-	this.characterTypes = [
-		{
-			name: 'Builder Bob',
-			color: 0x4444ff,
-			personality: 'friendly builder who loves construction',
-			knowledge: {
-				materials: ['red blocks', 'green blocks', 'blue blocks', 'yellow blocks', 'magenta blocks', 'cyan blocks'],
-				structures: ['towers', 'bridges', 'houses', 'walls', 'pyramids'],
-				tools: ['left click to place', 'right click to remove', 'mouse wheel to zoom']
-			}
-		},
-		{
-			name: 'Explorer Emma',
-			color: 0x44ff44,
-			personality: 'curious explorer who loves discovering new places',
-			knowledge: {
-				locations: ['the hub area', 'the brown dirt platform', 'the edge of the world'],
-				activities: ['jumping with space', 'moving with WASD', 'looking around with mouse'],
-				secrets: ['try holding H for 5 seconds', 'use numbers 1-6 to change colors']
-			}
-		},
-		{
-			name: 'Chatty Charlie',
-			color: 0xffff44,
-			personality: 'talkative companion who enjoys conversation',
-			knowledge: {
-				topics: ['building projects', 'exploring the world', 'meeting other characters'],
-				observations: ['the sky is a nice blue color', 'this platform is perfect for building'],
-				questions: ['what are you planning to build?', 'have you explored the edges yet?']
-			}
-		}
-	];
-	this.activeChat = null;
 	
         class KittenVoxel {
-            constructor() {
-                // Initialize Three.js
-                this.scene = new THREE.Scene();
-                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                this.renderer = new THREE.WebGLRenderer({ antialias: true });
-                
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.setClearColor(0x87CEEB);
-                this.renderer.shadowMap.enabled = true;
-                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                
-                document.getElementById('container').appendChild(this.renderer.domElement);
-                
-                // World data
-                this.worldSize = 32;
-                this.world = {};
-                
-                // Player (kitten) properties
-                this.player = {
-                    position: new THREE.Vector3(0, 2.0, 0),
-                    velocity: new THREE.Vector3(0, 0, 0),
-                    rotation: 0,
-                    isGrounded: false,
-                    mesh: null,
-                    feetOffset: 1.0
-                };
-                
-                // Hub system
-                this.hKeyHoldTime = 0;
-                this.hKeyCharging = false;
-                this.hubPosition = new THREE.Vector3(0, 5, 0);
-                
-                // Camera follows player
-                this.cameraOffset = new THREE.Vector3(0, 5, 8);
-                this.cameraTarget = new THREE.Vector3();
-                
-                // Controls
-                this.keys = {};
-                this.mouse = { x: 0, y: 0 };
-                this.isPointerLocked = false;
-                this.cameraRotationY = 0;
-                this.cameraRotationX = -0.3;
-                
-                // Selected color
-                this.selectedColor = 0xff4444;
-                
-                // Raycaster for block selection
-                this.raycaster = new THREE.Raycaster();
-                this.raycaster.far = 8;
-                
-                // Block highlight
-                this.highlightMesh = null;
-                
-                // UI elements
-                this.hubChargeIndicator = document.getElementById('hubChargeIndicator');
-                this.hubChargeFill = document.getElementById('hubChargeFill');
-                this.saveIndicator = document.getElementById('saveIndicator');
-                
-                // Initialize everything
-                this.setupLighting();
-                this.createHighlightMesh();
-                this.createKitten();
-                this.generateTerrain();
+			constructor() {
+				// Initialize Three.js
+				this.scene = new THREE.Scene();
+				this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+				this.renderer = new THREE.WebGLRenderer({ antialias: true });
+				
+				this.renderer.setSize(window.innerWidth, window.innerHeight);
+				this.renderer.setClearColor(0x87CEEB);
+				this.renderer.shadowMap.enabled = true;
+				this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				
+				document.getElementById('container').appendChild(this.renderer.domElement);
+				
+				// World data
+				this.worldSize = 32;
+				this.world = {};
+				
+				// Player (kitten) properties
+				this.player = {
+					position: new THREE.Vector3(0, 2.0, 0),
+					velocity: new THREE.Vector3(0, 0, 0),
+					rotation: 0,
+					isGrounded: false,
+					mesh: null,
+					feetOffset: 1.0
+				};
+				
+				// Hub system
+				this.hKeyHoldTime = 0;
+				this.hKeyCharging = false;
+				this.hubPosition = new THREE.Vector3(0, 5, 0);
+				
+				// AI Characters system
+				this.characters = [];
+				this.maxCharacters = 3;
+				this.characterTypes = [
+					{
+						name: 'Builder Bob',
+						color: 0x4444ff,
+						personality: 'friendly builder who loves construction',
+						knowledge: {
+							materials: ['red blocks', 'green blocks', 'blue blocks', 'yellow blocks', 'magenta blocks', 'cyan blocks'],
+							structures: ['towers', 'bridges', 'houses', 'walls', 'pyramids'],
+							tools: ['left click to place', 'right click to remove', 'mouse wheel to zoom']
+						}
+					},
+					{
+						name: 'Explorer Emma',
+						color: 0x44ff44,
+						personality: 'curious explorer who loves discovering new places',
+						knowledge: {
+							locations: ['the hub area', 'the brown dirt platform', 'the edge of the world'],
+							activities: ['jumping with space', 'moving with WASD', 'looking around with mouse'],
+							secrets: ['try holding H for 5 seconds', 'use numbers 1-6 to change colors']
+						}
+					},
+					{
+						name: 'Chatty Charlie',
+						color: 0xffff44,
+						personality: 'talkative companion who enjoys conversation',
+						knowledge: {
+							topics: ['building projects', 'exploring the world', 'meeting other characters'],
+							observations: ['the sky is a nice blue color', 'this platform is perfect for building'],
+							questions: ['what are you planning to build?', 'have you explored the edges yet?']
+						}
+					}
+				];
+				this.activeChat = null;
+				
+				// Camera follows player
+				this.cameraOffset = new THREE.Vector3(0, 5, 8);
+				this.cameraTarget = new THREE.Vector3();
+				
+				// Controls
+				this.keys = {};
+				this.mouse = { x: 0, y: 0 };
+				this.isPointerLocked = false;
+				this.cameraRotationY = 0;
+				this.cameraRotationX = -0.3;
+				
+				// Selected color
+				this.selectedColor = 0xff4444;
+				
+				// Raycaster for block selection
+				this.raycaster = new THREE.Raycaster();
+				this.raycaster.far = 8;
+				
+				// Block highlight
+				this.highlightMesh = null;
+				
+				// UI elements
+				this.hubChargeIndicator = document.getElementById('hubChargeIndicator');
+				this.hubChargeFill = document.getElementById('hubChargeFill');
+				this.saveIndicator = document.getElementById('saveIndicator');
+				
+				// Initialize everything
+				this.setupLighting();
+				this.createHighlightMesh();
+				this.createKitten();
+				this.generateTerrain();
 				this.spawnCharacters();
-                this.loadWorld();
-                this.setupControls();
-                this.setupColorPalette();
-                this.setupAutoSave();
-                this.animate();
-            }
+				this.loadWorld();
+				this.setupControls();
+				this.setupColorPalette();
+				this.setupAutoSave();
+				this.animate();
+			}
             
             setupLighting() {
                 // Ambient light
@@ -858,15 +859,6 @@
                 setTimeout(() => {
                     this.saveIndicator.classList.remove('show');
                 }, 2000);
-            }
-            
-            animate() {
-                requestAnimationFrame(() => this.animate());
-                
-                this.updateHubCharging();
-                this.updatePlayer();
-                this.updateBlockHighlight();
-                this.renderer.render(this.scene, this.camera);
             }
 			
 			spawnCharacters() {
