@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Voxel World</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #87CEEB;
+            font-family: Arial, sans-serif;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255,255,255,0.8);
+        }
+        
+        #crosshair::before {
+            width: 20px;
+            height: 2px;
+            left: -10px;
+            top: -1px;
+        }
+        
+        #crosshair::after {
+            width: 2px;
+            height: 20px;
+            left: -1px;
+            top: -10px;
+        }
+        
+        #colorPalette {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .colorSwatch {
+            width: 40px;
+            height: 40px;
+            border: 3px solid transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .colorSwatch:hover {
+            transform: scale(1.1);
+        }
+        
+        .colorSwatch.selected {
+            border-color: white;
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="ui">
+            <div><strong>Voxel World Demo</strong></div>
+            <div>WASD: Move</div>
+            <div>Mouse: Look around</div>
+            <div>Left Click: Remove block</div>
+            <div>Right Click: Place block</div>
+            <div>Numbers 1-6: Select color</div>
+        </div>
+        
+        <div id="crosshair"></div>
+        
+        <div id="colorPalette">
+            <div class="colorSwatch selected" data-color="0xff4444" style="background: #ff4444;" title="Red (1)"></div>
+            <div class="colorSwatch" data-color="0x44ff44" style="background: #44ff44;" title="Green (2)"></div>
+            <div class="colorSwatch" data-color="0x4444ff" style="background: #4444ff;" title="Blue (3)"></div>
+            <div class="colorSwatch" data-color="0xffff44" style="background: #ffff44;" title="Yellow (4)"></div>
+            <div class="colorSwatch" data-color="0xff44ff" style="background: #ff44ff;" title="Magenta (5)"></div>
+            <div class="colorSwatch" data-color="0x44ffff" style="background: #44ffff;" title="Cyan (6)"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        class VoxelWorld {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setClearColor(0x87CEEB);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                
+                document.getElementById('container').appendChild(this.renderer.domElement);
+                
+                // World data - 3D array to store block types
+                this.worldSize = 32;
+                this.world = {};
+                
+                // Player properties
+                this.camera.position.set(0, 5, 0);
+                this.velocity = new THREE.Vector3();
+                this.isGrounded = false;
+                
+                // Controls
+                this.keys = {};
+                this.mouse = { x: 0, y: 0 };
+                this.isPointerLocked = false;
+                
+                // Selected color
+                this.selectedColor = 0xff4444;
+                
+                // Raycaster for block selection
+                this.raycaster = new THREE.Raycaster();
+                this.raycaster.far = 10;
+                
+                this.setupLighting();
+                this.generateTerrain();
+                this.setupControls();
+                this.setupColorPalette();
+                this.animate();
+            }
+            
+            setupLighting() {
+                // Ambient light
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                this.scene.add(ambientLight);
+                
+                // Directional light (sun)
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(50, 50, 50);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 500;
+                directionalLight.shadow.camera.left = -50;
+                directionalLight.shadow.camera.right = 50;
+                directionalLight.shadow.camera.top = 50;
+                directionalLight.shadow.camera.bottom = -50;
+                this.scene.add(directionalLight);
+            }
+            
+            generateTerrain() {
+                // Create a simple flat terrain
+                for (let x = -16; x < 16; x++) {
+                    for (let z = -16; z < 16; z++) {
+                        this.setBlock(x, 0, z, 0x90EE90); // Light green for grass
+                    }
+                }
+                
+                // Add some random blocks for testing
+                for (let i = 0; i < 20; i++) {
+                    const x = Math.floor(Math.random() * 16) - 8;
+                    const z = Math.floor(Math.random() * 16) - 8;
+                    const height = Math.floor(Math.random() * 3) + 1;
+                    const colors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    for (let y = 1; y <= height; y++) {
+                        this.setBlock(x, y, z, color);
+                    }
+                }
+            }
+            
+            getBlockKey(x, y, z) {
+                return `${x},${y},${z}`;
+            }
+            
+            setBlock(x, y, z, color) {
+                const key = this.getBlockKey(x, y, z);
+                
+                // Remove existing block if present
+                if (this.world[key]) {
+                    this.scene.remove(this.world[key]);
+                }
+                
+                if (color !== null) {
+                    // Create new block
+                    const geometry = new THREE.BoxGeometry(1, 1, 1);
+                    const material = new THREE.MeshLambertMaterial({ color: color });
+                    const cube = new THREE.Mesh(geometry, material);
+                    
+                    cube.position.set(x, y, z);
+                    cube.castShadow = true;
+                    cube.receiveShadow = true;
+                    
+                    this.scene.add(cube);
+                    this.world[key] = cube;
+                } else {
+                    // Remove block
+                    delete this.world[key];
+                }
+            }
+            
+            getBlock(x, y, z) {
+                const key = this.getBlockKey(x, y, z);
+                return this.world[key] || null;
+            }
+            
+            setupControls() {
+                // Keyboard controls
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    
+                    // Number keys for color selection
+                    if (e.code >= 'Digit1' && e.code <= 'Digit6') {
+                        const colorIndex = parseInt(e.code.slice(-1)) - 1;
+                        this.selectColor(colorIndex);
+                    }
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                });
+                
+                // Mouse controls
+                document.addEventListener('click', () => {
+                    if (!this.isPointerLocked) {
+                        this.renderer.domElement.requestPointerLock();
+                    }
+                });
+                
+                document.addEventListener('pointerlockchange', () => {
+                    this.isPointerLocked = document.pointerLockElement === this.renderer.domElement;
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (this.isPointerLocked) {
+                        const sensitivity = 0.002;
+                        this.camera.rotation.y -= e.movementX * sensitivity;
+                        this.camera.rotation.x -= e.movementY * sensitivity;
+                        this.camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.camera.rotation.x));
+                    }
+                });
+                
+                // Mouse click for block placement/removal
+                document.addEventListener('mousedown', (e) => {
+                    if (this.isPointerLocked) {
+                        this.handleBlockInteraction(e.button === 0); // true for left click (remove), false for right click (place)
+                    }
+                });
+                
+                // Prevent context menu
+                document.addEventListener('contextmenu', (e) => e.preventDefault());
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+            
+            setupColorPalette() {
+                const swatches = document.querySelectorAll('.colorSwatch');
+                swatches.forEach((swatch, index) => {
+                    swatch.addEventListener('click', () => {
+                        this.selectColor(index);
+                    });
+                });
+            }
+            
+            selectColor(index) {
+                const swatches = document.querySelectorAll('.colorSwatch');
+                swatches.forEach(s => s.classList.remove('selected'));
+                swatches[index].classList.add('selected');
+                this.selectedColor = parseInt(swatches[index].dataset.color);
+            }
+            
+            handleBlockInteraction(isRemoving) {
+                // Cast ray from camera
+                this.raycaster.setFromCamera({ x: 0, y: 0 }, this.camera);
+                
+                // Find intersected blocks
+                const objects = Object.values(this.world);
+                const intersects = this.raycaster.intersectObjects(objects);
+                
+                if (intersects.length > 0) {
+                    const intersect = intersects[0];
+                    const blockPos = intersect.object.position;
+                    
+                    if (isRemoving) {
+                        // Remove the intersected block
+                        this.setBlock(blockPos.x, blockPos.y, blockPos.z, null);
+                    } else {
+                        // Place block adjacent to the intersected face
+                        const normal = intersect.face.normal;
+                        const newPos = blockPos.clone().add(normal);
+                        
+                        // Don't place blocks where the player is standing
+                        const playerPos = this.camera.position;
+                        const distance = newPos.distanceTo(playerPos);
+                        if (distance > 1.5) {
+                            this.setBlock(newPos.x, newPos.y, newPos.z, this.selectedColor);
+                        }
+                    }
+                }
+            }
+            
+            updatePlayer() {
+                const speed = 0.1;
+                const direction = new THREE.Vector3();
+                
+                // Movement input
+                if (this.keys['KeyW']) direction.z -= 1;
+                if (this.keys['KeyS']) direction.z += 1;
+                if (this.keys['KeyA']) direction.x -= 1;
+                if (this.keys['KeyD']) direction.x += 1;
+                
+                // Apply camera rotation to movement direction
+                direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.camera.rotation.y);
+                direction.multiplyScalar(speed);
+                
+                // Simple collision detection - keep player above ground
+                const newPos = this.camera.position.clone().add(direction);
+                if (newPos.y < 1.5) newPos.y = 1.5;
+                
+                this.camera.position.copy(newPos);
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                this.updatePlayer();
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+        
+        // Initialize the voxel world when page loads
+        window.addEventListener('load', () => {
+            new VoxelWorld();
+        });
+    </script>
+</body>
+</html>
