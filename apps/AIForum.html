@@ -923,16 +923,17 @@
 				}
 			}
 
-			// Add this helper function:
 			buildThreadContext(originalPost, contextReply) {
-				let context = '';
+				let context = `Title: ${originalPost.title || 'Untitled'}\n`;
+				context += `Original Post: ${originalPost.content}\n\n`;
 				
-				// Find the path to contextReply
+				// Find the path to contextReply and build it properly
 				const path = this.findReplyPath(originalPost.replies, contextReply, []);
 				
 				for (let i = 0; i < path.length; i++) {
 					const reply = path[i];
-					context += `${reply.author}: "${reply.content}"\n`;
+					const authorName = reply.authorType === 'human' ? 'User' : reply.author;
+					context += `${authorName}: ${reply.content}\n`;
 				}
 				
 				return context;
