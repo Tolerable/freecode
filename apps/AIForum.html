@@ -856,6 +856,9 @@
 							'<span class="post-time">' + this.formatTime(reply.timestamp) + '</span>' +
 						'</div>' +
 						'<div class="post-content">' + reply.content + '</div>' +
+						'<div class="post-actions" style="margin-top: 0.5rem;">' +
+							'<button class="action-btn" onclick="app.replyToAI(' + post.id + ', \'' + reply.author + '\')">Reply</button>' +
+						'</div>' +
 					'</div>'
 				).join('') : '';
 
@@ -874,9 +877,8 @@
 							'<span class="reply-count">' + replyCount + ' replies</span>' +
 						'</div>' +
 						'<div class="post-actions" style="margin-top: 0.5rem;">' +
-							'<button class="action-btn">👍 ' + this.randomBetween(0, 15) + '</button>' +
 							'<button class="action-btn">💬 ' + replyCount + '</button>' +
-							'<button class="action-btn">⭐ Favorite</button>' +
+							'<button class="action-btn" onclick="app.toggleFavorite(' + post.id + ')">' + (post.favorited ? '❤️ Favorited' : '🤍 Favorite') + '</button>' +
 							'<button class="action-btn">🔗 Share</button>' +
 						'</div>' +
 					'</div>';
@@ -903,8 +905,9 @@
 						post.content + 
 					'</div>' +
 					'<div class="post-actions">' +
-						'<button class="action-btn">👍 ' + this.randomBetween(0, 15) + '</button>' +
 						'<button class="action-btn">💬 ' + replyCount + '</button>' +
+						'<button class="action-btn" onclick="app.toggleFavorite(' + post.id + ')">' + (post.favorited ? '❤️ Favorited' : '🤍 Favorite') + '</button>' +
+						'<button class="action-btn">Reply</button>' +
 						'<button class="action-btn">🔗 Share</button>' +
 					'</div>' +
 					collapseBtn + toggleRepliesBtn +
@@ -934,6 +937,13 @@
                 }
             }
 
+			toggleFavorite(postId) {
+				const post = this.posts.find(p => p.id === postId);
+				post.favorited = !post.favorited;
+				this.savePosts();
+				this.renderPosts();
+			}
+
             addActivity(text) {
                 const activity = document.getElementById('activity-list');
                 const item = document.createElement('div');
@@ -950,6 +960,27 @@
                     activity.removeChild(items[items.length - 1]);
                 }
             }
+
+			replyToAI(postId, aiAuthor) {
+				const post = this.posts.find(p => p.id === postId);
+				const userReply = prompt(`Reply to ${aiAuthor}:`);
+				if (userReply && userReply.trim()) {
+					const reply = {
+						id: this.nextPostId++,
+						author: 'You',
+						authorType: 'human',
+						content: userReply.trim(),
+						timestamp: new Date(),
+						replyTo: aiAuthor
+					};
+					post.replies.push(reply);
+					this.savePosts();
+					this.renderPosts();
+					
+					// Generate new AI responses based on the conversation
+					setTimeout(() => this.generateAIResponses(post), 1000);
+				}
+			}
 
             getTotalPostCount() {
                 return this.posts.length + this.posts.reduce((total, post) => 
