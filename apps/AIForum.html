@@ -777,16 +777,14 @@
 				const saved = localStorage.getItem('aiForumPosts');
 				if (saved) {
 					this.posts = JSON.parse(saved);
-					// Convert timestamp strings back to Date objects
+					// Convert timestamp strings back to Date objects recursively
 					this.posts.forEach(post => {
 						post.timestamp = new Date(post.timestamp);
 						// FORCE ALL POSTS TO COLLAPSED STATE ON PAGE LOAD
 						post.expanded = false;
 						
 						if (post.replies) {
-							post.replies.forEach(reply => {
-								reply.timestamp = new Date(reply.timestamp);
-							});
+							this.convertReplyTimestamps(post.replies);
 						}
 					});
 					if (this.posts.length > 0) {
@@ -794,6 +792,16 @@
 					}
 					this.renderPosts();
 				}
+			}
+
+			// Add this new helper function right after loadPosts()
+			convertReplyTimestamps(replies) {
+				replies.forEach(reply => {
+					reply.timestamp = new Date(reply.timestamp);
+					if (reply.replies) {
+						this.convertReplyTimestamps(reply.replies);
+					}
+				});
 			}
 
 			async generateAIResponses(originalPost, contextReply = null) {
