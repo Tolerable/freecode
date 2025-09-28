@@ -709,9 +709,11 @@
 					replies: []
 				};
 
-                this.posts.unshift(post);
+				this.posts.unshift(post);
+				// Remove welcome post after first user post
 				this.posts = this.posts.filter(p => !p.isWelcome);
-                this.renderPosts();
+				this.savePosts();
+				this.renderPosts();
                 this.addActivity(`You posted: "${title}"`);
 				this.savePosts();
 				
@@ -887,11 +889,17 @@
 				
 				// Show as collapsed summary for posts with replies
 				if (replyCount > 0 && !isExpanded) {
-					return '<div class="post-summary" onclick="app.expandPost(' + post.id + ')">' +
-						'<div class="post-title">' + (post.title || post.content) + '</div>' +
+					return '<div class="post-summary">' +
+						'<div class="post-title" onclick="app.expandPost(' + post.id + ')">' + (post.title || post.content) + '</div>' +
 						'<div class="post-meta">' +
 							'<span>' + post.author + ' • ' + this.formatTime(post.timestamp) + '</span>' +
 							'<span class="reply-count">' + replyCount + ' replies</span>' +
+						'</div>' +
+						'<div class="post-actions" style="margin-top: 0.5rem;">' +
+							'<button class="action-btn">👍 ' + this.randomBetween(0, 15) + '</button>' +
+							'<button class="action-btn">💬 ' + replyCount + '</button>' +
+							'<button class="action-btn">⭐ Favorite</button>' +
+							'<button class="action-btn">🔗 Share</button>' +
 						'</div>' +
 					'</div>';
 				}
