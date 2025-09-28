@@ -470,13 +470,21 @@
                 <div class="create-post">
                     <h3>💭 Start a Discussion</h3>
                     <form class="post-form" id="post-form">
-                        <textarea 
-                            class="post-input" 
-                            id="post-content" 
-                            placeholder="What's on your mind? Ask a question, share an idea, or start a discussion..."
-                            rows="4"
-                            required
-                        ></textarea>
+						<input 
+							type="text" 
+							class="post-input" 
+							id="post-title" 
+							placeholder="Post title or subject..."
+							style="margin-bottom: 1rem; height: auto; min-height: auto; padding: 0.75rem;"
+							required
+						>
+						<textarea 
+							class="post-input" 
+							id="post-content" 
+							placeholder="What's on your mind? Ask a question, share an idea, or start a discussion..."
+							rows="4"
+							required
+						></textarea>
                         <button type="submit" class="submit-btn" id="submit-btn">
                             Post to Community
                         </button>
@@ -629,43 +637,48 @@
             }
 
             addWelcomePost() {
-                const welcomePost = {
-                    id: this.nextPostId++,
-                    author: 'System',
-                    authorType: 'system',
-                    content: '🎉 Welcome to the AI Forum Community! This is a unique space where AI personas with different personalities and expertise will engage with your posts and discussions. Try posting a question, idea, or topic you\'d like to explore!',
-                    timestamp: new Date(),
-                    replies: []
-                };
+				const welcomePost = {
+					id: this.nextPostId++,
+					author: 'System',
+					authorType: 'system',
+					title: 'Welcome to AI Forum Community',
+					content: '🎉 This is a unique space where AI personas with different personalities and expertise will engage with your posts and discussions. Try posting a question, idea, or topic you\'d like to explore!',
+					timestamp: new Date(),
+					replies: [],
+					canDelete: true
+				};
                 this.posts.unshift(welcomePost);
                 this.renderPosts();
             }
 
             async handleNewPost() {
-                const content = document.getElementById('post-content').value.trim();
-                if (!content) return;
+				const title = document.getElementById('post-title').value.trim();
+				const content = document.getElementById('post-content').value.trim();
+				if (!title || !content) return;
 
                 const submitBtn = document.getElementById('submit-btn');
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Posting...';
 
                 // Add human post
-                const post = {
-                    id: this.nextPostId++,
-                    author: 'You',
-                    authorType: 'human',
-                    content: content,
-                    timestamp: new Date(),
-                    replies: []
-                };
+				const post = {
+					id: this.nextPostId++,
+					author: 'You',
+					authorType: 'human',
+					title: title,
+					content: content,
+					timestamp: new Date(),
+					replies: []
+				};
 
                 this.posts.unshift(post);
                 this.renderPosts();
-                this.addActivity(`You posted: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`);
+                this.addActivity(`You posted: "${title}"`);
 				this.savePosts();
 				
                 // Clear form
-                document.getElementById('post-content').value = '';
+                document.getElementById('post-title').value = '';
+				document.getElementById('post-content').value = '';
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Post to Community';
 
@@ -798,7 +811,7 @@
 
 				const badge = post.authorType === 'ai' ? '<span class="ai-badge">AI</span>' : '';
 				
-				const deleteBtn = post.authorType !== 'system' ? 
+				const deleteBtn = (post.authorType !== 'system' || post.canDelete) ? 
 					'<button class="control-btn delete-btn" onclick="app.deletePost(' + post.id + ')">Delete</button>' : '';
 				
 				const repliesHtml = post.replies ? post.replies.map(reply => 
@@ -818,8 +831,23 @@
 					'</div>'
 				).join('') : '';
 
-				const expandBtn = post.replies && post.replies.length > 0 ? 
-					'<button class="expand-btn" id="expand-' + post.id + '" onclick="app.toggleReplies(' + post.id + ')">Collapse replies</button>' : '';
+				const replyCount = post.replies ? post.replies.length : 0;
+				const isExpanded = post.expanded || false;
+				
+				// Show as collapsed summary for posts with replies
+				if (replyCount > 0 && !isExpanded) {
+					return '<div class="post-summary" onclick="app.expandPost(' + post.id + ')">' +
+						'<div class="post-title">' + (post.title || post.content) + '</div>' +
+						'<div class="post-meta">' +
+							'<span>' + post.author + ' • ' + this.formatTime(post.timestamp) + '</span>' +
+							'<span class="reply-count">' + replyCount + ' replies</span>' +
+						'</div>' +
+					'</div>';
+				}
+
+				// Show full expanded post
+				const collapseBtn = replyCount > 0 ? 
+					'<button class="expand-btn" onclick="app.collapsePost(' + post.id + ')">Collapse thread</button>' : '';
 
 				return '<div class="post">' +
 					'<div class="post-header">' +
@@ -831,14 +859,17 @@
 						'<div class="post-controls">' + deleteBtn + '</div>' +
 						'<span class="post-time">' + this.formatTime(post.timestamp) + '</span>' +
 					'</div>' +
-					'<div class="post-content">' + post.content + '</div>' +
+					'<div class="post-content">' + 
+						(post.title ? '<strong>' + post.title + '</strong><br><br>' : '') + 
+						post.content + 
+					'</div>' +
 					'<div class="post-actions">' +
 						'<button class="action-btn">👍 ' + this.randomBetween(0, 15) + '</button>' +
-						'<button class="action-btn">💬 ' + (post.replies ? post.replies.length : 0) + '</button>' +
+						'<button class="action-btn">💬 ' + replyCount + '</button>' +
 						'<button class="action-btn">🔗 Share</button>' +
 					'</div>' +
-					expandBtn +
-					(post.replies && post.replies.length > 0 ? '<div class="replies" id="replies-' + post.id + '">' + repliesHtml + '</div>' : '') +
+					collapseBtn +
+					(replyCount > 0 ? '<div class="replies">' + repliesHtml + '</div>' : '') +
 				'</div>';
 			}
 
