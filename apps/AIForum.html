@@ -635,16 +635,10 @@
 			}
 
 			toggleReplies(postId) {
-				const repliesElement = document.getElementById('replies-' + postId);
-				const expandBtn = document.getElementById('expand-' + postId);
-				
-				if (repliesElement.classList.contains('collapsed')) {
-					repliesElement.classList.remove('collapsed');
-					expandBtn.textContent = 'Collapse replies';
-				} else {
-					repliesElement.classList.add('collapsed');
-					expandBtn.textContent = 'Expand ' + repliesElement.children.length + ' replies';
-				}
+				const post = this.posts.find(p => p.id === postId);
+				post.repliesHidden = !post.repliesHidden;
+				this.savePosts();
+				this.renderPosts();
 			}
 
 			expandPost(postId) {
@@ -866,12 +860,15 @@
 				).join('') : '';
 
 				const replyCount = post.replies ? post.replies.length : 0;
-				const isExpanded = post.expanded || false;
+				const isExpanded = post.expanded === true;
+				const repliesHidden = post.repliesHidden === true;
+				const preview = post.content.length > 100 ? post.content.substring(0, 100) + '...' : post.content;
 				
-				// Show as collapsed summary for posts with replies
-				if (replyCount > 0 && !isExpanded) {
+				// COLLAPSED STATE (default)
+				if (!isExpanded) {
 					return '<div class="post-summary">' +
-						'<div class="post-title" onclick="app.expandPost(' + post.id + ')">' + (post.title || post.content) + '</div>' +
+						'<div class="post-title" onclick="app.expandPost(' + post.id + ')">' + (post.title || 'Untitled') + '</div>' +
+						'<div class="post-preview" style="color: #ccc; font-size: 0.9rem; margin: 0.5rem 0; line-height: 1.4;" onclick="app.expandPost(' + post.id + ')">' + preview + '</div>' +
 						'<div class="post-meta">' +
 							'<span>' + post.author + ' • ' + this.formatTime(post.timestamp) + '</span>' +
 							'<span class="reply-count">' + replyCount + ' replies</span>' +
@@ -885,9 +882,11 @@
 					'</div>';
 				}
 
-				// Show full expanded post
-				const collapseBtn = replyCount > 0 ? 
-					'<button class="expand-btn" onclick="app.collapsePost(' + post.id + ')">Collapse thread</button>' : '';
+				// EXPANDED STATE
+				const collapseBtn = '<button class="expand-btn" onclick="app.collapsePost(' + post.id + ')">Collapse post</button>';
+				const toggleRepliesBtn = replyCount > 0 ? 
+					'<button class="expand-btn" onclick="app.toggleReplies(' + post.id + ')">' + 
+					(repliesHidden ? 'Show ' + replyCount + ' replies' : 'Hide replies') + '</button>' : '';
 
 				return '<div class="post">' +
 					'<div class="post-header">' +
@@ -908,8 +907,8 @@
 						'<button class="action-btn">💬 ' + replyCount + '</button>' +
 						'<button class="action-btn">🔗 Share</button>' +
 					'</div>' +
-					collapseBtn +
-					(replyCount > 0 ? '<div class="replies">' + repliesHtml + '</div>' : '') +
+					collapseBtn + toggleRepliesBtn +
+					(replyCount > 0 && !repliesHidden ? '<div class="replies">' + repliesHtml + '</div>' : '') +
 				'</div>';
 			}
 
