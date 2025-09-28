@@ -731,7 +731,19 @@
 				const saved = localStorage.getItem('aiForumPosts');
 				if (saved) {
 					this.posts = JSON.parse(saved);
-					this.nextPostId = Math.max(...this.posts.map(p => p.id), 0) + 1;
+					// Convert timestamp strings back to Date objects
+					this.posts.forEach(post => {
+						post.timestamp = new Date(post.timestamp);
+						if (post.replies) {
+							post.replies.forEach(reply => {
+								reply.timestamp = new Date(reply.timestamp);
+							});
+						}
+					});
+					if (this.posts.length > 0) {
+						this.nextPostId = Math.max(...this.posts.map(p => p.id)) + 1;
+					}
+					this.renderPosts();
 				}
 			}
 
