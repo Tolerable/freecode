@@ -879,10 +879,34 @@
 
 			deleteReply(postId, replyId) {
 				const post = this.posts.find(p => p.id === postId);
-				if (post && post.replies) {
-					post.replies = post.replies.filter(r => r.id !== replyId);
+				if (!post) return;
+				
+				// Recursive function to find and delete reply at any nesting level
+				const deleteFromArray = (repliesArray) => {
+					if (!repliesArray) return false;
+					
+					// Check if reply is in this level
+					const index = repliesArray.findIndex(r => r.id === replyId);
+					if (index !== -1) {
+						repliesArray.splice(index, 1);
+						return true;
+					}
+					
+					// If not found, check nested replies
+					for (let reply of repliesArray) {
+						if (reply.replies && deleteFromArray(reply.replies)) {
+							return true;
+						}
+					}
+					return false;
+				};
+				
+				if (deleteFromArray(post.replies)) {
 					this.savePosts();
 					this.renderPosts();
+					console.log(`Deleted reply ${replyId}`);
+				} else {
+					console.log(`Reply ${replyId} not found`);
 				}
 			}
 
@@ -1045,9 +1069,7 @@
 					authorType: 'human',
 					content: replyContent,
 					timestamp: new Date(),
-					replyToId: this.findReplyIdByAuthor(post, aiAuthor), // NEW: track specific reply ID
-					parentId: postId, // NEW: track parent post
-					replies: [] // NEW: nested replies
+					replies: []
 				};
 				
 				// Find the specific AI reply and add this as a nested reply to it
