@@ -863,18 +863,29 @@
 
 			async generatePersonaResponse(persona, originalPost, contextReply = null) {
 				try {
-					// Use the contextReply content if provided, otherwise use original post
-					const contentToRespondTo = contextReply ? contextReply.content : originalPost.content;
-					const contextText = contextReply ? 
-						`Respond to this reply: "${contentToRespondTo}"` : 
-						`Respond to this forum post as ${persona.name}: "${contentToRespondTo}"`;
+					let contextText;
+					
+					if (contextReply) {
+						// Build conversation thread context
+						const threadContext = this.buildThreadContext(originalPost, contextReply);
+						contextText = `You are ${persona.name} joining this conversation thread:
+
+			Original post: "${originalPost.content}"
+
+			Conversation so far:
+			${threadContext}
+
+			Respond as ${persona.name} to this conversation thread.`;
+					} else {
+						contextText = `You are ${persona.name} responding to this forum post: "${originalPost.content}"`;
+					}
 
 					const payload = {
 						model: persona.model,
 						messages: [
 							{
 								role: 'system',
-								content: persona.systemPrompt
+								content: persona.systemPrompt + ' You are responding to a conversation thread. Pay attention to who said what to whom.'
 							},
 							{
 								role: 'user',
@@ -898,7 +909,7 @@
 					}
 
 					const data = await response.json();
-					console.log('API Response for', persona.name, ':', data); // Debug log
+					console.log('API Response for', persona.name, ':', data);
 
 					if (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
 						return data.choices[0].message.content.trim();
@@ -907,9 +918,44 @@
 						return null;
 					}
 				} catch (error) {
-					console.error('API Error for', persona.name, ':', error);
-					return null; // Return null instead of fake response
+					console.error('API Error:', error);
+					return null;
 				}
+			}
+
+			// Add this helper function:
+			buildThreadContext(originalPost, contextReply) {
+				let context = '';
+				
+				// Find the path to contextReply
+				const path = this.findReplyPath(originalPost.replies, contextReply, []);
+				
+				for (let i = 0; i < path.length; i++) {
+					const reply = path[i];
+					context += `${reply.author}: "${reply.content}"\n`;
+				}
+				
+				return context;
+			}
+
+			// Add this helper function:
+			findReplyPath(replies, targetReply, currentPath) {
+				if (!replies) return null;
+				
+				for (let reply of replies) {
+					const newPath = [...currentPath, reply];
+					
+					if (reply.id === targetReply.id) {
+						return newPath;
+					}
+					
+					if (reply.replies) {
+						const found = this.findReplyPath(reply.replies, targetReply, newPath);
+						if (found) return found;
+					}
+				}
+				
+				return null;
 			}
 
             renderPosts() {
