@@ -697,7 +697,7 @@
 				this.renderPosts();
 				
 				// Generate AI responses after a delay
-				setTimeout(() => this.generateAIResponses(post), 1000);
+				setTimeout(() => this.generateAIResponses(post, targetReply), 1000);
 			}
 
 			toggleReplies(postId) {
@@ -796,91 +796,104 @@
 				}
 			}
 
-            async generateAIResponses(originalPost) {
-                this.isProcessing = true;
-                this.showProcessingIndicator();
+			async generateAIResponses(originalPost, contextReply = null) {
+				this.isProcessing = true;
+				this.showProcessingIndicator();
 
-                // Determine which personas will respond
-                const respondingPersonas = this.personas.filter(persona => 
-                    Math.random() < persona.responseChance
-                );
+				// Determine which personas will respond
+				const respondingPersonas = this.personas.filter(persona => 
+					Math.random() < persona.responseChance
+				);
 
-                // Shuffle for natural response order
-                this.shuffleArray(respondingPersonas);
+				// Shuffle for natural response order
+				this.shuffleArray(respondingPersonas);
 
-                for (let i = 0; i < respondingPersonas.length; i++) {
-                    const persona = respondingPersonas[i];
-                    
-                    // Add realistic delay between responses
-                    if (i > 0) {
-                        await this.delay(this.randomBetween(2000, 8000));
-                    } else {
-                        await this.delay(this.randomBetween(1000, 4000));
-                    }
+				for (let i = 0; i < respondingPersonas.length; i++) {
+					const persona = respondingPersonas[i];
+					
+					// Add realistic delay between responses
+					if (i > 0) {
+						await this.delay(this.randomBetween(2000, 8000));
+					} else {
+						await this.delay(this.randomBetween(1000, 4000));
+					}
 
-                    try {
-                        const response = await this.generatePersonaResponse(persona, originalPost);
-                        if (response) {
-                            const reply = {
-                                id: this.nextPostId++,
-                                author: persona.name,
-                                authorType: 'ai',
-                                content: response,
-                                timestamp: new Date(),
-                                persona: persona
-                            };
+					try {
+						const response = await this.generatePersonaResponse(persona, originalPost, contextReply);
+						if (response) {
+							const reply = {
+								id: this.nextPostId++,
+								author: persona.name,
+								authorType: 'ai',
+								content: response,
+								timestamp: new Date(),
+								persona: persona
+							};
 
-                            originalPost.replies.push(reply);
-                            this.renderPosts();
-                            this.addActivity(`${persona.name} replied to your post`);
+							// If contextReply is provided, add to that reply's nested replies
+							if (contextReply) {
+								if (!contextReply.replies) contextReply.replies = [];
+								contextReply.replies.push(reply);
+							} else {
+								originalPost.replies.push(reply);
+							}
+							
+							this.renderPosts();
+							this.addActivity(`${persona.name} replied to your post`);
 							this.savePosts();
-                        }
-                    } catch (error) {
-                        console.error(`Error generating response for ${persona.name}:`, error);
-                    }
-                }
+						}
+					} catch (error) {
+						console.error(`Error generating response for ${persona.name}:`, error);
+					}
+				}
 
-                this.isProcessing = false;
-                this.hideProcessingIndicator();
-            }
+				this.isProcessing = false;
+				this.hideProcessingIndicator();
+			}
 
-            async generatePersonaResponse(persona, originalPost) {
-                try {
-                    const payload = {
-                        model: persona.model,
-                        messages: [
-                            {
-                                role: 'system',
-                                content: persona.systemPrompt
-                            },
-                            {
-                                role: 'user',
-                                content: `Respond to this forum post as ${persona.name}: "${originalPost.content}"`
-                            }
-                        ],
-                        max_tokens: 250,
-                        private: true
-                    };
+			async generatePersonaResponse(persona, originalPost, contextReply = null) {
+				try {
+					// Use the contextReply content if provided, otherwise use original post
+					const contentToRespondTo = contextReply ? contextReply.content : originalPost.content;
+					const contextText = contextReply ? 
+						`Respond to this reply: "${contentToRespondTo}"` : 
+						`Respond to this forum post as ${persona.name}: "${contentToRespondTo}"`;
 
-                    const response = await fetch(this.apiEndpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    });
+					const payload = {
+						model: persona.model,
+						messages: [
+							{
+								role: 'system',
+								content: persona.systemPrompt
+							},
+							{
+								role: 'user',
+								content: contextText
+							}
+						],
+						max_tokens: 250,
+						private: true
+					};
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+					const response = await fetch(this.apiEndpoint, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
 
-                    const data = await response.json();
-                    return data.choices[0].message.content.trim();
-                } catch (error) {
-                    console.error('API Error:', error);
-                    return this.getFallbackResponse(persona);
-                }
-            }
+					if (!response.ok) {
+						throw new Error(`HTTP error! status: ${response.status}`);
+					}
+
+					const data = await response.json();
+					return data.choices[0].message.content.trim();
+				} catch (error) {
+					console.error('API Error:', error);
+					return this.getFallbackResponse(persona);
+				}
+			}
 
             getFallbackResponse(persona) {
                 const fallbacks = {
