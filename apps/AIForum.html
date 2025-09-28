@@ -846,25 +846,28 @@
 				const deleteBtn = (post.authorType !== 'system' || post.canDelete) ? 
 					'<button class="control-btn delete-btn" onclick="app.deletePost(' + post.id + ')">Delete</button>' : '';
 				
-				const repliesHtml = post.replies ? post.replies.map(reply => 
-					'<div class="reply">' +
+				const repliesHtml = post.replies ? post.replies.map(reply => {
+					const avatar = reply.authorType === 'ai' ? reply.persona.avatar : '👤';
+					const badge = reply.authorType === 'ai' ? '<span class="ai-badge">AI</span>' : '';
+					const regenerateBtn = reply.authorType === 'ai' ? 
+						'<button class="control-btn" onclick="app.regenerateResponse(' + post.id + ', \'' + reply.author + '\')">Regenerate</button>' : '';
+					
+					return '<div class="reply">' +
 						'<div class="post-header">' +
 							'<div class="post-author">' +
-								'<div class="author-avatar">' + reply.persona.avatar + '</div>' +
+								'<div class="author-avatar">' + avatar + '</div>' +
 								'<span class="author-name">' + reply.author + '</span>' +
-								'<span class="ai-badge">AI</span>' +
+								badge +
 							'</div>' +
-							'<div class="post-controls">' +
-								'<button class="control-btn" onclick="app.regenerateResponse(' + post.id + ', \'' + reply.author + '\')">Regenerate</button>' +
-							'</div>' +
+							'<div class="post-controls">' + regenerateBtn + '</div>' +
 							'<span class="post-time">' + this.formatTime(reply.timestamp) + '</span>' +
 						'</div>' +
 						'<div class="post-content">' + reply.content + '</div>' +
 						'<div class="post-actions" style="margin-top: 0.5rem;">' +
 							'<button class="action-btn" onclick="app.replyToAI(' + post.id + ', \'' + reply.author + '\')">Reply</button>' +
 						'</div>' +
-					'</div>'
-				).join('') : '';
+					'</div>';
+				}).join('') : '';
 
 				const replyCount = post.replies ? post.replies.length : 0;
 				const isExpanded = post.expanded === true;
