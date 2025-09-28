@@ -1002,33 +1002,52 @@
 				const post = this.posts.find(p => p.id === postId);
 				if (!post) return;
 				
-				// Recursive function to find and delete reply at any nesting level
-				const deleteFromArray = (repliesArray) => {
-					if (!repliesArray) return false;
-					
-					// Check if reply is in this level
-					const index = repliesArray.findIndex(r => r.id === replyId);
-					if (index !== -1) {
-						repliesArray.splice(index, 1);
-						return true;
-					}
-					
-					// If not found, check nested replies
-					for (let reply of repliesArray) {
-						if (reply.replies && deleteFromArray(reply.replies)) {
-							return true;
+				// First, find the reply to check if it has children
+				const findReplyAndParent = (repliesArray, parentArray = null, parentIndex = -1) => {
+					for (let i = 0; i < repliesArray.length; i++) {
+						const reply = repliesArray[i];
+						if (reply.id === replyId) {
+							return { reply, parentArray, parentIndex, currentArray: repliesArray, currentIndex: i };
+						}
+						if (reply.replies) {
+							const found = findReplyAndParent(reply.replies, repliesArray, i);
+							if (found) return found;
 						}
 					}
-					return false;
+					return null;
 				};
 				
-				if (deleteFromArray(post.replies)) {
-					this.savePosts();
-					this.renderPosts();
-					console.log(`Deleted reply ${replyId}`);
-				} else {
+				const replyData = findReplyAndParent(post.replies);
+				if (!replyData) {
 					console.log(`Reply ${replyId} not found`);
+					return;
 				}
+				
+				const { reply, parentArray, parentIndex, currentArray, currentIndex } = replyData;
+				
+				// Check if reply has children and confirm deletion
+				if (reply.replies && reply.replies.length > 0) {
+					const childCount = reply.replies.length;
+					if (!confirm(`This reply has ${childCount} nested ${childCount === 1 ? 'reply' : 'replies'}. Delete just this reply and preserve the nested ones?`)) {
+						return;
+					}
+					
+					// Move children up to parent level
+					if (parentArray) {
+						// Insert children where the parent was, then remove the parent
+						parentArray.splice(parentIndex + 1, 0, ...reply.replies);
+					} else {
+						// Insert children in main replies array where this reply was
+						post.replies.splice(currentIndex + 1, 0, ...reply.replies);
+					}
+				}
+				
+				// Remove the reply itself
+				currentArray.splice(currentIndex, 1);
+				
+				this.savePosts();
+				this.renderPosts();
+				console.log(`Deleted reply ${replyId}`);
 			}
 
 			renderPost(post) {
