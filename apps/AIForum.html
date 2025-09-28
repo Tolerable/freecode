@@ -375,6 +375,42 @@
 			margin-top: 0.5rem;
 		}
 
+		.post-summary {
+			background: #2a2a2a;
+			border: 1px solid #444;
+			border-radius: 8px;
+			padding: 1rem;
+			margin-bottom: 1rem;
+			cursor: pointer;
+			transition: border-color 0.3s;
+		}
+
+		.post-summary:hover {
+			border-color: #555;
+		}
+
+		.post-summary .post-title {
+			font-weight: 500;
+			margin-bottom: 0.5rem;
+			color: #e0e0e0;
+		}
+
+		.post-summary .post-meta {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			font-size: 0.8rem;
+			color: #888;
+		}
+
+		.reply-count {
+			background: #667eea;
+			color: white;
+			padding: 0.2rem 0.5rem;
+			border-radius: 12px;
+			font-size: 0.7rem;
+		}
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -566,21 +602,6 @@
 				}
 			}
 
-			savePosts() {
-				localStorage.setItem('aiForumPosts', JSON.stringify(this.posts));
-			}
-
-			loadPosts() {
-				const saved = localStorage.getItem('aiForumPosts');
-				if (saved) {
-					this.posts = JSON.parse(saved);
-					if (this.posts.length > 0) {
-						this.nextPostId = Math.max(...this.posts.map(p => p.id)) + 1;
-					}
-					this.renderPosts();
-				}
-			}
-
 			deletePost(postId) {
 				this.posts = this.posts.filter(p => p.id !== postId);
 				this.savePosts();
@@ -626,6 +647,22 @@
 				} else {
 					repliesElement.classList.add('collapsed');
 					expandBtn.textContent = 'Expand ' + repliesElement.children.length + ' replies';
+				}
+			}
+
+			expandPost(postId) {
+				const post = this.posts.find(p => p.id === postId);
+				if (post) {
+					post.expanded = true;
+					this.renderPosts();
+				}
+			}
+
+			collapsePost(postId) {
+				const post = this.posts.find(p => p.id === postId);
+				if (post) {
+					post.expanded = false;
+					this.renderPosts();
 				}
 			}
 
@@ -948,9 +985,9 @@
 
 		let app;
         // Initialize the app when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new AIForumApp();
-        });
+		document.addEventListener('DOMContentLoaded', () => {
+			app = new AIForumApp();
+		});
     </script>
 </body>
 </html>
