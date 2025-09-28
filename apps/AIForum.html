@@ -894,7 +894,7 @@
 					'<button class="expand-btn" onclick="app.toggleReplies(' + post.id + ')">' + 
 					(repliesHidden ? 'Show ' + replyCount + ' replies' : 'Hide replies') + '</button>' : '';
 
-				return '<div class="post">' +
+				return '<div class="post" data-post-id="' + post.id + '">' +
 					'<div class="post-header" onclick="app.collapsePost(' + post.id + ')" style="cursor: pointer;">' +
 						'<div class="post-author">' +
 							'<div class="author-avatar">' + avatar + '</div>' +
@@ -967,24 +967,63 @@
             }
 
 			replyToAI(postId, aiAuthor) {
+				// Remove any existing reply forms first
+				document.querySelectorAll('.reply-form').forEach(form => form.remove());
+				
+				// Find the reply in the DOM and add form after it
 				const post = this.posts.find(p => p.id === postId);
-				const userReply = prompt(`Reply to ${aiAuthor}:`);
-				if (userReply && userReply.trim()) {
-					const reply = {
-						id: this.nextPostId++,
-						author: 'You',
-						authorType: 'human',
-						content: userReply.trim(),
-						timestamp: new Date(),
-						replyTo: aiAuthor
-					};
-					post.replies.push(reply);
-					this.savePosts();
-					this.renderPosts();
+				const repliesContainer = document.querySelector(`[data-post-id="${postId}"] .replies`);
+				
+				if (repliesContainer) {
+					const replyForm = document.createElement('div');
+					replyForm.className = 'reply-form';
+					replyForm.innerHTML = `
+						<div style="background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+							<h4 style="color: #667eea; margin-bottom: 0.5rem;">Reply to ${aiAuthor}:</h4>
+							<textarea 
+								class="post-input" 
+								id="reply-content-${postId}" 
+								placeholder="Type your reply..."
+								rows="3"
+								style="width: 100%; margin-bottom: 0.5rem;"
+							></textarea>
+							<div style="display: flex; gap: 0.5rem;">
+								<button class="submit-btn" onclick="app.submitReply(${postId}, '${aiAuthor}')">Post Reply</button>
+								<button class="control-btn" onclick="app.cancelReply()">Cancel</button>
+							</div>
+						</div>
+					`;
+					repliesContainer.appendChild(replyForm);
 					
-					// Generate new AI responses based on the conversation
-					setTimeout(() => this.generateAIResponses(post), 1000);
+					// Focus the textarea
+					document.getElementById(`reply-content-${postId}`).focus();
 				}
+			}
+
+			submitReply(postId, aiAuthor) {
+				const replyContent = document.getElementById(`reply-content-${postId}`).value.trim();
+				if (!replyContent) return;
+				
+				const post = this.posts.find(p => p.id === postId);
+				const reply = {
+					id: this.nextPostId++,
+					author: 'You',
+					authorType: 'human',
+					content: replyContent,
+					timestamp: new Date(),
+					replyTo: aiAuthor
+				};
+				
+				post.replies.push(reply);
+				this.savePosts();
+				this.renderPosts();
+				
+				// Generate new AI responses
+				setTimeout(() => this.generateAIResponses(post), 1000);
+			}
+
+			cancelReply() {
+				document.querySelectorAll('.reply-form').forEach(form => form.remove());
 			}
 
             getTotalPostCount() {
