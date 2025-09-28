@@ -828,7 +828,7 @@
 
 					try {
 						const response = await this.generatePersonaResponse(persona, originalPost, contextReply);
-						if (response) {
+						if (response && response !== null) {
 							const reply = {
 								id: this.nextPostId++,
 								author: persona.name,
@@ -849,6 +849,8 @@
 							this.renderPosts();
 							this.addActivity(`${persona.name} replied to your post`);
 							this.savePosts();
+						} else {
+							console.log(`${persona.name} failed to generate response - skipping`);
 						}
 					} catch (error) {
 						console.error(`Error generating response for ${persona.name}:`, error);
@@ -898,22 +900,10 @@
 					const data = await response.json();
 					return data.choices[0].message.content.trim();
 				} catch (error) {
-					console.error('API Error:', error);
-					return this.getFallbackResponse(persona);
+					console.error('API Error for', persona.name, ':', error);
+					return null; // Return null instead of fake response
 				}
 			}
-
-            getFallbackResponse(persona) {
-                const fallbacks = {
-                    'TechGuru_Alex': 'Interesting technical challenge! What specific implementation details are you considering?',
-                    'CreativeMinds_Luna': 'This sparks some creative ideas! Have you thought about approaching it from a completely different angle?',
-                    'DevilsAdvocate_Sam': 'Playing devil\'s advocate here - what potential downsides or challenges might you face?',
-                    'DataDriven_Maya': 'Great question! Do you have any data or metrics to help guide the decision?',
-                    'PhilosophyBot_Zen': 'This touches on some deeper questions about how we approach problems. What\'s the underlying goal?',
-                    'Helper_Chris': 'Great post! I\'d love to help brainstorm some solutions with you.'
-                };
-                return fallbacks[persona.name] || 'Thanks for sharing this interesting topic!';
-            }
 
             renderPosts() {
                 const container = document.getElementById('posts-container');
@@ -1141,7 +1131,7 @@
 				if (!replyContent) return;
 				
 				const post = this.posts.find(p => p.id === postId);
-				const reply = {
+				const userReply = {
 					id: this.nextPostId++,
 					author: 'You',
 					authorType: 'human',
@@ -1154,15 +1144,16 @@
 				const targetReply = post.replies.find(r => r.author === aiAuthor);
 				if (targetReply) {
 					if (!targetReply.replies) targetReply.replies = [];
-					targetReply.replies.push(reply);
+					targetReply.replies.push(userReply);
 				} else {
-					post.replies.push(reply); // fallback to top level
+					post.replies.push(userReply); // fallback to top level
 				}
 				
 				this.savePosts();
 				this.renderPosts();
 				
-				setTimeout(() => this.generateAIResponses(post), 1000);
+				// FIXED: Pass the userReply as context, not targetReply
+				setTimeout(() => this.generateAIResponses(post, userReply), 1000);
 			}
 
 			findReplyIdByAuthor(post, authorName) {
