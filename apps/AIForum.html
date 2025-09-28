@@ -834,6 +834,39 @@
                 document.getElementById('total-posts').textContent = `${this.getTotalPostCount()} posts`;
             }
 
+			renderReplies(replies, depth = 0) {
+				if (!replies || replies.length === 0) return '';
+				
+				const maxDepth = 3;
+				const indentStyle = depth > 0 ? `margin-left: ${depth * 20}px; border-left: 2px solid #444; padding-left: 1rem;` : '';
+				
+				return replies.map(reply => {
+					const avatar = reply.authorType === 'ai' ? reply.persona.avatar : '👤';
+					const badge = reply.authorType === 'ai' ? '<span class="ai-badge">AI</span>' : '';
+					const regenerateBtn = reply.authorType === 'ai' ? 
+						`<button class="control-btn" onclick="app.regenerateResponse(${reply.postId}, '${reply.author}')">Regenerate</button>` : '';
+					
+					const nestedReplies = depth < maxDepth && reply.replies ? this.renderReplies(reply.replies, depth + 1) : '';
+					
+					return `<div class="reply" style="${indentStyle}">
+						<div class="post-header">
+							<div class="post-author">
+								<div class="author-avatar">${avatar}</div>
+								<span class="author-name">${reply.author}</span>
+								${badge}
+							</div>
+							<div class="post-controls">${regenerateBtn}</div>
+							<span class="post-time">${this.formatTime(reply.timestamp)}</span>
+						</div>
+						<div class="post-content">${reply.content}</div>
+						<div class="post-actions" style="margin-top: 0.5rem;">
+							<button class="action-btn" onclick="app.replyToAI(${reply.postId}, '${reply.author}')">Reply</button>
+						</div>
+						${nestedReplies}
+					</div>`;
+				}).join('');
+			}
+
 			renderPost(post) {
 				const authorClass = post.authorType === 'ai' ? 'ai-author' : 
 								 post.authorType === 'system' ? 'system-author' : 'human-author';
@@ -846,28 +879,7 @@
 				const deleteBtn = (post.authorType !== 'system' || post.canDelete) ? 
 					'<button class="control-btn delete-btn" onclick="app.deletePost(' + post.id + ')">Delete</button>' : '';
 				
-				const repliesHtml = post.replies ? post.replies.map(reply => {
-					const avatar = reply.authorType === 'ai' ? reply.persona.avatar : '👤';
-					const badge = reply.authorType === 'ai' ? '<span class="ai-badge">AI</span>' : '';
-					const regenerateBtn = reply.authorType === 'ai' ? 
-						'<button class="control-btn" onclick="app.regenerateResponse(' + post.id + ', \'' + reply.author + '\')">Regenerate</button>' : '';
-					
-					return '<div class="reply">' +
-						'<div class="post-header">' +
-							'<div class="post-author">' +
-								'<div class="author-avatar">' + avatar + '</div>' +
-								'<span class="author-name">' + reply.author + '</span>' +
-								badge +
-							'</div>' +
-							'<div class="post-controls">' + regenerateBtn + '</div>' +
-							'<span class="post-time">' + this.formatTime(reply.timestamp) + '</span>' +
-						'</div>' +
-						'<div class="post-content">' + reply.content + '</div>' +
-						'<div class="post-actions" style="margin-top: 0.5rem;">' +
-							'<button class="action-btn" onclick="app.replyToAI(' + post.id + ', \'' + reply.author + '\')">Reply</button>' +
-						'</div>' +
-					'</div>';
-				}).join('') : '';
+				const repliesHtml = this.renderReplies(post.replies);
 
 				const replyCount = post.replies ? post.replies.length : 0;
 				const isExpanded = post.expanded === true;
@@ -1014,15 +1026,29 @@
 					authorType: 'human',
 					content: replyContent,
 					timestamp: new Date(),
-					replyTo: aiAuthor
+					replyToId: this.findReplyIdByAuthor(post, aiAuthor), // NEW: track specific reply ID
+					parentId: postId, // NEW: track parent post
+					replies: [] // NEW: nested replies
 				};
 				
-				post.replies.push(reply);
+				// Find the specific AI reply and add this as a nested reply to it
+				const targetReply = post.replies.find(r => r.author === aiAuthor);
+				if (targetReply) {
+					if (!targetReply.replies) targetReply.replies = [];
+					targetReply.replies.push(reply);
+				} else {
+					post.replies.push(reply); // fallback to top level
+				}
+				
 				this.savePosts();
 				this.renderPosts();
 				
-				// Generate new AI responses
 				setTimeout(() => this.generateAIResponses(post), 1000);
+			}
+
+			findReplyIdByAuthor(post, authorName) {
+				const reply = post.replies.find(r => r.author === authorName);
+				return reply ? reply.id : null;
 			}
 
 			cancelReply() {
