@@ -394,13 +394,24 @@
           },
           body: JSON.stringify({
             model: 'openai-fast',
-            messages: messages,
-            temperature: 0.7
+            messages: messages
           })
         });
 
         const data = await response.json();
-        const aiResponse = data.choices[0].message.content;
+        const data = await response.json();
+
+		// Handle different response formats
+		let aiResponse;
+		if (data.choices && data.choices[0] && data.choices[0].message) {
+		  aiResponse = data.choices[0].message.content;
+		} else if (typeof data === 'string') {
+		  aiResponse = data;
+		} else if (data.response) {
+		  aiResponse = data.response;
+		} else {
+		  aiResponse = JSON.stringify(data);
+		}
 
         // Apply spellcheck to make it more human
         const humanizedResponse = spellchecker.humanize(aiResponse);
