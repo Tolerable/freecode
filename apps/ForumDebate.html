@@ -1253,6 +1253,11 @@
 			calculateResponseWeight(persona, post, thread) {
 				let weight = persona.responseChance; // Start with base %
 				
+				// HUGE boost for human posts - AIs should almost always respond to users
+				if (post.authorType === 'human' || post.author === 'You') {
+					weight *= 3.0; // Triple the base weight for human posts
+				}
+				
 				// Keyword matching - increase weight if topic matches persona interest
 				const keywordScore = this.keywordMatch(post.content, persona.interests);
 				weight += keywordScore * 0.3;
@@ -1263,9 +1268,13 @@
 					weight *= Math.max(0.2, 1 - (postCount * 0.15));
 				}
 				
-				// Thread depth dampening - reduce deeper in thread
+				// Thread depth dampening - reduce deeper in thread BUT less for human posts
 				const depth = this.getThreadDepth(post, thread, 0);
-				weight *= Math.max(0.3, 1 - (depth * 0.1));
+				if (post.authorType === 'human' || post.author === 'You') {
+					weight *= Math.max(0.5, 1 - (depth * 0.05)); // Gentler dampening for human posts
+				} else {
+					weight *= Math.max(0.3, 1 - (depth * 0.1)); // Normal dampening for AI posts
+				}
 				
 				// Vote amplification - increase if post is upvoted
 				if (post.voteScore > 0) {
