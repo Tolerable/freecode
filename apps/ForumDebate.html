@@ -1189,7 +1189,28 @@
 						}
 					});
 					if (this.posts.length > 0) {
-						this.nextPostId = Math.max(...this.posts.map(p => p.id)) + 1;
+						// Find highest ID among posts AND all nested replies
+						let maxId = Math.max(...this.posts.map(p => p.id));
+						
+						this.posts.forEach(post => {
+							const getAllReplyIds = (replies) => {
+								if (!replies) return [];
+								let ids = replies.map(r => r.id);
+								replies.forEach(r => {
+									if (r.replies) {
+										ids = ids.concat(getAllReplyIds(r.replies));
+									}
+								});
+								return ids;
+							};
+							
+							const replyIds = getAllReplyIds(post.replies);
+							if (replyIds.length > 0) {
+								maxId = Math.max(maxId, ...replyIds);
+							}
+						});
+						
+						this.nextPostId = maxId + 1;
 					}
 					this.renderPosts();
 				}
