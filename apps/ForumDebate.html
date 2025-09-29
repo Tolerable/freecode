@@ -955,11 +955,22 @@
 				
 				this.isProcessing = true;
 				
-				// Generate their responses
+				// Generate their responses - ALL responding to original post ONLY
 				for (const responder of topResponders) {
 					this.showProcessingIndicator(responder.persona.name);
 					try {
-						const response = await this.generateDebateResponse(responder.persona, post, post);
+						// Build simple context - NO recent discussion on first pass
+						const simpleContext = `You are ${responder.persona.name} responding to this debate topic:
+
+			Title: "${post.title}"
+			Post: "${post.content}"
+
+			Provide your initial position on this topic (1-3 sentences).`;
+
+						const systemPrompt = responder.persona.systemPrompt;
+						
+						const response = await this.generatePersonaResponse(responder.persona, post, post, simpleContext, systemPrompt);
+						
 						if (response) {
 							const reply = {
 								id: this.nextPostId++,
@@ -974,9 +985,6 @@
 							};
 							
 							post.replies.push(reply);
-							
-							// CHANGED: Initialize participation count properly
-							if (!post.participationCount) post.participationCount = {};
 							post.participationCount[responder.persona.name] = 1;
 							
 							// Generate vote for the original post
