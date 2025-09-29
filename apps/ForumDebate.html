@@ -1871,6 +1871,16 @@
 				if (indicator) {
 					indicator.remove();
 				}
+				
+				// Also remove any stuck "thinking" activity messages
+				const activityList = document.getElementById('activity-list');
+				const activities = activityList.querySelectorAll('.activity-item');
+				activities.forEach(item => {
+					if (item.textContent.includes('thinking') || item.textContent.includes('responding')) {
+						item.remove();
+					}
+				});
+				
 				this.clearPersonaHighlight();
 			}
 
@@ -1881,22 +1891,32 @@
 				this.renderPosts();
 			}
 
-            addActivity(text) {
-                const activity = document.getElementById('activity-list');
-                const item = document.createElement('div');
-                item.className = 'activity-item';
-                item.innerHTML = `
-                    <div class="activity-icon"></div>
-                    <div class="activity-text">${text}</div>
-                `;
-                activity.insertBefore(item, activity.firstChild);
+			addActivity(text) {
+				const activity = document.getElementById('activity-list');
+				
+				// Remove existing activity with the same text
+				const existingActivities = activity.querySelectorAll('.activity-item');
+				existingActivities.forEach(item => {
+					if (item.querySelector('.activity-text')?.textContent === text) {
+						item.remove();
+					}
+				});
+				
+				// Add new activity
+				const item = document.createElement('div');
+				item.className = 'activity-item';
+				item.innerHTML = `
+					<div class="activity-icon"></div>
+					<div class="activity-text">${text}</div>
+				`;
+				activity.insertBefore(item, activity.firstChild);
 
-                // Keep only last 10 activities
-                const items = activity.children;
-                while (items.length > 10) {
-                    activity.removeChild(items[items.length - 1]);
-                }
-            }
+				// Keep only last 10 activities
+				const items = activity.children;
+				while (items.length > 10) {
+					activity.removeChild(items[items.length - 1]);
+				}
+			}
 
 			replyToAI(postId, aiAuthor, replyId = null) {
 				// Remove any existing reply forms first
