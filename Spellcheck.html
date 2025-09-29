@@ -39,12 +39,21 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      align-items: center;
+    }
+
+    .chat-wrapper {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
     .message {
       display: flex;
       gap: 12px;
-      max-width: 800px;
+      max-width: 700px;
       animation: fadeIn 0.3s ease;
     }
 
@@ -248,9 +257,11 @@
   </div>
 
   <div class="chat-container" id="chatContainer">
-    <div class="empty-state">
-      <h2>Start a conversation</h2>
-      <p>Send a message to begin chatting</p>
+    <div class="chat-wrapper" id="chatWrapper">
+      <div class="empty-state">
+        <h2>Start a conversation</h2>
+        <p>Send a message to begin chatting</p>
+      </div>
     </div>
   </div>
 
@@ -268,6 +279,7 @@
   <script src="/js/Spellcheck.js"></script>
   <script>
     const chatContainer = document.getElementById('chatContainer');
+    const chatWrapper = document.getElementById('chatWrapper');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
     const personaSelect = document.getElementById('personaSelect');
@@ -297,7 +309,7 @@
     sendButton.addEventListener('click', sendMessage);
 
     function clearEmptyState() {
-      const emptyState = chatContainer.querySelector('.empty-state');
+      const emptyState = chatWrapper.querySelector('.empty-state');
       if (emptyState) {
         emptyState.remove();
       }
@@ -320,7 +332,7 @@
       messageDiv.appendChild(avatar);
       messageDiv.appendChild(contentDiv);
       
-      chatContainer.appendChild(messageDiv);
+      chatWrapper.appendChild(messageDiv);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
@@ -346,7 +358,7 @@
       messageDiv.appendChild(avatar);
       messageDiv.appendChild(contentDiv);
       
-      chatContainer.appendChild(messageDiv);
+      chatWrapper.appendChild(messageDiv);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
@@ -399,18 +411,18 @@
         });
 
         const data = await response.json();
-
-		// Handle different response formats
-		let aiResponse;
-		if (data.choices && data.choices[0] && data.choices[0].message) {
-		  aiResponse = data.choices[0].message.content;
-		} else if (typeof data === 'string') {
-		  aiResponse = data;
-		} else if (data.response) {
-		  aiResponse = data.response;
-		} else {
-		  aiResponse = JSON.stringify(data);
-		}
+        
+        // Handle different response formats
+        let aiResponse;
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+          aiResponse = data.choices[0].message.content;
+        } else if (typeof data === 'string') {
+          aiResponse = data;
+        } else if (data.response) {
+          aiResponse = data.response;
+        } else {
+          aiResponse = JSON.stringify(data);
+        }
 
         // Apply spellcheck to make it more human
         const humanizedResponse = spellchecker.humanize(aiResponse);
