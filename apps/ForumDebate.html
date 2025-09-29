@@ -1039,10 +1039,19 @@
 					// Calculate weights for ALL posts and find the best one
 					let bestPost = null;
 					let bestWeight = 0;
-					
+
 					for (const post of allPosts) {
 						// Skip if persona wrote this post
 						if (post.author === persona.name) continue;
+						
+						// NEW: Skip if this persona already replied to this specific post
+						if (post.replies) {
+							const alreadyReplied = post.replies.some(r => r.author === persona.name);
+							if (alreadyReplied) {
+								console.log(`${persona.name} already replied to post ${post.id}, skipping`);
+								continue;
+							}
+						}
 						
 						const weight = this.calculateResponseWeight(persona, post, thread);
 						console.log(`${persona.name} weight for post ${post.id} by ${post.author}: ${weight.toFixed(2)}`);
