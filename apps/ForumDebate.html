@@ -1039,9 +1039,29 @@
 										replyToId: post.id
 									};
 									
-									// Add reply to the target post
-									if (!post.replies) post.replies = [];
-									post.replies.push(reply);
+									// Add reply to the target post in the actual data structure
+									// Need to find the post object by reference in the actual thread
+									const addReplyToPost = (targetId, replyToAdd, postsArray) => {
+										for (let p of postsArray) {
+											if (p.id === targetId) {
+												if (!p.replies) p.replies = [];
+												p.replies.push(replyToAdd);
+												return true;
+											}
+											if (p.replies && p.replies.length > 0) {
+												if (addReplyToPost(targetId, replyToAdd, p.replies)) {
+													return true;
+												}
+											}
+										}
+										return false;
+									};
+									
+									// Try to add to the target post, fall back to top level if not found
+									if (!addReplyToPost(post.id, reply, [thread])) {
+										console.warn(`Could not find post ${post.id}, adding to top level`);
+										thread.replies.push(reply);
+									}
 									
 									// Increment participation count
 									if (!thread.participationCount[persona.name]) {
