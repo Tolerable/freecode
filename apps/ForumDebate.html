@@ -715,7 +715,9 @@
 					authorType: 'human',
 					content: replyContent,
 					timestamp: new Date(),
-					postId: postId
+					postId: postId,
+					votes: {},
+					voteScore: 0
 				};
 				
 				if (!post.replies) post.replies = [];
@@ -724,8 +726,11 @@
 				this.savePosts();
 				this.renderPosts();
 				
-				// Generate AI responses after a delay
-				setTimeout(() => this.generateAIResponses(post, targetReply), 1000);
+				// If in debate mode, user reply should be considered in next cycle
+				// Otherwise generate normal AI responses
+				if (!post.debateMode) {
+					setTimeout(() => this.generateAIResponses(post, reply), 1000);
+				}
 			}
 
 			toggleReplies(postId) {
