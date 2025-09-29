@@ -1341,12 +1341,22 @@
 					weight *= Math.max(0.2, 1 - (postCount * 0.15));
 				}
 				
-				// Thread depth dampening - reduce deeper in thread BUT less for human posts
+				// Thread depth dampening - MUCH lighter in debate mode to encourage threading
 				const depth = this.getThreadDepth(post, thread, 0);
-				if (post.authorType === 'human' || post.author === 'You') {
-					weight *= Math.max(0.5, 1 - (depth * 0.05)); // Gentler dampening for human posts
+				if (thread.debateMode) {
+					// In debate mode, barely penalize depth - we WANT threaded discussions
+					if (post.authorType === 'human' || post.author === 'You') {
+						weight *= Math.max(0.85, 1 - (depth * 0.02)); // Very gentle for human posts
+					} else {
+						weight *= Math.max(0.75, 1 - (depth * 0.03)); // Gentle for AI posts too
+					}
 				} else {
-					weight *= Math.max(0.3, 1 - (depth * 0.1)); // Normal dampening for AI posts
+					// Normal mode - heavier dampening
+					if (post.authorType === 'human' || post.author === 'You') {
+						weight *= Math.max(0.5, 1 - (depth * 0.05));
+					} else {
+						weight *= Math.max(0.3, 1 - (depth * 0.1));
+					}
 				}
 				
 				// Vote amplification - increase if post is upvoted
