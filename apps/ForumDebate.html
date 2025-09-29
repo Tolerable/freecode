@@ -938,10 +938,10 @@
 				const topResponders = weights.slice(0, 3);
 				
 				this.isProcessing = true;
-				this.showProcessingIndicator();
 				
 				// Generate their responses
 				for (const responder of topResponders) {
+					this.showProcessingIndicator(responder.persona.name);
 					try {
 						const response = await this.generateDebateResponse(responder.persona, post, post);
 						if (response) {
@@ -1016,6 +1016,8 @@
 						
 						// Roll dice - does this persona respond?
 						if (Math.random() < weight) {
+							
+							this.showProcessingIndicator(persona.name);
 							
 							try {
 								// Generate response
@@ -1692,27 +1694,60 @@
 				'</div>';
 			}
 
-            showProcessingIndicator() {
-                const activity = document.getElementById('activity-list');
-                const indicator = document.createElement('div');
-                indicator.className = 'activity-item';
-                indicator.id = 'processing-indicator';
-                indicator.innerHTML = `
-                    <div class="activity-icon"></div>
-                    <div class="activity-text loading">
-                        <div class="spinner"></div>
-                        AI personas are thinking and responding...
-                    </div>
-                `;
-                activity.insertBefore(indicator, activity.firstChild);
-            }
+			showProcessingIndicator(personaName = null) {
+				const activity = document.getElementById('activity-list');
+				const indicator = document.createElement('div');
+				indicator.className = 'activity-item';
+				indicator.id = 'processing-indicator';
+				indicator.innerHTML = `
+					<div class="activity-icon"></div>
+					<div class="activity-text loading">
+						<div class="spinner"></div>
+						${personaName ? personaName + ' is responding...' : 'AI personas are thinking and responding...'}
+					</div>
+				`;
+				activity.insertBefore(indicator, activity.firstChild);
+				
+				// Highlight the persona in the sidebar
+				if (personaName) {
+					this.highlightPersona(personaName);
+				}
+			}
 
-            hideProcessingIndicator() {
-                const indicator = document.getElementById('processing-indicator');
-                if (indicator) {
-                    indicator.remove();
-                }
-            }
+			highlightPersona(personaName) {
+				// Remove any existing highlights
+				document.querySelectorAll('.persona-item').forEach(item => {
+					item.style.background = '#252525';
+					item.style.border = '1px solid #444';
+				});
+				
+				// Highlight the active persona
+				const personaItems = document.querySelectorAll('.persona-item');
+				const persona = this.personas.find(p => p.name === personaName);
+				if (persona) {
+					const index = this.personas.indexOf(persona);
+					if (personaItems[index]) {
+						personaItems[index].style.background = 'linear-gradient(45deg, #667eea44, #764ba244)';
+						personaItems[index].style.border = '2px solid #667eea';
+						personaItems[index].style.transition = 'all 0.3s';
+					}
+				}
+			}
+
+			clearPersonaHighlight() {
+				document.querySelectorAll('.persona-item').forEach(item => {
+					item.style.background = '#252525';
+					item.style.border = '1px solid #444';
+				});
+			}
+
+			hideProcessingIndicator() {
+				const indicator = document.getElementById('processing-indicator');
+				if (indicator) {
+					indicator.remove();
+				}
+				this.clearPersonaHighlight();
+			}
 
 			toggleFavorite(postId) {
 				const post = this.posts.find(p => p.id === postId);
