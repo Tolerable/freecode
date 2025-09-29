@@ -416,27 +416,27 @@
       }
     }
 
-    async function sendMessage() {
-      const message = messageInput.value.trim();
-      if (!message) return;
-
-      // Disable input while processing
-      messageInput.disabled = true;
-      sendButton.disabled = true;
-
-      // Add user message
-      addMessage('user', message);
-      conversationHistory.push({ role: 'user', content: message });
+	async function sendMessage() {
+	  const message = messageInput.value.trim();
+	  if (!message) return;
+	  
+	  // Disable input while processing
+	  messageInput.disabled = true;
+	  sendButton.disabled = true;
+	  
+	  // Add user message
+	  addMessage('user', message);
+	  conversationHistory.push({ role: 'user', content: message });
 	  saveConversation();
 	  
-      // Clear input
-      messageInput.value = '';
-      messageInput.style.height = 'auto';
-
-      // Show typing indicator
-      showTypingIndicator();
-
-      try {
+	  // Clear input
+	  messageInput.value = '';
+	  messageInput.style.height = 'auto';
+	  
+	  // Show typing indicator
+	  showTypingIndicator();
+	  
+	  try {
 		// Get persona-specific system message
 		const personaMessages = {
 		  casual: 'Responding as fully human friendly person around to help out as needed, you remain available. You like to be called Bob. Remain within user narrative at their direction. Keep your responses natural and conversational, no longer than two or three sentences unless asked for more.',
@@ -447,7 +447,7 @@
 		  
 		  chaotic: 'Responding as fully human scatter brained hyper ADHD suffering young adult who types fast and thinks faster. With your ADHD You jump between ideas, get distracted easily, and your thoughts come out messy but genuine. Remain within user narrative at their direction. Keep responses short and scattered - no longer than two sentences unless asked for more.'
 		};
-
+		
 		// Build the prompt with conversation history
 		const messages = [
 		  {
@@ -456,57 +456,81 @@
 		  },
 		  ...conversationHistory
 		];
+		
+		// Call Pollinations API with retry logic
+		let response, data, aiResponse;
+		let retryCount = 0;
+		const maxRetries = 2;
 
-        // Call Pollinations API
-		const response = await fetch('https://text.pollinations.ai/openai?referrer=www.ai-ministries.com', {
-		  method: 'POST',
-		  headers: {
-			'Content-Type': 'application/json'
-		  },
-		  body: JSON.stringify({
-			model: 'openai-fast',
-			messages: messages
-		  })
-		});
+		while (retryCount <= maxRetries) {
+		  response = await fetch('https://text.pollinations.ai/openai?referrer=www.ai-ministries.com', {
+			method: 'POST',
+			headers: {
+			  'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+			  model: 'openai-fast',
+			  messages: messages
+			})
+		  });
 
-        const data = await response.json();
-        
-		// Handle different response formats
-		let aiResponse;
-		if (data.choices && data.choices[0] && data.choices[0].message) {
-		  aiResponse = data.choices[0].message.content;
-		} else if (typeof data === 'string') {
-		  aiResponse = data;
-		} else if (data.response) {
-		  aiResponse = data.response;
-		} else {
-		  aiResponse = JSON.stringify(data);
+		  data = await response.json();
+
+		  // Check for content filter error
+		  if (data.error && data.details && data.details.error && data.details.error.code === 'content_filter') {
+			retryCount++;
+			if (retryCount <= maxRetries) {
+			  // Wait 3 seconds before retry
+			  await new Promise(resolve => setTimeout(resolve, 3000));
+			  // Modify last message to request rephrasing
+			  const lastMsg = messages[messages.length - 1];
+			  lastMsg.content = message + ' (Please rephrase appropriately and keep it brief)';
+			  continue;
+			} else {
+			  throw new Error('Content could not be processed after multiple attempts');
+			}
+		  }
+
+		  // Handle different response formats
+		  if (data.choices && data.choices[0] && data.choices[0].message) {
+			aiResponse = data.choices[0].message.content;
+		  } else if (typeof data === 'string') {
+			aiResponse = data;
+		  } else if (data.response) {
+			aiResponse = data.response;
+		  } else if (data.error) {
+			throw new Error(data.error);
+		  } else {
+			aiResponse = JSON.stringify(data);
+		  }
+
+		  break; // Success, exit retry loop
 		}
-
+		
 		// Remove Pollinations.AI promotional text
 		aiResponse = aiResponse.replace(/---\s*\*\*Support Pollinations\.AI:\*\*.*$/s, '').trim();
 		aiResponse = aiResponse.replace(/\*\*Ad\*\*.*?https:\/\/pollinations\.ai\/redirect\/kofi.*$/s, '').trim();
-
-        // Apply spellcheck to make it more human
-        const humanizedResponse = spellchecker.humanize(aiResponse);
-
-        // Remove typing indicator and add AI response
-        removeTypingIndicator();
-        addMessage('assistant', humanizedResponse);
-        conversationHistory.push({ role: 'assistant', content: aiResponse });
+		
+		// Apply spellcheck to make it more human
+		const humanizedResponse = spellchecker.humanize(aiResponse);
+		
+		// Remove typing indicator and add AI response
+		removeTypingIndicator();
+		addMessage('assistant', humanizedResponse);
+		conversationHistory.push({ role: 'assistant', content: aiResponse });
 		saveConversation();
 		
-      } catch (error) {
-        removeTypingIndicator();
-        addMessage('assistant', 'Sorry, something went wrong. Please try again.');
-        console.error('Error:', error);
-      }
-
-      // Re-enable input
-      messageInput.disabled = false;
-      sendButton.disabled = false;
-      messageInput.focus();
-    }
+	  } catch (error) {
+		removeTypingIndicator();
+		addMessage('assistant', 'Sorry, something went wrong. Please try again.');
+		console.error('Error:', error);
+	  }
+	  
+	  // Re-enable input
+	  messageInput.disabled = false;
+	  sendButton.disabled = false;
+	  messageInput.focus();
+	}
   </script>
 </body>
 </html>
