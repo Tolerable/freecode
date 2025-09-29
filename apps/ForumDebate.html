@@ -918,13 +918,15 @@
 			async startDebate(post) {
 				this.addActivity(`Debate started: "${post.title}"`);
 				
-				// Get initial responses from top 3 weighted personas
+				// First, get initial responses from top 3 weighted personas
 				await this.handleInitialDebateResponses(post);
 				
-				// Mark first cycle as complete
-				post.debateConfig.currentCycle = 1;
+				// Increment cycle counter AFTER initial responses complete
+				post.debateConfig.currentCycle++;
 				this.savePosts();
 				this.renderPosts();
+				
+				console.log(`Initial responses complete. Cycle count: ${post.debateConfig.currentCycle}`);
 				
 				// Check if should pause after first cycle
 				if (post.debateConfig.currentCycle >= post.debateConfig.cyclesPerPause) {
@@ -933,8 +935,8 @@
 					this.renderPosts();
 					this.showDebatePausedMessage(post.id);
 				} else {
-					// Continue to next cycle
-					await this.runDebateCycle(post.id);
+					// Continue to next cycle with a delay
+					setTimeout(() => this.runDebateCycle(post.id), 2000);
 				}
 			}
 
@@ -1119,13 +1121,15 @@
 				this.hideProcessingIndicator();
 				this.isProcessing = false;
 				
-				// Increment cycle counter
-				thread.debateConfig.currentCycle++;
-				this.savePosts();
-				this.renderPosts();
-				
-				console.log(`Cycle ${thread.debateConfig.currentCycle} complete. Responses: ${responsesThisCycle}`);
-				
+				// Only increment if we got responses
+				if (responsesThisCycle > 0) {
+					thread.debateConfig.currentCycle++;
+					this.savePosts();
+					this.renderPosts();
+					
+					console.log(`Cycle ${thread.debateConfig.currentCycle} complete. Responses: ${responsesThisCycle}`);
+				}
+
 				// Check if should pause
 				if (thread.debateConfig.currentCycle >= thread.debateConfig.cyclesPerPause) {
 					thread.debateConfig.isPaused = true;
