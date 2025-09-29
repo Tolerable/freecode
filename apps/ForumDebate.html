@@ -994,11 +994,18 @@
 				
 				// Get all posts/replies in thread that could receive responses
 				const allPosts = this.getAllPostsInThread(thread);
+				const respondedPersonas = new Set(); // Track who already responded this cycle
 				
 				let responsesThisCycle = 0;
-				
+				const respondedPersonas = new Set();
+
 				// For each active persona
 				for (const persona of thread.debateConfig.activePersonas) {
+					
+					// Skip if already responded this cycle
+					if (respondedPersonas.has(persona.name)) {
+						continue;
+					}
 					
 					// Check participation limit
 					if (!this.shouldAllowResponse(persona, thread)) {
@@ -1081,8 +1088,9 @@
 									this.addActivity(`${persona.name} responded in debate`);
 									
 									responsesThisCycle++;
-									
+
 									console.log(`${persona.name} responded to ${post.author}`);
+									respondedPersonas.add(persona.name);
 								}
 							} catch (error) {
 								console.error(`Error generating debate response for ${persona.name}:`, error);
