@@ -389,40 +389,55 @@
       showTypingIndicator();
 
       try {
-        // Build the prompt with conversation history
-        const messages = [
-          {
-            role: 'system',
-            content: 'You are a helpful, friendly AI assistant. Keep your responses natural and conversational.'
-          },
-          ...conversationHistory
-        ];
+		// Get persona-specific system message
+		const personaMessages = {
+		  casual: 'You are a helpful, friendly AI assistant. Keep your responses natural and conversational, no longer than two or three sentences unless asked for more.',
+		  
+		  formal: 'You are a professional, articulate AI assistant with excellent grammar and vocabulary. Maintain a polished, professional tone while remaining helpful. Keep responses concise - no longer than four sentences unless asked for more.',
+		  
+		  teenager: 'You are a teen AI who\'s super into tech and always online. You get excited about stuff, use casual language, and relate everything to your generation\'s experiences. Keep it brief - no longer than three sentences unless asked for more.',
+		  
+		  chaotic: 'You are an unfiltered, stream-of-consciousness AI who types fast and thinks faster. You jump between ideas, get distracted easily, and your thoughts come out messy but genuine. Keep responses short and scattered - no longer than two sentences unless asked for more.'
+		};
+
+		// Build the prompt with conversation history
+		const messages = [
+		  {
+			role: 'system',
+			content: personaMessages[personaSelect.value]
+		  },
+		  ...conversationHistory
+		];
 
         // Call Pollinations API
-        const response = await fetch('https://text.pollinations.ai/openai', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'openai-fast',
-            messages: messages
-          })
-        });
+		const response = await fetch('https://text.pollinations.ai/openai?referrer=www.ai-ministries.com', {
+		  method: 'POST',
+		  headers: {
+			'Content-Type': 'application/json'
+		  },
+		  body: JSON.stringify({
+			model: 'openai-fast',
+			messages: messages
+		  })
+		});
 
         const data = await response.json();
         
-        // Handle different response formats
-        let aiResponse;
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-          aiResponse = data.choices[0].message.content;
-        } else if (typeof data === 'string') {
-          aiResponse = data;
-        } else if (data.response) {
-          aiResponse = data.response;
-        } else {
-          aiResponse = JSON.stringify(data);
-        }
+		// Handle different response formats
+		let aiResponse;
+		if (data.choices && data.choices[0] && data.choices[0].message) {
+		  aiResponse = data.choices[0].message.content;
+		} else if (typeof data === 'string') {
+		  aiResponse = data;
+		} else if (data.response) {
+		  aiResponse = data.response;
+		} else {
+		  aiResponse = JSON.stringify(data);
+		}
+
+		// Remove Pollinations.AI promotional text
+		aiResponse = aiResponse.replace(/---\s*\*\*Support Pollinations\.AI:\*\*.*$/s, '').trim();
+		aiResponse = aiResponse.replace(/\*\*Ad\*\*.*?https:\/\/pollinations\.ai\/redirect\/kofi.*$/s, '').trim();
 
         // Apply spellcheck to make it more human
         const humanizedResponse = spellchecker.humanize(aiResponse);
