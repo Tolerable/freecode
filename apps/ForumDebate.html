@@ -717,7 +717,8 @@
 					timestamp: new Date(),
 					postId: postId,
 					votes: {},
-					voteScore: 0
+					voteScore: 0,
+					replyToId: post.id
 				};
 				
 				if (!post.replies) post.replies = [];
@@ -953,7 +954,8 @@
 								timestamp: new Date(),
 								persona: responder.persona,
 								votes: {},
-								voteScore: 0
+								voteScore: 0,
+								replyToId: post.id
 							};
 							
 							post.replies.push(reply);
@@ -1033,7 +1035,8 @@
 										timestamp: new Date(),
 										persona: persona,
 										votes: {},
-										voteScore: 0
+										voteScore: 0,
+										replyToId: post.id
 									};
 									
 									// Add reply to the target post
@@ -1506,7 +1509,8 @@
 			renderReplies(replies, depth = 0, parentPostId) {
 				if (!replies || replies.length === 0) return '';
 				
-				const indentStyle = depth > 0 ? `margin-left: ${depth * 20}px; border-left: 2px solid #444; padding-left: 1rem;` : '';
+				const visualDepth = Math.min(depth, 5); // Cap visual indent at 5 levels
+				const indentStyle = visualDepth > 0 ? `margin-left: ${visualDepth * 20}px; border-left: 2px solid #444; padding-left: 1rem;` : '';
 				
 				return replies.map(reply => {
 					const avatar = reply.authorType === 'ai' ? reply.persona.avatar : '👤';
@@ -1523,6 +1527,7 @@
 								<div class="author-avatar">${avatar}</div>
 								<span class="author-name">${reply.author}</span>
 								${badge}
+								${reply.replyToId ? `<span style="color: #888; font-size: 0.7rem; margin-left: 0.5rem;">→ #${reply.replyToId}</span>` : ''}
 							</div>
 							<div class="post-controls">${regenerateBtn}${deleteReplyBtn}</div>
 							<span class="post-time" style="margin-left: 0.5rem;">${this.formatTime(reply.timestamp)}</span>
@@ -1830,7 +1835,8 @@
 					timestamp: new Date(),
 					replies: [],
 					votes: {},
-					voteScore: 0
+					voteScore: 0,
+					replyToId: post.id
 				};
 				
 				console.log('User reply created:', userReply);
