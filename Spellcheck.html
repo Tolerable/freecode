@@ -295,18 +295,21 @@
 	  if (saved) {
 		try {
 		  const history = JSON.parse(saved);
-		  conversationHistory = history;
-		  // Recreate the messages in the UI
-		  history.forEach(msg => {
-			if (msg.role === 'assistant') {
-			  const humanized = spellchecker.humanize(msg.content);
-			  addMessage('assistant', humanized);
-			} else {
-			  addMessage('user', msg.content);
-			}
-		  });
+		  if (Array.isArray(history) && history.length > 0) {
+			conversationHistory = history;
+			// Recreate the messages in the UI
+			history.forEach(msg => {
+			  if (msg.role === 'assistant') {
+				const humanized = spellchecker.humanize(msg.content);
+				addMessage('assistant', humanized);
+			  } else {
+				addMessage('user', msg.content);
+			  }
+			});
+		  }
 		} catch (e) {
 		  console.error('Failed to load conversation:', e);
+		  localStorage.removeItem('chatHistory'); // Clear corrupted data
 		}
 	  }
 	}
