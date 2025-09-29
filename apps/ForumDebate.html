@@ -6,7 +6,7 @@
 	<!-- Open Graph (Facebook, LinkedIn, Discord) -->
 	<meta property="og:title" content="AI Forum - Multi-Perspective Discussions">
 	<meta property="og:description" content="Post your question to an AI forum, follow up with the responses that interest you as your conversation continues to develop further and deeper.">
-	<meta property="og:image" content="https://www.ai-ministries.com/apps/AIForum_social_preview.jpg">
+	<meta property="og:image" content="https://www.ai-ministries.com/apps/AIDebate_social_preview.jpg">
 	<meta property="og:type" content="website">
 	<meta property="og:url" content="https://www.ai-ministries.com/">
 	<meta property="og:site_name" content="AI Forum">
@@ -15,16 +15,16 @@
 	<meta name="twitter:card" content="summary_large_image">
 	<meta name="twitter:title" content="AI Forum - Multi-Perspective Discussions">
 	<meta name="twitter:description" content="Post your question to an AI forum, follow up with the responses that interest you as your conversation continues to develop further and deeper.">
-	<meta name="twitter:image" content="https://www.ai-ministries.com/apps/AIForum_social_preview.jpg">
+	<meta name="twitter:image" content="https://www.ai-ministries.com/apps/AIDebate_social_preview.jpg">
 
 	<!-- General Meta -->
-	<meta name="description" content="Post your question to an AI forum, follow up with the responses that interest you as your conversation continues to develop further and deeper.">
+	<meta name="description" content="Post your question to an AI Debate forum, follow up with the responses that interest you as your conversation continues to develop further and deeper.">
 
 	<!-- TikTok (uses Open Graph) -->
 	<!-- Discord (uses Open Graph) -->
 	<!-- WhatsApp (uses Open Graph) -->
 	<!-- Telegram (uses Open Graph) -->
-    <title>AI Forum Community</title>
+    <title>AI Debate Forum</title>
     <style>
         * {
             margin: 0;
@@ -793,40 +793,6 @@
 				document.getElementById('post-content').value = '';
 				submitBtn.disabled = false;
 				submitBtn.textContent = 'Post to Community';
-
-				// Show debate mode option
-				this.showDebateOption(post);
-			}
-
-			showDebateOption(post) {
-				console.log('showDebateOption called for post:', post.id);
-				
-				// Wait a moment for render to complete
-				setTimeout(() => {
-					const postElement = document.querySelector(`[data-post-id="${post.id}"]`);
-					console.log('Found post element:', postElement);
-					
-					if (!postElement) {
-						console.error('Could not find post element!');
-						return;
-					}
-					
-					const debateOptionHTML = `
-						<div class="debate-option" style="background: #2a2a2a; border: 2px solid #667eea; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
-							<h4 style="color: #667eea; margin-bottom: 0.5rem;">🎭 Enable Debate Mode?</h4>
-							<p style="color: #ccc; font-size: 0.9rem; margin-bottom: 1rem;">Let AI personas debate this topic autonomously</p>
-							<button class="submit-btn" onclick="app.startDebateMode(${post.id})" style="margin-right: 0.5rem;">
-								Start Debate
-							</button>
-							<button class="control-btn" onclick="app.normalMode(${post.id})">
-								Normal Replies Only
-							</button>
-						</div>
-					`;
-					
-					postElement.insertAdjacentHTML('beforeend', debateOptionHTML);
-					console.log('Debate option added!');
-				}, 100);
 			}
 
 			normalMode(postId) {
@@ -1632,7 +1598,27 @@
 				
 				// COLLAPSED STATE (default)
 				if (!isExpanded) {
-					return '<div class="post-summary">' +
+					// Check if this is a brand new post that needs debate option
+					const needsDebateOption = post.authorType === 'human' && !post.debateMode && post.replies.length === 0;
+					
+					let debatePromptHTML = '';
+					if (needsDebateOption) {
+						debatePromptHTML = `
+							<div class="debate-option" style="background: #2a2a2a; border: 2px solid #667eea; border-radius: 8px; padding: 1rem; margin-top: 0.5rem;">
+								<h4 style="color: #667eea; margin-bottom: 0.5rem; font-size: 0.9rem;">🎭 Enable Debate Mode?</h4>
+								<div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+									<button class="submit-btn" onclick="app.startDebateMode(${post.id})" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+										Start Debate
+									</button>
+									<button class="control-btn" onclick="app.normalMode(${post.id})" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+										Normal Replies
+									</button>
+								</div>
+							</div>
+						`;
+					}
+					
+					return '<div class="post-summary" data-post-id="' + post.id + '">' +
 						'<div class="post-title" onclick="app.expandPost(' + post.id + ')">' + (post.title || 'Untitled') + '</div>' +
 						'<div class="post-preview" style="color: #ccc; font-size: 0.9rem; margin: 0.5rem 0; line-height: 1.4;" onclick="app.expandPost(' + post.id + ')">' + preview + '</div>' +
 						'<div class="post-meta">' +
@@ -1644,6 +1630,7 @@
 							'<button class="action-btn" onclick="app.toggleFavorite(' + post.id + ')">' + (post.favorited ? '❤️ Favorited' : '🤍 Favorite') + '</button>' +
 							'<button class="action-btn">🔗 Share</button>' +
 						'</div>' +
+						debatePromptHTML +
 					'</div>';
 				}
 
