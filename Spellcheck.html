@@ -254,6 +254,7 @@
         <option value="chaotic">Chaotic</option>
       </select>
     </div>
+    <button id="clearButton" style="padding: 6px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">Clear Chat</button>
   </div>
 
   <div class="chat-container" id="chatContainer">
@@ -285,8 +286,44 @@
     const sendButton = document.getElementById('sendButton');
     const personaSelect = document.getElementById('personaSelect');
 
-    let conversationHistory = [];
-    let spellchecker = Spellcheck.createPersona('casual');
+	let conversationHistory = [];
+	let spellchecker = Spellcheck.createPersona('casual');
+
+	// Load saved conversation on startup
+	function loadConversation() {
+	  const saved = localStorage.getItem('chatHistory');
+	  if (saved) {
+		try {
+		  conversationHistory = JSON.parse(saved);
+		  // Recreate the messages in the UI
+		  conversationHistory.forEach(msg => {
+			addMessage(msg.role, msg.role === 'assistant' ? msg.content : msg.content);
+		  });
+		} catch (e) {
+		  console.error('Failed to load conversation:', e);
+		}
+	  }
+	}
+
+	// Save conversation to localStorage
+	function saveConversation() {
+	  localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
+	}
+
+	// Clear conversation
+	function clearConversation() {
+	  if (confirm('Clear all chat history?')) {
+		conversationHistory = [];
+		localStorage.removeItem('chatHistory');
+		chatWrapper.innerHTML = '<div class="empty-state"><h2>Start a conversation</h2><p>Send a message to begin chatting</p></div>';
+	  }
+	}
+
+	// Load conversation on page load
+	loadConversation();
+
+	// Add clear button handler
+	document.getElementById('clearButton').addEventListener('click', clearConversation);
 
     // Update spellchecker when persona changes
     personaSelect.addEventListener('change', (e) => {
@@ -381,7 +418,8 @@
       // Add user message
       addMessage('user', message);
       conversationHistory.push({ role: 'user', content: message });
-
+	  saveConversation();
+	  
       // Clear input
       messageInput.value = '';
       messageInput.style.height = 'auto';
@@ -447,7 +485,8 @@
         removeTypingIndicator();
         addMessage('assistant', humanizedResponse);
         conversationHistory.push({ role: 'assistant', content: aiResponse });
-
+		saveConversation();
+		
       } catch (error) {
         removeTypingIndicator();
         addMessage('assistant', 'Sorry, something went wrong. Please try again.');
