@@ -294,10 +294,16 @@
 	  const saved = localStorage.getItem('chatHistory');
 	  if (saved) {
 		try {
-		  conversationHistory = JSON.parse(saved);
+		  const history = JSON.parse(saved);
+		  conversationHistory = history;
 		  // Recreate the messages in the UI
-		  conversationHistory.forEach(msg => {
-			addMessage(msg.role, msg.role === 'assistant' ? msg.content : msg.content);
+		  history.forEach(msg => {
+			if (msg.role === 'assistant') {
+			  const humanized = spellchecker.humanize(msg.content);
+			  addMessage('assistant', humanized);
+			} else {
+			  addMessage('user', msg.content);
+			}
 		  });
 		} catch (e) {
 		  console.error('Failed to load conversation:', e);
