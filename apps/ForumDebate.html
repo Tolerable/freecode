@@ -1036,39 +1036,45 @@
 						continue;
 					}
 					
-					// Evaluate each post in thread
+					// Calculate weights for ALL posts and find the best one
+					let bestPost = null;
+					let bestWeight = 0;
+					
 					for (const post of allPosts) {
-						
 						// Skip if persona wrote this post
 						if (post.author === persona.name) continue;
 						
-						// Calculate weight
 						const weight = this.calculateResponseWeight(persona, post, thread);
+						console.log(`${persona.name} weight for post ${post.id} by ${post.author}: ${weight.toFixed(2)}`);
 						
-						console.log(`${persona.name} weight for post by ${post.author}: ${weight.toFixed(2)}`);
+						if (weight > bestWeight) {
+							bestWeight = weight;
+							bestPost = post;
+						}
+					}
+					
+					// Roll dice - does this persona respond to the best weighted post?
+					if (bestPost && Math.random() < bestWeight) {
 						
-						// Roll dice - does this persona respond?
-						if (Math.random() < weight) {
+						this.showProcessingIndicator(persona.name);
+						
+						try {
+							// Generate response to the BEST weighted post
+							const response = await this.generateDebateResponse(persona, thread, bestPost);
 							
-							this.showProcessingIndicator(persona.name);
-							
-							try {
-								// Generate response
-								const response = await this.generateDebateResponse(persona, thread, post);
-								
-								if (response) {
-									// Create reply
-									const reply = {
-										id: this.nextPostId++,
-										author: persona.name,
-										authorType: 'ai',
-										content: response,
-										timestamp: new Date(),
-										persona: persona,
-										votes: {},
-										voteScore: 0,
-										replyToId: post.id
-									};
+							if (response) {
+								// Create reply
+								const reply = {
+									id: this.nextPostId++,
+									author: persona.name,
+									authorType: 'ai',
+									content: response,
+									timestamp: new Date(),
+									persona: persona,
+									votes: {},
+									voteScore: 0,
+									replyToId: bestPost.id
+								};
 									
 									// Recursive function to add reply to correct location
 									const findAndAddReply = (targetId, replyToAdd, currentPost) => {
