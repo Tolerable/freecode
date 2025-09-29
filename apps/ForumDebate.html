@@ -836,6 +836,361 @@
 				this.showDebateConfigModal(post);
 			}
 
+			showDebateConfigModal(post) {
+				// Create modal overlay
+				const modalHTML = `
+					<div id="debate-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+						<div style="background: #1a1a1a; border: 2px solid #667eea; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%;">
+							<h2 style="color: #667eea; margin-bottom: 1rem;">🎭 Configure Debate Mode</h2>
+							
+							<div style="margin-bottom: 1.5rem;">
+								<h3 style="color: #ccc; font-size: 1rem; margin-bottom: 0.5rem;">Select Active Personas:</h3>
+								<div id="persona-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+									${this.personas.map(p => `
+										<label style="display: flex; align-items: center; gap: 0.5rem; color: #ccc; cursor: pointer;">
+											<input type="checkbox" value="${p.name}" checked style="cursor: pointer;">
+											<span>${p.name} - ${p.personality}</span>
+										</label>
+									`).join('')}
+								</div>
+							</div>
+							
+							<div style="margin-bottom: 1.5rem;">
+								<h3 style="color: #ccc; font-size: 1rem; margin-bottom: 0.5rem;">Debate Intensity:</h3>
+								<div style="display: flex; flex-direction: column; gap: 0.5rem;">
+									<label style="display: flex; align-items: center; gap: 0.5rem; color: #ccc; cursor: pointer;">
+										<input type="radio" name="intensity" value="balanced" checked style="cursor: pointer;">
+										<span><strong>Balanced</strong> - Respectful, measured discourse</span>
+									</label>
+									<label style="display: flex; align-items: center; gap: 0.5rem; color: #ccc; cursor: pointer;">
+										<input type="radio" name="intensity" value="heated" style="cursor: pointer;">
+										<span><strong>Heated</strong> - Passionate, confrontational debate</span>
+									</label>
+									<label style="display: flex; align-items: center; gap: 0.5rem; color: #ccc; cursor: pointer;">
+										<input type="radio" name="intensity" value="aggressive" style="cursor: pointer;">
+										<span><strong>Aggressive</strong> - Intense, combative exchanges</span>
+									</label>
+								</div>
+							</div>
+							
+							<div style="margin-bottom: 1.5rem;">
+								<label style="color: #ccc; display: block; margin-bottom: 0.5rem;">
+									Cycles per pause (1-10):
+								</label>
+								<input type="number" id="cycles-input" min="1" max="10" value="3" 
+									style="background: #252525; border: 1px solid #444; border-radius: 4px; padding: 0.5rem; color: #e0e0e0; width: 100px;">
+							</div>
+							
+							<div style="display: flex; gap: 1rem;">
+								<button class="submit-btn" onclick="app.confirmDebateConfig(${post.id})">
+									Start Debate
+								</button>
+								<button class="control-btn" onclick="app.closeDebateModal()">
+									Cancel
+								</button>
+							</div>
+						</div>
+					</div>
+				`;
+				
+				document.body.insertAdjacentHTML('beforeend', modalHTML);
+			}
+
+			closeDebateModal() {
+				document.getElementById('debate-modal')?.remove();
+			}
+
+			confirmDebateConfig(postId) {
+				const post = this.posts.find(p => p.id === postId);
+				
+				// Get selected personas
+				const checkboxes = document.querySelectorAll('#persona-checkboxes input[type="checkbox"]:checked');
+				const activePersonas = Array.from(checkboxes).map(cb => 
+					this.personas.find(p => p.name === cb.value)
+				).filter(p => p);
+				
+				// Get intensity
+				const intensity = document.querySelector('input[name="intensity"]:checked').value;
+				
+				// Get cycles
+				const cycles = parseInt(document.getElementById('cycles-input').value) || 3;
+				
+				// Configure post for debate mode
+				post.debateMode = true;
+				post.debateConfig = {
+					activePersonas: activePersonas,
+					cyclesPerPause: cycles,
+					currentCycle: 0,
+					isPaused: false,
+					intensity: intensity
+				};
+				post.participationCount = {};
+				
+				this.savePosts();
+				this.closeDebateModal();
+				
+				// Start the debate!
+				this.startDebate(post);
+			}
+
+			async startDebate(post) {
+				this.addActivity(`Debate started: "${post.title}"`);
+				
+				// First, get initial responses from top 3 weighted personas
+				await this.handleInitialDebateResponses(post);
+				
+				// Then start the debate cycles
+				await this.runDebateCycle(post.id);
+			}
+
+			async handleInitialDebateResponses(post) {
+				const activePersonas = post.debateConfig.activePersonas;
+				
+				// Calculate weights for all personas
+				const weights = activePersonas.map(p => ({
+					persona: p,
+					weight: this.calculateResponseWeight(p, post, post)
+				}));
+				
+				// Sort by weight, take top 3
+				weights.sort((a, b) => b.weight - a.weight);
+				const topResponders = weights.slice(0, 3);
+				
+				this.isProcessing = true;
+				this.showProcessingIndicator();
+				
+				// Generate their responses
+				for (const responder of topResponders) {
+					try {
+						const response = await this.generateDebateResponse(responder.persona, post, post);
+						if (response) {
+							const reply = {
+								id: this.nextPostId++,
+								author: responder.persona.name,
+								authorType: 'ai',
+								content: response,
+								timestamp: new Date(),
+								persona: responder.persona,
+								votes: {},
+								voteScore: 0
+							};
+							
+							post.replies.push(reply);
+							post.participationCount[responder.persona.name] = 1;
+							
+							// Generate vote for the original post
+							const vote = this.generateVote(responder.persona, post);
+							if (!post.votes) post.votes = {};
+							post.votes[responder.persona.name] = vote;
+							post.voteScore = this.calculateVoteScore(post.votes);
+							
+							this.savePosts();
+							this.renderPosts();
+							this.addActivity(`${responder.persona.name} joined the debate`);
+						}
+					} catch (error) {
+						console.error(`Error generating initial response for ${responder.persona.name}:`, error);
+					}
+				}
+				
+				this.hideProcessingIndicator();
+				this.isProcessing = false;
+			}
+
+			async runDebateCycle(threadId) {
+				const thread = this.posts.find(p => p.id === threadId);
+				
+				if (!thread || !thread.debateMode || thread.debateConfig.isPaused) {
+					return;
+				}
+				
+				console.log(`Starting debate cycle ${thread.debateConfig.currentCycle + 1}`);
+				
+				this.isProcessing = true;
+				this.showProcessingIndicator();
+				
+				// Get all posts/replies in thread that could receive responses
+				const allPosts = this.getAllPostsInThread(thread);
+				
+				let responsesThisCycle = 0;
+				
+				// For each active persona
+				for (const persona of thread.debateConfig.activePersonas) {
+					
+					// Check participation limit
+					if (!this.shouldAllowResponse(persona, thread)) {
+						continue;
+					}
+					
+					// Evaluate each post in thread
+					for (const post of allPosts) {
+						
+						// Skip if persona wrote this post
+						if (post.author === persona.name) continue;
+						
+						// Calculate weight
+						const weight = this.calculateResponseWeight(persona, post, thread);
+						
+						console.log(`${persona.name} weight for post by ${post.author}: ${weight.toFixed(2)}`);
+						
+						// Roll dice - does this persona respond?
+						if (Math.random() < weight) {
+							
+							try {
+								// Generate response
+								const response = await this.generateDebateResponse(persona, thread, post);
+								
+								if (response) {
+									// Create reply
+									const reply = {
+										id: this.nextPostId++,
+										author: persona.name,
+										authorType: 'ai',
+										content: response,
+										timestamp: new Date(),
+										persona: persona,
+										votes: {},
+										voteScore: 0
+									};
+									
+									// Add reply to the target post
+									if (!post.replies) post.replies = [];
+									post.replies.push(reply);
+									
+									// Increment participation count
+									if (!thread.participationCount[persona.name]) {
+										thread.participationCount[persona.name] = 0;
+									}
+									thread.participationCount[persona.name]++;
+									
+									// Generate vote from this persona on the post they replied to
+									const vote = this.generateVote(persona, post);
+									if (!post.votes) post.votes = {};
+									post.votes[persona.name] = vote;
+									post.voteScore = this.calculateVoteScore(post.votes);
+									
+									// Save and render
+									this.savePosts();
+									this.renderPosts();
+									this.addActivity(`${persona.name} responded in debate`);
+									
+									responsesThisCycle++;
+									
+									console.log(`${persona.name} responded to ${post.author}`);
+								}
+							} catch (error) {
+								console.error(`Error generating debate response for ${persona.name}:`, error);
+							}
+							
+							// Only one response per persona per cycle
+							break;
+						}
+					}
+				}
+				
+				this.hideProcessingIndicator();
+				this.isProcessing = false;
+				
+				// Increment cycle counter
+				thread.debateConfig.currentCycle++;
+				this.savePosts();
+				this.renderPosts();
+				
+				console.log(`Cycle ${thread.debateConfig.currentCycle} complete. Responses: ${responsesThisCycle}`);
+				
+				// Check if should pause
+				if (thread.debateConfig.currentCycle >= thread.debateConfig.cyclesPerPause) {
+					thread.debateConfig.isPaused = true;
+					this.savePosts();
+					this.renderPosts();
+					this.showDebatePausedMessage(threadId);
+				} else {
+					// Continue to next cycle
+					await this.runDebateCycle(threadId);
+				}
+			}
+
+			showDebatePausedMessage(threadId) {
+				const thread = this.posts.find(p => p.id === threadId);
+				this.addActivity(`Debate paused after ${thread.debateConfig.currentCycle} cycles`);
+				alert(`Debate paused after ${thread.debateConfig.currentCycle} cycles. Use the debate controls to continue.`);
+			}
+
+			resumeDebate(postId) {
+				const post = this.posts.find(p => p.id === postId);
+				if (!post || !post.debateMode) return;
+				
+				// Reset cycle counter and unpause
+				post.debateConfig.currentCycle = 0;
+				post.debateConfig.isPaused = false;
+				this.savePosts();
+				this.renderPosts();
+				
+				this.addActivity(`Debate resumed: "${post.title}"`);
+				
+				// Continue debate
+				this.runDebateCycle(postId);
+			}
+
+			endDebate(postId) {
+				const post = this.posts.find(p => p.id === postId);
+				if (!post || !post.debateMode) return;
+				
+				post.debateMode = false;
+				post.debateConfig.isPaused = true;
+				this.savePosts();
+				this.renderPosts();
+				
+				this.addActivity(`Debate ended: "${post.title}"`);
+			}
+
+			generateDebateResponse(persona, thread, targetPost) {
+				// Build context with intensity modifier
+				let contextText = this.buildDebateContext(persona, thread, targetPost);
+				
+				// Modify system prompt based on intensity
+				let systemPrompt = persona.systemPrompt;
+				
+				if (thread.debateConfig.intensity === 'heated') {
+					systemPrompt += "\n\nYou are engaged in a passionate debate. Be more direct and confrontational in your arguments. Challenge weak points forcefully.";
+				} else if (thread.debateConfig.intensity === 'aggressive') {
+					systemPrompt += "\n\nYou are in an intense, combative debate. Be forceful, challenge aggressively, and don't hold back criticism. Stay civil but be uncompromising.";
+				} else {
+					systemPrompt += "\n\nYou are in a respectful, measured debate. Present arguments clearly but remain diplomatic.";
+				}
+				
+				return this.generatePersonaResponse(persona, thread, targetPost, contextText, systemPrompt);
+			}
+
+			buildDebateContext(persona, thread, targetPost) {
+				let context = `You are ${persona.name} participating in a debate thread.\n\n`;
+				context += `Original topic: "${thread.title}"\n`;
+				context += `Original post: "${thread.content}"\n\n`;
+				
+				// Include recent relevant posts (last 5 in thread)
+				const recentPosts = this.getRecentPostsInThread(thread, 5);
+				if (recentPosts.length > 0) {
+					context += "Recent discussion:\n";
+					recentPosts.forEach(post => {
+						context += `${post.author}: "${post.content}"\n`;
+					});
+				}
+				
+				context += `\nYou are responding to ${targetPost.author}'s point: "${targetPost.content}"\n`;
+				context += `Provide a ${thread.debateConfig.intensity} response (1-3 sentences).`;
+				
+				return context;
+			}
+
+			getRecentPostsInThread(thread, limit) {
+				const allPosts = this.getAllPostsInThread(thread);
+				// Sort by timestamp, get most recent
+				return allPosts
+					.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+					.slice(0, limit)
+					.reverse(); // Reverse to chronological order
+			}
+
 			savePosts() {
 				localStorage.setItem(this.storageKey, JSON.stringify(this.posts));
 			}
@@ -1028,11 +1383,14 @@
 				this.hideProcessingIndicator();
 			}
 
-			async generatePersonaResponse(persona, originalPost, contextReply = null) {
+			async generatePersonaResponse(persona, originalPost, contextReply = null, customContext = null, customSystemPrompt = null) {
 				try {
 					let contextText;
 					
-					if (contextReply) {
+					if (customContext) {
+						// Debate mode - use provided context
+						contextText = customContext;
+					} else if (contextReply) {
 						// Build conversation thread context
 						const threadContext = this.buildThreadContext(originalPost, contextReply);
 						contextText = `You are ${persona.name} joining this conversation thread:
@@ -1052,7 +1410,7 @@
 						messages: [
 							{
 								role: 'system',
-								content: persona.systemPrompt + ' You are responding to a conversation thread. Pay attention to who said what to whom.'
+								content: customSystemPrompt || (persona.systemPrompt + ' You are responding to a conversation thread. Pay attention to who said what to whom.')
 							},
 							{
 								role: 'user',
@@ -1226,6 +1584,31 @@
 							  post.authorType === 'system' ? '⚙️' : '👤';
 
 				const badge = post.authorType === 'ai' ? '<span class="ai-badge">AI</span>' : '';
+
+				// Debate status indicator
+				let debateStatusHTML = '';
+				if (post.debateMode && post.debateConfig) {
+					const config = post.debateConfig;
+					const statusText = config.isPaused ? 'PAUSED' : 'ACTIVE';
+					const totalReplies = post.replies ? post.replies.length : 0;
+					
+					debateStatusHTML = `
+						<div style="background: linear-gradient(45deg, #667eea, #764ba2); padding: 1rem; margin: 1rem 0; border-radius: 8px;">
+							<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+								<span style="font-weight: bold; color: white;">🎭 DEBATE MODE ${statusText}</span>
+								<span style="color: white;">Cycle ${config.currentCycle}/${config.cyclesPerPause} | ${totalReplies} responses</span>
+							</div>
+							<div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+								${config.isPaused ? 
+									`<button class="submit-btn" onclick="app.resumeDebate(${post.id})" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">▶️ Continue (+${config.cyclesPerPause} cycles)</button>` :
+									`<button class="control-btn" onclick="app.pauseDebate(${post.id})" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">⏸ Pause</button>`
+								}
+								<button class="control-btn" onclick="app.endDebate(${post.id})" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">⏹ End Debate</button>
+								<button class="control-btn" onclick="app.showParticipationMetrics(${post.id})" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">📊 Stats</button>
+							</div>
+						</div>
+					`;
+				}
 				
 				const deleteBtn = (post.authorType !== 'system' || post.canDelete) ? 
 					'<button class="control-btn delete-btn" onclick="app.deletePost(' + post.id + ')" title="Delete post">🗑️</button>' : '';
@@ -1274,6 +1657,7 @@
 						(post.title ? '<strong>' + post.title + '</strong><br><br>' : '') + 
 						post.content + 
 					'</div>' +
+					debateStatusHTML +
 					'<div class="post-actions">' +
 						'<button class="action-btn">💬 ' + replyCount + '</button>' +
 						'<button class="action-btn" onclick="app.toggleFavorite(' + post.id + ')">' + (post.favorited ? '❤️ Favorited' : '🤍 Favorite') + '</button>' +
@@ -1452,6 +1836,40 @@
                     [array[i], array[j]] = [array[j], array[i]];
                 }
             }
+			
+			pauseDebate(postId) {
+				const post = this.posts.find(p => p.id === postId);
+				if (!post || !post.debateMode) return;
+				
+				post.debateConfig.isPaused = true;
+				this.savePosts();
+				this.renderPosts();
+				this.addActivity('Debate manually paused');
+			}
+
+			showParticipationMetrics(postId) {
+				const post = this.posts.find(p => p.id === postId);
+				if (!post || !post.debateMode) return;
+				
+				let metricsHTML = '<h4 style="color: #667eea; margin-bottom: 0.5rem;">Participation Stats:</h4>';
+				metricsHTML += '<div style="display: flex; flex-direction: column; gap: 0.3rem;">';
+				
+				const sortedParticipation = Object.entries(post.participationCount)
+					.sort((a, b) => b[1] - a[1]);
+				
+				if (sortedParticipation.length === 0) {
+					metricsHTML += '<p style="color: #ccc;">No responses yet</p>';
+				} else {
+					sortedParticipation.forEach(([name, count]) => {
+						metricsHTML += `<div style="color: #ccc;"><strong>${name}:</strong> ${count} posts</div>`;
+					});
+				}
+				
+				metricsHTML += '</div>';
+				
+				alert('Debate Participation\n\n' + sortedParticipation.map(([name, count]) => `${name}: ${count} posts`).join('\n'));
+			}
+			
         }
 
 		let app;
