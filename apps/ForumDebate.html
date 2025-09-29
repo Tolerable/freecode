@@ -918,11 +918,24 @@
 			async startDebate(post) {
 				this.addActivity(`Debate started: "${post.title}"`);
 				
-				// First, get initial responses from top 3 weighted personas
+				// Get initial responses from top 3 weighted personas
 				await this.handleInitialDebateResponses(post);
 				
-				// Then start the debate cycles
-				await this.runDebateCycle(post.id);
+				// Mark first cycle as complete
+				post.debateConfig.currentCycle = 1;
+				this.savePosts();
+				this.renderPosts();
+				
+				// Check if should pause after first cycle
+				if (post.debateConfig.currentCycle >= post.debateConfig.cyclesPerPause) {
+					post.debateConfig.isPaused = true;
+					this.savePosts();
+					this.renderPosts();
+					this.showDebatePausedMessage(post.id);
+				} else {
+					// Continue to next cycle
+					await this.runDebateCycle(post.id);
+				}
 			}
 
 			async handleInitialDebateResponses(post) {
@@ -959,12 +972,14 @@
 							};
 							
 							post.replies.push(reply);
+							
+							// CHANGED: Initialize participation count properly
+							if (!post.participationCount) post.participationCount = {};
 							post.participationCount[responder.persona.name] = 1;
 							
 							// Generate vote for the original post
-							const vote = this.generateVote(responder.persona, post);
 							if (!post.votes) post.votes = {};
-							post.votes[responder.persona.name] = vote;
+							post.votes[responder.persona.name] = this.generateVote(responder.persona, post);
 							post.voteScore = this.calculateVoteScore(post.votes);
 							
 							this.savePosts();
