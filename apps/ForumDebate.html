@@ -1076,60 +1076,59 @@
 									replyToId: bestPost.id
 								};
 									
-									// Recursive function to add reply to correct location
-									const findAndAddReply = (targetId, replyToAdd, currentPost) => {
-										console.log(`Searching post ${currentPost.id} (by ${currentPost.author}) for target ${targetId}`);
-										
-										if (currentPost.id === targetId) {
-											console.log(`✓ Found target! Adding reply to post ${targetId}`);
-											if (!currentPost.replies) currentPost.replies = [];
-											currentPost.replies.push(replyToAdd);
-											return true;
-										}
-										
-										if (currentPost.replies) {
-											for (let childReply of currentPost.replies) {
-												if (findAndAddReply(targetId, replyToAdd, childReply)) {
-													return true;
-												}
+								// Recursive function to add reply to correct location
+								const findAndAddReply = (targetId, replyToAdd, currentPost) => {
+									console.log(`Searching post ${currentPost.id} (by ${currentPost.author}) for target ${targetId}`);
+									
+									if (currentPost.id === targetId) {
+										console.log(`✓ Found target! Adding reply to post ${targetId}`);
+										if (!currentPost.replies) currentPost.replies = [];
+										currentPost.replies.push(replyToAdd);
+										return true;
+									}
+									
+									if (currentPost.replies) {
+										for (let childReply of currentPost.replies) {
+											if (findAndAddReply(targetId, replyToAdd, childReply)) {
+												return true;
 											}
 										}
-										
-										console.log(`✗ Post ${currentPost.id} is not the target, no match in children`);
-										return false;
-									};
-
-									// Try to add to the correct location in the thread
-									if (!findAndAddReply(bestPost.id, reply, thread)) {
-										console.warn(`Could not find post ${bestPost.id}, adding to top level`);
-										thread.replies.push(reply);
 									}
 									
-									// Increment participation count
-									if (!thread.participationCount[persona.name]) {
-										thread.participationCount[persona.name] = 0;
-									}
-									thread.participationCount[persona.name]++;
-									
-									// Generate vote from this persona on the post they replied to
-									const vote = this.generateVote(persona, bestPost);
-									if (!bestPost.votes) bestPost.votes = {};
-									bestPost.votes[persona.name] = vote;
-									bestPost.voteScore = this.calculateVoteScore(bestPost.votes);
-									
-									// Save and render
-									this.savePosts();
-									this.renderPosts();
-									this.addActivity(`${persona.name} responded in debate`);
-									
-									responsesThisCycle++;
+									console.log(`✗ Post ${currentPost.id} is not the target, no match in children`);
+									return false;
+								};
 
-									console.log(`${persona.name} responded to ${bestPost.author}`);
-									respondedPersonas.add(persona.name);
+								// Try to add to the correct location in the thread
+								if (!findAndAddReply(bestPost.id, reply, thread)) {
+									console.warn(`Could not find post ${bestPost.id}, adding to top level`);
+									thread.replies.push(reply);
 								}
-							} catch (error) {
-								console.error(`Error generating debate response for ${persona.name}:`, error);
+								
+								// Increment participation count
+								if (!thread.participationCount[persona.name]) {
+									thread.participationCount[persona.name] = 0;
+								}
+								thread.participationCount[persona.name]++;
+								
+								// Generate vote from this persona on the post they replied to
+								const vote = this.generateVote(persona, bestPost);
+								if (!bestPost.votes) bestPost.votes = {};
+								bestPost.votes[persona.name] = vote;
+								bestPost.voteScore = this.calculateVoteScore(bestPost.votes);
+								
+								// Save and render
+								this.savePosts();
+								this.renderPosts();
+								this.addActivity(`${persona.name} responded in debate`);
+								
+								responsesThisCycle++;
+
+								console.log(`${persona.name} responded to ${bestPost.author}`);
+								respondedPersonas.add(persona.name);
 							}
+						} catch (error) {
+							console.error(`Error generating debate response for ${persona.name}:`, error);
 						}
 					}
 				}
