@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f7f7f8;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: white;
+      border-bottom: 1px solid #e5e5e5;
+      padding: 16px 24px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      max-width: 800px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .message.user .message-avatar {
+      background: #5c5cff;
+      color: white;
+    }
+
+    .message.assistant .message-avatar {
+      background: #10a37f;
+      color: white;
+    }
+
+    .message-content {
+      background: white;
+      padding: 12px 16px;
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      word-wrap: break-word;
+    }
+
+    .message.user .message-content {
+      background: #5c5cff;
+      color: white;
+    }
+
+    .input-container {
+      background: white;
+      border-top: 1px solid #e5e5e5;
+      padding: 16px 24px;
+      box-shadow: 0 -1px 2px rgba(0,0,0,0.05);
+    }
+
+    .input-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    #messageInput {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      resize: none;
+      max-height: 200px;
+      line-height: 1.5;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #messageInput:focus {
+      border-color: #5c5cff;
+    }
+
+    #sendButton {
+      background: #5c5cff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    #sendButton:hover:not(:disabled) {
+      background: #4a4acc;
+    }
+
+    #sendButton:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .typing-indicator {
+      display: none;
+      gap: 4px;
+      padding: 12px 16px;
+    }
+
+    .typing-indicator.active {
+      display: flex;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #999;
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-8px); }
+    }
+
+    .controls {
+      background: #f7f7f8;
+      border-bottom: 1px solid #e5e5e5;
+      padding: 12px 24px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .control-group label {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .control-group select {
+      padding: 6px 12px;
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+      text-align: center;
+      padding: 48px 24px;
+    }
+
+    .empty-state h2 {
+      font-size: 24px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .empty-state p {
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>AI Chat</h1>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label for="personaSelect">Persona:</label>
+      <select id="personaSelect">
+        <option value="casual">Casual</option>
+        <option value="formal">Formal</option>
+        <option value="teenager">Teenager</option>
+        <option value="chaotic">Chaotic</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="chat-container" id="chatContainer">
+    <div class="empty-state">
+      <h2>Start a conversation</h2>
+      <p>Send a message to begin chatting</p>
+    </div>
+  </div>
+
+  <div class="input-container">
+    <div class="input-wrapper">
+      <textarea 
+        id="messageInput" 
+        placeholder="Type your message here..."
+        rows="1"
+      ></textarea>
+      <button id="sendButton">Send</button>
+    </div>
+  </div>
+
+  <script src="/js/Spellcheck.js"></script>
+  <script>
+    const chatContainer = document.getElementById('chatContainer');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const personaSelect = document.getElementById('personaSelect');
+
+    let conversationHistory = [];
+    let spellchecker = Spellcheck.createPersona('casual');
+
+    // Update spellchecker when persona changes
+    personaSelect.addEventListener('change', (e) => {
+      spellchecker = Spellcheck.createPersona(e.target.value);
+    });
+
+    // Auto-resize textarea
+    messageInput.addEventListener('input', () => {
+      messageInput.style.height = 'auto';
+      messageInput.style.height = messageInput.scrollHeight + 'px';
+    });
+
+    // Send message on Enter (but allow Shift+Enter for new lines)
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    sendButton.addEventListener('click', sendMessage);
+
+    function clearEmptyState() {
+      const emptyState = chatContainer.querySelector('.empty-state');
+      if (emptyState) {
+        emptyState.remove();
+      }
+    }
+
+    function addMessage(role, content) {
+      clearEmptyState();
+
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${role}`;
+      
+      const avatar = document.createElement('div');
+      avatar.className = 'message-avatar';
+      avatar.textContent = role === 'user' ? 'U' : 'AI';
+      
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'message-content';
+      contentDiv.textContent = content;
+      
+      messageDiv.appendChild(avatar);
+      messageDiv.appendChild(contentDiv);
+      
+      chatContainer.appendChild(messageDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      clearEmptyState();
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message assistant';
+      messageDiv.id = 'typingIndicator';
+      
+      const avatar = document.createElement('div');
+      avatar.className = 'message-avatar';
+      avatar.textContent = 'AI';
+      
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'message-content';
+      
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'typing-indicator active';
+      typingDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+      
+      contentDiv.appendChild(typingDiv);
+      messageDiv.appendChild(avatar);
+      messageDiv.appendChild(contentDiv);
+      
+      chatContainer.appendChild(messageDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+      const indicator = document.getElementById('typingIndicator');
+      if (indicator) {
+        indicator.remove();
+      }
+    }
+
+    async function sendMessage() {
+      const message = messageInput.value.trim();
+      if (!message) return;
+
+      // Disable input while processing
+      messageInput.disabled = true;
+      sendButton.disabled = true;
+
+      // Add user message
+      addMessage('user', message);
+      conversationHistory.push({ role: 'user', content: message });
+
+      // Clear input
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+
+      // Show typing indicator
+      showTypingIndicator();
+
+      try {
+        // Build the prompt with conversation history
+        const messages = [
+          {
+            role: 'system',
+            content: 'You are a helpful, friendly AI assistant. Keep your responses natural and conversational.'
+          },
+          ...conversationHistory
+        ];
+
+        // Call Pollinations API
+        const response = await fetch('https://text.pollinations.ai/openai', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'openai-fast',
+            messages: messages,
+            temperature: 0.7
+          })
+        });
+
+        const data = await response.json();
+        const aiResponse = data.choices[0].message.content;
+
+        // Apply spellcheck to make it more human
+        const humanizedResponse = spellchecker.humanize(aiResponse);
+
+        // Remove typing indicator and add AI response
+        removeTypingIndicator();
+        addMessage('assistant', humanizedResponse);
+        conversationHistory.push({ role: 'assistant', content: aiResponse });
+
+      } catch (error) {
+        removeTypingIndicator();
+        addMessage('assistant', 'Sorry, something went wrong. Please try again.');
+        console.error('Error:', error);
+      }
+
+      // Re-enable input
+      messageInput.disabled = false;
+      sendButton.disabled = false;
+      messageInput.focus();
+    }
+  </script>
+</body>
+</html>
