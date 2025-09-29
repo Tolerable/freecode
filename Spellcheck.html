@@ -254,6 +254,13 @@
         <option value="chaotic">Chaotic</option>
       </select>
     </div>
+    <div class="control-group">
+      <label for="spellcheckToggle">
+        <input type="checkbox" id="spellcheckToggle" checked style="margin-right: 4px;">
+        Spellcheck
+      </label>
+    </div>
+    <button id="redoButton" style="padding: 6px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">Redo Clean</button>
     <button id="clearButton" style="padding: 6px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">Clear Chat</button>
   </div>
 
@@ -288,7 +295,33 @@
 
 	let conversationHistory = [];
 	let spellchecker = Spellcheck.createPersona('casual');
+	let spellcheckEnabled = true;
+	let lastCleanResponse = ''; // Store the last clean AI response
 
+	// Toggle spellcheck on/off
+	document.getElementById('spellcheckToggle').addEventListener('change', (e) => {
+	  spellcheckEnabled = e.target.checked;
+	});
+
+	// Redo last response without spellcheck
+	document.getElementById('redoButton').addEventListener('click', () => {
+	  if (lastCleanResponse) {
+		// Remove last assistant message from UI
+		const messages = chatWrapper.querySelectorAll('.message.assistant');
+		if (messages.length > 0) {
+		  messages[messages.length - 1].remove();
+		}
+		
+		// Add clean version
+		addMessage('assistant', lastCleanResponse);
+		
+		// Update conversation history with clean version
+		if (conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1].role === 'assistant') {
+		  conversationHistory[conversationHistory.length - 1].content = lastCleanResponse;
+		  saveConversation();
+		}
+	  }
+	});
 	// Load saved conversation on startup
 	function loadConversation() {
 	  const saved = localStorage.getItem('chatHistory');
@@ -511,12 +544,15 @@
 		aiResponse = aiResponse.replace(/---\s*\*\*Support Pollinations\.AI:\*\*.*$/s, '').trim();
 		aiResponse = aiResponse.replace(/\*\*Ad\*\*.*?https:\/\/pollinations\.ai\/redirect\/kofi.*$/s, '').trim();
 		
-		// Apply spellcheck to make it more human
-		const humanizedResponse = spellchecker.humanize(aiResponse);
-		
+		// Store clean response
+		lastCleanResponse = aiResponse;
+
+		// Apply spellcheck only if enabled
+		const finalResponse = spellcheckEnabled ? spellchecker.humanize(aiResponse) : aiResponse;
+
 		// Remove typing indicator and add AI response
 		removeTypingIndicator();
-		addMessage('assistant', humanizedResponse);
+		addMessage('assistant', finalResponse);
 		conversationHistory.push({ role: 'assistant', content: aiResponse });
 		saveConversation();
 		
