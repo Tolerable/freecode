@@ -1755,6 +1755,8 @@
 				const replyContent = document.getElementById(`reply-content-${postId}`).value.trim();
 				if (!replyContent) return;
 				
+				console.log('submitReply called:', postId, aiAuthor, replyId);
+				
 				const post = this.posts.find(p => p.id === postId);
 				const userReply = {
 					id: this.nextPostId++,
@@ -1762,23 +1764,34 @@
 					authorType: 'human',
 					content: replyContent,
 					timestamp: new Date(),
-					replies: []
+					replies: [],
+					votes: {},
+					voteScore: 0
 				};
+				
+				console.log('User reply created:', userReply);
 				
 				// Find the specific reply by ID recursively
 				const targetReply = this.findReplyById(post.replies, replyId) || post.replies.find(r => r.author === aiAuthor);
 				
+				console.log('Target reply found:', targetReply);
+				
 				if (targetReply) {
 					if (!targetReply.replies) targetReply.replies = [];
 					targetReply.replies.push(userReply);
+					console.log('Reply added to target, target now has', targetReply.replies.length, 'replies');
 				} else {
-					post.replies.push(userReply); // fallback to top level
+					post.replies.push(userReply);
+					console.log('Reply added to top level');
 				}
 				
 				this.savePosts();
 				this.renderPosts();
 				
-				setTimeout(() => this.generateAIResponses(post, userReply), 1000);
+				// If in debate mode, user reply should be considered in next cycle
+				if (!post.debateMode) {
+					setTimeout(() => this.generateAIResponses(post, userReply), 1000);
+				}
 			}
 
 			// Add this helper function:
