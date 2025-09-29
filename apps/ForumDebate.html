@@ -1100,7 +1100,7 @@
 									};
 
 									// Try to add to the correct location in the thread
-									if (!findAndAddReply(post.id, reply, thread)) {
+									if (!findAndAddReply(bestPost.id, reply, thread)) {
 										console.warn(`Could not find post ${post.id}, adding to top level`);
 										thread.replies.push(reply);
 									}
@@ -1112,10 +1112,10 @@
 									thread.participationCount[persona.name]++;
 									
 									// Generate vote from this persona on the post they replied to
-									const vote = this.generateVote(persona, post);
-									if (!post.votes) post.votes = {};
-									post.votes[persona.name] = vote;
-									post.voteScore = this.calculateVoteScore(post.votes);
+									const vote = this.generateVote(persona, bestPost);
+									if (!bestPost.votes) bestPost.votes = {};
+									bestPost.votes[persona.name] = vote;
+									bestPost.voteScore = this.calculateVoteScore(bestPost.votes);
 									
 									// Save and render
 									this.savePosts();
@@ -1124,7 +1124,7 @@
 									
 									responsesThisCycle++;
 
-									console.log(`${persona.name} responded to ${post.author}`);
+									console.log(`${persona.name} responded to ${bestPost.author}`);
 									respondedPersonas.add(persona.name);
 								}
 							} catch (error) {
