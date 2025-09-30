@@ -1527,8 +1527,24 @@
             }, 100);
         }
 
+		let lastRenderedEventId = null;
+
         // Rendering Functions
         function renderEvent() {
+		const event = gameState.currentEvent;
+		if (!event) return;
+
+		// Don't re-render if player is in the middle of making a bet selection
+		if (playerBetSelection && lastRenderedEventId === event.id) {
+			// Just update the timer
+			const timerElement = document.querySelector('.event-timer');
+			if (timerElement) {
+				timerElement.textContent = Math.ceil(event.timeRemaining) + 's';
+			}
+			return;
+		}
+
+		lastRenderedEventId = event.id;
             const event = gameState.currentEvent;
             if (!event) return;
 
