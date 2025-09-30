@@ -1775,76 +1775,13 @@
             window.upgrades = upgrades;
         }
 
-        function manualBet() {
-            if (!gameState.currentEvent) {
-                alert('⚠️ No active event to bet on! Wait for the next event.');
-                return;
-            }
-
-            const betAmount = prompt(`💰 You have ${Math.floor(gameState.credits)} total credits.\n\nHow many credits do you want to bet on this event?\n\n"${gameState.currentEvent.description}"`, '100');
-            
-            if (!betAmount || betAmount === null) {
-                return;
-            }
-
-            const bet = parseInt(betAmount);
-            
-            if (isNaN(bet) || bet <= 0) {
-                alert('❌ Please enter a valid positive number!');
-                return;
-            }
-
-            if (bet > gameState.credits) {
-                alert(`⚠️ Not enough credits! You only have ${Math.floor(gameState.credits)} credits.`);
-                return;
-            }
-
-            // Create temporary player agent
-            const existingPlayer = gameState.agents.find(a => a.id.toString().startsWith('player-'));
-            
-            if (existingPlayer) {
-                // Player already bet on this event
-                if (existingPlayer.currentBet && existingPlayer.currentBet.eventId === gameState.currentEvent.id) {
-                    alert('⚠️ You already bet on this event!');
-                    return;
-                }
-            }
-
-            const playerAgent = {
-                id: 'player-' + Date.now(),
-                name: 'YOU (Player)',
-                emoji: '👤',
-                model: 'player',
-                color: '#ffd700',
-                credits: gameState.credits,
-                wins: 0,
-                losses: 0,
-                totalBets: 1,
-                currentBet: {
-                    amount: bet,
-                    confidence: 50,
-                    reason: 'Manual player bet',
-                    eventId: gameState.currentEvent.id
-                },
-                working: false,
-                activity: `💰 Bet ${bet} credits on current event`
-            };
-
-            gameState.agents.push(playerAgent);
-            gameState.currentEvent.bets.push({
-                agentId: playerAgent.id,
-                amount: bet,
-                confidence: 50
-            });
-
-            gameState.credits -= bet;
-            playerAgent.credits = gameState.credits;
-            
-            addLog(`👤 YOU bet ${bet} credits on current event!`, 'win');
-            renderAgents();
-            renderEvent();
-            updateStats();
-        }
+		function manualBet() {
+			const bettingInterface = document.getElementById('bettingInterface');
+			if (bettingInterface) {
+				bettingInterface.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+			}
+			addLog('💡 Scroll to Current Event panel and click an outcome option to place your bet!', 'info');
+		}
 
         function skipEvent() {
             if (!gameState.currentEvent) {
