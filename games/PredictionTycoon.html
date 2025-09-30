@@ -582,6 +582,9 @@
     </div>
 
     <script>
+        // API Configuration - MUST BE AT THE TOP
+        const POLLINATIONS_API = 'https://text.pollinations.ai';
+
         // Game State
         const gameState = {
             credits: 1000,
@@ -887,13 +890,19 @@
             try {
                 const prompt = `${gameState.currentEvent.description}\n\nAnalyze this event and decide if you want to bet.`;
                 
-                const response = await fetch(`${POLLINATIONS_API}/${encodeURIComponent(prompt)}?model=${agent.model}&system=${encodeURIComponent(agent.system)}`);
+                const url = `${POLLINATIONS_API}/${encodeURIComponent(prompt)}?model=${agent.model}&system=${encodeURIComponent(agent.system)}`;
+                console.log('Calling API:', url);
+                
+                const response = await fetch(url);
+                
+                console.log('Response status:', response.status);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const text = await response.text();
+                console.log('Response text:', text);
                 
                 if (!text || text.trim() === '') {
                     throw new Error('Empty response from API');
@@ -907,9 +916,9 @@
                 const reasonMatch = text.match(/REASON:(.+?)(?:\||$)/i);
                 
                 if (confidenceMatch && betMatch) {
-                    const confidence = parseInt(confidenceMatch[1]);
-                    const betPercent = parseInt(betMatch[1]);
-                    const reason = reasonMatch ? reasonMatch[1].trim() : 'Going with my gut';
+                    const confidence = Math.min(100, Math.max(0, parseInt(confidenceMatch[1])));
+                    const betPercent = Math.min(50, Math.max(5, parseInt(betMatch[1])));
+                    const reason = reasonMatch ? reasonMatch[1].trim().substring(0, 100) : 'Going with my gut';
                     
                     const betAmount = Math.floor((agent.credits * betPercent) / 100);
                     
@@ -935,17 +944,72 @@
                         agent.activity = '🤷 Skipping - bet amount invalid';
                     }
                 } else {
-                    agent.activity = '🤷 Skipping this one - unclear analysis';
-                    addLog(`${agent.emoji} ${agent.name} passes on this event`, 'info');
+                    // If AI doesn't follow format, use fallback logic
+                    console.log('AI response not in expected format, using fallback');
+                    useFallbackBetting(agent, text);
                 }
             } catch (error) {
-                agent.activity = '❌ API error - will retry next event';
                 console.error('Agent analysis error:', error);
-                addLog(`${agent.emoji} ${agent.name} encountered an error, will retry`, 'loss');
+                // Use fallback logic when API fails
+                addLog(`${agent.emoji} ${agent.name} API failed, using fallback logic`, 'info');
+                useFallbackBetting(agent, null);
             }
             
             agent.working = false;
             renderAgents();
+        }
+
+        // Fallback betting logic when AI fails
+        function useFallbackBetting(agent, aiResponse) {
+            // Simple rule-based betting
+            const randomConfidence = Math.floor(Math.random() * 40) + 40; // 40-80%
+            let betPercent;
+            
+            // Different agents have different risk profiles
+            if (agent.emoji === '🛡️') { // Conservative
+                betPercent = Math.floor(Math.random() * 10) + 5; // 5-15%
+            } else if (agent.emoji === '🔥') { // Aggressive
+                betPercent = Math.floor(Math.random() * 25) + 20; // 20-45%
+            } else { // Analytical
+                betPercent = Math.floor(Math.random() * 15) + 15; // 15-30%
+            }
+            
+            const betAmount = Math.floor((agent.credits * betPercent) / 100);
+            
+            if (betAmount > 0 && betAmount <= agent.credits) {
+                const reasons = [
+                    'The odds look favorable',
+                    'Going with statistical probability',
+                    'Risk/reward ratio is acceptable',
+                    'Historical patterns suggest this',
+                    'Gut feeling on this one',
+                    'The numbers add up',
+                    'Market sentiment is positive',
+                    'Following the trend'
+                ];
+                
+                const reason = reasons[Math.floor(Math.random() * reasons.length)];
+                
+                agent.currentBet = {
+                    amount: betAmount,
+                    confidence: randomConfidence,
+                    reason: reason,
+                    eventId: gameState.currentEvent.id
+                };
+                
+                gameState.currentEvent.bets.push({
+                    agentId: agent.id,
+                    amount: betAmount,
+                    confidence: randomConfidence
+                });
+                
+                agent.credits -= betAmount;
+                agent.totalBets++;
+                agent.activity = `💰 Bet ${betAmount} credits (${randomConfidence}% confident): ${reason}`;
+                addLog(`${agent.emoji} ${agent.name} bets ${betAmount} credits - "${reason}"`, 'info');
+            } else {
+                agent.activity = '🤷 Skipping this round';
+            }
         }
 
         // Resolve Event
