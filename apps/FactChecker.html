@@ -941,4 +941,91 @@ Be objective and balanced. If evidence is mixed, use "uncertain".`;
                 });
             });
 
-            document.getElementById('searchBox').addEventListener('input',
+            document.getElementById('searchBox').addEventListener('input', function(e) {
+                searchQuery = e.target.value;
+                renderClaims();
+            });
+        });
+
+        // Export data
+        async function exportData() {
+            const claims = await getAllClaims();
+            const dataStr = JSON.stringify(claims, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `fact-checker-backup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Import data
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('importFile').addEventListener('change', async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    const claims = JSON.parse(text);
+                    
+                    if (!Array.isArray(claims)) {
+                        throw new Error('Invalid format');
+                    }
+
+                    const confirm = window.confirm(`This will import ${claims.length} claims. Continue?`);
+                    if (!confirm) return;
+
+                    for (const claim of claims) {
+                        delete claim.id; // Let DB assign new IDs
+                        await saveClaim(claim);
+                    }
+
+                    await renderClaims();
+                    updateStats();
+                    alert('Data imported successfully!');
+                } catch (error) {
+                    console.error('Import error:', error);
+                    alert('Failed to import data. Please check the file format.');
+                }
+                
+                e.target.value = ''; // Reset file input
+            });
+        });
+
+        // Delete all data
+        function confirmDeleteAll() {
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+        }
+
+        async function deleteAllData() {
+            try {
+                await clearAllClaims();
+                closeModal();
+                await renderClaims();
+                updateStats();
+                alert('All data deleted successfully');
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Failed to delete data. Please try again.');
+            }
+        }
+
+        // Utility function to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize app when page loads
+        initApp();
