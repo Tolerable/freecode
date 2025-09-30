@@ -285,6 +285,7 @@
 
         .controls {
             display: flex;
+            flex-wrap: wrap;
             gap: 15px;
             justify-content: center;
             margin-top: 20px;
@@ -292,12 +293,22 @@
 
         button {
             padding: 15px 30px;
-            font-size: 1em;
+            font-size: 1.1em;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
             font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        button:active {
+            transform: translateY(-1px);
         }
 
         .btn-primary {
@@ -563,6 +574,8 @@
 
         <div class="controls">
             <button class="btn-primary" onclick="toggleGame()" id="toggleBtn">⏸️ Pause Game</button>
+            <button class="btn-primary" onclick="manualBet()" style="background: linear-gradient(45deg, #4caf50, #8bc34a);">🎰 Place Your Bet</button>
+            <button class="btn-primary" onclick="skipEvent()" style="background: linear-gradient(45deg, #ff9800, #ffc107);">⏭️ Skip Event</button>
             <button class="btn-secondary" onclick="saveGame()">💾 Save Game</button>
             <button class="btn-danger" onclick="resetGame()">🔄 Reset Game</button>
         </div>
@@ -1275,26 +1288,45 @@
 
         function manualBet() {
             if (!gameState.currentEvent) {
-                addLog('⚠️ No active event to bet on!', 'loss');
+                alert('⚠️ No active event to bet on! Wait for the next event.');
                 return;
             }
 
-            const betAmount = prompt('How many credits do you want to bet?', '100');
-            if (!betAmount || isNaN(betAmount) || betAmount <= 0) {
+            const betAmount = prompt(`💰 You have ${Math.floor(gameState.credits)} total credits.\n\nHow many credits do you want to bet on this event?\n\n"${gameState.currentEvent.description}"`, '100');
+            
+            if (!betAmount || betAmount === null) {
                 return;
             }
 
             const bet = parseInt(betAmount);
+            
+            if (isNaN(bet) || bet <= 0) {
+                alert('❌ Please enter a valid positive number!');
+                return;
+            }
+
             if (bet > gameState.credits) {
-                addLog('⚠️ Not enough credits!', 'loss');
+                alert(`⚠️ Not enough credits! You only have ${Math.floor(gameState.credits)} credits.`);
                 return;
             }
 
             // Create temporary player agent
+            const existingPlayer = gameState.agents.find(a => a.id.toString().startsWith('player-'));
+            
+            if (existingPlayer) {
+                // Player already bet on this event
+                if (existingPlayer.currentBet && existingPlayer.currentBet.eventId === gameState.currentEvent.id) {
+                    alert('⚠️ You already bet on this event!');
+                    return;
+                }
+            }
+
             const playerAgent = {
                 id: 'player-' + Date.now(),
-                name: '👤 YOU',
+                name: 'YOU (Player)',
                 emoji: '👤',
+                model: 'player',
+                color: '#ffd700',
                 credits: gameState.credits,
                 wins: 0,
                 losses: 0,
@@ -1304,7 +1336,9 @@
                     confidence: 50,
                     reason: 'Manual player bet',
                     eventId: gameState.currentEvent.id
-                }
+                },
+                working: false,
+                activity: `💰 Bet ${bet} credits on current event`
             };
 
             gameState.agents.push(playerAgent);
@@ -1315,11 +1349,22 @@
             });
 
             gameState.credits -= bet;
-            playerAgent.credits -= bet;
+            playerAgent.credits = gameState.credits;
             
-            addLog(`👤 You bet ${bet} credits on current event!`, 'win');
+            addLog(`👤 YOU bet ${bet} credits on current event!`, 'win');
             renderAgents();
+            renderEvent();
             updateStats();
+        }
+
+        function skipEvent() {
+            if (!gameState.currentEvent) {
+                alert('⚠️ No active event to skip!');
+                return;
+            }
+            
+            addLog('⏭️ Skipping current event...', 'info');
+            resolveEvent();
         }
 
         function updateStats() {
@@ -1381,7 +1426,40 @@
         function resetGame() {
             if (confirm('Are you sure you want to reset? All progress will be lost!')) {
                 localStorage.removeItem('predictionTycoon');
-                location.reload();
+                
+                // Clear game state
+                gameState.credits = 1000;
+                gameState.agents = [];
+                gameState.currentEvent = null;
+                gameState.eventTimer = 0;
+                gameState.logs = [];
+                gameState.eventsCompleted = 0;
+                gameState.totalWins = 0;
+                gameState.totalBets = 0;
+                gameState.totalProfit = 0;
+                gameState.isPaused = false;
+                gameState.gameSpeed = 1;
+                gameState.upgrades = {
+                    dataPoints: 0,
+                    computePower: 1,
+                    reputation: 0
+                };
+                
+                // Recreate starting agents
+                const templates = ['conservative', 'aggressive', 'analytical'];
+                templates.forEach(type => {
+                    createAgent(type);
+                });
+                
+                // Reset UI
+                document.querySelectorAll('.speed-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.speed-btn')[0].classList.add('active');
+                
+                addLog('🔄 Game reset! Starting fresh...', 'event');
+                renderAgents();
+                renderUpgrades();
+                updateStats();
+                generateEvent();
             }
         }
 
