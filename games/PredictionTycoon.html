@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Tycoon - AI Betting Empire</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #ffd700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .event-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ffd700;
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .event-type {
+            display: inline-block;
+            padding: 5px 15px;
+            background: rgba(255, 215, 0, 0.2);
+            border-radius: 20px;
+            font-size: 0.9em;
+            color: #ffd700;
+        }
+
+        .event-timer {
+            font-size: 1.2em;
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .event-description {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .event-odds {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .odd-button {
+            flex: 1;
+            padding: 15px;
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+
+        .odd-button:hover {
+            background: rgba(76, 175, 80, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .agent-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .agent-card.working {
+            border-color: #ffd700;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.6); }
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .agent-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .agent-model {
+            font-size: 0.9em;
+            color: #888;
+            padding: 3px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+
+        .agent-credits {
+            font-size: 1.3em;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .agent-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .agent-stat {
+            text-align: center;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+
+        .agent-stat-label {
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        .agent-stat-value {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #4caf50;
+        }
+
+        .agent-activity {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: #aaa;
+            min-height: 60px;
+        }
+
+        .log-container {
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .log-entry {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            border-left: 3px solid;
+            font-size: 0.95em;
+        }
+
+        .log-win {
+            background: rgba(76, 175, 80, 0.1);
+            border-color: #4caf50;
+        }
+
+        .log-loss {
+            background: rgba(244, 67, 54, 0.1);
+            border-color: #f44336;
+        }
+
+        .log-event {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: #ffd700;
+        }
+
+        .log-info {
+            background: rgba(33, 150, 243, 0.1);
+            border-color: #2196f3;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-danger {
+            background: rgba(244, 67, 54, 0.3);
+            color: #fff;
+            border: 2px solid #f44336;
+        }
+
+        .upgrades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .upgrade-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .upgrade-card:hover {
+            border-color: #ffd700;
+            transform: translateY(-5px);
+        }
+
+        .upgrade-card.locked {
+            opacity: 0.5;
+        }
+
+        .upgrade-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .upgrade-name {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+
+        .upgrade-cost {
+            color: #4caf50;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .upgrade-description {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-bottom: 15px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 215, 0, 0.5);
+        }
+
+        .speed-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .speed-btn {
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .speed-btn.active {
+            background: rgba(255, 215, 0, 0.3);
+            border-color: #ffd700;
+        }
+
+        .achievement-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #000;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 30px rgba(255, 215, 0, 0.5);
+            animation: slideIn 0.5s ease-out;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            color: #ffd700;
+            border-bottom-color: #ffd700;
+        }
+
+        .tab:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 PREDICTION TYCOON 🎯</h1>
+            <div class="subtitle">Build Your AI Betting Empire</div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Credits</div>
+                <div class="stat-value" id="totalCredits">1000</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Agents</div>
+                <div class="stat-value" id="activeAgents">3</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Events Completed</div>
+                <div class="stat-value" id="eventsCompleted">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Win Rate</div>
+                <div class="stat-value" id="winRate">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Profit</div>
+                <div class="stat-value" id="totalProfit">+0</div>
+            </div>
+        </div>
+
+        <div class="speed-controls">
+            <button class="speed-btn active" onclick="setSpeed(1)">1x</button>
+            <button class="speed-btn" onclick="setSpeed(2)">2x</button>
+            <button class="speed-btn" onclick="setSpeed(5)">5x</button>
+            <button class="speed-btn" onclick="setSpeed(10)">10x ⚡</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('game')">Game</button>
+            <button class="tab" onclick="showTab('upgrades')">Upgrades</button>
+            <button class="tab" onclick="showTab('stats')">Statistics</button>
+        </div>
+
+        <div id="gameTab">
+            <div class="main-grid">
+                <div class="panel">
+                    <div class="panel-title">🎲 Current Event</div>
+                    <div id="currentEvent">
+                        <div class="event-card">
+                            <div class="event-header">
+                                <span class="event-type">Initializing...</span>
+                                <span class="event-timer">--</span>
+                            </div>
+                            <div class="event-description">Starting the prediction engine...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">🤖 Your AI Agents</div>
+                    <div id="agentsList"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">📜 Activity Log</div>
+                <div class="log-container scrollbar-custom" id="activityLog"></div>
+            </div>
+        </div>
+
+        <div id="upgradesTab" style="display: none;">
+            <div class="panel">
+                <div class="panel-title">🛒 Upgrades & New Agents</div>
+                <div class="upgrades-grid" id="upgradesGrid"></div>
+            </div>
+        </div>
+
+        <div id="statsTab" style="display: none;">
+            <div class="panel">
+                <div class="panel-title">📊 Detailed Statistics</div>
+                <div id="detailedStats"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="toggleGame()" id="toggleBtn">⏸️ Pause Game</button>
+            <button class="btn-secondary" onclick="saveGame()">💾 Save Game</button>
+            <button class="btn-danger" onclick="resetGame()">🔄 Reset Game</button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const gameState = {
+            credits: 1000,
+            agents: [],
+            currentEvent: null,
+            eventTimer: 0,
+            logs: [],
+            eventsCompleted: 0,
+            totalWins: 0,
+            totalBets: 0,
+            totalProfit: 0,
+            isPaused: false,
+            gameSpeed: 1,
+            upgrades: {
+                dataPoints: 0,
+                computePower: 1,
+                reputation: 0
+            }
+        };
+
+        // Agent Templates
+        const AGENT_TEMPLATES = {
+            conservative: {
+                name: 'Conservative Carl',
+                emoji: '🛡️',
+                model: 'openai',
+                system: 'You are a cautious betting analyst who prefers safe bets. Analyze the event and provide: your confidence level (0-100), bet percentage (max 15% of credits), and brief reasoning. Be conservative and risk-averse. Format your response EXACTLY as: CONFIDENCE:X|BET:Y|REASON:short explanation',
+                color: '#2196f3',
+                baseCredits: 300
+            },
+            aggressive: {
+                name: 'Aggressive Alex',
+                emoji: '🔥',
+                model: 'openai',
+                system: 'You are a high-risk high-reward bettor who chases big wins. Analyze the event and provide: your confidence level (0-100), bet percentage (up to 40% of credits), and brief reasoning. Take calculated risks for maximum profit. Format your response EXACTLY as: CONFIDENCE:X|BET:Y|REASON:short explanation',
+                color: '#f44336',
+                baseCredits: 300
+            },
+            analytical: {
+                name: 'Data-Driven Dana',
+                emoji: '📊',
+                model: 'openai',
+                system: 'You are a data-driven analyst who makes decisions based on probability and statistics. Analyze the event and provide: your confidence level (0-100), bet percentage (20-30% of credits), and brief reasoning. Focus on logical analysis. Format your response EXACTLY as: CONFIDENCE:X|BET:Y|REASON:short explanation',
+                color: '#4caf50',
+                baseCredits: 300
+            },
+            contrarian: {
+                name: 'Contrarian Chris',
+                emoji: '🔄',
+                model: 'mistral',
+                system: 'You are a contrarian who bets against popular opinion. Analyze the event and provide: your confidence level (0-100), bet percentage (25-35% of credits), and brief reasoning. Look for undervalued opportunities. Format your response EXACTLY as: CONFIDENCE:X|BET:Y|REASON:short explanation',
+                color: '#ff9800',
+                baseCredits: 500
+            },
+            momentum: {
+                name: 'Momentum Mike',
+                emoji: '📈',
+                model: 'openai',
+                system: 'You are a momentum trader who follows trends and hot streaks. Analyze the event and provide: your confidence level (0-100), bet percentage (20-30% of credits), and brief reasoning. Ride the wave of success. Format your response EXACTLY as: CONFIDENCE:X|BET:Y|REASON:short explanation',
+                color: '#9c27b0',
+                baseCredits: 400
+            },
+            psychic: {
+                name: 'Psychic Patricia',
+                emoji: '🔮',
+                model: 'openai',
+                system: 'You are an intuitive bettor who trusts gut feelings and patterns. Analyze the event and provide: your confidence level (0-100), bet percentage (15-25% of credits), and brief reasoning. Trust your instincts. Format your response EXACTLY as: CONFIDENCE:X|BET:Y|REASON:short explanation',
+                color: '#e91e63',
+                baseCredits: 600
+            }
+        };
+
+        // Event Categories
+        const EVENT_CATEGORIES = [
+            {
+                type: 'Sports',
+                icon: '⚽',
+                templates: [
+                    'A match between ${team1} and ${team2} in ${sport}. Recent form: ${team1} has won ${record1}, ${team2} has won ${record2}.',
+                    '${sport} championship game: ${team1} vs ${team2}. ${team1} is ${stat1}, ${team2} is ${stat2}.',
+                    'Underdog ${team1} faces favorite ${team2} in ${sport}. Will there be an upset?'
+                ]
+            },
+            {
+                type: 'Market',
+                icon: '📈',
+                templates: [
+                    'Will ${company} stock price go up or down in the next period? Recent trend: ${trend}.',
+                    '${crypto} cryptocurrency: will it pump or dump? Current sentiment: ${sentiment}.',
+                    'Prediction: Will ${market} reach ${target} by end of period? Current indicators: ${indicator}.'
+                ]
+            },
+            {
+                type: 'Weather',
+                icon: '🌤️',
+                templates: [
+                    'Will it rain in ${city} tomorrow? Current conditions: ${conditions}, forecast confidence: ${confidence}.',
+                    'Temperature prediction for ${city}: Will it be above or below ${temp}°? Current: ${current}°.',
+                    'Will there be a ${event} in ${region}? Meteorological data suggests ${data}.'
+                ]
+            },
+            {
+                type: 'Social',
+                icon: '📱',
+                templates: [
+                    'Will "${topic}" trend on social media today? Current engagement: ${engagement}.',
+                    'Celebrity ${celeb} posts about ${subject}. Will it go viral? Past viral rate: ${rate}.',
+                    'Prediction: Will ${platform} announce ${feature}? Rumors suggest ${rumor}.'
+                ]
+            },
+            {
+                type: 'Gaming',
+                icon: '🎮',
+                templates: [
+                    'Esports match: ${team1} vs ${team2} in ${game}. Rankings: ${rank1} vs ${rank2}.',
+                    'Will ${player} achieve a ${achievement} in ${game}? Current stats: ${stats}.',
+                    'New game ${title} releases. Will it be a hit or flop? Hype level: ${hype}.'
+                ]
+            },
+            {
+                type: 'Science',
+                icon: '🔬',
+                templates: [
+                    'Research predicts ${discovery}. Will the hypothesis be confirmed? Probability: ${prob}.',
+                    'Space mission ${mission} attempts ${goal}. Success rate of similar missions: ${rate}.',
+                    'Will ${phenomenon} occur this period? Scientific models predict ${prediction}.'
+                ]
+            },
+            {
+                type: 'Politics',
+                icon: '🗳️',
+                templates: [
+                    'Poll: Will ${candidate} support for ${policy} increase or decrease? Current: ${current}%.',
+                    'Prediction: Will ${leader} make a major announcement about ${topic}? Sources say ${hint}.',
+                    'Will ${bill} pass in ${body}? Current vote count: ${votes} for, ${against} against.'
+                ]
+            },
+            {
+                type: 'Fiction',
+                icon: '📚',
+                templates: [
+                    'In the fictional kingdom of ${kingdom}, will ${character} defeat ${villain}? Power levels: ${power1} vs ${power2}.',
+                    'Alternate reality: If ${historical} had ${change}, would ${outcome} occur? Historians estimate ${estimate}% chance.',
+                    'Simulated scenario: ${creature} vs ${creature2} battle. Who wins? Stats: ${stat1} vs ${stat2}.'
+                ]
+            }
+        ];
+
+        // Random data generators
+        const teams = ['Dragons', 'Tigers', 'Eagles', 'Sharks', 'Panthers', 'Wolves', 'Bears', 'Lions', 'Hawks', 'Cobras'];
+        const sports = ['soccer', 'basketball', 'baseball', 'football', 'hockey', 'tennis', 'volleyball'];
+        const companies = ['TechCorp', 'InnovateCo', 'FutureTech', 'QuantumSys', 'NexGen', 'Apex Industries'];
+        const cryptos = ['BitCoin', 'EthToken', 'SolanaChain', 'CardanoNet', 'PolkaCoin', 'LunaTech'];
+        const cities = ['New York', 'Tokyo', 'London', 'Paris', 'Sydney', 'Toronto', 'Berlin', 'Singapore'];
+
+        function random(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function randomNum(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // Initialize game
+        function initGame() {
+            // Load saved game or start fresh
+            const saved = localStorage.getItem('predictionTycoon');
+            if (saved) {
+                Object.assign(gameState, JSON.parse(saved));
+            } else {
+                // Start with 3 random agents
+                const templates = ['conservative', 'aggressive', 'analytical'];
+                templates.forEach(type => {
+                    createAgent(type);
+                });
+            }
+
+            renderAgents();
+            renderUpgrades();
+            generateEvent();
+            updateStats();
+            gameLoop();
+        }
+
+        function createAgent(templateKey) {
+            const template = AGENT_TEMPLATES[templateKey];
+            const agent = {
+                id: Date.now() + Math.random(),
+                ...template,
+                credits: template.baseCredits,
+                wins: 0,
+                losses: 0,
+                totalBets: 0,
+                currentBet: null,
+                working: false,
+                activity: 'Ready for action...'
+            };
+            gameState.agents.push(agent);
+            return agent;
+        }
+
+        // Event Generation
+        async function generateEvent() {
+            const category = random(EVENT_CATEGORIES);
+            const template = random(category.templates);
+            
+            // Fill template with random data
+            let description = template
+                .replace('${team1}', random(teams))
+                .replace('${team2}', random(teams))
+                .replace('${sport}', random(sports))
+                .replace('${company}', random(companies))
+                .replace('${crypto}', random(cryptos))
+                .replace('${city}', random(cities))
+                .replace('${record1}', `${randomNum(5, 15)} of last 20`)
+                .replace('${record2}', `${randomNum(5, 15)} of last 20`)
+                .replace('${stat1}', `ranked #${randomNum(1, 10)}`)
+                .replace('${stat2}', `ranked #${randomNum(1, 10)}`)
+                .replace('${trend}', random(['bullish', 'bearish', 'volatile', 'stable']))
+                .replace('${sentiment}', random(['positive', 'negative', 'mixed', 'uncertain']))
+                .replace('${market}', random(['NASDAQ', 'S&P 500', 'DOW', 'Bitcoin']))
+                .replace('${target}', randomNum(10000, 50000))
+                .replace('${indicator}', random(['momentum up', 'resistance level', 'support strong']))
+                .replace('${conditions}', random(['cloudy', 'clear', 'humid', 'windy']))
+                .replace('${confidence}', randomNum(50, 90) + '%')
+                .replace('${temp}', randomNum(60, 90))
+                .replace('${current}', randomNum(55, 85))
+                .replace('${event}', random(['storm', 'heatwave', 'cold front']))
+                .replace('${region}', random(cities))
+                .replace('${data}', randomNum(30, 70) + '% probability')
+                .replace('${topic}', random(['#AI', '#Tech', '#Gaming', '#Sports', '#Politics']))
+                .replace('${engagement}', randomNum(100, 10000) + ' mentions')
+                .replace('${celeb}', random(['Tech CEO', 'Pop Star', 'Athlete', 'Politician']))
+                .replace('${subject}', random(['new product', 'controversy', 'achievement']))
+                .replace('${rate}', randomNum(20, 80) + '%')
+                .replace('${platform}', random(['Twitter', 'Instagram', 'TikTok', 'YouTube']))
+                .replace('${feature}', random(['live streaming', 'AI tools', 'premium tier']))
+                .replace('${rumor}', random(['strong', 'moderate', 'weak']))
+                .replace('${game}', random(['StarCraft', 'League', 'Dota', 'CS:GO', 'Valorant']))
+                .replace('${rank1}', '#' + randomNum(1, 10))
+                .replace('${rank2}', '#' + randomNum(1, 10))
+                .replace('${player}', random(['ProGamer', 'ElitePlayer', 'Champion', 'Legend']))
+                .replace('${achievement}', random(['world record', 'perfect game', 'speed run']))
+                .replace('${stats}', randomNum(80, 99) + '% win rate')
+                .replace('${title}', random(['Cyber Quest', 'Space Wars', 'Fantasy Realm']))
+                .replace('${hype}', randomNum(5, 10) + '/10')
+                .replace('${discovery}', random(['new particle', 'cure potential', 'climate solution']))
+                .replace('${prob}', randomNum(40, 85) + '%')
+                .replace('${mission}', random(['Mars Rover', 'Moon Base', 'ISS']))
+                .replace('${goal}', random(['landing', 'docking', 'sample collection']))
+                .replace('${rate}', randomNum(60, 95) + '%')
+                .replace('${phenomenon}', random(['solar flare', 'aurora', 'meteor shower']))
+                .replace('${prediction}', randomNum(30, 80) + '% chance')
+                .replace('${candidate}', random(['Senator Smith', 'Mayor Johnson', 'Governor Lee']))
+                .replace('${policy}', random(['healthcare', 'climate', 'education', 'economy']))
+                .replace('${current}', randomNum(30, 70))
+                .replace('${leader}', random(['Prime Minister', 'President', 'Chancellor']))
+                .replace('${topic}', random(['economy', 'foreign policy', 'reform']))
+                .replace('${hint}', random(['likely', 'possible', 'uncertain']))
+                .replace('${bill}', random(['Tax Reform', 'Infrastructure', 'Healthcare']))
+                .replace('${body}', random(['Senate', 'Congress', 'Parliament']))
+                .replace('${votes}', randomNum(40, 60))
+                .replace('${against}', randomNum(30, 50))
+                .replace('${kingdom}', random(['Astoria', 'Valdoria', 'Mystaria']))
+                .replace('${character}', random(['Hero Knight', 'Mage Queen', 'Rogue Prince']))
+                .replace('${villain}', random(['Dark Lord', 'Evil Sorcerer', 'Chaos Dragon']))
+                .replace('${power1}', randomNum(70, 95))
+                .replace('${power2}', randomNum(70, 95))
+                .replace('${historical}', random(['Napoleon', 'Caesar', 'Alexander']))
+                .replace('${change}', random(['won at Waterloo', 'avoided assassination', 'turned back']))
+                .replace('${outcome}', random(['European unity', 'Roman expansion', 'Asian conquest']))
+                .replace('${estimate}', randomNum(20, 80))
+                .replace('${creature}', random(['Dragon', 'Griffin', 'Phoenix', 'Kraken']))
+                .replace('${creature2}', random(['Hydra', 'Basilisk', 'Chimera', 'Leviathan']))
+                .replace('${stat1}', `ATK:${randomNum(80, 120)} DEF:${randomNum(60, 100)}`)
+                .replace('${stat2}', `ATK:${randomNum(80, 120)} DEF:${randomNum(60, 100)}`);
+
+            gameState.currentEvent = {
+                id: Date.now(),
+                type: category.type,
+                icon: category.icon,
+                description: description,
+                timeRemaining: 30 / gameState.gameSpeed,
+                outcome: null,
+                bets: []
+            };
+
+            addLog(`🎲 New ${category.type} event: ${description.substring(0, 80)}...`, 'event');
+            renderEvent();
+            
+            // Start agent analysis
+            gameState.agents.forEach(agent => analyzeEvent(agent));
+        }
+
+        // Agent AI Analysis
+        async function analyzeEvent(agent) {
+            if (agent.working) return;
+            
+            agent.working = true;
+            agent.activity = '🤔 Analyzing event...';
+            renderAgents();
+
+            try {
+                const prompt = `${gameState.currentEvent.description}\n\nAnalyze this event and decide if you want to bet.`;
+                
+                const response = await fetch(`${POLLINATIONS_API}/${encodeURIComponent(prompt)}?model=${agent.model}&system=${encodeURIComponent(agent.system)}`);
+                const text = await response.text();
+                
+                agent.activity = `💭 ${text.substring(0, 100)}...`;
+                
+                // Parse response
+                const confidenceMatch = text.match(/CONFIDENCE:(\d+)/i);
+                const betMatch = text.match(/BET:(\d+)/i);
+                const reasonMatch = text.match(/REASON:(.+?)(?:\||$)/i);
+                
+                if (confidenceMatch && betMatch) {
+                    const confidence = parseInt(confidenceMatch[1]);
+                    const betPercent = parseInt(betMatch[1]);
+                    const reason = reasonMatch ? reasonMatch[1].trim() : 'Going with my gut';
+                    
+                    const betAmount = Math.floor((agent.credits * betPercent) / 100);
+                    
+                    if (betAmount > 0 && betAmount <= agent.credits) {
+                        agent.currentBet = {
+                            amount: betAmount,
+                            confidence: confidence,
+                            reason: reason,
+                            eventId: gameState.currentEvent.id
+                        };
+                        
+                        gameState.currentEvent.bets.push({
+                            agentId: agent.id,
+                            amount: betAmount,
+                            confidence: confidence
+                        });
+                        
+                        agent.credits -= betAmount;
+                        agent.totalBets++;
+                        agent.activity = `💰 Bet ${betAmount} credits (${confidence}% confident): ${reason}`;
+                        addLog(`${agent.emoji} ${agent.name} bets ${betAmount} credits - "${reason}"`, 'info');
+                    }
+                } else {
+                    agent.activity = '🤷 Skipping this one';
+                    addLog(`${agent.emoji} ${agent.name} passes on this event`, 'info');
+                }
+            } catch (error) {
+                agent.activity = '❌ Analysis failed';
+                console.error('Agent analysis error:', error);
+            }
+            
+            agent.working = false;
+            renderAgents();
+        }
+
+        // Resolve Event
+        async function resolveEvent() {
+            if (!gameState.currentEvent || gameState.currentEvent.bets.length === 0) {
+                generateEvent();
+                return;
+            }
+
+            addLog('⏱️ Event time expired! Determining outcome...', 'event');
+
+            try {
+                // Use AI to determine outcome
+                const prompt = `Event: ${gameState.currentEvent.description}\n\nDetermine the outcome. Was this event a success/yes or failure/no? Consider realistic probabilities. Respond with just: SUCCESS or FAILURE and a brief reason.`;
+                
+                const response = await fetch(`${POLLINATIONS_API}/${encodeURIComponent(prompt)}?model=openai&system=You are an impartial judge determining event outcomes. Be realistic and fair.`);
+                const outcome = await response.text();
+                
+                const isSuccess = outcome.toLowerCase().includes('success');
+                gameState.currentEvent.outcome = isSuccess;
+                
+                addLog(`🎯 Outcome: ${outcome.substring(0, 100)}`, 'event');
+
+                // Resolve bets
+                gameState.currentEvent.bets.forEach(bet => {
+                    const agent = gameState.agents.find(a => a.id === bet.agentId);
+                    if (!agent) return;
+
+                    // Win chance based on confidence and some randomness
+                    const baseChance = bet.confidence / 100;
+                    const randomFactor = Math.random() * 0.3; // 30% randomness
+                    const winChance = (baseChance * 0.7) + randomFactor;
+                    
+                    const won = isSuccess ? (winChance > 0.5) : (winChance < 0.5);
+                    
+                    if (won) {
+                        const winnings = Math.floor(bet.amount * (1 + (bet.confidence / 100)));
+                        agent.credits += winnings;
+                        agent.wins++;
+                        gameState.totalWins++;
+                        gameState.totalProfit += (winnings - bet.amount);
+                        
+                        addLog(`${agent.emoji} ${agent.name} WON ${winnings} credits! 🎉`, 'win');
+                        agent.activity = `🎊 Won ${winnings} credits!`;
+                    } else {
+                        agent.losses++;
+                        gameState.totalProfit -= bet.amount;
+                        addLog(`${agent.emoji} ${agent.name} lost ${bet.amount} credits 😞`, 'loss');
+                        agent.activity = `😢 Lost ${bet.amount} credits`;
+                    }
+                    
+                    agent.currentBet = null;
+                });
+
+                gameState.eventsCompleted++;
+                gameState.totalBets += gameState.currentEvent.bets.length;
+
+            } catch (error) {
+                console.error('Event resolution error:', error);
+                addLog('⚠️ Event resolution failed, generating new event', 'info');
+            }
+
+            updateStats();
+            renderAgents();
+            
+            // Generate next event
+            setTimeout(() => {
+                if (!gameState.isPaused) generateEvent();
+            }, 2000 / gameState.gameSpeed);
+        }
+
+        // Game Loop
+        function gameLoop() {
+            setInterval(() => {
+                if (gameState.isPaused) return;
+
+                if (gameState.currentEvent && gameState.currentEvent.timeRemaining > 0) {
+                    gameState.currentEvent.timeRemaining -= 0.1;
+                    
+                    if (gameState.currentEvent.timeRemaining <= 0) {
+                        resolveEvent();
+                    }
+                    
+                    renderEvent();
+                }
+
+                // Calculate total credits
+                gameState.credits = gameState.agents.reduce((sum, agent) => sum + agent.credits, 0);
+                updateStats();
+            }, 100);
+        }
+
+        // Rendering Functions
+        function renderEvent() {
+            const event = gameState.currentEvent;
+            if (!event) return;
+
+            const totalBets = event.bets.reduce((sum, bet) => sum + bet.amount, 0);
+            const avgConfidence = event.bets.length > 0 
+                ? Math.round(event.bets.reduce((sum, bet) => sum + bet.confidence, 0) / event.bets.length)
+                : 0;
+
+            document.getElementById('currentEvent').innerHTML = `
+                <div class="event-card">
+                    <div class="event-header">
+                        <span class="event-type">${event.icon} ${event.type}</span>
+                        <span class="event-timer">${Math.ceil(event.timeRemaining)}s</span>
+                    </div>
+                    <div class="event-description">${event.description}</div>
+                    <div style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Total Bets:</span>
+                            <span style="color: #ffd700; font-weight: bold;">${totalBets} credits</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Avg Confidence:</span>
+                            <span style="color: #4caf50; font-weight: bold;">${avgConfidence}%</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAgents() {
+            const html = gameState.agents.map(agent => {
+                const winRate = agent.totalBets > 0 
+                    ? Math.round((agent.wins / agent.totalBets) * 100) 
+                    : 0;
+                
+                return `
+                    <div class="agent-card ${agent.working ? 'working' : ''}" style="border-color: ${agent.color}">
+                        <div class="agent-header">
+                            <div class="agent-name">
+                                <span style="font-size: 1.5em;">${agent.emoji}</span>
+                                <div>
+                                    <div>${agent.name}</div>
+                                    <div class="agent-model">${agent.model}</div>
+                                </div>
+                            </div>
+                            <div class="agent-credits">${agent.credits}💰</div>
+                        </div>
+                        <div class="agent-stats">
+                            <div class="agent-stat">
+                                <div class="agent-stat-label">Win Rate</div>
+                                <div class="agent-stat-value">${winRate}%</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-label">Wins</div>
+                                <div class="agent-stat-value" style="color: #4caf50">${agent.wins}</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-label">Losses</div>
+                                <div class="agent-stat-value" style="color: #f44336">${agent.losses}</div>
+                            </div>
+                        </div>
+                        <div class="agent-activity">${agent.activity}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('agentsList').innerHTML = html;
+        }
+
+        function renderUpgrades() {
+            const upgrades = [
+                {
+                    icon: '🔄',
+                    name: 'Contrarian Agent',
+                    cost: 500,
+                    description: 'Unlock a contrarian agent who bets against the crowd',
+                    unlocked: gameState.agents.some(a => a.emoji === '🔄'),
+                    action: () => {
+                        if (gameState.credits >= 500) {
+                            createAgent('contrarian');
+                            gameState.credits -= 500;
+                            addLog('🎉 Unlocked Contrarian Chris!', 'win');
+                            renderUpgrades();
+                            renderAgents();
+                            updateStats();
+                        }
+                    }
+                },
+                {
+                    icon: '📈',
+                    name: 'Momentum Agent',
+                    cost: 800,
+                    description: 'Unlock a momentum trader who rides winning streaks',
+                    unlocked: gameState.agents.some(a => a.emoji === '📈'),
+                    action: () => {
+                        if (gameState.credits >= 800) {
+                            createAgent('momentum');
+                            gameState.credits -= 800;
+                            addLog('🎉 Unlocked Momentum Mike!', 'win');
+                            renderUpgrades();
+                            renderAgents();
+                            updateStats();
+                        }
+                    }
+                },
+                {
+                    icon: '🔮',
+                    name: 'Psychic Agent',
+                    cost: 1200,
+                    description: 'Unlock an intuitive agent with mysterious powers',
+                    unlocked: gameState.agents.some(a => a.emoji === '🔮'),
+                    action: () => {
+                        if (gameState.credits >= 1200) {
+                            createAgent('psychic');
+                            gameState.credits -= 1200;
+                            addLog('🎉 Unlocked Psychic Patricia!', 'win');
+                            renderUpgrades();
+                            renderAgents();
+                            updateStats();
+                        }
+                    }
+                },
+                {
+                    icon: '💰',
+                    name: 'Credit Boost',
+                    cost: 300,
+                    description: 'Give all agents +100 credits immediately',
+                    unlocked: false,
+                    action: () => {
+                        if (gameState.credits >= 300) {
+                            gameState.agents.forEach(agent => agent.credits += 100);
+                            gameState.credits -= 300;
+                            addLog('💰 All agents received +100 credits!', 'win');
+                            renderAgents();
+                            updateStats();
+                        }
+                    }
+                },
+                {
+                    icon: '⚡',
+                    name: 'Double Agent',
+                    cost: 1000,
+                    description: 'Clone your best performing agent',
+                    unlocked: false,
+                    action: () => {
+                        if (gameState.credits >= 1000 && gameState.agents.length > 0) {
+                            const bestAgent = gameState.agents.reduce((best, agent) => 
+                                agent.wins > best.wins ? agent : best
+                            );
+                            const cloneType = Object.keys(AGENT_TEMPLATES).find(key => 
+                                AGENT_TEMPLATES[key].emoji === bestAgent.emoji
+                            );
+                            if (cloneType) {
+                                createAgent(cloneType);
+                                gameState.credits -= 1000;
+                                addLog(`⚡ Cloned ${bestAgent.name}!`, 'win');
+                                renderAgents();
+                                updateStats();
+                            }
+                        }
+                    }
+                },
+                {
+                    icon: '🎓',
+                    name: 'Agent Training',
+                    cost: 600,
+                    description: 'Increase win rate of all agents by improving their analysis',
+                    unlocked: false,
+                    action: () => {
+                        if (gameState.credits >= 600) {
+                            gameState.upgrades.dataPoints++;
+                            gameState.credits -= 600;
+                            addLog('🎓 All agents trained! Analysis improved!', 'win');
+                            updateStats();
+                        }
+                    }
+                }
+            ];
+
+            const html = upgrades.map(upgrade => `
+                <div class="upgrade-card ${upgrade.unlocked ? 'locked' : ''}" 
+                     onclick='${!upgrade.unlocked ? `upgrades[${upgrades.indexOf(upgrade)}].action()` : ''}'
+                     style="cursor: ${upgrade.unlocked ? 'not-allowed' : 'pointer'}">
+                    <div class="upgrade-icon">${upgrade.icon}</div>
+                    <div class="upgrade-name">${upgrade.name}</div>
+                    <div class="upgrade-cost">${upgrade.cost} 💰</div>
+                    <div class="upgrade-description">${upgrade.description}</div>
+                    ${upgrade.unlocked ? '<div style="color: #4caf50; font-weight: bold;">✓ UNLOCKED</div>' : 
+                      gameState.credits >= upgrade.cost ? '<div style="color: #4caf50; font-weight: bold;">CLICK TO PURCHASE</div>' : 
+                      '<div style="color: #f44336;">Not enough credits</div>'}
+                </div>
+            `).join('');
+
+            document.getElementById('upgradesGrid').innerHTML = html;
+            
+            // Store upgrade actions globally for onclick
+            window.upgrades = upgrades;
+        }
+
+        function updateStats() {
+            document.getElementById('totalCredits').textContent = Math.floor(gameState.credits);
+            document.getElementById('activeAgents').textContent = gameState.agents.length;
+            document.getElementById('eventsCompleted').textContent = gameState.eventsCompleted;
+            
+            const winRate = gameState.totalBets > 0 
+                ? Math.round((gameState.totalWins / gameState.totalBets) * 100) 
+                : 0;
+            document.getElementById('winRate').textContent = winRate + '%';
+            
+            const profitSign = gameState.totalProfit >= 0 ? '+' : '';
+            document.getElementById('totalProfit').textContent = profitSign + Math.floor(gameState.totalProfit);
+            document.getElementById('totalProfit').style.color = gameState.totalProfit >= 0 ? '#4caf50' : '#f44336';
+        }
+
+        function addLog(message, type) {
+            const timestamp = new Date().toLocaleTimeString();
+            gameState.logs.unshift({ message, type, timestamp });
+            
+            if (gameState.logs.length > 100) {
+                gameState.logs = gameState.logs.slice(0, 100);
+            }
+            
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const html = gameState.logs.slice(0, 50).map(log => `
+                <div class="log-entry log-${log.type}">
+                    <span style="color: #666; font-size: 0.85em;">[${log.timestamp}]</span> ${log.message}
+                </div>
+            `).join('');
+            
+            document.getElementById('activityLog').innerHTML = html;
+        }
+
+        // Control Functions
+        function toggleGame() {
+            gameState.isPaused = !gameState.isPaused;
+            const btn = document.getElementById('toggleBtn');
+            btn.textContent = gameState.isPaused ? '▶️ Resume Game' : '⏸️ Pause Game';
+            addLog(gameState.isPaused ? '⏸️ Game paused' : '▶️ Game resumed', 'info');
+        }
+
+        function saveGame() {
+            localStorage.setItem('predictionTycoon', JSON.stringify(gameState));
+            addLog('💾 Game saved successfully!', 'info');
+            
+            // Show temporary save confirmation
+            const saveMsg = document.createElement('div');
+            saveMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4caf50; color: white; padding: 15px 25px; border-radius: 10px; font-weight: bold; z-index: 1000; animation: slideIn 0.3s ease-out;';
+            saveMsg.textContent = '✓ Game Saved!';
+            document.body.appendChild(saveMsg);
+            setTimeout(() => saveMsg.remove(), 2000);
+        }
+
+        function resetGame() {
+            if (confirm('Are you sure you want to reset? All progress will be lost!')) {
+                localStorage.removeItem('predictionTycoon');
+                location.reload();
+            }
+        }
+
+        function setSpeed(speed) {
+            gameState.gameSpeed = speed;
+            document.querySelectorAll('.speed-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            addLog(`⚡ Game speed set to ${speed}x`, 'info');
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('gameTab').style.display = 'none';
+            document.getElementById('upgradesTab').style.display = 'none';
+            document.getElementById('statsTab').style.display = 'none';
+            
+            if (tabName === 'game') {
+                document.getElementById('gameTab').style.display = 'block';
+            } else if (tabName === 'upgrades') {
+                document.getElementById('upgradesTab').style.display = 'block';
+                renderUpgrades();
+            } else if (tabName === 'stats') {
+                document.getElementById('statsTab').style.display = 'block';
+                renderDetailedStats();
+            }
+        }
+
+        function renderDetailedStats() {
+            const topAgent = gameState.agents.reduce((best, agent) => 
+                agent.wins > best.wins ? agent : best
+            , gameState.agents[0]);
+
+            const totalCreditsEarned = gameState.agents.reduce((sum, agent) => 
+                sum + (agent.wins * 100), 0
+            );
+
+            const html = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div class="stat-card">
+                        <div class="stat-label">Top Performing Agent</div>
+                        <div style="font-size: 2em; margin: 10px 0;">${topAgent.emoji}</div>
+                        <div style="color: #ffd700; font-size: 1.3em;">${topAgent.name}</div>
+                        <div style="color: #4caf50; margin-top: 10px;">${topAgent.wins} wins</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Total Credits Earned</div>
+                        <div class="stat-value">${totalCreditsEarned}</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Average Bet Size</div>
+                        <div class="stat-value">${gameState.totalBets > 0 ? Math.round(totalCreditsEarned / gameState.totalBets) : 0}</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Longest Win Streak</div>
+                        <div class="stat-value">${Math.max(...gameState.agents.map(a => a.wins))}</div>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 30px; color: #ffd700;">Agent Leaderboard</h3>
+                <div style="margin-top: 20px;">
+                    ${gameState.agents
+                        .sort((a, b) => b.wins - a.wins)
+                        .map((agent, index) => `
+                            <div style="background: rgba(0,0,0,0.3); padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div style="font-size: 2em; font-weight: bold; color: ${index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#666'};">
+                                        ${index + 1}
+                                    </div>
+                                    <div style="font-size: 1.5em;">${agent.emoji}</div>
+                                    <div>
+                                        <div style="font-weight: bold;">${agent.name}</div>
+                                        <div style="font-size: 0.9em; color: #888;">${agent.wins}W - ${agent.losses}L</div>
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 1.3em; color: #ffd700; font-weight: bold;">${agent.credits}💰</div>
+                                    <div style="font-size: 0.9em; color: #4caf50;">
+                                        ${agent.totalBets > 0 ? Math.round((agent.wins / agent.totalBets) * 100) : 0}% win rate
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                </div>
+            `;
+            
+            document.getElementById('detailedStats').innerHTML = html;
+        }
+
+        // Auto-save every 30 seconds
+        setInterval(() => {
+            if (!gameState.isPaused) {
+                saveGame();
+            }
+        }, 30000);
+
+        // Initialize on load
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
