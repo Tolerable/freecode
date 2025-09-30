@@ -258,6 +258,9 @@
             border-radius: 5px;
             border-left: 3px solid;
             font-size: 0.95em;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
         }
 
         .log-win {
@@ -325,9 +328,21 @@
 
         .upgrades-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 15px;
             margin-top: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .upgrades-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .upgrades-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .upgrade-card {
@@ -841,7 +856,7 @@
                 bets: []
             };
 
-            addLog(`🎲 New ${category.type} event: ${description.substring(0, 80)}...`, 'event');
+            addLog(`🎲 New ${category.type} event: ${description}`, 'event');
             renderEvent();
             
             // Start agent analysis
@@ -850,7 +865,7 @@
 
         // Agent AI Analysis
         async function analyzeEvent(agent) {
-            if (agent.working) return;
+            if (agent.working || !gameState.currentEvent) return;
             
             agent.working = true;
             agent.activity = '🤔 Analyzing event...';
@@ -860,7 +875,16 @@
                 const prompt = `${gameState.currentEvent.description}\n\nAnalyze this event and decide if you want to bet.`;
                 
                 const response = await fetch(`${POLLINATIONS_API}/${encodeURIComponent(prompt)}?model=${agent.model}&system=${encodeURIComponent(agent.system)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const text = await response.text();
+                
+                if (!text || text.trim() === '') {
+                    throw new Error('Empty response from API');
+                }
                 
                 agent.activity = `💭 ${text.substring(0, 100)}...`;
                 
@@ -894,14 +918,17 @@
                         agent.totalBets++;
                         agent.activity = `💰 Bet ${betAmount} credits (${confidence}% confident): ${reason}`;
                         addLog(`${agent.emoji} ${agent.name} bets ${betAmount} credits - "${reason}"`, 'info');
+                    } else {
+                        agent.activity = '🤷 Skipping - bet amount invalid';
                     }
                 } else {
-                    agent.activity = '🤷 Skipping this one';
+                    agent.activity = '🤷 Skipping this one - unclear analysis';
                     addLog(`${agent.emoji} ${agent.name} passes on this event`, 'info');
                 }
             } catch (error) {
-                agent.activity = '❌ Analysis failed';
+                agent.activity = '❌ API error - will retry next event';
                 console.error('Agent analysis error:', error);
+                addLog(`${agent.emoji} ${agent.name} encountered an error, will retry`, 'loss');
             }
             
             agent.working = false;
@@ -1128,6 +1155,7 @@
                     cost: 300,
                     description: 'Give all agents +100 credits immediately',
                     unlocked: false,
+                    repeatable: true,
                     action: () => {
                         if (gameState.credits >= 300) {
                             gameState.agents.forEach(agent => agent.credits += 100);
@@ -1144,6 +1172,7 @@
                     cost: 1000,
                     description: 'Clone your best performing agent',
                     unlocked: false,
+                    repeatable: true,
                     action: () => {
                         if (gameState.credits >= 1000 && gameState.agents.length > 0) {
                             const bestAgent = gameState.agents.reduce((best, agent) => 
@@ -1158,6 +1187,7 @@
                                 addLog(`⚡ Cloned ${bestAgent.name}!`, 'win');
                                 renderAgents();
                                 updateStats();
+                                renderUpgrades();
                             }
                         }
                     }
@@ -1168,6 +1198,7 @@
                     cost: 600,
                     description: 'Increase win rate of all agents by improving their analysis',
                     unlocked: false,
+                    repeatable: true,
                     action: () => {
                         if (gameState.credits >= 600) {
                             gameState.upgrades.dataPoints++;
@@ -1176,19 +1207,62 @@
                             updateStats();
                         }
                     }
+                },
+                {
+                    icon: '🎰',
+                    name: 'Manual Bet',
+                    cost: 0,
+                    description: 'Place your own bet on the current event',
+                    unlocked: false,
+                    repeatable: true,
+                    action: () => {
+                        manualBet();
+                    }
+                },
+                {
+                    icon: '🎯',
+                    name: 'Skip Event',
+                    cost: 0,
+                    description: 'Skip to the next event immediately',
+                    unlocked: false,
+                    repeatable: true,
+                    action: () => {
+                        if (gameState.currentEvent) {
+                            addLog('⏭️ Skipping current event...', 'info');
+                            resolveEvent();
+                        }
+                    }
+                },
+                {
+                    icon: '🔥',
+                    name: 'Force All Bet',
+                    cost: 0,
+                    description: 'Make all agents bet on current event',
+                    unlocked: false,
+                    repeatable: true,
+                    action: () => {
+                        if (gameState.currentEvent) {
+                            gameState.agents.forEach(agent => {
+                                if (!agent.currentBet && !agent.working) {
+                                    analyzeEvent(agent);
+                                }
+                            });
+                            addLog('🔥 Forced all agents to analyze!', 'info');
+                        }
+                    }
                 }
             ];
 
-            const html = upgrades.map(upgrade => `
-                <div class="upgrade-card ${upgrade.unlocked ? 'locked' : ''}" 
-                     onclick='${!upgrade.unlocked ? `upgrades[${upgrades.indexOf(upgrade)}].action()` : ''}'
-                     style="cursor: ${upgrade.unlocked ? 'not-allowed' : 'pointer'}">
+            const html = upgrades.map((upgrade, index) => `
+                <div class="upgrade-card ${upgrade.unlocked && !upgrade.repeatable ? 'locked' : ''}" 
+                     onclick='${(!upgrade.unlocked || upgrade.repeatable) && gameState.credits >= upgrade.cost ? `window.upgrades[${index}].action()` : ''}'
+                     style="cursor: ${upgrade.unlocked && !upgrade.repeatable ? 'not-allowed' : 'pointer'}">
                     <div class="upgrade-icon">${upgrade.icon}</div>
                     <div class="upgrade-name">${upgrade.name}</div>
-                    <div class="upgrade-cost">${upgrade.cost} 💰</div>
+                    ${upgrade.cost > 0 ? `<div class="upgrade-cost">${upgrade.cost} 💰</div>` : '<div class="upgrade-cost" style="color: #4caf50;">FREE</div>'}
                     <div class="upgrade-description">${upgrade.description}</div>
-                    ${upgrade.unlocked ? '<div style="color: #4caf50; font-weight: bold;">✓ UNLOCKED</div>' : 
-                      gameState.credits >= upgrade.cost ? '<div style="color: #4caf50; font-weight: bold;">CLICK TO PURCHASE</div>' : 
+                    ${upgrade.unlocked && !upgrade.repeatable ? '<div style="color: #4caf50; font-weight: bold;">✓ UNLOCKED</div>' : 
+                      upgrade.cost === 0 || gameState.credits >= upgrade.cost ? '<div style="color: #4caf50; font-weight: bold;">CLICK TO USE</div>' : 
                       '<div style="color: #f44336;">Not enough credits</div>'}
                 </div>
             `).join('');
@@ -1197,6 +1271,55 @@
             
             // Store upgrade actions globally for onclick
             window.upgrades = upgrades;
+        }
+
+        function manualBet() {
+            if (!gameState.currentEvent) {
+                addLog('⚠️ No active event to bet on!', 'loss');
+                return;
+            }
+
+            const betAmount = prompt('How many credits do you want to bet?', '100');
+            if (!betAmount || isNaN(betAmount) || betAmount <= 0) {
+                return;
+            }
+
+            const bet = parseInt(betAmount);
+            if (bet > gameState.credits) {
+                addLog('⚠️ Not enough credits!', 'loss');
+                return;
+            }
+
+            // Create temporary player agent
+            const playerAgent = {
+                id: 'player-' + Date.now(),
+                name: '👤 YOU',
+                emoji: '👤',
+                credits: gameState.credits,
+                wins: 0,
+                losses: 0,
+                totalBets: 1,
+                currentBet: {
+                    amount: bet,
+                    confidence: 50,
+                    reason: 'Manual player bet',
+                    eventId: gameState.currentEvent.id
+                }
+            };
+
+            gameState.agents.push(playerAgent);
+            gameState.currentEvent.bets.push({
+                agentId: playerAgent.id,
+                amount: bet,
+                confidence: 50
+            });
+
+            gameState.credits -= bet;
+            playerAgent.credits -= bet;
+            
+            addLog(`👤 You bet ${bet} credits on current event!`, 'win');
+            renderAgents();
+            updateStats();
         }
 
         function updateStats() {
