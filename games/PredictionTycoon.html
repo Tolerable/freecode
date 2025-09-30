@@ -1404,7 +1404,7 @@
             
             const betAmount = Math.floor((agent.credits * betPercent) / 100);
             
-            if (betAmount > 0 && betAmount <= agent.credits) {
+            if (betAmount > 0 && betAmount <= agent.credits && gameState.currentEvent) {
                 const reasons = [
                     'The odds look favorable',
                     'Going with statistical probability',
@@ -1418,23 +1418,28 @@
                 
                 const reason = reasons[Math.floor(Math.random() * reasons.length)];
                 
+                // Pick random outcome
+                const selectedOutcome = gameState.currentEvent.outcomes[Math.floor(Math.random() * gameState.currentEvent.outcomes.length)];
+                
                 agent.currentBet = {
                     amount: betAmount,
                     confidence: randomConfidence,
                     reason: reason,
-                    eventId: gameState.currentEvent.id
+                    eventId: gameState.currentEvent.id,
+                    selectedOutcome: selectedOutcome
                 };
                 
                 gameState.currentEvent.bets.push({
                     agentId: agent.id,
                     amount: betAmount,
-                    confidence: randomConfidence
+                    confidence: randomConfidence,
+                    selectedOutcome: selectedOutcome
                 });
                 
                 agent.credits -= betAmount;
                 agent.totalBets++;
-                agent.activity = `💰 Bet ${betAmount} credits (${randomConfidence}% confident): ${reason}`;
-                addLog(`${agent.emoji} ${agent.name} bets ${betAmount} credits - "${reason}"`, 'info');
+                agent.activity = `💰 Bet ${betAmount} on ${selectedOutcome.label} (${selectedOutcome.odds}x)`;
+                addLog(`${agent.emoji} ${agent.name} bets ${betAmount} on "${selectedOutcome.label}"`, 'info');
             } else {
                 agent.activity = '🤷 Skipping this round';
             }
@@ -1450,37 +1455,29 @@
             addLog('⏱️ Event time expired! Determining outcome...', 'event');
 
             try {
-                // Use AI to determine outcome
-                const prompt = `Event: ${gameState.currentEvent.description}\n\nDetermine the outcome. Was this event a success/yes or failure/no? Consider realistic probabilities. Respond with just: SUCCESS or FAILURE and a brief reason.`;
+                // Randomly determine which outcome wins (50/50 for now, could be AI-based)
+                const winningOutcome = gameState.currentEvent.outcomes[Math.floor(Math.random() * gameState.currentEvent.outcomes.length)];
                 
-                const response = await fetch(`${POLLINATIONS_API}/${encodeURIComponent(prompt)}?model=openai&system=You are an impartial judge determining event outcomes. Be realistic and fair.`);
-                const outcome = await response.text();
+                gameState.currentEvent.outcome = winningOutcome;
                 
-                const isSuccess = outcome.toLowerCase().includes('success');
-                gameState.currentEvent.outcome = isSuccess;
-                
-                addLog(`🎯 Outcome: ${outcome.substring(0, 100)}`, 'event');
+                addLog(`🎯 Winner: ${winningOutcome.label}!`, 'event');
 
                 // Resolve bets
                 gameState.currentEvent.bets.forEach(bet => {
                     const agent = gameState.agents.find(a => a.id === bet.agentId);
                     if (!agent) return;
 
-                    // Win chance based on confidence and some randomness
-                    const baseChance = bet.confidence / 100;
-                    const randomFactor = Math.random() * 0.3; // 30% randomness
-                    const winChance = (baseChance * 0.7) + randomFactor;
-                    
-                    const won = isSuccess ? (winChance > 0.5) : (winChance < 0.5);
+                    // Check if agent's selected outcome matches winning outcome
+                    const won = bet.selectedOutcome && bet.selectedOutcome.label === winningOutcome.label;
                     
                     if (won) {
-                        const winnings = Math.floor(bet.amount * (1 + (bet.confidence / 100)));
+                        const winnings = Math.floor(bet.amount * bet.selectedOutcome.odds);
                         agent.credits += winnings;
                         agent.wins++;
                         gameState.totalWins++;
                         gameState.totalProfit += (winnings - bet.amount);
                         
-                        addLog(`${agent.emoji} ${agent.name} WON ${winnings} credits! 🎉`, 'win');
+                        addLog(`${agent.emoji} ${agent.name} WON ${winnings} credits! (${bet.selectedOutcome.odds}x) 🎉`, 'win');
                         agent.activity = `🎊 Won ${winnings} credits!`;
                     } else {
                         agent.losses++;
