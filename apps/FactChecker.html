@@ -931,7 +931,7 @@ Be objective and balanced. If evidence is mixed, use "uncertain".`;
         }
 
         // Filter handling
-        document.addEventListener('DOMContentLoaded', () => {
+        function setupEventListeners() {
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -945,7 +945,38 @@ Be objective and balanced. If evidence is mixed, use "uncertain".`;
                 searchQuery = e.target.value;
                 renderClaims();
             });
-        });
+
+            document.getElementById('importFile').addEventListener('change', async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    const claims = JSON.parse(text);
+                    
+                    if (!Array.isArray(claims)) {
+                        throw new Error('Invalid format');
+                    }
+
+                    const confirm = window.confirm(`This will import ${claims.length} claims. Continue?`);
+                    if (!confirm) return;
+
+                    for (const claim of claims) {
+                        delete claim.id;
+                        await saveClaim(claim);
+                    }
+
+                    await renderClaims();
+                    updateStats();
+                    alert('Data imported successfully!');
+                } catch (error) {
+                    console.error('Import error:', error);
+                    alert('Failed to import data. Please check the file format.');
+                }
+                
+                e.target.value = '';
+            });
+        }
 
         // Export data
         async function exportData() {
@@ -964,39 +995,6 @@ Be objective and balanced. If evidence is mixed, use "uncertain".`;
         function importData() {
             document.getElementById('importFile').click();
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('importFile').addEventListener('change', async function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                try {
-                    const text = await file.text();
-                    const claims = JSON.parse(text);
-                    
-                    if (!Array.isArray(claims)) {
-                        throw new Error('Invalid format');
-                    }
-
-                    const confirm = window.confirm(`This will import ${claims.length} claims. Continue?`);
-                    if (!confirm) return;
-
-                    for (const claim of claims) {
-                        delete claim.id; // Let DB assign new IDs
-                        await saveClaim(claim);
-                    }
-
-                    await renderClaims();
-                    updateStats();
-                    alert('Data imported successfully!');
-                } catch (error) {
-                    console.error('Import error:', error);
-                    alert('Failed to import data. Please check the file format.');
-                }
-                
-                e.target.value = ''; // Reset file input
-            });
-        });
 
         // Delete all data
         function confirmDeleteAll() {
@@ -1027,5 +1025,11 @@ Be objective and balanced. If evidence is mixed, use "uncertain".`;
             return div.innerHTML;
         }
 
-        // Initialize app when page loads
-        initApp();
+		// Initialize app when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            initApp();
+        });
+    </script>
+</body>
+</html>
