@@ -710,36 +710,193 @@
             }
         }
 
-        // Call Pollinations AI API
+		// Multi-model AI pipeline for fact-checking
         async function callAIAnalysis(claim, context) {
-            const systemPrompt = `You are a fact-checking assistant. Analyze the given claim objectively and provide:
-1. A clear verdict (SUPPORTED, DEBUNKED, or UNCERTAIN)
-2. Supporting points (if any exist)
-3. Refuting points (if any exist)
-4. A brief conclusion
+            try {
+                // Phase 1: Search for facts using gemini-search
+                const searchResults = await gatherFactsWithSearch(claim, context);
+                
+                // Phase 2: Analyze with reasoning model
+                const analysis = await analyzeWithReasoning(claim, context, searchResults);
+                
+                return analysis;
+            } catch (error) {
+                console.error('Multi-model pipeline failed, using fallback:', error);
+                // Fallback to openai-large if pipeline fails
+                return await fallbackAnalysis(claim, context);
+            }
+        }
 
-Format your response as JSON with this structure:
+        // Phase 1: Use gemini-search to gather current facts
+        async function gatherFactsWithSearch(claim, context) {
+            const searchPrompt = context 
+                ? `Search for current information about: "${claim}"\n\nContext: ${context}\n\nFind factual evidence that either supports or refutes this claim.`
+                : `Search for current information about: "${claim}"\n\nFind factual evidence that either supports or refutes this claim.`;
+
+            try {
+                const response = await fetch('https://text.pollinations.ai/openai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'gemini-search',
+                        messages: [
+                            { role: 'user', content: searchPrompt }
+                        ],
+                        private: false,
+                        referrer: 'www.ai-ministries.com'
+                    })
+                });
+
+                if (!response.ok) throw new Error('Search failed');
+
+                const data = await response.json();
+                return data.choices[0].message.content;
+            } catch (error) {
+                console.error('Search phase failed:', error);
+                return 'No search results available.';
+            }
+        }
+
+        // Phase 2: Use reasoning model to analyze gathered facts
+        async function analyzeWithReasoning(claim, context, searchResults) {
+            // Truncate search results to fit token limits (5000 chars for deepseek-reasoning)
+            const truncatedResults = searchResults.substring(0, 4000);
+            
+            const analysisPrompt = `Claim: "${claim}"
+${context ? `\nContext: ${context}` : ''}
+
+Search Results:
+${truncatedResults}
+
+Analyze this claim based on the search results. Determine if it is SUPPORTED, DEBUNKED, or UNCERTAIN.
+
+Respond with JSON:
 {
   "status": "supported|debunked|uncertain",
   "verdict": "brief verdict statement",
-  "supportingPoints": ["point 1", "point 2", ...],
-  "refutingPoints": ["point 1", "point 2", ...],
+  "supportingPoints": ["point 1", "point 2"],
+  "refutingPoints": ["point 1", "point 2"],
   "conclusion": "brief conclusion"
-}
+}`;
 
-Be objective and balanced. If evidence is mixed, use "uncertain".`;
+            try {
+                const response = await fetch('https://text.pollinations.ai/openai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'openai-reasoning',
+                        messages: [
+                            { role: 'user', content: analysisPrompt }
+                        ],
+                        response_format: { type: 'json_object' },
+                        private: false,
+                        referrer: 'www.ai-ministries.com'
+                    })
+                });
 
+                if (!response.ok) throw new Error('Reasoning analysis failed');
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+                
+                return JSON.parse(content);
+            } catch (error) {
+                console.error('Reasoning phase failed, trying deepseek:', error);
+                // Try deepseek-reasoning as backup
+                return await analyzeWithDeepseek(claim, context, truncatedResults);
+            }
+        }
+
+        // Backup reasoning with deepseek
+        async function analyzeWithDeepseek(claim, context, searchResults) {
+            const analysisPrompt = `Claim: "${claim}"
+${context ? `\nContext: ${context}` : ''}
+
+Facts found:
+${searchResults}
+
+Analyze and respond with JSON:
+{
+  "status": "supported|debunked|uncertain",
+  "verdict": "brief verdict",
+  "supportingPoints": ["point 1"],
+  "refutingPoints": ["point 1"],
+  "conclusion": "brief conclusion"
+}`;
+
+            try {
+                const response = await fetch('https://text.pollinations.ai/openai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'deepseek-reasoning',
+                        messages: [
+                            { role: 'user', content: analysisPrompt }
+                        ],
+                        response_format: { type: 'json_object' },
+                        private: false,
+                        referrer: 'www.ai-ministries.com'
+                    })
+                });
+
+                if (!response.ok) throw new Error('Deepseek analysis failed');
+
+                const data = await response.json();
+                return JSON.parse(data.choices[0].message.content);
+            } catch (error) {
+                throw error; // Will trigger fallback in main function
+            }
+        }
+
+        // Final fallback: Use openai-large or openai-fast
+        async function fallbackAnalysis(claim, context) {
+            const systemPrompt = `You are a fact-checking assistant. Analyze the claim and provide a verdict with supporting/refuting points.`;
+            
             const userPrompt = context 
-                ? `Claim: "${claim}"\n\nAdditional Context: ${context}`
-                : `Claim: "${claim}"`;
+                ? `Claim: "${claim}"\n\nContext: ${context}\n\nProvide JSON response with: status, verdict, supportingPoints, refutingPoints, conclusion`
+                : `Claim: "${claim}"\n\nProvide JSON response with: status, verdict, supportingPoints, refutingPoints, conclusion`;
 
+            // Try openai-large first
+            try {
+                const response = await fetch('https://text.pollinations.ai/openai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'openai-large',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        response_format: { type: 'json_object' },
+                        private: false,
+                        referrer: 'www.ai-ministries.com'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return JSON.parse(data.choices[0].message.content);
+                }
+            } catch (error) {
+                console.error('openai-large failed, trying openai-fast:', error);
+            }
+
+            // Final fallback: openai-fast
             const response = await fetch('https://text.pollinations.ai/openai', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    model: 'openai',
+                    model: 'openai-fast',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }
@@ -751,24 +908,17 @@ Be objective and balanced. If evidence is mixed, use "uncertain".`;
             });
 
             if (!response.ok) {
-                throw new Error('API request failed');
+                return {
+                    status: 'uncertain',
+                    verdict: 'Unable to analyze claim',
+                    supportingPoints: [],
+                    refutingPoints: [],
+                    conclusion: 'API error occurred'
+                };
             }
 
             const data = await response.json();
-            const content = data.choices[0].message.content;
-            
-            try {
-                return JSON.parse(content);
-            } catch (e) {
-                // Fallback if JSON parsing fails
-                return {
-                    status: 'uncertain',
-                    verdict: 'Unable to determine',
-                    supportingPoints: [],
-                    refutingPoints: [],
-                    conclusion: content
-                };
-            }
+            return JSON.parse(data.choices[0].message.content);
         }
 
         // Render claims list
