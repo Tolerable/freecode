@@ -1026,37 +1026,43 @@
         }
 
         // Initialize Game
-        function initGame() {
-            const saved = localStorage.getItem('marketProphets');
-            if (saved) {
-                const savedData = JSON.parse(saved);
-                Object.assign(game, savedData);
-            } else {
-                // Create AI competitors
-                COMPETITOR_TEMPLATES.forEach(template => {
-                    game.competitors.push({
-                        ...template,
-                        wealth: randNum(8000, 12000),
-                        wins: 0,
-                        losses: 0,
-                        totalBets: 0,
-                        passiveIncome: 15,
-                        activeBets: []
-                    });
-                });
-                
-                // Generate initial events
-                for (let i = 0; i < 5; i++) {
-                    generateEvent();
-                }
-            }
+		function initGame() {
+			const saved = localStorage.getItem('marketProphets');
+			if (saved) {
+				const savedData = JSON.parse(saved);
+				game.player = savedData.player;
+				game.competitors = savedData.competitors;
+				game.events = savedData.events;
+				game.upgrades = savedData.upgrades || { passiveIncome: 0, maxEvents: 5, betBonus: 0, eventSpeed: 0 };
+				game.isPaused = savedData.isPaused || false;
+				game.gameSpeed = savedData.gameSpeed || 1;
+				game.activities = [];
+			} else {
+				// Create AI competitors
+				COMPETITOR_TEMPLATES.forEach(template => {
+					game.competitors.push({
+						...template,
+						wealth: randNum(8000, 12000),
+						wins: 0,
+						losses: 0,
+						totalBets: 0,
+						passiveIncome: 15,
+						activeBets: []
+					});
+				});
+				
+				// Generate initial events
+				for (let i = 0; i < 5; i++) {
+					generateEvent();
+				}
+			}
 
-            renderCompetitors();
-            renderEvents();
-            renderUpgrades();
-            updatePlayerDisplay();
-            startGameLoop();
-        }
+			renderCompetitors();
+			renderEvents();
+			renderUpgrades();
+			updatePlayerDisplay();
+			startGameLoop();
+		}
 
         // Generate Event
         function generateEvent() {
@@ -1598,10 +1604,43 @@
             }
         }
 
-        function saveGame() {
-            localStorage.setItem('marketProphets', JSON.stringify(game));
-            addActivity('Game saved!', 'info');
-        }
+		function saveGame() {
+			// Create a clean copy without circular references
+			const saveData = {
+				player: {
+					...game.player,
+					activeBets: game.player.activeBets.map(b => ({
+						eventId: b.eventId,
+						amount: b.amount,
+						outcome: b.outcome
+					}))
+				},
+				competitors: game.competitors.map(c => ({
+					...c,
+					activeBets: c.activeBets.map(b => ({
+						eventId: b.eventId,
+						amount: b.amount,
+						outcome: b.outcome
+					}))
+				})),
+				events: game.events.map(e => ({
+					...e,
+					bets: e.bets.map(b => ({
+						competitorName: b.competitorName,
+						emoji: b.emoji,
+						color: b.color,
+						amount: b.amount,
+						outcome: b.outcome
+					}))
+				})),
+				upgrades: game.upgrades,
+				isPaused: game.isPaused,
+				gameSpeed: game.gameSpeed
+			};
+			
+			localStorage.setItem('marketProphets', JSON.stringify(saveData));
+			addActivity('Game saved!', 'info');
+		}
 
         function resetGame() {
             if (confirm('Reset all progress? This cannot be undone!')) {
