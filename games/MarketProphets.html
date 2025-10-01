@@ -270,15 +270,16 @@
             padding-right: 10px;
         }
 
-        .event-row {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-left: 4px solid #666;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
+		.event-row {
+			position: relative;
+			background: rgba(0, 0, 0, 0.3);
+			border-radius: 10px;
+			padding: 12px 20px;
+			margin-bottom: 8px;
+			border-left: 4px solid #666;
+			transition: all 0.3s;
+			cursor: pointer;
+		}
 
         .event-row:hover {
             border-left-color: #ffd700;
@@ -1355,23 +1356,18 @@
 				return `
 					<div class="event-row ${playerHasBet ? 'player-bet' : ''} ${event.isFlashBet ? 'flash-bet' : ''}" onclick="openBettingModal('${event.id}')">
 						${event.isFlashBet ? '<div class="flash-badge">🔥 FLASH BET 🔥</div>' : ''}
-						<div class="event-top">
+						<div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
 							<span class="event-type-badge">${event.icon} ${event.type}</span>
-							<span class="event-timer ${isClosingSoon ? 'closing-soon' : ''}">${timeLeft}s</span>
-						</div>
-						<div class="event-description">${event.description}</div>
-						<div class="odds-display">
-							${event.outcomes.map(o => `
-								<div class="odds-item">
-									<span>${o.label}</span>: <span class="odds-value">${o.odds}x</span>
+							<div class="event-description" style="flex: 1; margin: 0; font-size: 1em;">${event.description}</div>
+							<div style="display: flex; gap: 15px; align-items: center; white-space: nowrap;">
+								<span style="color: #4caf50; font-size: 0.9em;">YES: <span style="color: #ffd700; font-weight: bold;">${event.outcomes[0].odds}x</span></span>
+								<span style="color: #f44336; font-size: 0.9em;">NO: <span style="color: #ffd700; font-weight: bold;">${event.outcomes[1].odds}x</span></span>
+								<span style="color: #4caf50; font-weight: bold; font-size: 0.9em;">${formatMoney(event.pot)}</span>
+								<div style="display: flex; gap: 3px;">
+									${bettorDots}
+									${event.bets.length > 8 ? `<span style="color: #888; font-size: 0.8em;">+${event.bets.length - 8}</span>` : ''}
 								</div>
-							`).join('')}
-						</div>
-						<div class="event-bottom">
-							<div class="event-pot">Pot: ${formatMoney(event.pot)}</div>
-							<div class="event-bettors">
-								${bettorDots}
-								${event.bets.length > 8 ? `<span style="color: #888; margin-left: 5px;">+${event.bets.length - 8}</span>` : ''}
+								<span class="event-timer ${isClosingSoon ? 'closing-soon' : ''}" style="min-width: 35px; text-align: right;">${timeLeft}s</span>
 							</div>
 						</div>
 					</div>
