@@ -1187,7 +1187,6 @@
 
 			let outcomes;
 			if (isFlashBet) {
-				// Flash bets have BETTER odds but shorter time
 				outcomes = [
 					{ label: 'YES', odds: (randNum(250, 400) / 100).toFixed(2), type: 'yes' },
 					{ label: 'NO', odds: (randNum(250, 400) / 100).toFixed(2), type: 'no' }
@@ -1199,13 +1198,18 @@
 				];
 			}
 
+			const setupTime = 15; // Fixed setup phase
+			const bettingTime = isFlashBet ? randNum(20, 35) : randNum(60, 120);
+
 			const event = {
 				id: Date.now() + Math.random(),
 				type: category.type,
 				icon: category.icon,
 				description: template,
-				timeRemaining: isFlashBet ? randNum(20, 40) / game.gameSpeed : randNum(90, 180) / game.gameSpeed,
-				maxTime: isFlashBet ? randNum(20, 40) : randNum(90, 180),
+				setupTime: setupTime / game.gameSpeed,
+				bettingTime: bettingTime / game.gameSpeed,
+				timeRemaining: (setupTime + bettingTime) / game.gameSpeed,
+				phase: 'setup', // 'setup' or 'betting'
 				outcomes: outcomes,
 				bets: [],
 				pot: 0,
@@ -1220,20 +1224,10 @@
 			}
 
 			if (isFlashBet) {
-				addActivity(`🔥🔥 FLASH BET: ${category.type} - Better odds, limited time!`, 'event');
+				addActivity(`🔥🔥 FLASH BET: ${category.type} - Better odds, short window!`, 'event');
 			} else {
 				addActivity(`${category.icon} New ${category.type} event available!`, 'event');
 			}
-			
-			// AI competitors analyze event
-			setTimeout(() => {
-				game.competitors.forEach(comp => {
-					const betChance = event.isFlashBet ? 0.85 : 0.7;
-					if (Math.random() < betChance) {
-						aiAnalyzeEvent(comp, event); // Use real AI instead of aiPlaceBet
-					}
-				});
-			}, randNum(2000, 5000) / game.gameSpeed);
 		}
 
 		function aiConsiderUpgrades() {
@@ -1367,7 +1361,9 @@
 									${bettorDots}
 									${event.bets.length > 8 ? `<span style="color: #888; font-size: 0.8em;">+${event.bets.length - 8}</span>` : ''}
 								</div>
-								<span class="event-timer ${isClosingSoon ? 'closing-soon' : ''}" style="min-width: 35px; text-align: right;">${timeLeft}s</span>
+								<span class="event-timer ${isClosingSoon ? 'closing-soon' : ''}" style="min-width: 50px; text-align: right;">
+									${event.phase === 'setup' ? '⏳' : ''} ${timeLeft}s
+								</span>
 							</div>
 						</div>
 					</div>
@@ -1378,9 +1374,14 @@
 		}
 
         // Open Betting Modal
-        function openBettingModal(eventId) {
-            const event = game.events.find(e => e.id.toString() === eventId.toString());
-            if (!event || event.resolved) return;
+		function openBettingModal(eventId) {
+			const event = game.events.find(e => e.id.toString() === eventId.toString());
+			if (!event || event.resolved) return;
+			
+			if (event.phase === 'setup') {
+				addActivity('⏳ Wait for betting phase to open!', 'info');
+				return;
+			}
             
             // Check if player already bet
             if (event.bets.some(b => b.competitorName === game.player.name)) {
@@ -1730,6 +1731,23 @@
 				game.events.forEach(event => {
 					if (!event.resolved) {
 						event.timeRemaining -= 0.1;
+						
+						// Check phase transition
+						if (event.phase === 'setup' && event.timeRemaining <= event.bettingTime) {
+							event.phase = 'betting';
+							addActivity(`✅ ${event.icon} ${event.type} - Betting now open!`, 'event');
+							
+							// AI starts betting when phase changes
+							setTimeout(() => {
+								game.competitors.forEach(comp => {
+									const betChance = event.isFlashBet ? 0.85 : 0.7;
+									if (Math.random() < betChance) {
+										aiPlaceBet(comp, event);
+									}
+								});
+							}, randNum(500, 2000) / game.gameSpeed);
+						}
+						
 						if (event.timeRemaining <= 0) {
 							resolveEvent(event);
 						}
@@ -1742,10 +1760,8 @@
 					trader.wealth += (trader.passiveIncome * game.gameSpeed) / 10;
 				});
 				
-				// Only update timer displays, not full re-render
 				updateTimersOnly();
 				
-				// Full re-render only every 500ms
 				if (now - lastFullRender > 500) {
 					updatePlayerDisplay();
 					renderCompetitors();
@@ -1753,7 +1769,6 @@
 				}
 			}, 100);
 			
-			// Generate new events
 			setInterval(() => {
 				if (game.isPaused) return;
 				if (game.events.filter(e => !e.resolved).length < game.upgrades.maxEvents) {
@@ -1761,7 +1776,6 @@
 				}
 			}, (8000 - (game.upgrades.eventSpeed * 80)) / game.gameSpeed);
 			
-			// Auto-save
 			setInterval(() => {
 				if (!game.isPaused) saveGame();
 			}, 30000);
