@@ -1178,11 +1178,16 @@
                 // Sector trend influence
                 const sectorTrend = game.sectorTrends[stock.sector].strength * 0.001;
 
-                // Random walk with momentum
-                const randomChange = (Math.random() - 0.5) * stock.volatility;
-                const momentumDecay = stock.momentum * 0.95;
-                
-                const totalChange = randomChange + momentumDecay + marketInfluence + sectorTrend;
+				// Random walk with momentum
+				const randomChange = (Math.random() - 0.5) * stock.volatility;
+				const momentumDecay = stock.momentum * 0.95;
+
+				// Mean reversion - pulls price back toward base price
+				const priceRatio = stock.price / stock.basePrice;
+				const deviation = Math.log(priceRatio); // How far from base (in log space)
+				const meanReversionForce = -deviation * 0.003; // 0.3% pull back per update
+
+				const totalChange = randomChange + momentumDecay + marketInfluence + sectorTrend + meanReversionForce;
                 
                 stock.previousPrice = stock.price;
                 stock.price = Math.max(10, stock.price * (1 + totalChange));
