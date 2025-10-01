@@ -1509,32 +1509,44 @@
                 
                 addLog(`🎯 Winner: ${winningOutcome.label}!`, 'event');
 
-                // Resolve bets
-                gameState.currentEvent.bets.forEach(bet => {
-                    const agent = gameState.agents.find(a => a.id === bet.agentId);
-                    if (!agent) return;
+				// Resolve bets
+				gameState.currentEvent.bets.forEach(bet => {
+					const agent = gameState.agents.find(a => a.id === bet.agentId);
+					if (!agent) return;
 
-                    // Check if agent's selected outcome matches winning outcome
-                    const won = bet.selectedOutcome && bet.selectedOutcome.label === winningOutcome.label;
-                    
-                    if (won) {
-                        const winnings = Math.floor(bet.amount * bet.selectedOutcome.odds);
-                        agent.credits += winnings;
-                        agent.wins++;
-                        gameState.totalWins++;
-                        gameState.totalProfit += (winnings - bet.amount);
-                        
-                        addLog(`${agent.emoji} ${agent.name} WON ${winnings} credits! (${bet.selectedOutcome.odds}x) 🎉`, 'win');
-                        agent.activity = `🎊 Won ${winnings} credits!`;
-                    } else {
-                        agent.losses++;
-                        gameState.totalProfit -= bet.amount;
-                        addLog(`${agent.emoji} ${agent.name} lost ${bet.amount} credits 😞`, 'loss');
-                        agent.activity = `😢 Lost ${bet.amount} credits`;
-                    }
-                    
-                    agent.currentBet = null;
-                });
+					const won = bet.selectedOutcome && bet.selectedOutcome.label === winningOutcome.label;
+					
+					if (won) {
+						const winnings = Math.floor(bet.amount * bet.selectedOutcome.odds);
+						agent.credits += winnings;
+						agent.wins++;
+						gameState.totalWins++;
+						gameState.totalProfit += (winnings - bet.amount);
+						
+						addLog(`${agent.emoji} ${agent.name} WON ${winnings} credits! (${bet.selectedOutcome.odds}x) 🎉`, 'win');
+						agent.activity = `🎊 Won ${winnings} credits!`;
+						
+						// Update player's main credit pool
+						if (agent.id.toString().startsWith('player-')) {
+							gameState.credits += winnings;
+						}
+					} else {
+						agent.losses++;
+						gameState.totalProfit -= bet.amount;
+						addLog(`${agent.emoji} ${agent.name} lost ${bet.amount} credits 😞`, 'loss');
+						agent.activity = `😢 Lost ${bet.amount} credits`;
+					}
+					
+					agent.currentBet = null;
+					
+					// Remove player bet cards after showing result for 3 seconds
+					if (agent.id.toString().startsWith('player-')) {
+						setTimeout(() => {
+							gameState.agents = gameState.agents.filter(a => a.id !== agent.id);
+							renderAgents();
+						}, 3000 / gameState.gameSpeed);
+					}
+				});
 
 				gameState.eventsCompleted++;
 				gameState.totalBets += gameState.currentEvent.bets.length;
