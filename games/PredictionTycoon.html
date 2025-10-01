@@ -1522,8 +1522,12 @@
 				gameState.eventsCompleted++;
 				gameState.totalBets += gameState.currentEvent.bets.length;
 
-				// Remove player agents after event resolves
-				gameState.agents = gameState.agents.filter(agent => !agent.id.toString().startsWith('player-'));
+				// Keep player agents to show their results, but clear their bets
+				gameState.agents.forEach(agent => {
+					if (agent.id.toString().startsWith('player-')) {
+						agent.currentBet = null;
+					}
+				});
 
 			} catch (error) {
 				console.error('Event resolution error:', error);
@@ -1602,23 +1606,23 @@
 									<div class="agent-model">${agent.model}</div>
 								</div>
 							</div>
-							<div class="agent-credits">${agent.credits}💰</div>
+							<div style="display: flex; align-items: center; gap: 15px;">
+								<div style="text-align: center; padding: 5px 10px; background: rgba(76, 175, 80, 0.2); border-radius: 5px;">
+									<div style="font-size: 0.8em; color: #888;">Wins</div>
+									<div style="font-size: 1.1em; font-weight: bold; color: #4caf50;">${agent.wins}</div>
+								</div>
+								<div style="text-align: center; padding: 5px 10px; background: rgba(244, 67, 54, 0.2); border-radius: 5px;">
+									<div style="font-size: 0.8em; color: #888;">Losses</div>
+									<div style="font-size: 1.1em; font-weight: bold; color: #f44336;">${agent.losses}</div>
+								</div>
+								<div style="text-align: center; padding: 5px 10px; background: rgba(255, 215, 0, 0.2); border-radius: 5px;">
+									<div style="font-size: 0.8em; color: #888;">Rate</div>
+									<div style="font-size: 1.1em; font-weight: bold; color: #ffd700;">${winRate}%</div>
+								</div>
+								<div class="agent-credits">${agent.credits}💰</div>
+							</div>
 						</div>
 						${eventContext}
-						<div class="agent-stats">
-							<div class="agent-stat">
-								<div class="agent-stat-label">Win Rate</div>
-								<div class="agent-stat-value">${winRate}%</div>
-							</div>
-							<div class="agent-stat">
-								<div class="agent-stat-label">Wins</div>
-								<div class="agent-stat-value" style="color: #4caf50">${agent.wins}</div>
-							</div>
-							<div class="agent-stat">
-								<div class="agent-stat-label">Losses</div>
-								<div class="agent-stat-value" style="color: #f44336">${agent.losses}</div>
-							</div>
-						</div>
 						<div class="agent-activity">${activityText}</div>
 					</div>
 				`;
