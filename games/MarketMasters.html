@@ -1345,21 +1345,47 @@
                 const changeClass = change >= 0 ? 'positive' : 'negative';
                 const owned = game.player.positions.some(p => p.symbol === stock.symbol);
 
-                return `
-                    <div class="stock-row ${owned ? 'owned' : ''}" onclick="openTradingModal('${stock.symbol}')">
-                        <div class="stock-header">
-                            <div>
-                                <span class="stock-symbol">${stock.symbol}</span>
-                                <span class="stock-name">${stock.name}</span>
-                            </div>
-                            <div class="stock-price">${formatMoney(stock.price)}</div>
-                        </div>
-                        <div class="stock-info">
-                            <span class="stock-sector">${stock.sector}</span>
-                            <span class="stock-change ${changeClass}">${formatChange(change)}</span>
-                        </div>
-                    </div>
-                `;
+				// Create mini sparkline data
+				const sparklineData = stock.history.slice(-20); // Last 20 points
+				const min = Math.min(...sparklineData);
+				const max = Math.max(...sparklineData);
+				const range = max - min || 1;
+
+				const sparklinePoints = sparklineData.map((val, i) => {
+					const x = (i / (sparklineData.length - 1)) * 100;
+					const y = 100 - ((val - min) / range) * 100;
+					return `${x},${y}`;
+				}).join(' ');
+
+				const sparklineColor = change >= 0 ? '#4caf50' : '#f44336';
+
+				return `
+					<div class="stock-row ${owned ? 'owned' : ''}" onclick="openTradingModal('${stock.symbol}')">
+						<div class="stock-header">
+							<div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+								<div>
+									<span class="stock-symbol">${stock.symbol}</span>
+									<span class="stock-name">${stock.name}</span>
+								</div>
+								<svg width="120" height="30" style="margin-left: auto;">
+									<polyline
+										fill="none"
+										stroke="${sparklineColor}"
+										stroke-width="2"
+										points="${sparklinePoints}"
+										vector-effect="non-scaling-stroke"
+										style="transform: scale(1.2, 1); transform-origin: 0 50%;"
+									/>
+								</svg>
+							</div>
+							<div class="stock-price">${formatMoney(stock.price)}</div>
+						</div>
+						<div class="stock-info">
+							<span class="stock-sector">${stock.sector}</span>
+							<span class="stock-change ${changeClass}">${formatChange(change)}</span>
+						</div>
+					</div>
+				`;
             }).join('');
 
             document.getElementById('marketTab').innerHTML = html;
