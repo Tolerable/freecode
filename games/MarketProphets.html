@@ -552,6 +552,118 @@
 			cursor: not-allowed;
 		}
 
+		.tutorial-overlay {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(0, 0, 0, 0.85);
+			z-index: 9999;
+			pointer-events: none;
+		}
+
+		.tutorial-overlay.active {
+			display: block;
+			pointer-events: auto;
+		}
+
+		.tutorial-spotlight {
+			position: absolute;
+			border: 3px solid #ffd700;
+			border-radius: 10px;
+			box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.85), 0 0 30px rgba(255, 215, 0, 0.6);
+			pointer-events: none;
+			transition: all 0.3s ease;
+		}
+
+		.tutorial-box {
+			position: absolute;
+			background: linear-gradient(135deg, rgba(26, 26, 46, 0.98), rgba(22, 33, 62, 0.98));
+			border: 3px solid #ffd700;
+			border-radius: 15px;
+			padding: 20px;
+			max-width: 400px;
+			box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+			transition: all 0.3s ease;
+			z-index: 10000;
+		}
+
+		.tutorial-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 15px;
+			padding-bottom: 10px;
+			border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+		}
+
+		.tutorial-header h3 {
+			color: #ffd700;
+			font-size: 1.3em;
+			margin: 0;
+		}
+
+		.tutorial-close {
+			background: rgba(244, 67, 54, 0.3);
+			border: 2px solid #f44336;
+			color: #fff;
+			width: 30px;
+			height: 30px;
+			border-radius: 50%;
+			cursor: pointer;
+			font-size: 1.2em;
+		}
+
+		.tutorial-content {
+			color: #e0e0e0;
+			line-height: 1.6;
+			margin-bottom: 20px;
+			font-size: 1em;
+		}
+
+		.tutorial-footer {
+			display: flex;
+			flex-direction: column;
+			gap: 15px;
+		}
+
+		.tutorial-checkbox {
+			color: #888;
+			font-size: 0.9em;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.tutorial-progress {
+			display: flex;
+			justify-content: center;
+			gap: 8px;
+		}
+
+		.tutorial-dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			background: rgba(255, 255, 255, 0.3);
+			transition: all 0.3s;
+		}
+
+		.tutorial-dot.active {
+			background: #ffd700;
+			width: 12px;
+			height: 12px;
+		}
+
+		.tutorial-buttons {
+			display: flex;
+			gap: 10px;
+			justify-content: flex-end;
+		}
+
         /* Activity Feed */
 		.activity-feed {
 			position: fixed;
@@ -936,6 +1048,28 @@
         <div id="activityFeed"></div>
     </div>
 
+	<!-- Add before closing </body> -->
+	<div id="tutorialOverlay" class="tutorial-overlay">
+		<div class="tutorial-spotlight"></div>
+		<div class="tutorial-box" id="tutorialBox">
+			<div class="tutorial-header">
+				<h3 id="tutorialTitle"></h3>
+				<button class="tutorial-close" onclick="closeTutorial()">×</button>
+			</div>
+			<div class="tutorial-content" id="tutorialContent"></div>
+			<div class="tutorial-footer">
+				<label class="tutorial-checkbox">
+					<input type="checkbox" id="tutorialDisable"> Don't show again
+				</label>
+				<div class="tutorial-progress" id="tutorialProgress"></div>
+				<div class="tutorial-buttons">
+					<button class="btn btn-secondary" id="tutorialPrev" onclick="prevTutorialStep()">← Previous</button>
+					<button class="btn btn-primary" id="tutorialNext" onclick="nextTutorialStep()">Next →</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
     <script>
         // Game Configuration
         const POLLINATIONS_API = 'https://text.pollinations.ai';
@@ -954,6 +1088,11 @@
             },
             competitors: [],
             events: [],
+			tutorial: {
+				completed: false,
+				currentStep: 0,
+				disabled: false
+			},			
             activities: [],
             isPaused: false,
             gameSpeed: 1,
@@ -974,6 +1113,45 @@
             { name: 'Fortune Dynamics', emoji: '💎', color: '#4caf50', strategy: 'conservative' },
             { name: 'Chaos Trading Co', emoji: '🎲', color: '#ff5722', strategy: 'chaotic' }
         ];
+
+		const TUTORIAL_STEPS = [
+			{
+				title: "Welcome to Market Prophets",
+				message: "Compete against AI traders by betting on real-time events. Let's learn the basics!",
+				target: null, // center modal
+				position: 'center'
+			},
+			{
+				title: "Your Wealth",
+				message: "This is your current wealth. Start with $10,000 and grow your empire!",
+				target: '#playerWealth',
+				position: 'bottom'
+			},
+			{
+				title: "Active Events",
+				message: "Events appear here. Click any event to place a bet before time runs out!",
+				target: '.events-panel',
+				position: 'left'
+			},
+			{
+				title: "Competitors",
+				message: "AI traders compete against you. Watch their strategies and climb the rankings!",
+				target: '.competitors-panel',
+				position: 'right'
+			},
+			{
+				title: "Bet Types",
+				message: "Flash bets are quick, Long-term bets are safer. Each has different odds and durations.",
+				target: '.event-row',
+				position: 'top'
+			},
+			{
+				title: "Ready to Trade!",
+				message: "Click any event to place your first bet. Good luck!",
+				target: null,
+				position: 'center'
+			}
+		];
 
         // Event Categories
         const EVENT_CATEGORIES = [
@@ -1105,6 +1283,119 @@
 			}
 		}
 
+		function startTutorial() {
+			const saved = localStorage.getItem('marketProphetsTutorial');
+			if (saved === 'disabled') return;
+			
+			game.tutorial.currentStep = 0;
+			showTutorialStep();
+			document.getElementById('tutorialOverlay').classList.add('active');
+		}
+
+		function showTutorialStep() {
+			const step = TUTORIAL_STEPS[game.tutorial.currentStep];
+			const box = document.getElementById('tutorialBox');
+			const overlay = document.getElementById('tutorialOverlay');
+			
+			document.getElementById('tutorialTitle').textContent = step.title;
+			document.getElementById('tutorialContent').textContent = step.message;
+			
+			// Update progress dots
+			const progressHtml = TUTORIAL_STEPS.map((_, i) => 
+				`<div class="tutorial-dot ${i === game.tutorial.currentStep ? 'active' : ''}"></div>`
+			).join('');
+			document.getElementById('tutorialProgress').innerHTML = progressHtml;
+			
+			// Show/hide buttons
+			document.getElementById('tutorialPrev').style.display = 
+				game.tutorial.currentStep === 0 ? 'none' : 'inline-block';
+			document.getElementById('tutorialNext').textContent = 
+				game.tutorial.currentStep === TUTORIAL_STEPS.length - 1 ? 'Finish' : 'Next →';
+			
+			// Position tutorial box
+			if (step.target) {
+				const target = document.querySelector(step.target);
+				if (target) {
+					const rect = target.getBoundingClientRect();
+					const spotlight = document.querySelector('.tutorial-spotlight');
+					
+					// Position spotlight
+					spotlight.style.left = rect.left - 10 + 'px';
+					spotlight.style.top = rect.top - 10 + 'px';
+					spotlight.style.width = rect.width + 20 + 'px';
+					spotlight.style.height = rect.height + 20 + 'px';
+					spotlight.style.display = 'block';
+					
+					// Position tutorial box based on position
+					positionTutorialBox(box, rect, step.position);
+				}
+			} else {
+				// Center the box
+				document.querySelector('.tutorial-spotlight').style.display = 'none';
+				box.style.left = '50%';
+				box.style.top = '50%';
+				box.style.transform = 'translate(-50%, -50%)';
+			}
+		}
+
+		function positionTutorialBox(box, targetRect, position) {
+			const padding = 20;
+			
+			switch(position) {
+				case 'bottom':
+					box.style.left = targetRect.left + (targetRect.width / 2) + 'px';
+					box.style.top = targetRect.bottom + padding + 'px';
+					box.style.transform = 'translateX(-50%)';
+					break;
+				case 'top':
+					box.style.left = targetRect.left + (targetRect.width / 2) + 'px';
+					box.style.top = targetRect.top - box.offsetHeight - padding + 'px';
+					box.style.transform = 'translateX(-50%)';
+					break;
+				case 'left':
+					box.style.left = targetRect.left - box.offsetWidth - padding + 'px';
+					box.style.top = targetRect.top + (targetRect.height / 2) + 'px';
+					box.style.transform = 'translateY(-50%)';
+					break;
+				case 'right':
+					box.style.left = targetRect.right + padding + 'px';
+					box.style.top = targetRect.top + (targetRect.height / 2) + 'px';
+					box.style.transform = 'translateY(-50%)';
+					break;
+			}
+		}
+
+		function nextTutorialStep() {
+			if (game.tutorial.currentStep < TUTORIAL_STEPS.length - 1) {
+				game.tutorial.currentStep++;
+				showTutorialStep();
+			} else {
+				closeTutorial();
+			}
+		}
+
+		function prevTutorialStep() {
+			if (game.tutorial.currentStep > 0) {
+				game.tutorial.currentStep--;
+				showTutorialStep();
+			}
+		}
+
+		function closeTutorial() {
+			const disabled = document.getElementById('tutorialDisable').checked;
+			if (disabled) {
+				localStorage.setItem('marketProphetsTutorial', 'disabled');
+			}
+			document.getElementById('tutorialOverlay').classList.remove('active');
+			game.tutorial.completed = true;
+		}
+
+		// Add reset tutorial option in settings
+		function resetTutorial() {
+			localStorage.removeItem('marketProphetsTutorial');
+			addActivity('Tutorial reset! Reload to see it again.', 'info');
+		}
+
         // Initialize Game
 		function initGame() {
 			const saved = localStorage.getItem('marketProphets');
@@ -1137,6 +1428,8 @@
 				for (let i = 0; i < 10; i++) {
 					generateEvent();
 				}
+				
+				setTimeout(() => startTutorial(), 1000);
 			}
 
 			renderCompetitors();
