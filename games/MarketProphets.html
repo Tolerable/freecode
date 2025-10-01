@@ -1537,44 +1537,72 @@
         }
 
         // Game Loop
-        function startGameLoop() {
-            setInterval(() => {
-                if (game.isPaused) return;
-                
-                // Update event timers
-                game.events.forEach(event => {
-                    if (!event.resolved) {
-                        event.timeRemaining -= 0.1;
-                        if (event.timeRemaining <= 0) {
-                            resolveEvent(event);
-                        }
-                    }
-                });
-                
-                // Passive income
-                const allTraders = [game.player, ...game.competitors];
-                allTraders.forEach(trader => {
-                    trader.wealth += (trader.passiveIncome * game.gameSpeed) / 10;
-                });
-                
-                renderEvents();
-                updatePlayerDisplay();
-                renderCompetitors();
-            }, 100);
-            
-            // Generate new events
-            setInterval(() => {
-                if (game.isPaused) return;
-                if (game.events.filter(e => !e.resolved).length < game.upgrades.maxEvents) {
-                    generateEvent();
-                }
-            }, (8000 - (game.upgrades.eventSpeed * 80)) / game.gameSpeed);
-            
-            // Auto-save
-            setInterval(() => {
-                if (!game.isPaused) saveGame();
-            }, 30000);
-        }
+		function startGameLoop() {
+			let lastFullRender = 0;
+			
+			setInterval(() => {
+				if (game.isPaused) return;
+				
+				const now = Date.now();
+				
+				// Update event timers
+				game.events.forEach(event => {
+					if (!event.resolved) {
+						event.timeRemaining -= 0.1;
+						if (event.timeRemaining <= 0) {
+							resolveEvent(event);
+						}
+					}
+				});
+				
+				// Passive income
+				const allTraders = [game.player, ...game.competitors];
+				allTraders.forEach(trader => {
+					trader.wealth += (trader.passiveIncome * game.gameSpeed) / 10;
+				});
+				
+				// Only update timer displays, not full re-render
+				updateTimersOnly();
+				
+				// Full re-render only every 500ms
+				if (now - lastFullRender > 500) {
+					updatePlayerDisplay();
+					renderCompetitors();
+					lastFullRender = now;
+				}
+			}, 100);
+			
+			// Generate new events
+			setInterval(() => {
+				if (game.isPaused) return;
+				if (game.events.filter(e => !e.resolved).length < game.upgrades.maxEvents) {
+					generateEvent();
+				}
+			}, (8000 - (game.upgrades.eventSpeed * 80)) / game.gameSpeed);
+			
+			// Auto-save
+			setInterval(() => {
+				if (!game.isPaused) saveGame();
+			}, 30000);
+		}
+
+		// Add this new function to only update timer text
+		function updateTimersOnly() {
+			const timerElements = document.querySelectorAll('.event-timer');
+			game.events.filter(e => !e.resolved).forEach((event, index) => {
+				if (timerElements[index]) {
+					const timeLeft = Math.ceil(event.timeRemaining);
+					timerElements[index].textContent = timeLeft + 's';
+					
+					// Update closing-soon class
+					if (timeLeft <= 15) {
+						timerElements[index].classList.add('closing-soon');
+					} else {
+						timerElements[index].classList.remove('closing-soon');
+					}
+				}
+			});
+		}
 
         // Controls
         function togglePause() {
