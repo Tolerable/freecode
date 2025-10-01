@@ -1939,22 +1939,27 @@
         }
 
         function renderDetailedStats() {
-            const topAgent = gameState.agents.reduce((best, agent) => 
-                agent.wins > best.wins ? agent : best
-            , gameState.agents[0]);
+			const nonPlayerAgents = gameState.agents.filter(agent => !agent.id.toString().startsWith('player-'));
+			const topAgent = nonPlayerAgents.length > 0 
+				? nonPlayerAgents.reduce((best, agent) => agent.wins > best.wins ? agent : best)
+				: null;
 
-            const totalCreditsEarned = gameState.agents.reduce((sum, agent) => 
-                sum + (agent.wins * 100), 0
-            );
+			const totalCreditsEarned = gameState.agents
+				.filter(agent => !agent.id.toString().startsWith('player-'))
+				.reduce((sum, agent) => sum + agent.credits - 300, 0) + Math.max(0, gameState.totalProfit);
 
             const html = `
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                    <div class="stat-card">
-                        <div class="stat-label">Top Performing Agent</div>
-                        <div style="font-size: 2em; margin: 10px 0;">${topAgent.emoji}</div>
-                        <div style="color: #ffd700; font-size: 1.3em;">${topAgent.name}</div>
-                        <div style="color: #4caf50; margin-top: 10px;">${topAgent.wins} wins</div>
-                    </div>
+					<div class="stat-card">
+						<div class="stat-label">Top Performing Agent</div>
+						${topAgent ? `
+							<div style="font-size: 2em; margin: 10px 0;">${topAgent.emoji}</div>
+							<div style="color: #ffd700; font-size: 1.3em;">${topAgent.name}</div>
+							<div style="color: #4caf50; margin-top: 10px;">${topAgent.wins} wins</div>
+						` : `
+							<div style="color: #888; padding: 20px;">No agents yet</div>
+						`}
+					</div>
                     
                     <div class="stat-card">
                         <div class="stat-label">Total Credits Earned</div>
@@ -1974,9 +1979,10 @@
                 
                 <h3 style="margin-top: 30px; color: #ffd700;">Agent Leaderboard</h3>
                 <div style="margin-top: 20px;">
-                    ${gameState.agents
-                        .sort((a, b) => b.wins - a.wins)
-                        .map((agent, index) => `
+					${gameState.agents
+						.filter(agent => !agent.id.toString().startsWith('player-'))
+						.sort((a, b) => b.wins - a.wins)
+						.map((agent, index) => `
                             <div style="background: rgba(0,0,0,0.3); padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                                 <div style="display: flex; align-items: center; gap: 15px;">
                                     <div style="font-size: 2em; font-weight: bold; color: ${index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#666'};">
