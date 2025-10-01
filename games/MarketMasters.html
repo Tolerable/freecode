@@ -1339,13 +1339,14 @@
             document.getElementById('tradersList').innerHTML = html;
         }
 
-        function renderStocks() {
-            const html = game.stocks.map(stock => {
-                const change = ((stock.price - stock.dayOpen) / stock.dayOpen) * 100;
-                const changeClass = change >= 0 ? 'positive' : 'negative';
-                const owned = game.player.positions.some(p => p.symbol === stock.symbol);
-
-				const sparklineData = stock.history.slice(-50); // More points for smoother line
+		function renderStocks() {
+			const html = game.stocks.map(stock => {
+				const change = ((stock.price - stock.dayOpen) / stock.dayOpen) * 100;
+				const changeClass = change >= 0 ? 'positive' : 'negative';
+				const owned = game.player.positions.some(p => p.symbol === stock.symbol);
+				
+				// Create mini sparkline data
+				const sparklineData = stock.history.slice(-50);
 				const min = Math.min(...sparklineData);
 				const max = Math.max(...sparklineData);
 				const range = max - min || 1;
@@ -1357,7 +1358,9 @@
 				}).join(' ');
 
 				const sparklineColor = change >= 0 ? '#4caf50' : '#f44336';
-				const fillColor = change >= 0 ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)';
+				
+				// Get player's position
+				const playerPosition = game.player.positions.find(p => p.symbol === stock.symbol);
 
 				return `
 					<div class="stock-row ${owned ? 'owned' : ''}" onclick="openTradingModal('${stock.symbol}')">
@@ -1367,10 +1370,13 @@
 									<span class="stock-symbol">${stock.symbol}</span>
 									<span class="stock-name">${stock.name}</span>
 								</div>
-								<span class="stock-sector">${stock.sector}</span>
+								<div style="display: flex; gap: 15px; align-items: center;">
+									<span class="stock-sector">${stock.sector}</span>
+									${playerPosition ? `<span style="color: #ffd700; font-size: 0.85em; font-weight: bold;">${playerPosition.shares} shares • ${formatMoney(playerPosition.value)}</span>` : ''}
+								</div>
 							</div>
 							
-							<svg style="position: absolute; right: 0; top: 0; width: 60%; height: 100%; z-index: 1;" preserveAspectRatio="none">
+							<svg style="position: absolute; right: 150px; top: 0; width: calc(100% - 350px); height: 100%; z-index: 1;" preserveAspectRatio="none">
 								<defs>
 									<linearGradient id="grad-${stock.symbol}" x1="0%" y1="0%" x2="0%" y2="100%">
 										<stop offset="0%" style="stop-color:${sparklineColor};stop-opacity:0.3" />
@@ -1399,10 +1405,10 @@
 						</div>
 					</div>
 				`;
-            }).join('');
+			}).join('');
 
-            document.getElementById('marketTab').innerHTML = html;
-        }
+			document.getElementById('marketTab').innerHTML = html || '<div style="text-align: center; padding: 50px; color: #888;">No stocks available.</div>';
+		}
 
         function renderPortfolio() {
             if (game.player.positions.length === 0) {
