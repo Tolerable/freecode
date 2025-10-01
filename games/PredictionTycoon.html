@@ -1514,22 +1514,25 @@
                     agent.currentBet = null;
                 });
 
-                gameState.eventsCompleted++;
-                gameState.totalBets += gameState.currentEvent.bets.length;
+				gameState.eventsCompleted++;
+				gameState.totalBets += gameState.currentEvent.bets.length;
 
-            } catch (error) {
-                console.error('Event resolution error:', error);
-                addLog('⚠️ Event resolution failed, generating new event', 'info');
-            }
+				// Remove player agents after event resolves
+				gameState.agents = gameState.agents.filter(agent => !agent.id.toString().startsWith('player-'));
 
-            updateStats();
-            renderAgents();
-            
-            // Generate next event
-            setTimeout(() => {
-                if (!gameState.isPaused) generateEvent();
-            }, 2000 / gameState.gameSpeed);
-        }
+			} catch (error) {
+				console.error('Event resolution error:', error);
+				addLog('⚠️ Event resolution failed, generating new event', 'info');
+			}
+
+			updateStats();
+			renderAgents();
+			
+			// Generate next event
+			setTimeout(() => {
+				if (!gameState.isPaused) generateEvent();
+			}, 2000 / gameState.gameSpeed);
+		}
 
         // Game Loop
 		function gameLoop() {
