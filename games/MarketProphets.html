@@ -94,14 +94,15 @@
         }
 
         /* Main Layout */
-        .game-container {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 20px;
-            padding: 20px;
-            max-width: 1800px;
-            margin: 0 auto;
-        }
+		.game-container {
+			display: grid;
+			grid-template-columns: 280px 1fr;
+			gap: 20px;
+			padding: 20px;
+			padding-right: 320px; /* Make room for activity feed */
+			max-width: 1800px;
+			margin: 0 auto;
+		}
 
         /* Left Sidebar - Competitors */
         .competitors-panel {
@@ -625,19 +626,21 @@
         }
 
         /* Activity Feed */
-        .activity-feed {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 350px;
-            max-height: 300px;
-            background: rgba(20, 20, 40, 0.95);
-            border-radius: 15px;
-            border: 2px solid rgba(255, 215, 0, 0.2);
-            padding: 15px;
-            overflow-y: auto;
-            z-index: 500;
-        }
+		.activity-feed {
+			position: fixed;
+			top: 160px;
+			right: 0;
+			width: 300px;
+			height: calc(100vh - 180px);
+			background: rgba(20, 20, 40, 0.95);
+			border-radius: 15px 0 0 15px;
+			border: 2px solid rgba(255, 215, 0, 0.2);
+			border-right: none;
+			padding: 15px;
+			overflow-y: auto;
+			z-index: 500;
+			box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+		}
 
         .activity-header {
             font-size: 1.1em;
@@ -1228,45 +1231,46 @@
         }
 
         // Render Events
-        function renderEvents() {
-            const activeEvents = game.events.filter(e => !e.resolved);
-            
-            const html = activeEvents.map(event => {
-                const timeLeft = Math.ceil(event.timeRemaining);
-                const isClosingSoon = timeLeft <= 15;
-                const playerHasBet = event.bets.some(b => b.competitorName === game.player.name);
-                
-                const bettorDots = event.bets.slice(0, 8).map(bet => 
-                    `<div class="bettor-dot" style="background: ${bet.color}; border-color: ${bet.color};" title="${bet.competitorName}">${bet.emoji}</div>`
-                ).join('');
-                
-                return `
-                    <div class="event-row ${playerHasBet ? 'player-bet' : ''}" onclick="openBettingModal('${event.id}')">
-                        <div class="event-top">
-                            <span class="event-type-badge">${event.icon} ${event.type}</span>
-                            <span class="event-timer ${isClosingSoon ? 'closing-soon' : ''}">${timeLeft}s</span>
-                        </div>
-                        <div class="event-description">${event.description}</div>
-                        <div class="odds-display">
-                            ${event.outcomes.map(o => `
-                                <div class="odds-item">
-                                    <span>${o.label}</span>: <span class="odds-value">${o.odds}x</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <div class="event-bottom">
-                            <div class="event-pot">Pot: ${formatMoney(event.pot)}</div>
-                            <div class="event-bettors">
-                                ${bettorDots}
-                                ${event.bets.length > 8 ? `<span style="color: #888; margin-left: 5px;">+${event.bets.length - 8}</span>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            document.getElementById('eventsContainer').innerHTML = html || '<div style="text-align: center; padding: 50px; color: #888;">No active events. New ones spawning soon...</div>';
-        }
+		function renderEvents() {
+			// Sort events by time remaining (newest/longest time first)
+			const activeEvents = game.events.filter(e => !e.resolved).sort((a, b) => b.timeRemaining - a.timeRemaining);
+			
+			const html = activeEvents.map(event => {
+				const timeLeft = Math.ceil(event.timeRemaining);
+				const isClosingSoon = timeLeft <= 15;
+				const playerHasBet = event.bets.some(b => b.competitorName === game.player.name);
+				
+				const bettorDots = event.bets.slice(0, 8).map(bet => 
+					`<div class="bettor-dot" style="background: ${bet.color}; border-color: ${bet.color};" title="${bet.competitorName}">${bet.emoji}</div>`
+				).join('');
+				
+				return `
+					<div class="event-row ${playerHasBet ? 'player-bet' : ''}" onclick="openBettingModal('${event.id}')">
+						<div class="event-top">
+							<span class="event-type-badge">${event.icon} ${event.type}</span>
+							<span class="event-timer ${isClosingSoon ? 'closing-soon' : ''}">${timeLeft}s</span>
+						</div>
+						<div class="event-description">${event.description}</div>
+						<div class="odds-display">
+							${event.outcomes.map(o => `
+								<div class="odds-item">
+									<span>${o.label}</span>: <span class="odds-value">${o.odds}x</span>
+								</div>
+							`).join('')}
+						</div>
+						<div class="event-bottom">
+							<div class="event-pot">Pot: ${formatMoney(event.pot)}</div>
+							<div class="event-bettors">
+								${bettorDots}
+								${event.bets.length > 8 ? `<span style="color: #888; margin-left: 5px;">+${event.bets.length - 8}</span>` : ''}
+							</div>
+						</div>
+					</div>
+				`;
+			}).join('');
+			
+			document.getElementById('eventsContainer').innerHTML = html || '<div style="text-align: center; padding: 50px; color: #888;">No active events. New ones spawning soon...</div>';
+		}
 
         // Open Betting Modal
         function openBettingModal(eventId) {
