@@ -1212,10 +1212,10 @@
 				isFlashBet: isFlashBet
 			};
 
-			game.events.push(event);
+			game.events.unshift(event);
 			
 			if (game.events.length > game.upgrades.maxEvents) {
-				game.events = game.events.slice(-game.upgrades.maxEvents);
+				game.events = game.events.slice(0, game.upgrades.maxEvents);
 			}
 
 			if (isFlashBet) {
@@ -1235,86 +1235,6 @@
 				});
 			}, randNum(2000, 5000) / game.gameSpeed);
 		}
-
-        // Generate Event
-        function generateEvent() {
-            const category = rand(EVENT_CATEGORIES);
-            let template = rand(category.templates);
-            
-            // Fill template
-            template = template
-                .replace('${company}', rand(companies))
-                .replace('${crypto}', rand(cryptos))
-                .replace('${team1}', rand(teams))
-                .replace('${team2}', rand(teams))
-                .replace('${sport}', rand(sports))
-                .replace('${city}', rand(cities))
-                .replace('${price}', randNum(50, 500))
-                .replace('${current}', randNum(40, 480))
-                .replace('${percent}', randNum(5, 25))
-                .replace('${product}', rand(['AI chip', 'quantum processor', 'neural interface']))
-                .replace('${value}', randNum(100, 2000))
-                .replace('${record1}', randNum(5, 15) + '-' + randNum(5, 15))
-                .replace('${record2}', randNum(5, 15) + '-' + randNum(5, 15))
-                .replace('${player}', rand(['Jordan', 'Smith', 'Williams', 'Brown']))
-                .replace('${streak}', randNum(5, 20))
-                .replace('${protocol}', rand(['DeFiMax', 'YieldFarm', 'SwapChain']))
-                .replace('${candidate}', rand(['Senator Adams', 'Rep. Johnson', 'Gov. Martinez']))
-                .replace('${policy}', rand(['healthcare', 'climate', 'education']))
-                .replace('${percent}', randNum(35, 65))
-                .replace('${leader}', rand(['President', 'PM', 'Chancellor']))
-                .replace('${decision}', rand(['economic reform', 'trade deal', 'policy change']))
-                .replace('${hint}', rand(['likely', 'possible', 'uncertain']))
-                .replace('${bill}', rand(['Tax Reform', 'Infrastructure Bill', 'Healthcare Act']))
-                .replace('${body}', rand(['Senate', 'Congress', 'Parliament']))
-                .replace('${for}', randNum(40, 60))
-                .replace('${against}', randNum(30, 50))
-                .replace('${event}', rand(['rain', 'snow', 'thunderstorms', 'heatwave']))
-                .replace('${confidence}', randNum(50, 90))
-                .replace('${temp}', randNum(60, 90))
-                .replace('${current}', randNum(55, 85))
-                .replace('${name}', rand(['Alpha', 'Beta', 'Gamma', 'Delta']))
-                .replace('${region}', rand(cities))
-                .replace('${prob}', randNum(30, 80))
-                .replace('${index}', rand(['S&P 500', 'NASDAQ', 'DOW']))
-                .replace('${level}', randNum(4000, 6000));
-
-            const outcomes = [
-                { label: 'YES', odds: (randNum(150, 300) / 100).toFixed(2), type: 'yes' },
-                { label: 'NO', odds: (randNum(150, 300) / 100).toFixed(2), type: 'no' }
-            ];
-
-            const event = {
-                id: Date.now() + Math.random(),
-                type: category.type,
-                icon: category.icon,
-                description: template,
-                timeRemaining: randNum(90, 180) / game.gameSpeed,
-                maxTime: randNum(90, 180),
-                outcomes: outcomes,
-                bets: [],
-                pot: 0,
-                resolved: false
-            };
-
-            game.events.push(event);
-            
-            // Limit events
-            if (game.events.length > game.upgrades.maxEvents) {
-                game.events = game.events.slice(-game.upgrades.maxEvents);
-            }
-
-            addActivity(`${category.icon} New ${category.type} event available!`, 'event');
-            
-            // AI competitors analyze event
-            setTimeout(() => {
-                game.competitors.forEach(comp => {
-                    if (Math.random() < 0.7) { // 70% chance they bet
-                        aiPlaceBet(comp, event);
-                    }
-                });
-            }, randNum(2000, 5000) / game.gameSpeed);
-        }
 
         // AI Place Bet
         function aiPlaceBet(competitor, event) {
