@@ -1345,8 +1345,7 @@
                 const changeClass = change >= 0 ? 'positive' : 'negative';
                 const owned = game.player.positions.some(p => p.symbol === stock.symbol);
 
-				// Create mini sparkline data
-				const sparklineData = stock.history.slice(-20); // Last 20 points
+				const sparklineData = stock.history.slice(-50); // More points for smoother line
 				const min = Math.min(...sparklineData);
 				const max = Math.max(...sparklineData);
 				const range = max - min || 1;
@@ -1358,31 +1357,45 @@
 				}).join(' ');
 
 				const sparklineColor = change >= 0 ? '#4caf50' : '#f44336';
+				const fillColor = change >= 0 ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)';
 
 				return `
 					<div class="stock-row ${owned ? 'owned' : ''}" onclick="openTradingModal('${stock.symbol}')">
-						<div class="stock-header">
-							<div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+						<div style="position: relative; display: flex; align-items: center; padding: 12px 15px;">
+							<div style="display: flex; flex-direction: column; gap: 4px; min-width: 200px; z-index: 2;">
 								<div>
 									<span class="stock-symbol">${stock.symbol}</span>
 									<span class="stock-name">${stock.name}</span>
 								</div>
-								<svg width="120" height="30" style="margin-left: auto;">
-									<polyline
-										fill="none"
-										stroke="${sparklineColor}"
-										stroke-width="2"
-										points="${sparklinePoints}"
-										vector-effect="non-scaling-stroke"
-										style="transform: scale(1.2, 1); transform-origin: 0 50%;"
-									/>
-								</svg>
+								<span class="stock-sector">${stock.sector}</span>
 							</div>
-							<div class="stock-price">${formatMoney(stock.price)}</div>
-						</div>
-						<div class="stock-info">
-							<span class="stock-sector">${stock.sector}</span>
-							<span class="stock-change ${changeClass}">${formatChange(change)}</span>
+							
+							<svg style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 1;" preserveAspectRatio="none">
+								<defs>
+									<linearGradient id="grad-${stock.symbol}" x1="0%" y1="0%" x2="0%" y2="100%">
+										<stop offset="0%" style="stop-color:${sparklineColor};stop-opacity:0.3" />
+										<stop offset="100%" style="stop-color:${sparklineColor};stop-opacity:0" />
+									</linearGradient>
+								</defs>
+								<polyline
+									fill="none"
+									stroke="${sparklineColor}"
+									stroke-width="2"
+									points="${sparklinePoints}"
+									vector-effect="non-scaling-stroke"
+									style="transform: scaleY(0.6) translateY(20%);"
+								/>
+								<polygon
+									fill="url(#grad-${stock.symbol})"
+									points="${sparklinePoints} 100,100 0,100"
+									style="transform: scaleY(0.6) translateY(20%);"
+								/>
+							</svg>
+							
+							<div style="margin-left: auto; text-align: right; z-index: 2; display: flex; flex-direction: column; gap: 4px;">
+								<div class="stock-price">${formatMoney(stock.price)}</div>
+								<span class="stock-change ${changeClass}">${formatChange(change)}</span>
+							</div>
 						</div>
 					</div>
 				`;
