@@ -1100,6 +1100,44 @@
             }
         ];
 
+		const BET_TYPES = {
+			standard: {
+				name: 'Standard',
+				color: '#4caf50',
+				duration: [60, 120],
+				oddsRange: [150, 300],
+				spawnWeight: 50 // Higher = more common
+			},
+			flash: {
+				name: 'Flash',
+				color: '#ff0000',
+				duration: [25, 40],
+				oddsRange: [250, 400],
+				spawnWeight: 15
+			},
+			longterm: {
+				name: 'Long-Term',
+				color: '#9c27b0',
+				duration: [180, 300],
+				oddsRange: [120, 180],
+				spawnWeight: 20
+			},
+			highrisk: {
+				name: 'High-Risk',
+				color: '#ff9800',
+				duration: [45, 90],
+				oddsRange: [300, 500],
+				spawnWeight: 10
+			},
+			prop: {
+				name: 'Prop Bet',
+				color: '#00bcd4',
+				duration: [60, 120],
+				oddsRange: [200, 350],
+				spawnWeight: 15
+			}
+		};
+
         // Random data pools
         const companies = ['TechCorp', 'InnovateCo', 'FutureSys', 'QuantumAI', 'NexGen', 'Synergy', 'DataFlow'];
         const cryptos = ['BitCoin', 'EthToken', 'SolChain', 'CardanoX', 'PolkaVerse', 'AvalancheY'];
@@ -1179,10 +1217,22 @@
 			const category = rand(EVENT_CATEGORIES);
 			let template = rand(category.templates);
 			
-			// 15% chance for FLASH BET (rare but not too rare)
-			const isFlashBet = Math.random() < 0.15;
+			// Weighted random bet type selection
+			const totalWeight = Object.values(BET_TYPES).reduce((sum, type) => sum + type.spawnWeight, 0);
+			let random = Math.random() * totalWeight;
+			let selectedBetType = 'standard';
 			
-			// Fill template (same as before)
+			for (const [key, type] of Object.entries(BET_TYPES)) {
+				random -= type.spawnWeight;
+				if (random <= 0) {
+					selectedBetType = key;
+					break;
+				}
+			}
+			
+			const betType = BET_TYPES[selectedBetType];
+			
+			// Fill template with random data (keep existing replacement logic)
 			template = template
 				.replace('${company}', rand(companies))
 				.replace('${crypto}', rand(cryptos))
@@ -1220,21 +1270,14 @@
 				.replace('${index}', rand(['S&P 500', 'NASDAQ', 'DOW']))
 				.replace('${level}', randNum(4000, 6000));
 
-			let outcomes;
-			if (isFlashBet) {
-				outcomes = [
-					{ label: 'YES', odds: (randNum(250, 400) / 100).toFixed(2), type: 'yes' },
-					{ label: 'NO', odds: (randNum(250, 400) / 100).toFixed(2), type: 'no' }
-				];
-			} else {
-				outcomes = [
-					{ label: 'YES', odds: (randNum(150, 300) / 100).toFixed(2), type: 'yes' },
-					{ label: 'NO', odds: (randNum(150, 300) / 100).toFixed(2), type: 'no' }
-				];
-			}
+			// Generate outcomes based on bet type
+			const outcomes = [
+				{ label: 'YES', odds: (randNum(betType.oddsRange[0], betType.oddsRange[1]) / 100).toFixed(2), type: 'yes' },
+				{ label: 'NO', odds: (randNum(betType.oddsRange[0], betType.oddsRange[1]) / 100).toFixed(2), type: 'no' }
+			];
 
-			const setupTime = isFlashBet ? 0 : 15; // Flash bets skip setup entirely
-			const bettingTime = isFlashBet ? randNum(25, 40) : randNum(60, 120);
+			const setupTime = selectedBetType === 'flash' ? 0 : 15;
+			const bettingTime = randNum(betType.duration[0], betType.duration[1]);
 
 			const event = {
 				id: Date.now() + Math.random(),
@@ -1244,12 +1287,14 @@
 				setupTime: setupTime / game.gameSpeed,
 				bettingTime: bettingTime / game.gameSpeed,
 				timeRemaining: (setupTime + bettingTime) / game.gameSpeed,
-				phase: isFlashBet ? 'betting' : 'setup', // Flash bets start in betting phase
+				phase: selectedBetType === 'flash' ? 'betting' : 'setup',
 				outcomes: outcomes,
 				bets: [],
 				pot: 0,
 				resolved: false,
-				isFlashBet: isFlashBet
+				betType: selectedBetType,
+				betTypeColor: betType.color,
+				betTypeName: betType.name
 			};
 
 			game.events.unshift(event);
@@ -1258,11 +1303,7 @@
 				game.events = game.events.slice(0, game.upgrades.maxEvents);
 			}
 
-			if (isFlashBet) {
-				addActivity(`🔥🔥 FLASH BET: ${category.type} - Better odds, short window!`, 'event');
-			} else {
-				addActivity(`${category.icon} New ${category.type} event available!`, 'event');
-			}
+			addActivity(`${category.icon} New ${betType.name} ${category.type} event!`, 'event');
 		}
 
 		function aiConsiderUpgrades() {
@@ -1290,20 +1331,26 @@
 		function aiPlaceBet(competitor, event) {
 			if (event.resolved || competitor.activeBets.some(b => b.eventId === event.id)) return;
 
-			// Use strategy-based rules (no API call)
 			let betPercent;
+			
+			// Adjust strategy based on bet type
 			switch(competitor.strategy) {
 				case 'aggressive':
-					betPercent = randNum(15, 30);
+					betPercent = event.betType === 'highrisk' ? randNum(20, 35) : 
+								event.betType === 'longterm' ? randNum(8, 15) :
+								randNum(15, 25);
 					break;
 				case 'conservative':
-					betPercent = randNum(5, 12);
+					betPercent = event.betType === 'longterm' ? randNum(10, 18) :
+								event.betType === 'highrisk' ? randNum(2, 5) :
+								randNum(5, 12);
 					break;
 				case 'analytical':
-					betPercent = randNum(10, 18);
+					betPercent = event.betType === 'prop' ? randNum(12, 20) :
+								randNum(10, 18);
 					break;
 				case 'chaotic':
-					betPercent = randNum(5, 35);
+					betPercent = randNum(5, 35); // Doesn't care about bet type
 					break;
 				default:
 					betPercent = 10;
@@ -1320,16 +1367,9 @@
 
 			// Pick outcome based on strategy
 			let outcome;
-			if (competitor.strategy === 'contrarian' && event.bets.length > 0) {
-				// Contrarian picks opposite of majority
-				const yesBets = event.bets.filter(b => b.outcome.label === 'YES').length;
-				const noBets = event.bets.filter(b => b.outcome.label === 'NO').length;
-				outcome = yesBets > noBets ? event.outcomes.find(o => o.label === 'NO') : event.outcomes.find(o => o.label === 'YES');
-			} else if (competitor.strategy === 'analytical') {
-				// Analytical picks better odds
+			if (competitor.strategy === 'analytical') {
 				outcome = event.outcomes[0].odds > event.outcomes[1].odds ? event.outcomes[0] : event.outcomes[1];
 			} else {
-				// Random pick
 				outcome = rand(event.outcomes);
 			}
 
@@ -1421,7 +1461,7 @@
 
         // Render Events
 		function renderEvents() {
-			const activeEvents = game.events.filter(e => !e.resolved).sort((a, b) => b.timeRemaining - a.timeRemaining);
+			const activeEvents = game.events.filter(e => !e.resolved);
 			
 			const html = activeEvents.map(event => {
 				const timeLeft = Math.ceil(event.timeRemaining);
@@ -1432,13 +1472,22 @@
 					`<div class="bettor-dot" style="background: ${bet.color}; border-color: ${bet.color};" title="${bet.competitorName}">${bet.emoji}</div>`
 				).join('');
 				
+				// Different styling based on bet type
+				let rowClass = playerHasBet ? 'player-bet' : '';
+				if (event.betType === 'flash' && !playerHasBet) {
+					rowClass += ' flash-bet';
+				}
+				
 				return `
-					<div class="event-row ${playerHasBet ? 'player-bet' : ''} ${event.isFlashBet ? 'flash-bet' : ''}" onclick="openBettingModal('${event.id}')">
-						${event.isFlashBet ? '<div class="flash-badge">🔥 FLASH BET 🔥</div>' : ''}
+					<div class="event-row ${rowClass}" 
+						 style="border-left-color: ${event.betTypeColor}; ${event.betType === 'longterm' ? 'background: linear-gradient(135deg, rgba(156, 39, 176, 0.1), rgba(156, 39, 176, 0.05));' : ''}"
+						 onclick="openBettingModal('${event.id}')">
+						${event.betType === 'flash' && !playerHasBet ? '<div class="flash-badge">🔥 FLASH BET 🔥</div>' : ''}
 						<div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
-							<span class="event-type-badge">${event.icon} ${event.type}</span>
-							<div class="event-description" style="flex: 1; margin: 0; font-size: 1em;">${event.description}</div>
+							<span class="event-type-badge" style="background: ${event.betTypeColor}33; border: 1px solid ${event.betTypeColor};">${event.icon} ${event.type}</span>
+							<div class="event-description" style="flex: 1; margin: 0; font-size: 0.95em;">${event.description}</div>
 							<div style="display: flex; gap: 15px; align-items: center; white-space: nowrap;">
+								<span style="color: ${event.betTypeColor}; font-size: 0.8em; font-weight: bold; text-transform: uppercase;">${event.betTypeName}</span>
 								<span style="color: #4caf50; font-size: 0.9em;">YES: <span style="color: #ffd700; font-weight: bold;">${event.outcomes[0].odds}x</span></span>
 								<span style="color: #f44336; font-size: 0.9em;">NO: <span style="color: #ffd700; font-weight: bold;">${event.outcomes[1].odds}x</span></span>
 								<span style="color: #4caf50; font-weight: bold; font-size: 0.9em;">${formatMoney(event.pot)}</span>
