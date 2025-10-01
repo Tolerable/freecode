@@ -1503,7 +1503,10 @@
 				</div>
 			`;
 
-			// CASH DISPLAY - NEW CODE
+			// CASH DISPLAY 
+			const existingCash = document.querySelector('#stockDetailsContainer + div[style*="Available Cash"]');
+			if (existingCash) existingCash.remove();
+
 			const cashDisplayHTML = `
 				<div style="background: rgba(255, 215, 0, 0.1); border: 2px solid rgba(255, 215, 0, 0.3); border-radius: 10px; padding: 15px; margin: 20px 0;">
 					<div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1518,10 +1521,20 @@
 			// Update chart
 			updateStockChart(stock);
 
-			// Set max shares
-			const maxShares = Math.floor(game.player.cash / stock.price);
-			document.getElementById('sharesSlider').max = Math.max(1, maxShares);
-			document.getElementById('sharesSlider').value = Math.min(10, maxShares);
+			// Set max shares based on whether buying or selling
+			const position = game.player.positions.find(p => p.symbol === stock.symbol);
+			let maxShares = 1;
+
+			if (game.selectedTradeType === 'sell' && position) {
+				maxShares = position.shares;
+			} else {
+				maxShares = Math.floor(game.player.cash / stock.price);
+			}
+
+			const slider = document.getElementById('sharesSlider');
+			slider.max = Math.max(1, maxShares);
+			slider.value = Math.min(10, maxShares);
+			slider.disabled = false; // Make sure it's enabled
 			
 			if (document.getElementById('sharesAmount')) {
 				updateSharesAmount();
@@ -1580,16 +1593,36 @@
             });
         }
 
-        function selectTradeType(type) {
-            game.selectedTradeType = type;
-            
-            document.querySelectorAll('.trade-btn').forEach(btn => {
-                btn.classList.remove('selected');
-            });
-            
-            document.querySelector(`.trade-btn.${type}`).classList.add('selected');
-            updateSharesAmount();
-        }
+		function selectTradeType(type) {
+			game.selectedTradeType = type;
+			
+			document.querySelectorAll('.trade-btn').forEach(btn => {
+				btn.classList.remove('selected');
+			});
+			
+			document.querySelector(`.trade-btn.${type}`).classList.add('selected');
+			
+			// Recalculate max shares based on type
+			const stock = game.selectedStock;
+			const position = game.player.positions.find(p => p.symbol === stock.symbol);
+			const slider = document.getElementById('sharesSlider');
+			
+			if (type === 'sell') {
+				if (position) {
+					slider.max = position.shares;
+					slider.value = Math.min(parseInt(slider.value), position.shares);
+				} else {
+					slider.max = 0;
+					slider.value = 0;
+				}
+			} else { // buy
+				const maxShares = Math.floor(game.player.cash / stock.price);
+				slider.max = Math.max(1, maxShares);
+				slider.value = Math.min(10, maxShares);
+			}
+			
+			updateSharesAmount();
+		}
 
 		function updateSharesAmount() {
 			const sharesSlider = document.getElementById('sharesSlider');
