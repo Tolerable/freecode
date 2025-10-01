@@ -1034,7 +1034,7 @@
 				color: '#4caf50',
 				duration: [60, 120],
 				oddsRange: [150, 300],
-				spawnWeight: 50 // Higher = more common
+				spawnWeight: 40  // Changed from 50
 			},
 			flash: {
 				name: 'Flash',
@@ -1048,7 +1048,7 @@
 				color: '#9c27b0',
 				duration: [180, 300],
 				oddsRange: [120, 180],
-				spawnWeight: 20
+				spawnWeight: 30  // Changed from 20 - MORE LONG TERM BETS
 			},
 			highrisk: {
 				name: 'High-Risk',
@@ -1108,7 +1108,7 @@
 				game.player = savedData.player;
 				game.competitors = savedData.competitors;
 				game.events = savedData.events;
-				game.upgrades = savedData.upgrades || { passiveIncome: 0, maxEvents: 5, betBonus: 0, eventSpeed: 0 };
+				game.upgrades = savedData.upgrades || { passiveIncome: 0, maxEvents: 15, betBonus: 0, eventSpeed: 0 };
 				game.isPaused = savedData.isPaused || false;
 				game.gameSpeed = savedData.gameSpeed || 1;
 				game.activities = [];
@@ -1129,7 +1129,7 @@
 				});
 				
 				// Generate initial events
-				for (let i = 0; i < 5; i++) {
+				for (let i = 0; i < 10; i++) {
 					generateEvent();
 				}
 			}
@@ -1159,6 +1159,7 @@
 			}
 			
 			const betType = BET_TYPES[selectedBetType];
+			console.log(`Generated ${selectedBetType} bet - Duration: ${betType.duration[0]}-${betType.duration[1]}s`);
 			
 			// Fill template with random data (keep existing replacement logic)
 			template = template
@@ -1439,11 +1440,6 @@
 		function openBettingModal(eventId) {
 			const event = game.events.find(e => e.id.toString() === eventId.toString());
 			if (!event || event.resolved) return;
-			
-			if (event.phase === 'setup') {
-				addActivity('⏳ Wait for betting phase to open!', 'info');
-				return;
-			}
             
             // Check if player already bet
             if (event.bets.some(b => b.competitorName === game.player.name)) {
@@ -1833,13 +1829,13 @@
 				}
 			}, 100);
 			
-			// Generate new events - runs every 8 seconds (adjusted by upgrade)
+			// Generate new events - runs every 5 seconds (adjusted by upgrade)
 			setInterval(() => {
 				if (game.isPaused) return;
 				if (game.events.filter(e => !e.resolved).length < game.upgrades.maxEvents) {
 					generateEvent();
 				}
-			}, (8000 - (game.upgrades.eventSpeed * 80)) / game.gameSpeed);
+			}, (5000 - (game.upgrades.eventSpeed * 50)) / game.gameSpeed);
 			
 			// AI strategy review - runs every 30 seconds
 			setInterval(() => {
