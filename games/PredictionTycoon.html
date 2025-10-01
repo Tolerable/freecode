@@ -1222,26 +1222,37 @@
 			`;
 		}
 
-        function selectOutcome(index) {
-            const event = gameState.currentEvent;
-            if (!event) return;
+		function selectOutcome(index) {
+			const event = gameState.currentEvent;
+			if (!event) return;
 
-            playerBetSelection = event.outcomes[index];
-            
-            // Show bet amount controls
-            document.getElementById('betAmountControls').style.display = 'block';
-            
-            // Highlight selected option
-            document.querySelectorAll('.bet-option').forEach((opt, i) => {
-                if (i === index) {
-                    opt.classList.add('selected');
-                } else {
-                    opt.classList.remove('selected');
-                }
-            });
-            
-            updateBetAmount();
-        }
+			playerBetSelection = event.outcomes[index];
+			
+			console.log('Selected outcome:', playerBetSelection);
+			
+			// Immediately show bet controls WITHOUT waiting for next render cycle
+			const controls = document.getElementById('betAmountControls');
+			if (controls) {
+				controls.style.display = 'block';
+			}
+			
+			// Highlight selected option
+			document.querySelectorAll('.bet-option').forEach((opt, i) => {
+				if (i === index) {
+					opt.classList.add('selected');
+				} else {
+					opt.classList.remove('selected');
+				}
+			});
+			
+			// Update the bet amount display immediately
+			updateBetAmount();
+			
+			// Scroll the controls into view so user sees them
+			if (controls) {
+				controls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+			}
+		}
 
         function updateBetAmount() {
             if (!playerBetSelection) return;
@@ -1521,25 +1532,33 @@
         }
 
         // Game Loop
-        function gameLoop() {
-            setInterval(() => {
-                if (gameState.isPaused) return;
+		function gameLoop() {
+			let lastRender = 0;
+			
+			setInterval(() => {
+				if (gameState.isPaused) return;
 
-                if (gameState.currentEvent && gameState.currentEvent.timeRemaining > 0) {
-                    gameState.currentEvent.timeRemaining -= 0.1;
-                    
-                    if (gameState.currentEvent.timeRemaining <= 0) {
-                        resolveEvent();
-                    }
-                    
-                    renderEvent();
-                }
+				const now = Date.now();
+				
+				if (gameState.currentEvent && gameState.currentEvent.timeRemaining > 0) {
+					gameState.currentEvent.timeRemaining -= 0.1;
+					
+					if (gameState.currentEvent.timeRemaining <= 0) {
+						resolveEvent();
+					}
+					
+					// Only re-render every 500ms (not every 100ms) to allow clicks to register
+					if (now - lastRender > 500) {
+						renderEvent();
+						lastRender = now;
+					}
+				}
 
-                // Calculate total credits
-                gameState.credits = gameState.agents.reduce((sum, agent) => sum + agent.credits, 0);
-                updateStats();
-            }, 100);
-        }
+				// Calculate total credits
+				gameState.credits = gameState.agents.reduce((sum, agent) => sum + agent.credits, 0);
+				updateStats();
+			}, 100);
+		}
 
 
         function renderAgents() {
