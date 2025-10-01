@@ -527,106 +527,88 @@
 </head>
 <body>
     <div class="container">
-        <header style="display: flex; justify-content: space-between; align-items: center; padding: 8px 15px; margin-bottom: 8px;">
-            <div>
-                <h1>🎯 PREDICTION TYCOON 🎯</h1>
-                <div class="subtitle">Build Your AI Betting Empire</div>
-            </div>
-            <div style="text-align: center;">
-                <div style="font-size: 0.75em; color: #888;">YOUR EMPIRE</div>
-                <div style="font-size: 1.8em; font-weight: bold; color: #ffd700;">
-                    <span id="mainCreditsDisplay">1000</span> 💰
-                </div>
-                <div style="font-size: 0.8em; color: #4caf50;">
-                    Profit: <span id="mainProfitDisplay">+0</span>
-                </div>
-            </div>
-            <div class="speed-controls" style="margin: 0;">
-                <button class="speed-btn active" onclick="setSpeed(1)">1x</button>
-                <button class="speed-btn" onclick="setSpeed(2)">2x</button>
-                <button class="speed-btn" onclick="setSpeed(5)">5x</button>
-                <button class="speed-btn" onclick="setSpeed(10)">10x ⚡</button>
-            </div>
-        </header>
-
-        <div class="tabs">
-            <button class="tab active" onclick="showTab('game')">Game</button>
-            <button class="tab" onclick="showTab('upgrades')">Upgrades</button>
-            <button class="tab" onclick="showTab('stats')">Statistics</button>
+        <!-- LEFT PANEL: AI Agents -->
+        <div class="panel">
+            <h2>🤖 AI Agents</h2>
+            <div id="agentsList" style="max-height: calc(100vh - 120px); overflow-y: auto;" class="scrollbar-custom"></div>
         </div>
 
-        <div id="gameTab">
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 15px; height: calc(100vh - 180px);">
-                <!-- LEFT: AI Agents -->
-                <div class="panel" style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
-                    <div class="panel-title">🤖 AI Agents</div>
-                    <div id="agentsList" style="overflow-y: auto; flex: 1;" class="scrollbar-custom"></div>
-                </div>
+        <!-- MIDDLE PANEL: Main Game -->
+        <div class="panel main-panel">
+            <h1>🎯 PREDICTION TYCOON 🎯</h1>
+            <p style="color: #888; margin-bottom: 15px;">Build Your AI Betting Empire</p>
+            
+            <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: rgba(255,215,0,0.1); border-radius: 10px;">
+                <div style="font-size: 2em; color: #ffd700; font-weight: bold;"><span id="mainCreditsDisplay">1000</span> 💰</div>
+                <div style="font-size: 0.9em; color: #4caf50; margin-top: 5px;">Profit: <span id="mainProfitDisplay">+0</span></div>
+            </div>
 
-                <!-- CENTER: Current Event -->
-                <div class="panel" style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
-                    <div class="panel-title">🎲 Current Event</div>
-                    <div id="currentEvent" style="overflow-y: auto; flex: 1;" class="scrollbar-custom">
-                        <div class="event-card">
-                            <div class="event-header">
-                                <span class="event-type">Initializing...</span>
-                                <span class="event-timer">--</span>
-                            </div>
-                            <div class="event-description">Starting the prediction engine...</div>
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('game')">Game</button>
+                <button class="tab" onclick="showTab('upgrades')">Upgrades</button>
+                <button class="tab" onclick="showTab('stats')">Statistics</button>
+            </div>
+
+            <div id="gameTab" class="tab-content active">
+                <div id="currentEvent" style="max-height: calc(100vh - 400px); overflow-y: auto;" class="scrollbar-custom">
+                    <div class="event-card">
+                        <div class="event-header">
+                            <span class="event-type">Initializing...</span>
+                            <span class="event-timer">--</span>
                         </div>
-                    </div>
-                </div>
-
-                <!-- RIGHT: Stats & Activity -->
-                <div style="display: flex; flex-direction: column; gap: 12px; height: 100%;">
-                    <div class="panel" style="padding: 12px; flex-shrink: 0;">
-                        <div class="panel-title" style="font-size: 1em; margin-bottom: 10px;">📊 Stats</div>
-                        <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <div style="display: flex; justify-content: space-between; padding: 6px; background: rgba(0,0,0,0.3); border-radius: 5px;">
-                                <span style="color: #888; font-size: 0.9em;">Credits:</span>
-                                <span style="color: #ffd700; font-weight: bold;"><span id="totalCredits">1000</span> 💰</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; padding: 6px; background: rgba(0,0,0,0.3); border-radius: 5px;">
-                                <span style="color: #888; font-size: 0.9em;">Events:</span>
-                                <span style="color: #4caf50; font-weight: bold;" id="eventsCompleted">0</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; padding: 6px; background: rgba(0,0,0,0.3); border-radius: 5px;">
-                                <span style="color: #888; font-size: 0.9em;">Win Rate:</span>
-                                <span style="color: #2196f3; font-weight: bold;" id="winRate">0%</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; padding: 6px; background: rgba(0,0,0,0.3); border-radius: 5px;">
-                                <span style="color: #888; font-size: 0.9em;">Profit:</span>
-                                <span style="font-weight: bold;" id="totalProfit">+0</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; padding: 12px;">
-                        <div class="panel-title" style="font-size: 1em; margin-bottom: 10px; flex-shrink: 0;">📜 Activity</div>
-                        <div id="activityLog" style="overflow-y: auto; flex: 1; background: rgba(0, 0, 0, 0.3); padding: 8px; border-radius: 8px;" class="scrollbar-custom"></div>
+                        <div class="event-description">Starting the prediction engine...</div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div id="upgradesTab" style="display: none;">
-            <div class="panel">
+            <div id="upgradesTab" class="tab-content" style="display: none;">
                 <div class="panel-title">🛒 Upgrades & New Agents</div>
                 <div class="upgrades-grid" id="upgradesGrid"></div>
             </div>
-        </div>
 
-        <div id="statsTab" style="display: none;">
-            <div class="panel">
+            <div id="statsTab" class="tab-content" style="display: none;">
                 <div class="panel-title">📊 Detailed Statistics</div>
                 <div id="detailedStats"></div>
             </div>
         </div>
 
-        <div class="controls">
-            <button class="btn-primary" onclick="toggleGame()" id="toggleBtn">⏸️ Pause Game</button>
-            <button class="btn-secondary" onclick="saveGame()">💾 Save Game</button>
-            <button class="btn-danger" onclick="resetGame()">🔄 Reset Game</button>
+        <!-- RIGHT PANEL: Stats & Activity -->
+        <div class="panel">
+            <h2>📊 Stats</h2>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 5px;">
+                    <span>Credits:</span>
+                    <span style="color: #ffd700; font-weight: bold;"><span id="totalCredits">1000</span> 💰</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 5px;">
+                    <span>Events:</span>
+                    <span style="color: #4caf50; font-weight: bold;" id="eventsCompleted">0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 5px;">
+                    <span>Win Rate:</span>
+                    <span style="color: #2196f3; font-weight: bold;" id="winRate">0%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 5px;">
+                    <span>Profit:</span>
+                    <span style="font-weight: bold;" id="totalProfit">+0</span>
+                </div>
+                
+                <div class="speed-controls" style="justify-content: center; margin-top: 10px;">
+                    <button class="speed-btn active" onclick="setSpeed(1)">1x</button>
+                    <button class="speed-btn" onclick="setSpeed(2)">2x</button>
+                    <button class="speed-btn" onclick="setSpeed(5)">5x</button>
+                    <button class="speed-btn" onclick="setSpeed(10)">10x ⚡</button>
+                </div>
+            </div>
+
+            <h3 style="color: #ffd700; margin-bottom: 10px;">📜 Activity</h3>
+            <div id="activityLog" style="max-height: calc(100vh - 450px); overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;" class="scrollbar-custom"></div>
+            
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn-primary" onclick="toggleGame()" id="toggleBtn" style="width: 100%; margin-bottom: 5px;">⏸️ Pause</button>
+                <button class="btn-secondary" onclick="saveGame()" style="width: 100%; margin-bottom: 5px; font-size: 0.9em;">💾 Save</button>
+                <button class="btn-danger" onclick="resetGame()" style="width: 100%; font-size: 0.9em;">🔄 Reset</button>
+            </div>
         </div>
     </div>
 
