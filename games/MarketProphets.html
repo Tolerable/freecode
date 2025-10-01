@@ -1227,13 +1227,33 @@
 			// AI competitors analyze event
 			setTimeout(() => {
 				game.competitors.forEach(comp => {
-					// AI is MORE likely to bet on flash events
-					const betChance = isFlashBet ? 0.85 : 0.7;
+					const betChance = event.isFlashBet ? 0.85 : 0.7;
 					if (Math.random() < betChance) {
-						aiPlaceBet(comp, event);
+						aiAnalyzeEvent(comp, event); // Use real AI instead of aiPlaceBet
 					}
 				});
 			}, randNum(2000, 5000) / game.gameSpeed);
+		}
+
+		function aiConsiderUpgrades() {
+			game.competitors.forEach(comp => {
+				// Each competitor checks upgrades every 30 seconds
+				if (Math.random() < 0.05) { // 5% chance per loop iteration
+					// Aggressive traders buy risky upgrades
+					// Conservative traders buy passive income
+					// etc.
+					
+					if (comp.strategy === 'aggressive' && comp.wealth > 12000) {
+						comp.wealth -= 12000;
+						// They get better odds conceptually
+						addActivity(`${comp.emoji} ${comp.name} invested in Better Odds upgrade`, 'info');
+					} else if (comp.strategy === 'conservative' && comp.wealth > 5000) {
+						comp.wealth -= 5000;
+						comp.passiveIncome += 10;
+						addActivity(`${comp.emoji} ${comp.name} bought Passive Income upgrade`, 'info');
+					}
+				}
+			});
 		}
 
         // AI Place Bet
@@ -1609,16 +1629,88 @@
         }
 
         // Activity Feed
-        function addActivity(message, type) {
-            game.activities.unshift({ message, type, time: Date.now() });
-            if (game.activities.length > 50) game.activities.pop();
-            
-            const html = game.activities.slice(0, 10).map(act => 
-                `<div class="activity-item activity-${act.type}">${act.message}</div>`
-            ).join('');
-            
-            document.getElementById('activityFeed').innerHTML = html;
-        }
+		function addActivity(message, type) {
+			game.activities.unshift({ message, type, time: Date.now() });
+			if (game.activities.length > 50) game.activities.pop();
+			
+			const feedContainer = document.getElementById('activityFeed');
+			
+			// Create new item element
+			const newItem = document.createElement('div');
+			newItem.className = `activity-item activity-${type}`;
+			newItem.textContent = message;
+			newItem.style.animation = 'slideIn 0.3s ease-out';
+			
+			// Insert at top
+			feedContainer.insertBefore(newItem, feedContainer.firstChild);
+			
+			// Remove old items if more than 10 visible
+			while (feedContainer.children.length > 10) {
+				feedContainer.removeChild(feedContainer.lastChild);
+			}
+		}
+
+		async function aiAnalyzeEvent(competitor, event) {
+			if (event.resolved || competitor.activeBets.some(b => b.eventId === event.id)) return;
+			
+			const strategyPrompts = {
+				aggressive: 'You are a high-risk trader who loves big bets. Analyze quickly and go big.',
+				conservative: 'You are risk-averse and prefer safe, small bets. Be cautious.',
+				analytical: 'You analyze data carefully and bet on probability. Be logical.',
+				chaotic: 'You are unpredictable and make wild bets. Sometimes brilliant, sometimes reckless.'
+			};
+			
+			try {
+				const prompt = `Event: ${event.description}\nOdds: YES ${event.outcomes[0].odds}x, NO ${event.outcomes[1].odds}x\n\nShould I bet? Reply EXACTLY: BET:YES or BET:NO|AMOUNT:10-40 (percentage)|REASON:brief explanation`;
+				
+				const url = `${POLLINATIONS_API}/${encodeURIComponent(prompt)}?model=openai&system=${encodeURIComponent(strategyPrompts[competitor.strategy])}`;
+				
+				const response = await fetch(url);
+				const text = await response.text();
+				
+				const betMatch = text.match(/BET:(YES|NO)/i);
+				const amountMatch = text.match(/AMOUNT:(\d+)/i);
+				const reasonMatch = text.match(/REASON:(.+?)(?:\||$)/i);
+				
+				if (betMatch && amountMatch) {
+					const choice = betMatch[1].toUpperCase();
+					const betPercent = Math.min(50, Math.max(5, parseInt(amountMatch[1])));
+					const betAmount = Math.floor((competitor.wealth * betPercent) / 100);
+					
+					if (betAmount > 0 && betAmount <= competitor.wealth) {
+						const outcome = event.outcomes.find(o => o.label === choice) || rand(event.outcomes);
+						
+						competitor.wealth -= betAmount;
+						competitor.totalBets++;
+						
+						const bet = {
+							eventId: event.id,
+							amount: betAmount,
+							outcome: outcome,
+							competitor: competitor
+						};
+						
+						competitor.activeBets.push(bet);
+						event.bets.push({
+							competitorName: competitor.name,
+							emoji: competitor.emoji,
+							color: competitor.color,
+							amount: betAmount,
+							outcome: outcome
+						});
+						event.pot += betAmount;
+						
+						const reason = reasonMatch ? reasonMatch[1].trim().substring(0, 60) : 'Going with my analysis';
+						addActivity(`${competitor.emoji} ${competitor.name}: "${reason}"`, 'info');
+						renderEvents();
+						renderCompetitors();
+					}
+				}
+			} catch (error) {
+				console.log('AI API failed, using fallback');
+				aiPlaceBet(competitor, event);
+			}
+		}
 
         // Update Player Display
         function updatePlayerDisplay() {
