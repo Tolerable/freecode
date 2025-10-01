@@ -1564,45 +1564,51 @@
 		}
 
 
-        function renderAgents() {
-            const html = gameState.agents.map(agent => {
-                const winRate = agent.totalBets > 0 
-                    ? Math.round((agent.wins / agent.totalBets) * 100) 
-                    : 0;
-                
-                return `
-                    <div class="agent-card ${agent.working ? 'working' : ''}" style="border-color: ${agent.color}">
-                        <div class="agent-header">
-                            <div class="agent-name">
-                                <span style="font-size: 1.5em;">${agent.emoji}</span>
-                                <div>
-                                    <div>${agent.name}</div>
-                                    <div class="agent-model">${agent.model}</div>
-                                </div>
-                            </div>
-                            <div class="agent-credits">${agent.credits}💰</div>
-                        </div>
-                        <div class="agent-stats">
-                            <div class="agent-stat">
-                                <div class="agent-stat-label">Win Rate</div>
-                                <div class="agent-stat-value">${winRate}%</div>
-                            </div>
-                            <div class="agent-stat">
-                                <div class="agent-stat-label">Wins</div>
-                                <div class="agent-stat-value" style="color: #4caf50">${agent.wins}</div>
-                            </div>
-                            <div class="agent-stat">
-                                <div class="agent-stat-label">Losses</div>
-                                <div class="agent-stat-value" style="color: #f44336">${agent.losses}</div>
-                            </div>
-                        </div>
-                        <div class="agent-activity">${agent.activity}</div>
-                    </div>
-                `;
-            }).join('');
-            
-            document.getElementById('agentsList').innerHTML = html;
-        }
+		function renderAgents() {
+			const html = gameState.agents.map(agent => {
+				const winRate = agent.totalBets > 0 
+					? Math.round((agent.wins / agent.totalBets) * 100) 
+					: 0;
+				
+				// Show different activity text for player vs AI agents
+				let activityText = agent.activity;
+				if (agent.model === 'player' && agent.currentBet && agent.currentBet.selectedOutcome) {
+					activityText = `💰 Bet ${agent.currentBet.amount} credits on "${agent.currentBet.selectedOutcome.label}" at ${agent.currentBet.selectedOutcome.odds.toFixed(2)}x odds`;
+				}
+				
+				return `
+					<div class="agent-card ${agent.working ? 'working' : ''}" style="border-color: ${agent.color}">
+						<div class="agent-header">
+							<div class="agent-name">
+								<span style="font-size: 1.5em;">${agent.emoji}</span>
+								<div>
+									<div>${agent.name}</div>
+									<div class="agent-model">${agent.model}</div>
+								</div>
+							</div>
+							<div class="agent-credits">${agent.credits}💰</div>
+						</div>
+						<div class="agent-stats">
+							<div class="agent-stat">
+								<div class="agent-stat-label">Win Rate</div>
+								<div class="agent-stat-value">${winRate}%</div>
+							</div>
+							<div class="agent-stat">
+								<div class="agent-stat-label">Wins</div>
+								<div class="agent-stat-value" style="color: #4caf50">${agent.wins}</div>
+							</div>
+							<div class="agent-stat">
+								<div class="agent-stat-label">Losses</div>
+								<div class="agent-stat-value" style="color: #f44336">${agent.losses}</div>
+							</div>
+						</div>
+						<div class="agent-activity">${activityText}</div>
+					</div>
+				`;
+			}).join('');
+			
+			document.getElementById('agentsList').innerHTML = html;
+		}
 
         function renderUpgrades() {
             const upgrades = [
