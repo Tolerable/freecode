@@ -101,6 +101,11 @@
 			padding: 20px;
 			max-width: 1800px;
 			margin: 0 auto;
+			transition: transform 0.3s ease, margin-right 0.3s ease;
+		}
+
+		.game-container.activity-open {
+			margin-right: 300px;
 		}
 
         /* Left Sidebar - Competitors */
@@ -185,15 +190,23 @@
         .rank-3 { background: #cd7f32; color: #000; }
 
         /* Main Center - Events Pool */
-        .events-panel {
-            background: rgba(20, 20, 40, 0.8);
-            border-radius: 15px;
-            border: 2px solid rgba(255, 215, 0, 0.2);
-            padding: 25px;
-            max-height: calc(100vh - 180px);
-            display: flex;
-            flex-direction: column;
-        }
+		.events-panel {
+			background: rgba(20, 20, 40, 0.8);
+			border-radius: 15px;
+			border: 2px solid rgba(255, 215, 0, 0.2);
+			padding: 25px;
+			max-height: calc(100vh - 180px);
+			display: flex;
+			flex-direction: column;
+			overflow: hidden; /* Prevent panel itself from scrolling */
+		}
+
+		.events-list {
+			flex: 1;
+			overflow-y: auto;
+			padding-right: 10px;
+			margin-right: -10px; /* Offset scrollbar */
+		}
 
         .events-controls {
             display: flex;
@@ -396,17 +409,17 @@
             display: flex;
         }
 
-        .betting-modal {
-            background: linear-gradient(135deg, rgba(26, 26, 46, 0.98), rgba(22, 33, 62, 0.98));
-            border-radius: 20px;
-            border: 3px solid rgba(255, 215, 0, 0.3);
-            padding: 40px;
-            max-width: 700px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
+		.betting-modal {
+			background: linear-gradient(135deg, rgba(26, 26, 46, 0.98), rgba(22, 33, 62, 0.98));
+			border-radius: 20px;
+			border: 3px solid rgba(255, 215, 0, 0.3);
+			padding: 40px;
+			max-width: 700px;
+			width: 90%;
+			max-height: 95vh; /* Changed from 90vh */
+			overflow-y: auto;
+			box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+		}
 
         .modal-header {
             display: flex;
@@ -631,7 +644,7 @@
 			top: 130px;
 			right: -300px;
 			width: 300px;
-			height: calc(100vh - 120px);
+			height: calc(100vh - 150px);
 			background: rgba(20, 20, 40, 0.98);
 			border-radius: 15px 0 0 15px;
 			border: 2px solid rgba(255, 215, 0, 0.3);
@@ -695,9 +708,26 @@
 		}
 
 		.event-row.flash-bet {
-			animation: flashPulse 1s infinite;
+			animation: flashPulse 2s infinite; /* Changed from 1s to 2s - slower */
 			background: linear-gradient(135deg, rgba(255, 0, 0, 0.15), rgba(255, 100, 0, 0.1));
 			border-left: 6px solid #ff0000;
+		}
+
+		.event-row.flash-bet.player-bet {
+			animation: playerFlashPulse 2s infinite;
+			background: linear-gradient(135deg, rgba(0, 150, 255, 0.15), rgba(76, 175, 80, 0.1));
+			border-left: 6px solid #00aaff;
+		}
+
+		@keyframes playerFlashPulse {
+			0%, 100% { 
+				box-shadow: 0 0 20px rgba(0, 170, 255, 0.8), 0 0 40px rgba(0, 170, 255, 0.4);
+				border-color: #00aaff;
+			}
+			50% { 
+				box-shadow: 0 0 40px rgba(0, 170, 255, 1), 0 0 60px rgba(0, 170, 255, 0.6);
+				border-color: #66ccff;
+			}
 		}
 
 		.flash-badge {
@@ -1092,6 +1122,9 @@
 		function toggleActivity() {
 			const feed = document.getElementById('activityFeed').parentElement;
 			feed.classList.toggle('visible');
+			
+			const container = document.querySelector('.game-container');
+			container.classList.toggle('activity-open');
 			
 			const btn = document.getElementById('activityBtn');
 			if (feed.classList.contains('visible')) {
