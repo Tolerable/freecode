@@ -1300,39 +1300,52 @@
             updateBetAmount();
         }
 
-        function confirmPlayerBet() {
-            if (!playerBetSelection || !gameState.currentEvent) return;
-            
-            const slider = document.getElementById('betSlider');
-            const betAmount = parseInt(slider.value);
-            
-            if (betAmount > gameState.credits) {
-                addLog('⚠️ Not enough credits!', 'loss');
-                return;
-            }
+		function confirmPlayerBet() {
+			if (!playerBetSelection || !gameState.currentEvent) return;
+			
+			const slider = document.getElementById('betSlider');
+			const betAmount = parseInt(slider.value);
+			
+			if (betAmount > gameState.credits) {
+				addLog('⚠️ Not enough credits!', 'loss');
+				return;
+			}
 
-            const playerAgent = {
-                id: 'player-' + Date.now(),
-                name: 'YOU (Player)',
-                emoji: '👤',
-                model: 'player',
-                color: '#ffd700',
-                credits: gameState.credits - betAmount,
-                wins: 0,
-                losses: 0,
-                totalBets: 1,
-                currentBet: {
-                    amount: betAmount,
-                    confidence: 50,
-                    reason: `Bet on: ${playerBetSelection.label}`,
-                    eventId: gameState.currentEvent.id,
-                    selectedOutcome: playerBetSelection
-                },
-                working: false,
-                activity: `💰 Bet ${betAmount} on ${playerBetSelection.label}`
-            };
+			// Check if player already has a bet on THIS specific event
+			const existingPlayerBet = gameState.agents.find(a => 
+				a.id.toString().startsWith('player-') && 
+				a.currentBet && 
+				a.currentBet.eventId === gameState.currentEvent.id
+			);
+			
+			if (existingPlayerBet) {
+				addLog('⚠️ You already bet on this event!', 'loss');
+				cancelPlayerBet();
+				return;
+			}
 
-            gameState.agents.push(playerAgent);
+			const playerAgent = {
+				id: 'player-' + gameState.currentEvent.id,
+				name: 'YOU (Player)',
+				emoji: '👤',
+				model: 'player',
+				color: '#ffd700',
+				credits: gameState.credits - betAmount,
+				wins: 0,
+				losses: 0,
+				totalBets: 1,
+				currentBet: {
+					amount: betAmount,
+					confidence: 50,
+					reason: `Bet on: ${playerBetSelection.label}`,
+					eventId: gameState.currentEvent.id,
+					selectedOutcome: playerBetSelection
+				},
+				working: false,
+				activity: `💰 Bet ${betAmount} on ${playerBetSelection.label}`
+			};
+
+			gameState.agents.push(playerAgent);
             gameState.currentEvent.bets.push({
                 agentId: playerAgent.id,
                 amount: betAmount,
