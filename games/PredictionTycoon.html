@@ -1311,13 +1311,12 @@
 				return;
 			}
 
+			// Use event ID as the player agent ID to prevent duplicates
+			const playerAgentId = 'player-event-' + gameState.currentEvent.id;
+
 			// Check if player already has a bet on THIS specific event
-			const existingPlayerBet = gameState.agents.find(a => 
-				a.id.toString().startsWith('player-') && 
-				a.currentBet && 
-				a.currentBet.eventId === gameState.currentEvent.id
-			);
-			
+			const existingPlayerBet = gameState.agents.find(a => a.id === playerAgentId);
+
 			if (existingPlayerBet) {
 				addLog('⚠️ You already bet on this event!', 'loss');
 				cancelPlayerBet();
@@ -1325,7 +1324,7 @@
 			}
 
 			const playerAgent = {
-				id: 'player-' + gameState.currentEvent.id,
+				id: playerAgentId,
 				name: 'YOU (Player)',
 				emoji: '👤',
 				model: 'player',
