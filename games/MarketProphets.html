@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Prophets - Prediction Trading Empire</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .game-header {
+            background: linear-gradient(135deg, rgba(20, 20, 40, 0.95), rgba(30, 30, 50, 0.95));
+            border-bottom: 3px solid rgba(255, 215, 0, 0.3);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .title-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .game-title {
+            font-size: 2.5em;
+            font-weight: 900;
+            background: linear-gradient(45deg, #ffd700, #ffed4e, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            letter-spacing: 2px;
+        }
+
+        .wealth-display {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        .wealth-amount {
+            font-size: 3em;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.3);
+            letter-spacing: 1px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .wealth-label {
+            font-size: 0.9em;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .player-stats {
+            display: flex;
+            gap: 30px;
+            font-size: 1.1em;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4caf50;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        /* Main Layout */
+        .game-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Left Sidebar - Competitors */
+        .competitors-panel {
+            background: rgba(20, 20, 40, 0.8);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            padding: 20px;
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            font-size: 1.3em;
+            color: #ffd700;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .competitor-card {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .competitor-card:hover {
+            border-color: rgba(255, 215, 0, 0.5);
+            transform: translateX(5px);
+        }
+
+        .competitor-card.player {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .competitor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .competitor-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .competitor-wealth {
+            font-size: 1.3em;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .competitor-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        .rank-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .rank-1 { background: #ffd700; color: #000; }
+        .rank-2 { background: #c0c0c0; color: #000; }
+        .rank-3 { background: #cd7f32; color: #000; }
+
+        /* Main Center - Events Pool */
+        .events-panel {
+            background: rgba(20, 20, 40, 0.8);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            padding: 25px;
+            max-height: calc(100vh - 180px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .events-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .speed-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .speed-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .speed-btn.active {
+            background: rgba(255, 215, 0, 0.3);
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #000;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-danger {
+            background: rgba(244, 67, 54, 0.3);
+            color: #fff;
+            border: 2px solid #f44336;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .events-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .event-row {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #666;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .event-row:hover {
+            border-left-color: #ffd700;
+            transform: translateX(5px);
+            background: rgba(255, 215, 0, 0.05);
+        }
+
+        .event-row.player-bet {
+            border-left-color: #4caf50;
+            background: rgba(76, 175, 80, 0.05);
+        }
+
+        .event-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .event-type-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            background: rgba(255, 215, 0, 0.2);
+            border-radius: 20px;
+            font-size: 0.9em;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .event-timer {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+
+        .event-timer.closing-soon {
+            animation: pulse 1s infinite;
+            color: #ff3333;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .event-description {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .event-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .event-pot {
+            font-size: 1.2em;
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .event-bettors {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .bettor-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .odds-display {
+            display: flex;
+            gap: 15px;
+            font-size: 0.95em;
+        }
+
+        .odds-item {
+            color: #888;
+        }
+
+        .odds-value {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        /* Betting Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .betting-modal {
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.98), rgba(22, 33, 62, 0.98));
+            border-radius: 20px;
+            border: 3px solid rgba(255, 215, 0, 0.3);
+            padding: 40px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 25px;
+        }
+
+        .modal-title {
+            font-size: 1.8em;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .modal-close {
+            background: rgba(244, 67, 54, 0.3);
+            border: 2px solid #f44336;
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: rgba(244, 67, 54, 0.5);
+            transform: rotate(90deg);
+        }
+
+        .modal-event-desc {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .betting-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .bet-option-btn {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.05));
+            border: 3px solid #4caf50;
+            padding: 25px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .bet-option-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.4);
+            border-color: #66ff66;
+        }
+
+        .bet-option-btn.selected {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.1));
+            border-color: #ffd700;
+            box-shadow: 0 5px 25px rgba(255, 215, 0, 0.5);
+        }
+
+        .option-label {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .option-odds {
+            font-size: 2em;
+            color: #ffd700;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .option-potential {
+            font-size: 0.95em;
+            color: #4caf50;
+        }
+
+        .bet-amount-section {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .amount-label {
+            font-size: 1.2em;
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .current-amount {
+            font-size: 2em;
+            color: #fff;
+            text-align: center;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .amount-slider {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            outline: none;
+            margin: 20px 0;
+        }
+
+        .amount-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 30px;
+            height: 30px;
+            background: #ffd700;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+        }
+
+        .amount-slider::-moz-range-thumb {
+            width: 30px;
+            height: 30px;
+            background: #ffd700;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            border: none;
+        }
+
+        .quick-amounts {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .quick-amount-btn {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .quick-amount-btn:hover {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: #ffd700;
+        }
+
+        .bet-summary {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            margin-bottom: 25px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+
+        .summary-label {
+            color: #888;
+        }
+
+        .summary-value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .summary-value.highlight {
+            color: #4caf50;
+            font-size: 1.3em;
+        }
+
+        .confirm-bet-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(45deg, #4caf50, #66bb6a);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .confirm-bet-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5);
+        }
+
+        .confirm-bet-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Activity Feed */
+        .activity-feed {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            max-height: 300px;
+            background: rgba(20, 20, 40, 0.95);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            padding: 15px;
+            overflow-y: auto;
+            z-index: 500;
+        }
+
+        .activity-header {
+            font-size: 1.1em;
+            color: #ffd700;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .activity-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            border-left: 3px solid;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .activity-win {
+            background: rgba(76, 175, 80, 0.15);
+            border-color: #4caf50;
+        }
+
+        .activity-loss {
+            background: rgba(244, 67, 54, 0.15);
+            border-color: #f44336;
+        }
+
+        .activity-event {
+            background: rgba(255, 215, 0, 0.15);
+            border-color: #ffd700;
+        }
+
+        .activity-info {
+            background: rgba(33, 150, 243, 0.15);
+            border-color: #2196f3;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 215, 0, 0.5);
+        }
+
+        /* Upgrades Tab */
+        .upgrades-panel {
+            display: none;
+        }
+
+        .upgrades-panel.active {
+            display: block;
+        }
+
+        .upgrades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+
+        .upgrade-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upgrade-card:hover:not(.locked) {
+            border-color: #ffd700;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .upgrade-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .upgrade-icon {
+            font-size: 3.5em;
+            margin-bottom: 15px;
+        }
+
+        .upgrade-name {
+            font-size: 1.3em;
+            color: #ffd700;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .upgrade-cost {
+            font-size: 1.2em;
+            color: #4caf50;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .upgrade-desc {
+            color: #aaa;
+            font-size: 0.95em;
+            line-height: 1.4;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .tab.active {
+            color: #ffd700;
+            border-bottom-color: #ffd700;
+        }
+
+        .tab:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="game-header">
+        <div class="title-section">
+            <div class="game-title">⚡ MARKET PROPHETS</div>
+            <div class="player-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="playerWins">0</div>
+                    <div class="stat-label">Wins</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="playerLosses">0</div>
+                    <div class="stat-label">Losses</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="playerWinRate">0%</div>
+                    <div class="stat-label">Win Rate</div>
+                </div>
+            </div>
+        </div>
+        <div class="wealth-display">
+            <div class="wealth-label">Your Wealth</div>
+            <div class="wealth-amount" id="playerWealth">$10,000</div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="game-container">
+        <!-- Left Sidebar -->
+        <div class="competitors-panel">
+            <div class="panel-header">🏢 Trading Corps</div>
+            <div id="competitorsList"></div>
+        </div>
+
+        <!-- Main Center Panel -->
+        <div class="events-panel">
+            <div class="events-controls">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('events')">📊 Events</button>
+                    <button class="tab" onclick="switchTab('upgrades')">🛒 Upgrades</button>
+                </div>
+                <div class="speed-controls">
+                    <button class="speed-btn active" onclick="setSpeed(1)">1x</button>
+                    <button class="speed-btn" onclick="setSpeed(2)">2x</button>
+                    <button class="speed-btn" onclick="setSpeed(5)">5x</button>
+                </div>
+                <div class="control-buttons">
+                    <button class="btn btn-primary" onclick="togglePause()" id="pauseBtn">⏸️ Pause</button>
+                    <button class="btn btn-secondary" onclick="saveGame()">💾 Save</button>
+                    <button class="btn btn-danger" onclick="resetGame()">🔄 Reset</button>
+                </div>
+            </div>
+
+            <!-- Events List -->
+            <div id="eventsContainer" class="events-list"></div>
+
+            <!-- Upgrades Panel -->
+            <div id="upgradesContainer" class="upgrades-panel">
+                <div class="upgrades-grid" id="upgradesGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Betting Modal -->
+    <div class="modal-overlay" id="bettingModal">
+        <div class="betting-modal">
+            <div class="modal-header">
+                <div class="modal-title" id="modalEventType"></div>
+                <button class="modal-close" onclick="closeBettingModal()">×</button>
+            </div>
+            <div class="modal-event-desc" id="modalEventDesc"></div>
+            <div class="betting-options" id="modalBettingOptions"></div>
+            <div class="bet-amount-section">
+                <div class="amount-label">Bet Amount</div>
+                <div class="current-amount" id="currentBetAmount">$100</div>
+                <input type="range" class="amount-slider" id="betAmountSlider" min="10" max="1000" value="100" oninput="updateBetAmount()">
+                <div class="quick-amounts">
+                    <button class="quick-amount-btn" onclick="setQuickAmount(100)">$100</button>
+                    <button class="quick-amount-btn" onclick="setQuickAmount(500)">$500</button>
+                    <button class="quick-amount-btn" onclick="setQuickAmount(1000)">$1K</button>
+                    <button class="quick-amount-btn" onclick="setQuickAmount(5000)">$5K</button>
+                    <button class="quick-amount-btn" onclick="setQuickAmount('max')">MAX</button>
+                </div>
+            </div>
+            <div class="bet-summary">
+                <div class="summary-row">
+                    <span class="summary-label">Choice:</span>
+                    <span class="summary-value" id="summaryChoice">-</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Odds:</span>
+                    <span class="summary-value" id="summaryOdds">-</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Bet Amount:</span>
+                    <span class="summary-value" id="summaryAmount">$0</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Potential Win:</span>
+                    <span class="summary-value highlight" id="summaryPotential">$0</span>
+                </div>
+            </div>
+            <button class="confirm-bet-btn" onclick="confirmBet()">🎯 PLACE BET</button>
+        </div>
+    </div>
+
+    <!-- Activity Feed -->
+    <div class="activity-feed">
+        <div class="activity-header">📜 Recent Activity</div>
+        <div id="activityFeed"></div>
+    </div>
+
+    <script>
+        // Game Configuration
+        const POLLINATIONS_API = 'https://text.pollinations.ai';
+        
+        // Game State
+        const game = {
+            player: {
+                name: 'YOU',
+                emoji: '👤',
+                wealth: 10000,
+                wins: 0,
+                losses: 0,
+                totalBets: 0,
+                passiveIncome: 20,
+                activeBets: []
+            },
+            competitors: [],
+            events: [],
+            activities: [],
+            isPaused: false,
+            gameSpeed: 1,
+            selectedEvent: null,
+            selectedOutcome: null,
+            upgrades: {
+                passiveIncome: 0,
+                maxEvents: 5,
+                betBonus: 0,
+                eventSpeed: 0
+            }
+        };
+
+        // Competitor Templates
+        const COMPETITOR_TEMPLATES = [
+            { name: 'Quantum Capital', emoji: '⚛️', color: '#00ffff', strategy: 'aggressive'},
+            { name: 'Silicon Syndicate', emoji: '🔮', color: '#9c27b0', strategy: 'analytical' },
+            { name: 'Fortune Dynamics', emoji: '💎', color: '#4caf50', strategy: 'conservative' },
+            { name: 'Chaos Trading Co', emoji: '🎲', color: '#ff5722', strategy: 'chaotic' }
+        ];
+
+        // Event Categories
+        const EVENT_CATEGORIES = [
+            {
+                type: 'Tech Stock',
+                icon: '💻',
+                templates: [
+                    'Will ${company} stock rise above $${price} by end of quarter? Current: $${current}',
+                    '${company} announces new ${product}. Will stock jump ${percent}% this week?',
+                    'AI startup ${company} IPO prediction: Success or flop? Valued at $${value}M'
+                ]
+            },
+            {
+                type: 'Sports',
+                icon: '⚽',
+                templates: [
+                    '${team1} vs ${team2} in ${sport}. ${team1} currently ${record1}, ${team2} at ${record2}',
+                    'Underdog ${team1} faces champion ${team2}. Will there be an upset?',
+                    '${player} attempting career record in ${sport}. Current streak: ${streak} games'
+                ]
+            },
+            {
+                type: 'Crypto',
+                icon: '₿',
+                templates: [
+                    'Will ${crypto} break $${price} resistance level? Currently at $${current}',
+                    '${crypto} halving event approaching. Price prediction: up or down?',
+                    'New DeFi protocol ${protocol} launches. Will it moon or rug pull?'
+                ]
+            },
+            {
+                type: 'Politics',
+                icon: '🗳️',
+                templates: [
+                    'Poll: Will ${candidate} support increase for ${policy}? Current: ${percent}%',
+                    'Prediction: ${leader} announces ${decision}. Sources say ${hint}',
+                    'Will ${bill} pass in ${body}? Vote count: ${for} for, ${against} against'
+                ]
+            },
+            {
+                type: 'Weather',
+                icon: '🌤️',
+                templates: [
+                    'Will ${city} see ${event} this week? Forecast confidence: ${confidence}%',
+                    'Temperature in ${city}: Above or below ${temp}°F? Current: ${current}°F',
+                    'Hurricane ${name} tracking toward ${region}. Landfall probability: ${prob}%'
+                ]
+            },
+            {
+                type: 'Market',
+                icon: '📊',
+                templates: [
+                    'Will ${index} close above ${level} today? Currently at ${current}',
+                    'Gold price prediction: Break $${price} barrier? Current: $${current}',
+                    'Oil futures: Will prices hit $${price}/barrel this month? Now: $${current}'
+                ]
+            }
+        ];
+
+        // Random data pools
+        const companies = ['TechCorp', 'InnovateCo', 'FutureSys', 'QuantumAI', 'NexGen', 'Synergy', 'DataFlow'];
+        const cryptos = ['BitCoin', 'EthToken', 'SolChain', 'CardanoX', 'PolkaVerse', 'AvalancheY'];
+        const teams = ['Dragons', 'Tigers', 'Eagles', 'Sharks', 'Panthers', 'Wolves', 'Lions', 'Hawks'];
+        const sports = ['basketball', 'football', 'baseball', 'soccer', 'hockey'];
+        const cities = ['New York', 'Miami', 'Chicago', 'Los Angeles', 'Seattle', 'Austin', 'Boston'];
+
+        function rand(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function randNum(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function formatMoney(amount) {
+            return '$' + Math.floor(amount).toLocaleString();
+        }
+
+        // Initialize Game
+        function initGame() {
+            const saved = localStorage.getItem('marketProphets');
+            if (saved) {
+                const savedData = JSON.parse(saved);
+                Object.assign(game, savedData);
+            } else {
+                // Create AI competitors
+                COMPETITOR_TEMPLATES.forEach(template => {
+                    game.competitors.push({
+                        ...template,
+                        wealth: randNum(8000, 12000),
+                        wins: 0,
+                        losses: 0,
+                        totalBets: 0,
+                        passiveIncome: 15,
+                        activeBets: []
+                    });
+                });
+                
+                // Generate initial events
+                for (let i = 0; i < 5; i++) {
+                    generateEvent();
+                }
+            }
+
+            renderCompetitors();
+            renderEvents();
+            renderUpgrades();
+            updatePlayerDisplay();
+            startGameLoop();
+        }
+
+        // Generate Event
+        function generateEvent() {
+            const category = rand(EVENT_CATEGORIES);
+            let template = rand(category.templates);
+            
+            // Fill template
+            template = template
+                .replace('${company}', rand(companies))
+                .replace('${crypto}', rand(cryptos))
+                .replace('${team1}', rand(teams))
+                .replace('${team2}', rand(teams))
+                .replace('${sport}', rand(sports))
+                .replace('${city}', rand(cities))
+                .replace('${price}', randNum(50, 500))
+                .replace('${current}', randNum(40, 480))
+                .replace('${percent}', randNum(5, 25))
+                .replace('${product}', rand(['AI chip', 'quantum processor', 'neural interface']))
+                .replace('${value}', randNum(100, 2000))
+                .replace('${record1}', randNum(5, 15) + '-' + randNum(5, 15))
+                .replace('${record2}', randNum(5, 15) + '-' + randNum(5, 15))
+                .replace('${player}', rand(['Jordan', 'Smith', 'Williams', 'Brown']))
+                .replace('${streak}', randNum(5, 20))
+                .replace('${protocol}', rand(['DeFiMax', 'YieldFarm', 'SwapChain']))
+                .replace('${candidate}', rand(['Senator Adams', 'Rep. Johnson', 'Gov. Martinez']))
+                .replace('${policy}', rand(['healthcare', 'climate', 'education']))
+                .replace('${percent}', randNum(35, 65))
+                .replace('${leader}', rand(['President', 'PM', 'Chancellor']))
+                .replace('${decision}', rand(['economic reform', 'trade deal', 'policy change']))
+                .replace('${hint}', rand(['likely', 'possible', 'uncertain']))
+                .replace('${bill}', rand(['Tax Reform', 'Infrastructure Bill', 'Healthcare Act']))
+                .replace('${body}', rand(['Senate', 'Congress', 'Parliament']))
+                .replace('${for}', randNum(40, 60))
+                .replace('${against}', randNum(30, 50))
+                .replace('${event}', rand(['rain', 'snow', 'thunderstorms', 'heatwave']))
+                .replace('${confidence}', randNum(50, 90))
+                .replace('${temp}', randNum(60, 90))
+                .replace('${current}', randNum(55, 85))
+                .replace('${name}', rand(['Alpha', 'Beta', 'Gamma', 'Delta']))
+                .replace('${region}', rand(cities))
+                .replace('${prob}', randNum(30, 80))
+                .replace('${index}', rand(['S&P 500', 'NASDAQ', 'DOW']))
+                .replace('${level}', randNum(4000, 6000));
+
+            const outcomes = [
+                { label: 'YES', odds: (randNum(150, 300) / 100).toFixed(2), type: 'yes' },
+                { label: 'NO', odds: (randNum(150, 300) / 100).toFixed(2), type: 'no' }
+            ];
+
+            const event = {
+                id: Date.now() + Math.random(),
+                type: category.type,
+                icon: category.icon,
+                description: template,
+                timeRemaining: randNum(90, 180) / game.gameSpeed,
+                maxTime: randNum(90, 180),
+                outcomes: outcomes,
+                bets: [],
+                pot: 0,
+                resolved: false
+            };
+
+            game.events.push(event);
+            
+            // Limit events
+            if (game.events.length > game.upgrades.maxEvents) {
+                game.events = game.events.slice(-game.upgrades.maxEvents);
+            }
+
+            addActivity(`${category.icon} New ${category.type} event available!`, 'event');
+            
+            // AI competitors analyze event
+            setTimeout(() => {
+                game.competitors.forEach(comp => {
+                    if (Math.random() < 0.7) { // 70% chance they bet
+                        aiPlaceBet(comp, event);
+                    }
+                });
+            }, randNum(2000, 5000) / game.gameSpeed);
+        }
+
+        // AI Place Bet
+        function aiPlaceBet(competitor, event) {
+            if (event.resolved || competitor.activeBets.some(b => b.eventId === event.id)) return;
+
+            let betAmount;
+            switch(competitor.strategy) {
+                case 'aggressive':
+                    betAmount = Math.floor(competitor.wealth * randNum(10, 25) / 100);
+                    break;
+                case 'conservative':
+                    betAmount = Math.floor(competitor.wealth * randNum(3, 10) / 100);
+                    break;
+                case 'analytical':
+                    betAmount = Math.floor(competitor.wealth * randNum(8, 15) / 100);
+                    break;
+                case 'chaotic':
+                    betAmount = Math.floor(competitor.wealth * randNum(5, 30) / 100);
+                    break;
+                default:
+                    betAmount = Math.floor(competitor.wealth * 0.1);
+            }
+
+            betAmount = Math.max(10, Math.min(betAmount, competitor.wealth));
+            if (betAmount <= 0) return;
+
+            const outcome = rand(event.outcomes);
+            
+            competitor.wealth -= betAmount;
+            competitor.totalBets++;
+            
+            const bet = {
+                eventId: event.id,
+                amount: betAmount,
+                outcome: outcome,
+                competitor: competitor
+            };
+            
+            competitor.activeBets.push(bet);
+            event.bets.push({
+                competitorName: competitor.name,
+                emoji: competitor.emoji,
+                color: competitor.color,
+                amount: betAmount,
+                outcome: outcome
+            });
+            event.pot += betAmount;
+
+            addActivity(`${competitor.emoji} ${competitor.name} bet ${formatMoney(betAmount)} on ${outcome.label}`, 'info');
+            renderEvents();
+            renderCompetitors();
+        }
+
+        // Render Competitors
+        function renderCompetitors() {
+            const allTraders = [game.player, ...game.competitors].sort((a, b) => b.wealth - a.wealth);
+            
+            const html = allTraders.map((trader, index) => {
+                const winRate = trader.totalBets > 0 ? Math.round((trader.wins / trader.totalBets) * 100) : 0;
+                const rankBadge = index < 3 ? `<span class="rank-badge rank-${index + 1}">#${index + 1}</span>` : '';
+                const isPlayer = trader === game.player;
+                
+                return `
+                    <div class="competitor-card ${isPlayer ? 'player' : ''}" style="border-color: ${trader.color || '#ffd700'}">
+                        <div class="competitor-header">
+                            <div class="competitor-name">
+                                <span style="font-size: 1.5em;">${trader.emoji}</span>
+                                ${trader.name}
+                                ${rankBadge}
+                            </div>
+                        </div>
+                        <div class="competitor-wealth">${formatMoney(trader.wealth)}</div>
+                        <div class="competitor-stats">
+                            <span>W: ${trader.wins}</span>
+                            <span>L: ${trader.losses}</span>
+                            <span>${winRate}%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('competitorsList').innerHTML = html;
+        }
+
+        // Render Events
+        function renderEvents() {
+            const activeEvents = game.events.filter(e => !e.resolved);
+            
+            const html = activeEvents.map(event => {
+                const timeLeft = Math.ceil(event.timeRemaining);
+                const isClosingSoon = timeLeft <= 15;
+                const playerHasBet = event.bets.some(b => b.competitorName === game.player.name);
+                
+                const bettorDots = event.bets.slice(0, 8).map(bet => 
+                    `<div class="bettor-dot" style="background: ${bet.color}; border-color: ${bet.color};" title="${bet.competitorName}">${bet.emoji}</div>`
+                ).join('');
+                
+                return `
+                    <div class="event-row ${playerHasBet ? 'player-bet' : ''}" onclick="openBettingModal('${event.id}')">
+                        <div class="event-top">
+                            <span class="event-type-badge">${event.icon} ${event.type}</span>
+                            <span class="event-timer ${isClosingSoon ? 'closing-soon' : ''}">${timeLeft}s</span>
+                        </div>
+                        <div class="event-description">${event.description}</div>
+                        <div class="odds-display">
+                            ${event.outcomes.map(o => `
+                                <div class="odds-item">
+                                    <span>${o.label}</span>: <span class="odds-value">${o.odds}x</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="event-bottom">
+                            <div class="event-pot">Pot: ${formatMoney(event.pot)}</div>
+                            <div class="event-bettors">
+                                ${bettorDots}
+                                ${event.bets.length > 8 ? `<span style="color: #888; margin-left: 5px;">+${event.bets.length - 8}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('eventsContainer').innerHTML = html || '<div style="text-align: center; padding: 50px; color: #888;">No active events. New ones spawning soon...</div>';
+        }
+
+        // Open Betting Modal
+        function openBettingModal(eventId) {
+            const event = game.events.find(e => e.id.toString() === eventId.toString());
+            if (!event || event.resolved) return;
+            
+            // Check if player already bet
+            if (event.bets.some(b => b.competitorName === game.player.name)) {
+                addActivity('You already bet on this event!', 'info');
+                return;
+            }
+            
+            if (event.timeRemaining < 5) {
+                addActivity('Betting closed - event ending soon!', 'info');
+                return;
+            }
+
+            game.selectedEvent = event;
+            game.selectedOutcome = null;
+            
+            document.getElementById('modalEventType').textContent = `${event.icon} ${event.type}`;
+            document.getElementById('modalEventDesc').textContent = event.description;
+            
+            const optionsHtml = event.outcomes.map((outcome, index) => `
+                <div class="bet-option-btn" onclick="selectOutcome(${index})">
+                    <div class="option-label">${outcome.label}</div>
+                    <div class="option-odds">${outcome.odds}x</div>
+                    <div class="option-potential">Win ${formatMoney(100 * parseFloat(outcome.odds))} per $100</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('modalBettingOptions').innerHTML = optionsHtml;
+            
+            const maxBet = Math.min(game.player.wealth, 10000);
+            document.getElementById('betAmountSlider').max = maxBet;
+            document.getElementById('betAmountSlider').value = Math.min(100, maxBet);
+            updateBetAmount();
+            
+            document.getElementById('bettingModal').classList.add('active');
+        }
+
+        function closeBettingModal() {
+            document.getElementById('bettingModal').classList.remove('active');
+            game.selectedEvent = null;
+            game.selectedOutcome = null;
+        }
+
+        function selectOutcome(index) {
+            if (!game.selectedEvent) return;
+            game.selectedOutcome = game.selectedEvent.outcomes[index];
+            
+            document.querySelectorAll('.bet-option-btn').forEach((btn, i) => {
+                if (i === index) {
+                    btn.classList.add('selected');
+                } else {
+                    btn.classList.remove('selected');
+                }
+            });
+            
+            updateBetAmount();
+        }
+
+        function updateBetAmount() {
+            const slider = document.getElementById('betAmountSlider');
+            const amount = parseInt(slider.value);
+            
+            document.getElementById('currentBetAmount').textContent = formatMoney(amount);
+            document.getElementById('summaryAmount').textContent = formatMoney(amount);
+            
+            if (game.selectedOutcome) {
+                const potential = Math.floor(amount * parseFloat(game.selectedOutcome.odds));
+                document.getElementById('summaryChoice').textContent = game.selectedOutcome.label;
+                document.getElementById('summaryOdds').textContent = game.selectedOutcome.odds + 'x';
+                document.getElementById('summaryPotential').textContent = formatMoney(potential);
+            } else {
+                document.getElementById('summaryChoice').textContent = '-';
+                document.getElementById('summaryOdds').textContent = '-';
+                document.getElementById('summaryPotential').textContent = '$0';
+            }
+        }
+
+        function setQuickAmount(value) {
+            const slider = document.getElementById('betAmountSlider');
+            if (value === 'max') {
+                slider.value = slider.max;
+            } else {
+                slider.value = Math.min(value, parseInt(slider.max));
+            }
+            updateBetAmount();
+        }
+
+        function confirmBet() {
+            if (!game.selectedEvent || !game.selectedOutcome) {
+                addActivity('Please select an outcome!', 'info');
+                return;
+            }
+            
+            const amount = parseInt(document.getElementById('betAmountSlider').value);
+            if (amount > game.player.wealth) {
+                addActivity('Not enough wealth!', 'loss');
+                return;
+            }
+            
+            // Place bet
+            game.player.wealth -= amount;
+            game.player.totalBets++;
+            
+            const bet = {
+                eventId: game.selectedEvent.id,
+                amount: amount,
+                outcome: game.selectedOutcome,
+                competitor: game.player
+            };
+            
+            game.player.activeBets.push(bet);
+            game.selectedEvent.bets.push({
+                competitorName: game.player.name,
+                emoji: game.player.emoji,
+                color: '#ffd700',
+                amount: amount,
+                outcome: game.selectedOutcome
+            });
+            game.selectedEvent.pot += amount;
+            
+            addActivity(`You bet ${formatMoney(amount)} on ${game.selectedOutcome.label}!`, 'win');
+            
+            closeBettingModal();
+            renderEvents();
+            renderCompetitors();
+            updatePlayerDisplay();
+        }
+
+        // Resolve Event
+        function resolveEvent(event) {
+            if (event.resolved) return;
+            event.resolved = true;
+            
+            // Determine winner (50/50 for now)
+            const winningOutcome = rand(event.outcomes);
+            
+            addActivity(`${event.icon} ${event.type} resolved: ${winningOutcome.label} wins!`, 'event');
+            
+            // Payout winners
+            event.bets.forEach(bet => {
+                const trader = bet.competitorName === game.player.name ? game.player : 
+                              game.competitors.find(c => c.name === bet.competitorName);
+                
+                if (!trader) return;
+                
+                if (bet.outcome.label === winningOutcome.label) {
+                    const winnings = Math.floor(bet.amount * parseFloat(bet.outcome.odds));
+                    trader.wealth += winnings;
+                    trader.wins++;
+                    
+                    const profit = winnings - bet.amount;
+                    addActivity(`${trader.emoji} ${trader.name} WON ${formatMoney(winnings)} (+${formatMoney(profit)})!`, 'win');
+                } else {
+                    trader.losses++;
+                    addActivity(`${trader.emoji} ${trader.name} lost ${formatMoney(bet.amount)}`, 'loss');
+                }
+                
+                // Remove from active bets
+                trader.activeBets = trader.activeBets.filter(b => b.eventId !== event.id);
+            });
+            
+            renderCompetitors();
+            renderEvents();
+            updatePlayerDisplay();
+            
+            // Remove event after delay
+            setTimeout(() => {
+                game.events = game.events.filter(e => e.id !== event.id);
+                renderEvents();
+            }, 3000 / game.gameSpeed);
+        }
+
+        // Render Upgrades
+        function renderUpgrades() {
+            const upgrades = [
+                {
+                    icon: '💰',
+                    name: 'Passive Income',
+                    cost: 5000,
+                    desc: '+10 wealth per second',
+                    unlock: () => {
+                        game.player.passiveIncome += 10;
+                        game.upgrades.passiveIncome++;
+                        addActivity('Passive income increased!', 'win');
+                    }
+                },
+                {
+                    icon: '📊',
+                    name: 'More Events',
+                    cost: 8000,
+                    desc: '+2 active event slots',
+                    unlock: () => {
+                        game.upgrades.maxEvents += 2;
+                        addActivity('Event capacity increased!', 'win');
+                    }
+                },
+                {
+                    icon: '🎯',
+                    name: 'Better Odds',
+                    cost: 12000,
+                    desc: '+5% winnings on all bets',
+                    unlock: () => {
+                        game.upgrades.betBonus += 5;
+                        addActivity('Bet bonus increased!', 'win');
+                    }
+                },
+                {
+                    icon: '⚡',
+                    name: 'Fast Events',
+                    cost: 15000,
+                    desc: 'Events spawn 25% faster',
+                    unlock: () => {
+                        game.upgrades.eventSpeed += 25;
+                        addActivity('Event speed increased!', 'win');
+                    }
+                }
+            ];
+
+            const html = upgrades.map(up => {
+                const canAfford = game.player.wealth >= up.cost;
+                return `
+                    <div class="upgrade-card ${!canAfford ? 'locked' : ''}" onclick='${canAfford ? `buyUpgrade(${upgrades.indexOf(up)})` : ''}'>
+                        <div class="upgrade-icon">${up.icon}</div>
+                        <div class="upgrade-name">${up.name}</div>
+                        <div class="upgrade-cost">${formatMoney(up.cost)}</div>
+                        <div class="upgrade-desc">${up.desc}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('upgradesGrid').innerHTML = html;
+            window.upgradesList = upgrades;
+        }
+
+        function buyUpgrade(index) {
+            const upgrade = window.upgradesList[index];
+            if (game.player.wealth >= upgrade.cost) {
+                game.player.wealth -= upgrade.cost;
+                upgrade.unlock();
+                renderUpgrades();
+                updatePlayerDisplay();
+            }
+        }
+
+        // Activity Feed
+        function addActivity(message, type) {
+            game.activities.unshift({ message, type, time: Date.now() });
+            if (game.activities.length > 50) game.activities.pop();
+            
+            const html = game.activities.slice(0, 10).map(act => 
+                `<div class="activity-item activity-${act.type}">${act.message}</div>`
+            ).join('');
+            
+            document.getElementById('activityFeed').innerHTML = html;
+        }
+
+        // Update Player Display
+        function updatePlayerDisplay() {
+            document.getElementById('playerWealth').textContent = formatMoney(game.player.wealth);
+            document.getElementById('playerWins').textContent = game.player.wins;
+            document.getElementById('playerLosses').textContent = game.player.losses;
+            const winRate = game.player.totalBets > 0 ? Math.round((game.player.wins / game.player.totalBets) * 100) : 0;
+            document.getElementById('playerWinRate').textContent = winRate + '%';
+        }
+
+        // Game Loop
+        function startGameLoop() {
+            setInterval(() => {
+                if (game.isPaused) return;
+                
+                // Update event timers
+                game.events.forEach(event => {
+                    if (!event.resolved) {
+                        event.timeRemaining -= 0.1;
+                        if (event.timeRemaining <= 0) {
+                            resolveEvent(event);
+                        }
+                    }
+                });
+                
+                // Passive income
+                const allTraders = [game.player, ...game.competitors];
+                allTraders.forEach(trader => {
+                    trader.wealth += (trader.passiveIncome * game.gameSpeed) / 10;
+                });
+                
+                renderEvents();
+                updatePlayerDisplay();
+                renderCompetitors();
+            }, 100);
+            
+            // Generate new events
+            setInterval(() => {
+                if (game.isPaused) return;
+                if (game.events.filter(e => !e.resolved).length < game.upgrades.maxEvents) {
+                    generateEvent();
+                }
+            }, (8000 - (game.upgrades.eventSpeed * 80)) / game.gameSpeed);
+            
+            // Auto-save
+            setInterval(() => {
+                if (!game.isPaused) saveGame();
+            }, 30000);
+        }
+
+        // Controls
+        function togglePause() {
+            game.isPaused = !game.isPaused;
+            document.getElementById('pauseBtn').textContent = game.isPaused ? '▶️ Resume' : '⏸️ Pause';
+            addActivity(game.isPaused ? 'Game paused' : 'Game resumed', 'info');
+        }
+
+        function setSpeed(speed) {
+            game.gameSpeed = speed;
+            document.querySelectorAll('.speed-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            addActivity(`Speed set to ${speed}x`, 'info');
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (tab === 'events') {
+                document.getElementById('eventsContainer').style.display = 'block';
+                document.getElementById('upgradesContainer').classList.remove('active');
+            } else if (tab === 'upgrades') {
+                document.getElementById('eventsContainer').style.display = 'none';
+                document.getElementById('upgradesContainer').classList.add('active');
+                renderUpgrades();
+            }
+        }
+
+        function saveGame() {
+            localStorage.setItem('marketProphets', JSON.stringify(game));
+            addActivity('Game saved!', 'info');
+        }
+
+        function resetGame() {
+            if (confirm('Reset all progress? This cannot be undone!')) {
+                localStorage.removeItem('marketProphets');
+                location.reload();
+            }
+        }
+
+        // Start game
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
