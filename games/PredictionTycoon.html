@@ -1127,7 +1127,8 @@
         }
 
         let playerBetSelection = null;
-
+		let lastRenderedEventId = null;
+		
         function renderEvent() {
             const event = gameState.currentEvent;
             if (!event) return;
@@ -1527,90 +1528,6 @@
             }, 100);
         }
 
-		let lastRenderedEventId = null;
-
-		lastRenderedEventId = event.id;
-            const event = gameState.currentEvent;
-            if (!event) return;
-
-            const totalBets = event.bets.reduce((sum, bet) => sum + bet.amount, 0);
-            const avgConfidence = event.bets.length > 0 
-                ? Math.round(event.bets.reduce((sum, bet) => sum + bet.confidence, 0) / event.bets.length)
-                : 0;
-
-            // Check if player already bet
-            const playerHasBet = event.bets.some(bet => bet.agentId.toString().startsWith('player-'));
-
-            const outcomeOptions = event.outcomes.map((outcome, index) => `
-                <div class="bet-option" onclick="selectOutcome(${index})">
-                    <div class="outcome-label">${outcome.label}</div>
-                    <div class="odds-display">${outcome.odds.toFixed(2)}x</div>
-                    <div class="potential-win">Win: ${Math.floor(100 * outcome.odds)} per 100 bet</div>
-                </div>
-            `).join('');
-
-            document.getElementById('currentEvent').innerHTML = `
-                <div class="event-card">
-                    <div class="event-header">
-                        <span class="event-type">${event.icon} ${event.type}</span>
-                        <span class="event-timer">${Math.ceil(event.timeRemaining)}s</span>
-                    </div>
-                    <div class="event-description">${event.description}</div>
-                    <div style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span>Total Bets:</span>
-                            <span style="color: #ffd700; font-weight: bold;">${totalBets} credits</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>Avg Confidence:</span>
-                            <span style="color: #4caf50; font-weight: bold;">${avgConfidence}%</span>
-                        </div>
-                    </div>
-                    <div class="betting-interface">
-                        ${playerHasBet ? 
-                            '<div class="betting-closed"><strong>✅ You already bet on this event!</strong><br>Wait for the outcome...</div>' :
-                            event.timeRemaining < 5 ?
-                            '<div class="betting-closed"><strong>⏱️ Betting Closed!</strong><br>Event resolving soon...</div>' :
-                            `<h3 style="color: #ffd700; margin-bottom: 15px;">👤 Place Your Bet:</h3>
-                            <div class="bet-options">
-                                ${outcomeOptions}
-                            </div>
-                            <div class="bet-amount-controls" id="betAmountControls" style="display: none;">
-                                <div class="bet-amount-label">Select Bet Amount: <span id="currentBetAmount">100</span> credits</div>
-                                <input type="range" min="10" max="${Math.min(gameState.credits, 500)}" value="100" class="amount-slider" id="betSlider" oninput="updateBetAmount()">
-                                <div class="quick-bet-buttons">
-                                    <button class="quick-bet-btn" onclick="setQuickBet(50)">50</button>
-                                    <button class="quick-bet-btn" onclick="setQuickBet(100)">100</button>
-                                    <button class="quick-bet-btn" onclick="setQuickBet(250)">250</button>
-                                    <button class="quick-bet-btn" onclick="setQuickBet(500)">500</button>
-                                    <button class="quick-bet-btn" onclick="setQuickBet('max')">MAX</button>
-                                </div>
-                                <div class="bet-summary">
-                                    <div class="bet-summary-row">
-                                        <span>Your Choice:</span>
-                                        <span id="chosenOutcome">-</span>
-                                    </div>
-                                    <div class="bet-summary-row">
-                                        <span>Odds:</span>
-                                        <span id="chosenOdds">-</span>
-                                    </div>
-                                    <div class="bet-summary-row">
-                                        <span>Bet Amount:</span>
-                                        <span id="summaryAmount">100</span>
-                                    </div>
-                                    <div class="bet-summary-row" style="color: #4caf50; font-weight: bold;">
-                                        <span>Potential Win:</span>
-                                        <span id="potentialWin">0</span>
-                                    </div>
-                                </div>
-                                <button class="confirm-bet-btn" onclick="confirmPlayerBet()">CONFIRM BET</button>
-                                <button class="cancel-bet-btn" onclick="cancelPlayerBet()">CANCEL</button>
-                            </div>`
-                        }
-                    </div>
-                </div>
-            `;
-        }
 
         function renderAgents() {
             const html = gameState.agents.map(agent => {
