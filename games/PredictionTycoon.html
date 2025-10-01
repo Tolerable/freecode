@@ -1476,13 +1476,26 @@
         }
 
         // Resolve Event
-        async function resolveEvent() {
-            if (!gameState.currentEvent || gameState.currentEvent.bets.length === 0) {
-                generateEvent();
-                return;
-            }
+		async function resolveEvent() {
+			if (!gameState.currentEvent) {
+				generateEvent();
+				return;
+			}
+			
+			if (gameState.currentEvent.bets.length === 0) {
+				addLog('⏭️ No bets placed, skipping to next event...', 'info');
+				gameState.currentEvent = null;
+				setTimeout(() => {
+					if (!gameState.isPaused) generateEvent();
+				}, 1000 / gameState.gameSpeed);
+				return;
+			}
 
-            addLog('⏱️ Event time expired! Determining outcome...', 'event');
+			// Prevent multiple resolutions of the same event
+			if (gameState.currentEvent.resolved) return;
+			gameState.currentEvent.resolved = true;
+
+			addLog('⏱️ Event time expired! Determining outcome...', 'event');
 
             try {
                 // Randomly determine which outcome wins (50/50 for now, could be AI-based)
@@ -1552,29 +1565,22 @@
 
 				const now = Date.now();
 				
-				if (gameState.currentEvent) {
-					if (gameState.currentEvent.timeRemaining > 0) {
-						gameState.currentEvent.timeRemaining -= 0.1;
-						
-						// Only re-render every 500ms (not every 100ms) to allow clicks to register
-						if (now - lastRender > 500) {
-							renderEvent();
-							lastRender = now;
-						}
-					} else if (gameState.currentEvent.timeRemaining <= 0 && gameState.currentEvent.bets.length > 0) {
-						// Event has ended and has bets, resolve it
+				if (gameState.currentEvent && gameState.currentEvent.timeRemaining > 0) {
+					gameState.currentEvent.timeRemaining -= 0.1;
+					
+					if (gameState.currentEvent.timeRemaining <= 0) {
 						resolveEvent();
-					} else if (gameState.currentEvent.timeRemaining <= 0 && gameState.currentEvent.bets.length === 0) {
-						// Event ended with no bets, skip to next event
-						generateEvent();
+					}
+					
+					// Only re-render every 500ms (not every 100ms) to allow clicks to register
+					if (now - lastRender > 500) {
+						renderEvent();
+						lastRender = now;
 					}
 				}
 
-				// Calculate total credits from non-player agents only
-				const nonPlayerCredits = gameState.agents
-					.filter(agent => !agent.id.toString().startsWith('player-'))
-					.reduce((sum, agent) => sum + agent.credits, 0);
-				gameState.credits = nonPlayerCredits;
+				// Calculate total credits
+				gameState.credits = gameState.agents.reduce((sum, agent) => sum + agent.credits, 0);
 				updateStats();
 			}, 100);
 		}
