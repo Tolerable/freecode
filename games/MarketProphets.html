@@ -1123,7 +1123,9 @@
 						losses: 0,
 						totalBets: 0,
 						passiveIncome: 15,
-						activeBets: []
+						activeBets: [],
+						currentStrategy: null, // Will be set by AI review
+						lastAIReview: 0 // Timestamp of last AI call
 					});
 				});
 				
@@ -1198,8 +1200,8 @@
 				];
 			}
 
-			const setupTime = 15; // Fixed setup phase
-			const bettingTime = isFlashBet ? randNum(20, 35) : randNum(60, 120);
+			const setupTime = isFlashBet ? 0 : 15; // Flash bets skip setup entirely
+			const bettingTime = isFlashBet ? randNum(25, 40) : randNum(60, 120);
 
 			const event = {
 				id: Date.now() + Math.random(),
@@ -1209,7 +1211,7 @@
 				setupTime: setupTime / game.gameSpeed,
 				bettingTime: bettingTime / game.gameSpeed,
 				timeRemaining: (setupTime + bettingTime) / game.gameSpeed,
-				phase: 'setup', // 'setup' or 'betting'
+				phase: isFlashBet ? 'betting' : 'setup', // Flash bets start in betting phase
 				outcomes: outcomes,
 				bets: [],
 				pot: 0,
@@ -1252,56 +1254,106 @@
 		}
 
         // AI Place Bet
-        function aiPlaceBet(competitor, event) {
-            if (event.resolved || competitor.activeBets.some(b => b.eventId === event.id)) return;
+		function aiPlaceBet(competitor, event) {
+			if (event.resolved || competitor.activeBets.some(b => b.eventId === event.id)) return;
 
-            let betAmount;
-            switch(competitor.strategy) {
-                case 'aggressive':
-                    betAmount = Math.floor(competitor.wealth * randNum(10, 25) / 100);
-                    break;
-                case 'conservative':
-                    betAmount = Math.floor(competitor.wealth * randNum(3, 10) / 100);
-                    break;
-                case 'analytical':
-                    betAmount = Math.floor(competitor.wealth * randNum(8, 15) / 100);
-                    break;
-                case 'chaotic':
-                    betAmount = Math.floor(competitor.wealth * randNum(5, 30) / 100);
-                    break;
-                default:
-                    betAmount = Math.floor(competitor.wealth * 0.1);
-            }
+			// Use strategy-based rules (no API call)
+			let betPercent;
+			switch(competitor.strategy) {
+				case 'aggressive':
+					betPercent = randNum(15, 30);
+					break;
+				case 'conservative':
+					betPercent = randNum(5, 12);
+					break;
+				case 'analytical':
+					betPercent = randNum(10, 18);
+					break;
+				case 'chaotic':
+					betPercent = randNum(5, 35);
+					break;
+				default:
+					betPercent = 10;
+			}
 
-            betAmount = Math.max(10, Math.min(betAmount, competitor.wealth));
-            if (betAmount <= 0) return;
+			// Apply current AI strategy adjustment if they have one
+			if (competitor.currentStrategy) {
+				if (competitor.currentStrategy.includes('aggressive')) betPercent *= 1.3;
+				if (competitor.currentStrategy.includes('conservative')) betPercent *= 0.7;
+			}
 
-            const outcome = rand(event.outcomes);
-            
-            competitor.wealth -= betAmount;
-            competitor.totalBets++;
-            
-            const bet = {
-                eventId: event.id,
-                amount: betAmount,
-                outcome: outcome,
-                competitor: competitor
-            };
-            
-            competitor.activeBets.push(bet);
-            event.bets.push({
-                competitorName: competitor.name,
-                emoji: competitor.emoji,
-                color: competitor.color,
-                amount: betAmount,
-                outcome: outcome
-            });
-            event.pot += betAmount;
+			const betAmount = Math.floor((competitor.wealth * betPercent) / 100);
+			if (betAmount <= 0 || betAmount > competitor.wealth) return;
 
-            addActivity(`${competitor.emoji} ${competitor.name} bet ${formatMoney(betAmount)} on ${outcome.label}`, 'info');
-            renderEvents();
-            renderCompetitors();
-        }
+			// Pick outcome based on strategy
+			let outcome;
+			if (competitor.strategy === 'contrarian' && event.bets.length > 0) {
+				// Contrarian picks opposite of majority
+				const yesBets = event.bets.filter(b => b.outcome.label === 'YES').length;
+				const noBets = event.bets.filter(b => b.outcome.label === 'NO').length;
+				outcome = yesBets > noBets ? event.outcomes.find(o => o.label === 'NO') : event.outcomes.find(o => o.label === 'YES');
+			} else if (competitor.strategy === 'analytical') {
+				// Analytical picks better odds
+				outcome = event.outcomes[0].odds > event.outcomes[1].odds ? event.outcomes[0] : event.outcomes[1];
+			} else {
+				// Random pick
+				outcome = rand(event.outcomes);
+			}
+
+			competitor.wealth -= betAmount;
+			competitor.totalBets++;
+			
+			const bet = {
+				eventId: event.id,
+				amount: betAmount,
+				outcome: outcome,
+				competitor: competitor
+			};
+			
+			competitor.activeBets.push(bet);
+			event.bets.push({
+				competitorName: competitor.name,
+				emoji: competitor.emoji,
+				color: competitor.color,
+				amount: betAmount,
+				outcome: outcome
+			});
+			event.pot += betAmount;
+
+			renderEvents();
+			renderCompetitors();
+		}
+
+		async function aiStrategyReview(competitor) {
+			const now = Date.now();
+			
+			// Only review every 120 seconds
+			if (now - competitor.lastAIReview < 120000) return;
+			
+			competitor.lastAIReview = now;
+			
+			const winRate = competitor.totalBets > 0 ? (competitor.wins / competitor.totalBets * 100).toFixed(0) : 0;
+			
+			try {
+				const prompt = `I'm a ${competitor.strategy} trader. Stats: ${competitor.wins}W-${competitor.losses}L (${winRate}% win rate), wealth: ${formatMoney(competitor.wealth)}. Should I adjust my strategy? Reply with one word: AGGRESSIVE, CONSERVATIVE, or MAINTAIN`;
+				
+				const url = `${POLLINATIONS_API}/${encodeURIComponent(prompt)}?model=openai`;
+				const response = await fetch(url);
+				const text = await response.text();
+				
+				if (text.includes('AGGRESSIVE')) {
+					competitor.currentStrategy = 'more aggressive';
+					addActivity(`${competitor.emoji} ${competitor.name} switching to aggressive mode`, 'info');
+				} else if (text.includes('CONSERVATIVE')) {
+					competitor.currentStrategy = 'more conservative';
+					addActivity(`${competitor.emoji} ${competitor.name} playing it safe now`, 'info');
+				} else {
+					competitor.currentStrategy = null;
+				}
+			} catch (error) {
+				console.log('AI review failed, continuing with base strategy');
+			}
+		}
 
         // Render Competitors
         function renderCompetitors() {
@@ -1718,10 +1770,10 @@
             document.getElementById('playerWinRate').textContent = winRate + '%';
         }
 
-        // Game Loop
 		function startGameLoop() {
 			let lastFullRender = 0;
 			
+			// Main game loop - runs every 100ms
 			setInterval(() => {
 				if (game.isPaused) return;
 				
@@ -1760,8 +1812,10 @@
 					trader.wealth += (trader.passiveIncome * game.gameSpeed) / 10;
 				});
 				
+				// Only update timer displays, not full re-render
 				updateTimersOnly();
 				
+				// Full re-render only every 500ms
 				if (now - lastFullRender > 500) {
 					updatePlayerDisplay();
 					renderCompetitors();
@@ -1769,6 +1823,7 @@
 				}
 			}, 100);
 			
+			// Generate new events - runs every 8 seconds (adjusted by upgrade)
 			setInterval(() => {
 				if (game.isPaused) return;
 				if (game.events.filter(e => !e.resolved).length < game.upgrades.maxEvents) {
@@ -1776,24 +1831,31 @@
 				}
 			}, (8000 - (game.upgrades.eventSpeed * 80)) / game.gameSpeed);
 			
+			// AI strategy review - runs every 30 seconds
+			setInterval(() => {
+				if (game.isPaused) return;
+				game.competitors.forEach(comp => {
+					aiStrategyReview(comp);
+				});
+			}, 30000);
+			
+			// Auto-save - runs every 30 seconds
 			setInterval(() => {
 				if (!game.isPaused) saveGame();
 			}, 30000);
 		}
 
-		// Add this new function to only update timer text
 		function updateTimersOnly() {
-			const timerElements = document.querySelectorAll('.event-timer');
-			game.events.filter(e => !e.resolved).forEach((event, index) => {
-				if (timerElements[index]) {
+			game.events.filter(e => !e.resolved).forEach(event => {
+				const timerElement = document.querySelector(`[onclick="openBettingModal('${event.id}')"] .event-timer`);
+				if (timerElement) {
 					const timeLeft = Math.ceil(event.timeRemaining);
-					timerElements[index].textContent = timeLeft + 's';
+					timerElement.textContent = `${event.phase === 'setup' ? '⏳' : ''} ${timeLeft}s`;
 					
-					// Update closing-soon class
 					if (timeLeft <= 15) {
-						timerElements[index].classList.add('closing-soon');
+						timerElement.classList.add('closing-soon');
 					} else {
-						timerElements[index].classList.remove('closing-soon');
+						timerElement.classList.remove('closing-soon');
 					}
 				}
 			});
