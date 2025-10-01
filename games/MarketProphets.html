@@ -99,7 +99,6 @@
 			grid-template-columns: 280px 1fr;
 			gap: 20px;
 			padding: 20px;
-			padding-right: 320px; /* Make room for activity feed */
 			max-width: 1800px;
 			margin: 0 auto;
 		}
@@ -628,18 +627,42 @@
         /* Activity Feed */
 		.activity-feed {
 			position: fixed;
-			top: 160px;
-			right: 0;
+			top: 100px;
+			right: -300px;
 			width: 300px;
-			height: calc(100vh - 180px);
-			background: rgba(20, 20, 40, 0.95);
+			height: calc(100vh - 120px);
+			background: rgba(20, 20, 40, 0.98);
 			border-radius: 15px 0 0 15px;
-			border: 2px solid rgba(255, 215, 0, 0.2);
+			border: 2px solid rgba(255, 215, 0, 0.3);
 			border-right: none;
 			padding: 15px;
 			overflow-y: auto;
 			z-index: 500;
 			box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+			transition: right 0.3s ease;
+		}
+
+		.activity-feed.visible {
+			right: 0;
+		}
+
+		.activity-feed::before {
+			content: '📜';
+			position: absolute;
+			left: -40px;
+			top: 50%;
+			transform: translateY(-50%);
+			width: 40px;
+			height: 60px;
+			background: rgba(20, 20, 40, 0.98);
+			border: 2px solid rgba(255, 215, 0, 0.3);
+			border-right: none;
+			border-radius: 10px 0 0 10px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 1.5em;
+			cursor: pointer;
 		}
 
         .activity-header {
@@ -846,11 +869,12 @@
                     <button class="speed-btn" onclick="setSpeed(2)">2x</button>
                     <button class="speed-btn" onclick="setSpeed(5)">5x</button>
                 </div>
-                <div class="control-buttons">
-                    <button class="btn btn-primary" onclick="togglePause()" id="pauseBtn">⏸️ Pause</button>
-                    <button class="btn btn-secondary" onclick="saveGame()">💾 Save</button>
-                    <button class="btn btn-danger" onclick="resetGame()">🔄 Reset</button>
-                </div>
+				<div class="control-buttons">
+					<button class="btn btn-secondary" onclick="toggleActivity()" id="activityBtn">📜 Activity</button>
+					<button class="btn btn-primary" onclick="togglePause()" id="pauseBtn">⏸️ Pause</button>
+					<button class="btn btn-secondary" onclick="saveGame()">💾 Save</button>
+					<button class="btn btn-danger" onclick="resetGame()">🔄 Reset</button>
+				</div>
             </div>
 
             <!-- Events List -->
@@ -1027,6 +1051,18 @@
         function formatMoney(amount) {
             return '$' + Math.floor(amount).toLocaleString();
         }
+
+		function toggleActivity() {
+			const feed = document.getElementById('activityFeed').parentElement;
+			feed.classList.toggle('visible');
+			
+			const btn = document.getElementById('activityBtn');
+			if (feed.classList.contains('visible')) {
+				btn.textContent = '✖️ Close';
+			} else {
+				btn.textContent = '📜 Activity';
+			}
+		}
 
         // Initialize Game
 		function initGame() {
