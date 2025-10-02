@@ -831,11 +831,14 @@
 					}
 					
 					await speakText(response);
-					
-					if (isListening) {
-						await new Promise(resolve => setTimeout(resolve, 1000));
-						updateStatus('listening', 'LISTENING');
-					}
+                
+                // Double-check we're still listening before updating status
+                if (isListening && !isProcessing) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    if (isListening) {  // Check again after the delay
+                        updateStatus('listening', 'LISTENING');
+                    }
+                }
 				}
 
 				isProcessing = false;
@@ -980,25 +983,27 @@
                         transcriptArea.innerHTML = '';
                     }
                 }
-            } else {
-                // Stop listening
+			} else {
+                // Stop listening - set flags FIRST before doing anything else
                 isListening = false;
                 isProcessing = false;
                 
-                if (recognition) {
-                    try { recognition.abort(); } catch (e) {}
-                }
+                // Update UI immediately
+                updateStatus('stopped', 'STOPPED');
+                toggleBtn.textContent = 'Start';
+                toggleBtn.className = 'main-btn btn-start';
+                
+                // Now stop everything
+                clearTimeout(silenceTimer);
+                currentTranscript = '';
                 
                 if (synthesis.speaking) {
                     synthesis.cancel();
                 }
                 
-                clearTimeout(silenceTimer);
-                currentTranscript = '';
-                
-                updateStatus('stopped', 'STOPPED');
-                toggleBtn.textContent = 'Start';
-                toggleBtn.className = 'main-btn btn-start';
+                if (recognition) {
+                    try { recognition.abort(); } catch (e) {}
+                }
             }
         });
 
