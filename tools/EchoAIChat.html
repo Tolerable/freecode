@@ -748,9 +748,15 @@
             custom: './avatars/custom.jpg'
         };
 
-		function updateAvatar() {
-            const customUrl = avatarUrlInput.value.trim();
+		// Store custom avatars per persona
+        let customAvatars = {};
+
+        function updateAvatar() {
             const persona = personaSelect.value;
+            
+            // Load the custom avatar for this specific persona if it exists
+            const customUrl = customAvatars[persona] || '';
+            avatarUrlInput.value = customUrl;
             
             let imageUrl;
             if (customUrl) {
@@ -774,18 +780,29 @@
             avatarPreview.onerror = handleError;
         }
 
-        // Handle file selection
+		// Handle file selection
         avatarFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (event) => {
+                    const persona = personaSelect.value;
+                    customAvatars[persona] = event.target.result;
                     avatarUrlInput.value = event.target.result;
                     updateAvatar();
                     saveSettings();
                 };
                 reader.readAsDataURL(file);
             }
+        });
+
+        // Handle manual URL input
+        avatarUrlInput.addEventListener('blur', () => {
+            const persona = personaSelect.value;
+            const customUrl = avatarUrlInput.value.trim();
+            customAvatars[persona] = customUrl;
+            updateAvatar();
+            saveSettings();
         });
 
         // Update avatar when persona or URL changes
@@ -1348,7 +1365,7 @@
                 voicePitch: voicePitchInput.value,
 				systemPrompt: systemPromptInput.value,
                 saveConversation: saveConversationCheckbox.checked,
-                avatarUrl: avatarUrlInput.value
+                customAvatars: customAvatars
             };
             localStorage.setItem('aiVoiceAssistantSettings', JSON.stringify(settings));
             
@@ -1386,7 +1403,7 @@
                 if (settings.voicePitch) voicePitchInput.value = settings.voicePitch;
 				if (settings.systemPrompt) systemPromptInput.value = settings.systemPrompt;
                 if (settings.saveConversation !== undefined) saveConversationCheckbox.checked = settings.saveConversation;
-				if (settings.avatarUrl) avatarUrlInput.value = settings.avatarUrl;
+				if (settings.customAvatars) customAvatars = settings.customAvatars;
 				
                 // Load saved conversation if enabled
                 if (saveConversationCheckbox.checked) {
@@ -1406,7 +1423,7 @@
 
 		[responseModeSelect, wakeWordSelect, personaSelect, aiModelSelect, voiceTypeSelect, 
          voiceSelect, silenceThresholdInput, speechRateInput, 
-         voicePitchInput, systemPromptInput, saveConversationCheckbox, avatarUrlInput].forEach(element => {
+         voicePitchInput, systemPromptInput, saveConversationCheckbox].forEach(element => {
             element.addEventListener('change', saveSettings);
         });
 
