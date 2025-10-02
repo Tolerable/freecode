@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo AI Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .config-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .config-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .config-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ccc;
+            transition: background 0.3s;
+        }
+
+        .status-indicator.listening {
+            background: #4caf50;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-indicator.processing {
+            background: #ff9800;
+        }
+
+        .status-indicator.speaking {
+            background: #2196f3;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .transcript-area {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .message.user {
+            background: #e3f2fd;
+        }
+
+        .message.ai {
+            background: #f3e5f5;
+        }
+
+        .message.echo {
+            background: #e8f5e9;
+        }
+
+        .message strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+        .help-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .info-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 10px;
+            padding: 12px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Echo AI Chat</h1>
+        <p class="subtitle">Voice conversation between AI and your Echo device</p>
+
+        <div class="config-section">
+            <div class="config-row">
+                <div class="config-group">
+                    <label>AI Wake Word</label>
+                    <input type="text" id="aiWakeWord" value="assistant" placeholder="e.g., assistant, computer">
+                </div>
+                <div class="config-group">
+                    <label>AI Model</label>
+                    <select id="aiModel">
+                        <option value="gemini">Gemini 2.5 Flash</option>
+                        <option value="deepseek">DeepSeek V3.1</option>
+                        <option value="openai">OpenAI GPT-5 Mini</option>
+                        <option value="mistral">Mistral Small</option>
+                    </select>
+                </div>
+            </div>
+            <div class="config-row">
+                <div class="config-group">
+                    <label>Silence Threshold (ms)</label>
+                    <input type="number" id="silenceThreshold" value="1500" min="500" max="5000" step="100">
+                </div>
+                <div class="config-group">
+                    <label>Speech Rate</label>
+                    <input type="number" id="speechRate" value="1.0" min="0.5" max="2.0" step="0.1">
+                </div>
+            </div>
+            <div class="config-row">
+                <div class="config-group" style="flex: 1 1 100%;">
+                    <label>System Prompt (Optional)</label>
+                    <textarea id="systemPrompt" placeholder="You are a helpful AI assistant engaging in conversation with an Amazon Echo device...">You are a helpful AI assistant. Keep responses concise and conversational. When you respond, always end by saying 'Echo' followed by a question to continue the conversation.</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="status">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <div class="status-text" id="statusText">Ready to start</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" id="startBtn">Start Listening</button>
+            <button class="btn-secondary" id="stopBtn" disabled>Stop</button>
+        </div>
+
+        <div class="transcript-area" id="transcriptArea">
+            <div style="text-align: center; color: #999; padding: 20px;">
+                Conversation will appear here...
+            </div>
+        </div>
+
+        <div class="info-text">
+            <strong>🔧 API Info:</strong><br>
+            Using Pollinations.AI API with referrer: www.ai-ministries.com<br>
+            Rate limit: Seed tier (5 second intervals)
+        </div>
+
+        <div class="help-text">
+            <strong>💡 How to use:</strong><br>
+            1. Click "Start Listening" to begin<br>
+            2. Say your AI's wake word + message (e.g., "Assistant, tell me a joke")<br>
+            3. The AI will respond and trigger your Echo device by saying "Echo"<br>
+            4. The system continues listening for Echo's response<br>
+            5. The conversation loops automatically
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'https://text.pollinations.ai/openai';
+        const REFERRER = 'www.ai-ministries.com';
+        
+        let recognition;
+        let synthesis = window.speechSynthesis;
+        let isListening = false;
+        let silenceTimer;
+        let currentTranscript = '';
+        let isProcessing = false;
+        let isSpeaking = false;
+        let conversationHistory = [];
+
+        // DOM Elements
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const transcriptArea = document.getElementById('transcriptArea');
+        const aiWakeWordInput = document.getElementById('aiWakeWord');
+        const silenceThresholdInput = document.getElementById('silenceThreshold');
+        const aiModelSelect = document.getElementById('aiModel');
+        const systemPromptInput = document.getElementById('systemPrompt');
+        const speechRateInput = document.getElementById('speechRate');
+
+        // Initialize Speech Recognition
+        function initRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                alert('Speech recognition not supported in this browser. Please use Chrome or Edge.');
+                return null;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    currentTranscript += finalTranscript;
+                    resetSilenceTimer();
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                if (event.error === 'no-speech') {
+                    if (isListening && !isSpeaking) {
+                        recognition.start();
+                    }
+                }
+            };
+
+            recognition.onend = () => {
+                if (isListening && !isSpeaking && !isProcessing) {
+                    recognition.start();
+                }
+            };
+
+            return recognition;
+        }
+
+        // Silence Detection
+        function resetSilenceTimer() {
+            clearTimeout(silenceTimer);
+            const threshold = parseInt(silenceThresholdInput.value);
+            
+            silenceTimer = setTimeout(() => {
+                if (currentTranscript.trim() && !isProcessing) {
+                    processTranscript(currentTranscript.trim());
+                    currentTranscript = '';
+                }
+            }, threshold);
+        }
+
+        // Process captured speech
+        async function processTranscript(text) {
+            if (isProcessing || isSpeaking) return;
+
+            const aiWakeWord = aiWakeWordInput.value.toLowerCase();
+            const lowerText = text.toLowerCase();
+
+            addMessage('user', text);
+
+            // Check if AI wake word is present
+            if (lowerText.includes(aiWakeWord)) {
+                isProcessing = true;
+                updateStatus('processing', 'Processing your request...');
+
+                // Extract the message after wake word
+                const wakeIndex = lowerText.indexOf(aiWakeWord);
+                const message = text.substring(wakeIndex + aiWakeWord.length).trim();
+
+                if (message) {
+                    const response = await getAIResponse(message);
+                    
+                    if (response) {
+                        addMessage('ai', response);
+                        await speakText(response);
+                        
+                        // After speaking, listen for Echo's response
+                        updateStatus('listening', 'Listening for Echo...');
+                    }
+                }
+
+                isProcessing = false;
+            } else if (lowerText.includes('echo')) {
+                // This is likely Echo's response
+                addMessage('echo', text);
+                updateStatus('listening', 'Listening...');
+            }
+        }
+
+        // Get AI Response using Pollinations API
+        async function getAIResponse(message) {
+            const model = aiModelSelect.value;
+            const systemPrompt = systemPromptInput.value.trim();
+
+            // Build messages array
+            const messages = [];
+            
+            if (systemPrompt) {
+                messages.push({
+                    role: 'system',
+                    content: systemPrompt
+                });
+            }
+
+            // Add conversation history (last 6 messages to keep context manageable)
+            const recentHistory = conversationHistory.slice(-6);
+            messages.push(...recentHistory);
+
+            // Add current message
+            messages.push({
+                role: 'user',
+                content: message
+            });
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: messages,
+                        temperature: 0.7,
+                        stream: false,
+                        referrer: REFERRER
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+
+                // Update conversation history
+                conversationHistory.push({
+                    role: 'user',
+                    content: message
+                });
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: aiResponse
+                });
+
+                return aiResponse;
+
+            } catch (error) {
+                console.error('API Error:', error);
+                addMessage('system', `Error: ${error.message}. Using fallback response.`);
+                
+                // Fallback response
+                return `I heard you say: "${message}". Echo, what are your thoughts on that?`;
+            }
+        }
+
+        // Text to Speech
+        function speakText(text) {
+            return new Promise((resolve) => {
+                isSpeaking = true;
+                updateStatus('speaking', 'Speaking...');
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = parseFloat(speechRateInput.value);
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+
+                utterance.onend = () => {
+                    isSpeaking = false;
+                    updateStatus('listening', 'Listening...');
+                    resolve();
+                };
+
+                utterance.onerror = () => {
+                    isSpeaking = false;
+                    updateStatus('listening', 'Listening...');
+                    resolve();
+                };
+
+                synthesis.speak(utterance);
+            });
+        }
+
+        // UI Updates
+        function updateStatus(state, text) {
+            statusIndicator.className = 'status-indicator ' + state;
+            statusText.textContent = text;
+        }
+
+        function addMessage(type, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + type;
+            
+            let label = 'System';
+            if (type === 'user') label = 'You';
+            else if (type === 'ai') label = 'AI';
+            else if (type === 'echo') label = 'Echo';
+            
+            messageDiv.innerHTML = `<strong>${label}:</strong>${text}`;
+            
+            if (transcriptArea.children[0]?.style.textAlign === 'center') {
+                transcriptArea.innerHTML = '';
+            }
+            
+            transcriptArea.appendChild(messageDiv);
+            transcriptArea.scrollTop = transcriptArea.scrollHeight;
+        }
+
+        // Event Listeners
+        startBtn.addEventListener('click', () => {
+            if (!recognition) {
+                recognition = initRecognition();
+            }
+            
+            if (recognition) {
+                isListening = true;
+                conversationHistory = []; // Reset conversation history
+                recognition.start();
+                updateStatus('listening', 'Listening...');
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                transcriptArea.innerHTML = '';
+            }
+        });
+
+        stopBtn.addEventListener('click', () => {
+            isListening = false;
+            if (recognition) {
+                recognition.stop();
+            }
+            if (synthesis.speaking) {
+                synthesis.cancel();
+            }
+            clearTimeout(silenceTimer);
+            updateStatus('', 'Stopped');
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            isSpeaking = false;
+            isProcessing = false;
+        });
+
+        // Initialize
+        if ('speechSynthesis' in window && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
+            console.log('Speech APIs ready');
+        } else {
+            alert('Your browser does not support the required speech APIs.');
+        }
+    </script>
+</body>
+</html>
