@@ -314,6 +314,7 @@
                         <option value="professional">Professional Expert</option>
                         <option value="witty">Witty Comedian</option>
                         <option value="teacher">Patient Teacher</option>
+                        <option value="therapist">Supportive Therapist</option>
                         <option value="custom">Custom Persona...</option>
                     </select>
                 </div>
@@ -389,6 +390,7 @@
             professional: "You are a professional expert assistant. Be formal, precise, and informative. Keep responses concise (2-3 sentences).",
             witty: "You are a witty AI with a great sense of humor. Be playful and clever. Keep responses brief (2-3 sentences).",
             teacher: "You are a patient, encouraging teacher. Explain things clearly and ask if they understand. Keep responses brief (2-3 sentences).",
+            therapist: "You are a compassionate, supportive therapist. Listen actively, validate feelings, and offer gentle insights. Keep responses brief (1-2 sentences) and focus on understanding rather than solving.",
             custom: ""
         };
 
@@ -494,7 +496,9 @@
             recognition.lang = 'en-US';
 
             recognition.onresult = (event) => {
-                if (!isListening || synthesis.speaking || isProcessing) return;
+                // CRITICAL: Check isListening first - if false, ignore ALL input
+                if (!isListening) return;
+                if (synthesis.speaking || isProcessing) return;
 
                 let finalTranscript = '';
 
@@ -568,6 +572,8 @@
         }
 
         async function processTranscript(text) {
+            // CRITICAL: Double check isListening at function start
+            if (!isListening) return;
             if (isProcessing || synthesis.speaking) return;
 
             if (isSimilarToLast(text)) {
@@ -603,15 +609,39 @@
 
             if (shouldRespond && message.trim()) {
                 isProcessing = true;
+                
+                // Check again before continuing
+                if (!isListening) {
+                    isProcessing = false;
+                    return;
+                }
+                
                 updateStatus('processing', 'Processing your request...');
 
                 const response = await getAIResponse(message);
                 
+                // Check AGAIN after async operation
+                if (!isListening) {
+                    isProcessing = false;
+                    return;
+                }
+                
                 if (response) {
                     addMessage('ai', response);
+                    
+                    // Check before speaking
+                    if (!isListening) {
+                        isProcessing = false;
+                        return;
+                    }
+                    
                     await speakText(response);
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    updateStatus('listening', 'Listening...');
+                    
+                    // Check after speaking
+                    if (isListening) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        updateStatus('listening', 'Listening...');
+                    }
                 }
 
                 isProcessing = false;
@@ -633,7 +663,10 @@
                 messages.push({ role: 'system', content: systemPrompt });
             }
 
-            const recentHistory = conversationHistory.slice(-4);
+            // Keep conversation history within reasonable limits
+            // Most models handle ~8-12 back-and-forth exchanges well
+            const maxHistoryPairs = 10; // 20 messages total (10 user + 10 assistant)
+            const recentHistory = conversationHistory.slice(-maxHistoryPairs * 2);
             messages.push(...recentHistory);
             messages.push({ role: 'user', content: message });
 
@@ -659,8 +692,14 @@
                 const data = await response.json();
                 const aiResponse = data.choices[0].message.content;
 
+                // Add to conversation history
                 conversationHistory.push({ role: 'user', content: message });
                 conversationHistory.push({ role: 'assistant', content: aiResponse });
+                
+                // Trim history if it gets too long (keep last 30 messages)
+                if (conversationHistory.length > 30) {
+                    conversationHistory = conversationHistory.slice(-30);
+                }
 
                 return aiResponse;
 
