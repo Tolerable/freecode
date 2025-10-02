@@ -621,10 +621,20 @@
                     <input type="number" id="voicePitch" value="1.0" min="0.5" max="2.0" step="0.1">
                 </div>
                 <div class="config-group">
+                    <label>Speaking Prefix (Optional)</label>
+                    <input type="text" id="speakingPrefix" placeholder="e.g., Echo: or Alexa:">
+                </div>
+            </div>
+
+            <div class="config-row">
+                <div class="config-group">
                     <label>
                         <input type="checkbox" id="saveConversation" checked style="width: auto; margin-right: 8px;">
                         Save conversation on refresh
                     </label>
+                </div>
+                <div class="config-group">
+                    <!-- Empty for alignment -->
                 </div>
             </div>
 
@@ -669,6 +679,13 @@
 					<li><code>shutdown</code> - Stop the voice assistant</li>
 					<li><code>shut down</code> - Stop the voice assistant</li>
 					<li><code>stop listening</code> - Stop the voice assistant</li>
+				</ul>
+
+				<h3>Speaking Prefix</h3>
+				<ul>
+					<li>Add a prefix that the AI will say before each response</li>
+					<li>Useful for triggering smart speakers (e.g., "Echo:" or "Alexa:")</li>
+					<li>Leave blank for no prefix</li>
 				</ul>
 
 				<h3>Tips</h3>
@@ -726,9 +743,9 @@
 		const voiceTypeSelect = document.getElementById('voiceTypeSelect');
         const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
         const configSection = document.getElementById('configSection');
-        const saveConversationCheckbox = document.getElementById('saveConversation');
-
-		const textInput = document.getElementById('textInput');
+		const saveConversationCheckbox = document.getElementById('saveConversation');
+        const speakingPrefixInput = document.getElementById('speakingPrefix');
+        const textInput = document.getElementById('textInput');
         const sendBtn = document.getElementById('sendBtn');
 		const statusAvatar = document.getElementById('statusAvatar');
         const avatarUrlInput = document.getElementById('avatarUrl');
@@ -1152,15 +1169,20 @@
         }
 
 		async function speakText(text) {
-			if (!isListening) return;
-			updateStatus('speaking', 'SPEAKING');
-			await speakWithBrowser(text);
-			
-			// After speaking completes, update status back to listening if still active
-			if (isListening) {
-				updateStatus('listening', 'LISTENING');
-			}
-		}
+            if (!isListening) return;
+            updateStatus('speaking', 'SPEAKING');
+            
+            // Add speaking prefix if set
+            const prefix = speakingPrefixInput.value.trim();
+            const textToSpeak = prefix ? `${prefix} ${text}` : text;
+            
+            await speakWithBrowser(textToSpeak);
+            
+            // After speaking completes, update status back to listening if still active
+            if (isListening) {
+                updateStatus('listening', 'LISTENING');
+            }
+        }
 
 		async function speakWithBrowser(text) {
 			// Stop recognition while speaking to prevent hearing own voice
@@ -1364,6 +1386,7 @@
                 speechRate: speechRateInput.value,
                 voicePitch: voicePitchInput.value,
 				systemPrompt: systemPromptInput.value,
+                speakingPrefix: speakingPrefixInput.value,
                 saveConversation: saveConversationCheckbox.checked,
                 customAvatars: customAvatars
             };
@@ -1402,6 +1425,7 @@
                 if (settings.speechRate) speechRateInput.value = settings.speechRate;
                 if (settings.voicePitch) voicePitchInput.value = settings.voicePitch;
 				if (settings.systemPrompt) systemPromptInput.value = settings.systemPrompt;
+                if (settings.speakingPrefix) speakingPrefixInput.value = settings.speakingPrefix;
                 if (settings.saveConversation !== undefined) saveConversationCheckbox.checked = settings.saveConversation;
 				if (settings.customAvatars) customAvatars = settings.customAvatars;
 				
@@ -1423,7 +1447,7 @@
 
 		[responseModeSelect, wakeWordSelect, personaSelect, aiModelSelect, voiceTypeSelect, 
          voiceSelect, silenceThresholdInput, speechRateInput, 
-         voicePitchInput, systemPromptInput, saveConversationCheckbox].forEach(element => {
+         voicePitchInput, systemPromptInput, speakingPrefixInput, saveConversationCheckbox].forEach(element => {
             element.addEventListener('change', saveSettings);
         });
 
