@@ -319,8 +319,13 @@
                     </select>
                 </div>
                 <div class="config-group">
-                    <label>Silence Threshold (ms)</label>
-                    <input type="number" id="silenceThreshold" value="3000" min="1000" max="8000" step="500">
+                    <label>AI Model</label>
+                    <select id="aiModel">
+                        <option value="openai">OpenAI GPT-5 Mini</option>
+                        <option value="gemini">Gemini 2.5 Flash</option>
+                        <option value="deepseek">DeepSeek V3.1</option>
+                        <option value="mistral">Mistral Small</option>
+                    </select>
                 </div>
             </div>
 
@@ -329,7 +334,7 @@
                     <label>Voice Type</label>
                     <select id="voiceTypeSelect">
                         <option value="browser">Browser Native</option>
-                        <option value="speechify">Other</option>
+                        <option value="speechify">Speechify (Narrator, etc.)</option>
                     </select>
                 </div>
                 <div class="config-group" id="browserVoiceGroup">
@@ -339,7 +344,7 @@
                     </select>
                 </div>
                 <div class="config-group" id="speechifyVoiceGroup" style="display: none;">
-                    <label>Other Voice</label>
+                    <label>Speechify Voice</label>
                     <select id="speechifyVoiceSelect">
                         <option value="Narrator">Narrator</option>
                         <option value="Gwyneth">Gwyneth</option>
@@ -349,29 +354,29 @@
                     </select>
                 </div>
             </div>
+
             <div class="config-row">
                 <div class="config-group">
                     <label>Silence Threshold (ms)</label>
                     <input type="number" id="silenceThreshold" value="3000" min="1000" max="8000" step="500">
                 </div>
                 <div class="config-group">
-                    <label>Voice Pitch</label>
-                    <input type="number" id="voicePitch" value="1.0" min="0.5" max="2.0" step="0.1">
-                </div>
-				
-				<div class="config-row">
-                <div class="config-group">
                     <label>Speech Rate</label>
                     <input type="number" id="speechRate" value="0.9" min="0.5" max="2.0" step="0.1">
                 </div>
+            </div>
+
+            <div class="config-row">
                 <div class="config-group">
                     <label>Voice Pitch (Browser only)</label>
                     <input type="number" id="voicePitch" value="1.0" min="0.5" max="2.0" step="0.1">
                 </div>
-            </div>						
-		</div>
+                <div class="config-group">
+                    <!-- Empty for alignment -->
+                </div>
+            </div>
 
-            <div style="margin-bottom: 15px;">
+            <div style="margin-bottom: 0;">
                 <label>Custom System Prompt (Optional)</label>
                 <textarea id="systemPrompt" placeholder="Leave blank to use the selected persona..."></textarea>
             </div>
@@ -463,15 +468,13 @@
             availableVoices = synthesis.getVoices();
             voiceSelect.innerHTML = '<option value="">Default</option>';
             
-            // Group voices by language and type
             const enVoices = availableVoices.filter(v => v.lang.startsWith('en'));
             const otherVoices = availableVoices.filter(v => !v.lang.startsWith('en'));
             
-            // Add English voices first
             if (enVoices.length > 0) {
                 const optgroup = document.createElement('optgroup');
                 optgroup.label = 'English Voices';
-                enVoices.forEach((voice, index) => {
+                enVoices.forEach((voice) => {
                     const option = document.createElement('option');
                     option.value = voice.name;
                     const typeLabel = voice.localService ? '🎤' : '☁️';
@@ -481,11 +484,10 @@
                 voiceSelect.appendChild(optgroup);
             }
             
-            // Add other language voices
             if (otherVoices.length > 0) {
                 const optgroup = document.createElement('optgroup');
                 optgroup.label = 'Other Languages';
-                otherVoices.forEach((voice, index) => {
+                otherVoices.forEach((voice) => {
                     const option = document.createElement('option');
                     option.value = voice.name;
                     option.textContent = `${voice.name} (${voice.lang})`;
@@ -495,13 +497,11 @@
             }
         }
 
-        // Load voices when ready
         if (synthesis.onvoiceschanged !== undefined) {
             synthesis.onvoiceschanged = loadVoices;
         }
         loadVoices();
 
-        // Wake word handling
         wakeWordSelect.addEventListener('change', () => {
             customWakeWordSection.style.display = wakeWordSelect.value === 'custom' ? 'block' : 'none';
         });
@@ -536,7 +536,6 @@
         window.addCustomWakeWord = addCustomWakeWord;
         window.removeCustomWakeWord = removeCustomWakeWord;
 
-        // Mode toggle
         responseModeSelect.addEventListener('change', () => {
             wakeWordGroup.style.display = responseModeSelect.value === 'continuous' ? 'none' : 'block';
         });
@@ -545,7 +544,6 @@
             wakeWordGroup.style.display = 'none';
         }
 
-        // Persona handling
         personaSelect.addEventListener('change', () => {
             if (personaSelect.value !== 'custom') {
                 systemPromptInput.value = '';
@@ -569,7 +567,6 @@
             recognition.lang = 'en-US';
 
             recognition.onresult = (event) => {
-                // CRITICAL: Check isListening first - if false, ignore ALL input
                 if (!isListening) return;
                 if (synthesis.speaking || isProcessing) return;
 
@@ -645,7 +642,6 @@
         }
 
         async function processTranscript(text) {
-            // CRITICAL: Double check isListening at function start
             if (!isListening) return;
             if (isProcessing || synthesis.speaking) return;
 
@@ -672,7 +668,6 @@
                 for (const wakeWord of wakeWords) {
                     if (lowerText.includes(wakeWord.toLowerCase())) {
                         shouldRespond = true;
-                        // Extract only the part AFTER the wake word
                         const wakeIndex = lowerText.indexOf(wakeWord.toLowerCase());
                         message = text.substring(wakeIndex + wakeWord.length).trim();
                         break;
@@ -683,7 +678,6 @@
             if (shouldRespond && message.trim()) {
                 isProcessing = true;
                 
-                // Check again before continuing
                 if (!isListening) {
                     isProcessing = false;
                     return;
@@ -693,7 +687,6 @@
 
                 const response = await getAIResponse(message);
                 
-                // Check AGAIN after async operation
                 if (!isListening) {
                     isProcessing = false;
                     return;
@@ -702,7 +695,6 @@
                 if (response) {
                     addMessage('ai', response);
                     
-                    // Check before speaking
                     if (!isListening) {
                         isProcessing = false;
                         return;
@@ -710,7 +702,6 @@
                     
                     await speakText(response);
                     
-                    // Check after speaking
                     if (isListening) {
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         updateStatus('listening', 'Listening...');
@@ -725,7 +716,6 @@
             const model = aiModelSelect.value;
             let systemPrompt = systemPromptInput.value.trim();
             
-            // Use persona if no custom prompt
             if (!systemPrompt && personaSelect.value !== 'custom') {
                 systemPrompt = PERSONAS[personaSelect.value];
             }
@@ -736,9 +726,7 @@
                 messages.push({ role: 'system', content: systemPrompt });
             }
 
-            // Keep conversation history within reasonable limits
-            // Most models handle ~8-12 back-and-forth exchanges well
-            const maxHistoryPairs = 10; // 20 messages total (10 user + 10 assistant)
+            const maxHistoryPairs = 10;
             const recentHistory = conversationHistory.slice(-maxHistoryPairs * 2);
             messages.push(...recentHistory);
             messages.push({ role: 'user', content: message });
@@ -765,11 +753,9 @@
                 const data = await response.json();
                 const aiResponse = data.choices[0].message.content;
 
-                // Add to conversation history
                 conversationHistory.push({ role: 'user', content: message });
                 conversationHistory.push({ role: 'assistant', content: aiResponse });
                 
-                // Trim history if it gets too long (keep last 30 messages)
                 if (conversationHistory.length > 30) {
                     conversationHistory = conversationHistory.slice(-30);
                 }
@@ -784,7 +770,6 @@
         }
 
         async function speakText(text) {
-            // CRITICAL: Check if we should still be speaking
             if (!isListening) return;
             
             updateStatus('speaking', 'Speaking...');
@@ -792,10 +777,8 @@
             const voiceType = voiceTypeSelect.value;
             
             if (voiceType === 'speechify') {
-                // Use Speechify API
                 await speakWithSpeechify(text);
             } else {
-                // Use browser speech synthesis
                 await speakWithBrowser(text);
             }
         }
@@ -859,7 +842,6 @@
                     throw new Error('No audio stream received');
                 }
 
-                // Decode base64 audio
                 const binaryData = atob(responseData.audioStream);
                 const bytes = new Uint8Array(binaryData.length);
                 for (let i = 0; i < binaryData.length; i++) {
@@ -906,9 +888,7 @@
             
             if (transcriptArea.children[0]?.style.textAlign === 'center') {
                 transcriptArea.innerHTML = '';
-            }
-            
-            transcriptArea.appendChild(messageDiv);
+				transcriptArea.appendChild(messageDiv);
             transcriptArea.scrollTop = transcriptArea.scrollHeight;
         }
 
@@ -951,14 +931,7 @@
             stopBtn.disabled = true;
         });
 
-        if ('speechSynthesis' in window && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
-            console.log('Speech APIs ready');
-            loadSettings();
-        } else {
-            alert('Your browser does not support the required speech APIs.');
-        }
-
-        // Save and load settings
+        // Settings persistence
         function saveSettings() {
             const settings = {
                 responseMode: responseModeSelect.value,
@@ -1003,7 +976,6 @@
                 if (settings.voicePitch) voicePitchInput.value = settings.voicePitch;
                 if (settings.systemPrompt) systemPromptInput.value = settings.systemPrompt;
 
-                // Update visibility based on loaded settings
                 responseModeSelect.dispatchEvent(new Event('change'));
                 wakeWordSelect.dispatchEvent(new Event('change'));
                 personaSelect.dispatchEvent(new Event('change'));
@@ -1012,12 +984,18 @@
             }
         }
 
-        // Auto-save on changes
         [responseModeSelect, wakeWordSelect, personaSelect, aiModelSelect, voiceTypeSelect, 
          voiceSelect, speechifyVoiceSelect, silenceThresholdInput, speechRateInput, 
          voicePitchInput, systemPromptInput].forEach(element => {
             element.addEventListener('change', saveSettings);
         });
+
+        if ('speechSynthesis' in window && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
+            console.log('Speech APIs ready');
+            loadSettings();
+        } else {
+            alert('Your browser does not support the required speech APIs.');
+        }
     </script>
 </body>
 </html>
