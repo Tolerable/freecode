@@ -545,26 +545,34 @@
                 <div class="custom-wake-words" id="customWakeWords"></div>
             </div>
 
-            <div class="config-row">
-                <div class="config-group">
-                    <label>AI Persona</label>
-                    <select id="personaSelect">
-                        <option value="helpful">Helpful Assistant</option>
-                        <option value="friendly">Friendly Companion</option>
-                        <option value="professional">Professional Expert</option>
-                        <option value="witty">Witty Comedian</option>
-                        <option value="teacher">Patient Teacher</option>
-                        <option value="therapist">Supportive Therapist</option>
-                        <option value="custom">Custom Persona...</option>
-                    </select>
-                </div>
-				
-			</div>
 
-            <div class="config-row">
-                <div class="config-group">
-                    <label>Avatar Image URL</label>
-                    <input type="text" id="avatarUrl" placeholder="Enter image URL or leave blank for default">
+			<div class="config-row" style="align-items: flex-start;">
+                <div style="width: 150px; flex-shrink: 0;">
+                    <img src="" id="avatarPreview" style="width: 150px; height: 150px; border-radius: 10px; object-fit: cover; border: 2px solid #e0e0e0;">
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+                    <div class="config-group" style="margin: 0;">
+                        <label>AI Persona</label>
+                        <select id="personaSelect">
+                            <option value="helpful">Helpful Assistant</option>
+                            <option value="friendly">Friendly Companion</option>
+                            <option value="professional">Professional Expert</option>
+                            <option value="witty">Witty Comedian</option>
+                            <option value="teacher">Patient Teacher</option>
+                            <option value="therapist">Supportive Therapist</option>
+                            <option value="custom">Custom Persona...</option>
+                        </select>
+                    </div>
+                    <div class="config-group" style="margin: 0;">
+                        <label>Avatar Image</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="avatarUrl" placeholder="Enter image URL or leave blank for default" style="flex: 1;">
+                            <label for="avatarFile" style="padding: 10px 20px; background: #667eea; color: white; border-radius: 8px; cursor: pointer; white-space: nowrap; text-align: center; margin: 0;">
+                                Browse
+                            </label>
+                            <input type="file" id="avatarFile" accept="image/*" style="display: none;">
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -722,8 +730,10 @@
 
 		const textInput = document.getElementById('textInput');
         const sendBtn = document.getElementById('sendBtn');
-        const statusAvatar = document.getElementById('statusAvatar');
+		const statusAvatar = document.getElementById('statusAvatar');
         const avatarUrlInput = document.getElementById('avatarUrl');
+        const avatarPreview = document.getElementById('avatarPreview');
+        const avatarFileInput = document.getElementById('avatarFile');
 
         const browserVoiceGroup = document.getElementById('browserVoiceGroup');
 
@@ -742,21 +752,41 @@
             const customUrl = avatarUrlInput.value.trim();
             const persona = personaSelect.value;
             
+            let imageUrl;
             if (customUrl) {
-                // Handle both web URLs (http/https) and local file paths
-                statusAvatar.src = customUrl;
+                imageUrl = customUrl;
             } else {
-                statusAvatar.src = DEFAULT_AVATARS[persona] || DEFAULT_AVATARS.helpful;
+                imageUrl = DEFAULT_AVATARS[persona] || DEFAULT_AVATARS.helpful;
             }
             
+            // Update both the status avatar and preview
+            statusAvatar.src = imageUrl;
+            avatarPreview.src = imageUrl;
+            
             // Handle image load errors
-            statusAvatar.onerror = function() {
+            const handleError = function() {
                 console.log('Avatar image failed to load, using fallback');
-                this.onerror = null; // Prevent infinite loop
-                // Show a generic placeholder if image fails
+                this.onerror = null;
                 this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23ccc" width="100" height="100"/><text x="50" y="50" font-size="40" text-anchor="middle" dy=".3em" fill="white" font-family="Arial">?</text></svg>';
             };
+            
+            statusAvatar.onerror = handleError;
+            avatarPreview.onerror = handleError;
         }
+
+        // Handle file selection
+        avatarFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    avatarUrlInput.value = event.target.result;
+                    updateAvatar();
+                    saveSettings();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
 
         // Update avatar when persona or URL changes
         personaSelect.addEventListener('change', updateAvatar);
