@@ -22,7 +22,7 @@
             margin: 0;
         }
 
-        .container {
+		.container {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
             padding: 30px;
@@ -33,6 +33,7 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             display: flex;
             flex-direction: column;
+            position: relative;
         }
 
 		h1 {
@@ -47,6 +48,99 @@
             font-size: 0.85em;
         }
 
+		.help-btn {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 36px;
+            height: 36px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .help-btn:hover {
+            background: #5568d3;
+        }
+
+        .help-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .help-modal.active {
+            display: flex;
+        }
+
+        .help-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .help-content h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .help-content h3 {
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .help-content ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .help-content li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .help-content code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #667eea;
+        }
+
+        .help-close {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+            line-height: 20px;
+        }
+
+        .help-close:hover {
+            color: #333;
+        }
+		
         .toggle-settings-btn {
             width: 100%;
             padding: 12px;
@@ -401,7 +495,9 @@
     <div class="container">
 		<h1>🎤 AI Voice Assistant</h1>
         <p class="subtitle">Customizable voice assistant with multiple personas</p>
-
+		
+		<button class="help-btn" id="helpBtn">?</button>
+		
         <button class="toggle-settings-btn" id="toggleSettingsBtn">⚙️ Settings</button>
 
         <div class="config-section" id="configSection" style="display: none;">
@@ -520,10 +616,35 @@
         <div class="input-area">
             <input type="text" id="textInput" placeholder="Type a message..." />
             <button id="sendBtn">Send</button>
-        </div>
-    </div>
+		</div>
+		</div>
 
-    <script>
+		<div class="help-modal" id="helpModal">
+			<div class="help-content">
+				<span class="help-close" id="helpClose">&times;</span>
+				<h2>Voice Commands</h2>
+				<p>Say these commands by themselves to control the assistant:</p>
+				
+				<h3>Control Commands</h3>
+				<ul>
+					<li><code>shutdown</code> - Stop the voice assistant</li>
+					<li><code>shut down</code> - Stop the voice assistant</li>
+					<li><code>stop listening</code> - Stop the voice assistant</li>
+				</ul>
+
+				<h3>Tips</h3>
+				<ul>
+					<li>Commands work best when said clearly and alone</li>
+					<li>Use the Settings button to customize the assistant</li>
+					<li>Choose different AI personas for different conversation styles</li>
+					<li>Adjust silence threshold if responses are too fast/slow</li>
+				</ul>
+			</div>
+		</div>
+		
+	</div>
+	
+<script>
         const API_BASE = 'https://text.pollinations.ai/openai';
         const REFERRER = 'www.ai-ministries.com';
         
@@ -1198,6 +1319,25 @@
         window.addEventListener('load', () => {
             console.log('Speech APIs ready');
             loadSettings();
+        });
+
+		// Help modal functionality
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModal = document.getElementById('helpModal');
+        const helpClose = document.getElementById('helpClose');
+
+        helpBtn.addEventListener('click', () => {
+            helpModal.classList.add('active');
+        });
+
+        helpClose.addEventListener('click', () => {
+            helpModal.classList.remove('active');
+        });
+
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                helpModal.classList.remove('active');
+            }
         });
 
     </script>
