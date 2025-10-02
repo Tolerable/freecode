@@ -245,9 +245,18 @@
         <div class="config-section">
             <div class="config-row">
                 <div class="config-group">
-                    <label>AI Wake Word</label>
+                    <label>Response Mode</label>
+                    <select id="responseMode">
+                        <option value="continuous">Continuous - Respond to all speech</option>
+                        <option value="wakeword">Wake Word - Only respond to wake word</option>
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label>AI Wake Word (for wake word mode)</label>
                     <input type="text" id="aiWakeWord" value="assistant" placeholder="e.g., assistant, computer">
                 </div>
+            </div>
+            <div class="config-row">
                 <div class="config-group">
                     <label>AI Model</label>
                     <select id="aiModel">
@@ -260,8 +269,8 @@
             </div>
             <div class="config-row">
                 <div class="config-group">
-                    <label>Silence Threshold (ms)</label>
-                    <input type="number" id="silenceThreshold" value="2000" min="1000" max="5000" step="100">
+                    <label>Silence Threshold (ms) - How long to wait for pauses</label>
+                    <input type="number" id="silenceThreshold" value="3000" min="1000" max="8000" step="500">
                 </div>
                 <div class="config-group">
                     <label>Post-Speech Pause (ms)</label>
@@ -269,9 +278,9 @@
                 </div>
             </div>
             <div class="config-row">
-                <div class="config-group" style="flex: 1 1 100%;">
+                <div class="config-group">
                     <label>System Prompt (Optional)</label>
-                    <textarea id="systemPrompt" placeholder="You are a helpful AI assistant...">You are a helpful AI assistant having a conversation. Keep responses very brief (1-2 sentences). When responding, naturally mention 'Echo' in your reply to engage the other participant.</textarea>
+                    <textarea id="systemPrompt" placeholder="You are a helpful AI assistant...">You are a helpful AI assistant having a conversation. Keep responses very brief (1-2 sentences). IMPORTANT: Always start your response with the word "Echo" followed by a comma, then your actual response. Example: "Echo, that's interesting!" or "Echo, I think..."</textarea>
                 </div>
             </div>
         </div>
@@ -299,11 +308,10 @@
 
         <div class="help-text">
             <strong>💡 How to use:</strong><br>
-            1. Click "Start Listening" to begin<br>
-            2. Say your AI's wake word + message (e.g., "Assistant, tell me a joke")<br>
-            3. The AI will respond and mention Echo to continue the conversation<br>
-            4. Wait for Echo to respond naturally<br>
-            5. The conversation continues automatically
+            <strong>Continuous Mode:</strong> AI responds to any speech it hears - great for natural conversation flow!<br>
+            <strong>Wake Word Mode:</strong> Say the wake word (e.g., "Assistant, tell me a joke") to trigger AI response<br>
+            <br>
+            The AI will always start responses with "Echo" to trigger your Echo device and keep the conversation going.
         </div>
     </div>
 
@@ -332,6 +340,7 @@
         const postSpeechPauseInput = document.getElementById('postSpeechPause');
         const aiModelSelect = document.getElementById('aiModel');
         const systemPromptInput = document.getElementById('systemPrompt');
+        const responseModeSelect = document.getElementById('responseMode');
 
         // Initialize Speech Recognition
         function initRecognition() {
@@ -442,38 +451,45 @@
 
             lastProcessedText = text;
 
+            const responseMode = responseModeSelect.value;
             const aiWakeWord = aiWakeWordInput.value.toLowerCase();
             const lowerText = text.toLowerCase();
 
             addMessage('user', text);
 
-            // Check if AI wake word is present
-            if (lowerText.includes(aiWakeWord)) {
+            // Determine if we should respond
+            let shouldRespond = false;
+            let message = text;
+
+            if (responseMode === 'continuous') {
+                // Respond to everything
+                shouldRespond = true;
+            } else if (responseMode === 'wakeword') {
+                // Only respond if wake word is present
+                if (lowerText.includes(aiWakeWord)) {
+                    shouldRespond = true;
+                    // Extract the message after wake word
+                    const wakeIndex = lowerText.indexOf(aiWakeWord);
+                    message = text.substring(wakeIndex + aiWakeWord.length).trim();
+                }
+            }
+
+            if (shouldRespond && message.trim()) {
                 isProcessing = true;
                 updateStatus('processing', 'Processing your request...');
 
-                // Extract the message after wake word
-                const wakeIndex = lowerText.indexOf(aiWakeWord);
-                const message = text.substring(wakeIndex + aiWakeWord.length).trim();
-
-                if (message) {
-                    const response = await getAIResponse(message);
+                const response = await getAIResponse(message);
+                
+                if (response) {
+                    addMessage('ai', response);
+                    await speakText(response);
                     
-                    if (response) {
-                        addMessage('ai', response);
-                        await speakText(response);
-                        
-                        // Wait a moment after speaking finishes
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        updateStatus('listening', 'Listening for Echo...');
-                    }
+                    // Wait a moment after speaking finishes
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    updateStatus('listening', 'Listening...');
                 }
 
                 isProcessing = false;
-            } else if (lowerText.includes('echo')) {
-                // This is likely Echo's response
-                addMessage('echo', text);
-                updateStatus('listening', 'Listening...');
             }
         }
 
