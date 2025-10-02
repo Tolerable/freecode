@@ -121,6 +121,10 @@
             animation: pulse 1s infinite;
         }
 
+        .status-indicator.paused {
+            background: #9e9e9e;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -200,6 +204,11 @@
             background: #e8f5e9;
         }
 
+        .message.system {
+            background: #ffebee;
+            font-size: 0.85em;
+        }
+
         .message strong {
             display: block;
             margin-bottom: 5px;
@@ -242,9 +251,9 @@
                 <div class="config-group">
                     <label>AI Model</label>
                     <select id="aiModel">
+                        <option value="openai">OpenAI GPT-5 Mini</option>
                         <option value="gemini">Gemini 2.5 Flash</option>
                         <option value="deepseek">DeepSeek V3.1</option>
-                        <option value="openai">OpenAI GPT-5 Mini</option>
                         <option value="mistral">Mistral Small</option>
                     </select>
                 </div>
@@ -252,17 +261,17 @@
             <div class="config-row">
                 <div class="config-group">
                     <label>Silence Threshold (ms)</label>
-                    <input type="number" id="silenceThreshold" value="1500" min="500" max="5000" step="100">
+                    <input type="number" id="silenceThreshold" value="2000" min="1000" max="5000" step="100">
                 </div>
                 <div class="config-group">
-                    <label>Speech Rate</label>
-                    <input type="number" id="speechRate" value="1.0" min="0.5" max="2.0" step="0.1">
+                    <label>Post-Speech Pause (ms)</label>
+                    <input type="number" id="postSpeechPause" value="3000" min="1000" max="8000" step="500">
                 </div>
             </div>
             <div class="config-row">
                 <div class="config-group" style="flex: 1 1 100%;">
                     <label>System Prompt (Optional)</label>
-                    <textarea id="systemPrompt" placeholder="You are a helpful AI assistant engaging in conversation with an Amazon Echo device...">You are a helpful AI assistant. Keep responses concise and conversational. When you respond, always end by saying 'Echo' followed by a question to continue the conversation.</textarea>
+                    <textarea id="systemPrompt" placeholder="You are a helpful AI assistant...">You are a helpful AI assistant having a conversation. Keep responses very brief (1-2 sentences). When responding, naturally mention 'Echo' in your reply to engage the other participant.</textarea>
                 </div>
             </div>
         </div>
@@ -285,17 +294,16 @@
 
         <div class="info-text">
             <strong>🔧 API Info:</strong><br>
-            Using Pollinations.AI API with referrer: www.ai-ministries.com<br>
-            Rate limit: Seed tier (5 second intervals)
+            Using Pollinations.AI API with referrer: www.ai-ministries.com
         </div>
 
         <div class="help-text">
             <strong>💡 How to use:</strong><br>
             1. Click "Start Listening" to begin<br>
             2. Say your AI's wake word + message (e.g., "Assistant, tell me a joke")<br>
-            3. The AI will respond and trigger your Echo device by saying "Echo"<br>
-            4. The system continues listening for Echo's response<br>
-            5. The conversation loops automatically
+            3. The AI will respond and mention Echo to continue the conversation<br>
+            4. Wait for Echo to respond naturally<br>
+            5. The conversation continues automatically
         </div>
     </div>
 
@@ -310,8 +318,8 @@
         let silenceTimer;
         let currentTranscript = '';
         let isProcessing = false;
-        let isSpeaking = false;
         let conversationHistory = [];
+        let lastProcessedText = '';
 
         // DOM Elements
         const startBtn = document.getElementById('startBtn');
@@ -321,9 +329,9 @@
         const transcriptArea = document.getElementById('transcriptArea');
         const aiWakeWordInput = document.getElementById('aiWakeWord');
         const silenceThresholdInput = document.getElementById('silenceThreshold');
+        const postSpeechPauseInput = document.getElementById('postSpeechPause');
         const aiModelSelect = document.getElementById('aiModel');
         const systemPromptInput = document.getElementById('systemPrompt');
-        const speechRateInput = document.getElementById('speechRate');
 
         // Initialize Speech Recognition
         function initRecognition() {
@@ -340,6 +348,9 @@
             recognition.lang = 'en-US';
 
             recognition.onresult = (event) => {
+                // Don't process if browser is actively speaking or we're processing
+                if (synthesis.speaking || isProcessing) return;
+
                 let interimTranscript = '';
                 let finalTranscript = '';
 
@@ -360,16 +371,28 @@
 
             recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
-                if (event.error === 'no-speech') {
-                    if (isListening && !isSpeaking) {
-                        recognition.start();
+                if (event.error === 'no-speech' || event.error === 'aborted') {
+                    if (isListening && !synthesis.speaking) {
+                        setTimeout(() => {
+                            try {
+                                recognition.start();
+                            } catch (e) {
+                                console.log('Recognition already started');
+                            }
+                        }, 100);
                     }
                 }
             };
 
             recognition.onend = () => {
-                if (isListening && !isSpeaking && !isProcessing) {
-                    recognition.start();
+                if (isListening && !synthesis.speaking && !isProcessing) {
+                    setTimeout(() => {
+                        try {
+                            recognition.start();
+                        } catch (e) {
+                            console.log('Recognition already started');
+                        }
+                    }, 100);
                 }
             };
 
@@ -382,16 +405,42 @@
             const threshold = parseInt(silenceThresholdInput.value);
             
             silenceTimer = setTimeout(() => {
-                if (currentTranscript.trim() && !isProcessing) {
+                if (currentTranscript.trim() && !isProcessing && !synthesis.speaking) {
                     processTranscript(currentTranscript.trim());
                     currentTranscript = '';
                 }
             }, threshold);
         }
 
+        // Check if text is similar to last processed (avoid duplicates)
+        function isSimilarToLast(text) {
+            if (!lastProcessedText) return false;
+            
+            const normalizedNew = text.toLowerCase().trim();
+            const normalizedLast = lastProcessedText.toLowerCase().trim();
+            
+            // Exact match
+            if (normalizedNew === normalizedLast) return true;
+            
+            // Check if one contains the other (partial duplicates)
+            if (normalizedNew.includes(normalizedLast) || normalizedLast.includes(normalizedNew)) {
+                return true;
+            }
+            
+            return false;
+        }
+
         // Process captured speech
         async function processTranscript(text) {
-            if (isProcessing || isSpeaking) return;
+            if (isProcessing || synthesis.speaking) return;
+
+            // Ignore if too similar to last processed text
+            if (isSimilarToLast(text)) {
+                console.log('Ignoring duplicate/similar text:', text);
+                return;
+            }
+
+            lastProcessedText = text;
 
             const aiWakeWord = aiWakeWordInput.value.toLowerCase();
             const lowerText = text.toLowerCase();
@@ -414,7 +463,8 @@
                         addMessage('ai', response);
                         await speakText(response);
                         
-                        // After speaking, listen for Echo's response
+                        // Wait a moment after speaking finishes
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                         updateStatus('listening', 'Listening for Echo...');
                     }
                 }
@@ -423,6 +473,20 @@
             } else if (lowerText.includes('echo')) {
                 // This is likely Echo's response
                 addMessage('echo', text);
+                updateStatus('listening', 'Listening...');
+            }
+        }
+
+        // Pause listening for a period after speaking
+        async function pauseListening() {
+            isPaused = true;
+            const pauseDuration = parseInt(postSpeechPauseInput.value);
+            updateStatus('paused', `Pausing for ${pauseDuration/1000}s...`);
+            
+            await new Promise(resolve => setTimeout(resolve, pauseDuration));
+            
+            isPaused = false;
+            if (isListening) {
                 updateStatus('listening', 'Listening...');
             }
         }
@@ -442,8 +506,8 @@
                 });
             }
 
-            // Add conversation history (last 6 messages to keep context manageable)
-            const recentHistory = conversationHistory.slice(-6);
+            // Add conversation history (last 4 messages)
+            const recentHistory = conversationHistory.slice(-4);
             messages.push(...recentHistory);
 
             // Add current message
@@ -453,25 +517,32 @@
             });
 
             try {
-                const response = await fetch(API_BASE, {
+                const requestBody = {
+                    model: model,
+                    messages: messages,
+                    temperature: 0.7,
+                    stream: false
+                };
+
+                console.log('API Request:', JSON.stringify(requestBody, null, 2));
+
+                const response = await fetch(`${API_BASE}?referrer=${encodeURIComponent(REFERRER)}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        model: model,
-                        messages: messages,
-                        temperature: 0.7,
-                        stream: false,
-                        referrer: REFERRER
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (!response.ok) {
-                    throw new Error(`API Error: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('API Response:', errorText);
+                    throw new Error(`API Error: ${response.status} - ${errorText}`);
                 }
 
                 const data = await response.json();
+                console.log('API Response:', data);
+                
                 const aiResponse = data.choices[0].message.content;
 
                 // Update conversation history
@@ -488,33 +559,28 @@
 
             } catch (error) {
                 console.error('API Error:', error);
-                addMessage('system', `Error: ${error.message}. Using fallback response.`);
+                addMessage('system', `Error: ${error.message}`);
                 
                 // Fallback response
-                return `I heard you say: "${message}". Echo, what are your thoughts on that?`;
+                return `Interesting point about ${message}. Echo, what do you think?`;
             }
         }
 
         // Text to Speech
         function speakText(text) {
             return new Promise((resolve) => {
-                isSpeaking = true;
                 updateStatus('speaking', 'Speaking...');
                 
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = parseFloat(speechRateInput.value);
+                utterance.rate = 0.9;
                 utterance.pitch = 1.0;
                 utterance.volume = 1.0;
 
                 utterance.onend = () => {
-                    isSpeaking = false;
-                    updateStatus('listening', 'Listening...');
                     resolve();
                 };
 
                 utterance.onerror = () => {
-                    isSpeaking = false;
-                    updateStatus('listening', 'Listening...');
                     resolve();
                 };
 
@@ -555,8 +621,15 @@
             
             if (recognition) {
                 isListening = true;
-                conversationHistory = []; // Reset conversation history
-                recognition.start();
+                conversationHistory = [];
+                lastProcessedText = '';
+                
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.log('Recognition start error:', e);
+                }
+                
                 updateStatus('listening', 'Listening...');
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
@@ -566,8 +639,13 @@
 
         stopBtn.addEventListener('click', () => {
             isListening = false;
+            
             if (recognition) {
-                recognition.stop();
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.log('Recognition stop error:', e);
+                }
             }
             if (synthesis.speaking) {
                 synthesis.cancel();
@@ -576,7 +654,6 @@
             updateStatus('', 'Stopped');
             startBtn.disabled = false;
             stopBtn.disabled = true;
-            isSpeaking = false;
             isProcessing = false;
         });
 
