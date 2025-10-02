@@ -694,24 +694,30 @@
             recognition.interimResults = true;
             recognition.lang = 'en-US';
 
-            recognition.onresult = (event) => {
-                if (!isListening) return;
-                if (synthesis.speaking || isProcessing) return;
+			recognition.onresult = (event) => {
+				if (!isListening) return;
+				
+				// CRITICAL: Stop recognition completely while AI is speaking or processing
+				if (synthesis.speaking || isProcessing) {
+					console.log('Blocked speech input while AI active');
+					currentTranscript = ''; // Clear any partial transcript
+					return;
+				}
 
-                let finalTranscript = '';
+				let finalTranscript = '';
 
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        finalTranscript += transcript + ' ';
-                    }
-                }
+				for (let i = event.resultIndex; i < event.results.length; i++) {
+					const transcript = event.results[i][0].transcript;
+					if (event.results[i].isFinal) {
+						finalTranscript += transcript + ' ';
+					}
+				}
 
-                if (finalTranscript) {
-                    currentTranscript += finalTranscript;
-                    resetSilenceTimer();
-                }
-            };
+				if (finalTranscript) {
+					currentTranscript += finalTranscript;
+					resetSilenceTimer();
+				}
+			};
 
             recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
@@ -901,30 +907,58 @@
 			}
 		}
 
-        async function speakWithBrowser(text) {
-            return new Promise((resolve) => {
-                const utterance = new SpeechSynthesisUtterance(text);
-                const rate = parseFloat(speechRateInput.value) || 0.9;
-                const pitch = parseFloat(voicePitchInput.value) || 1.0;
-                
-                utterance.rate = rate;
-                utterance.pitch = pitch;
-                utterance.volume = 1.0;
+		async function speakWithBrowser(text) {
+			// Stop recognition while speaking to prevent hearing own voice
+			if (recognition && isListening) {
+				try {
+					recognition.stop();
+				} catch (e) {}
+			}
+			
+			return new Promise((resolve) => {
+				const utterance = new SpeechSynthesisUtterance(text);
+				const rate = parseFloat(speechRateInput.value) || 0.9;
+				const pitch = parseFloat(voicePitchInput.value) || 1.0;
+				
+				utterance.rate = rate;
+				utterance.pitch = pitch;
+				utterance.volume = 1.0;
 
-                const selectedVoiceName = voiceSelect.value;
-                if (selectedVoiceName) {
-                    const selectedVoice = availableVoices.find(v => v.name === selectedVoiceName);
-                    if (selectedVoice) {
-                        utterance.voice = selectedVoice;
-                    }
-                }
+				const selectedVoiceName = voiceSelect.value;
+				if (selectedVoiceName) {
+					const selectedVoice = availableVoices.find(v => v.name === selectedVoiceName);
+					if (selectedVoice) {
+						utterance.voice = selectedVoice;
+					}
+				}
 
-                utterance.onend = () => resolve();
-                utterance.onerror = () => resolve();
+				utterance.onend = () => {
+					// Restart recognition after speaking
+					if (recognition && isListening) {
+						setTimeout(() => {
+							try {
+								recognition.start();
+							} catch (e) {}
+						}, 500);
+					}
+					resolve();
+				};
+				
+				utterance.onerror = () => {
+					// Restart recognition on error
+					if (recognition && isListening) {
+						setTimeout(() => {
+							try {
+								recognition.start();
+							} catch (e) {}
+						}, 500);
+					}
+					resolve();
+				};
 
-                synthesis.speak(utterance);
-            });
-        }
+				synthesis.speak(utterance);
+			});
+		}
 
 		function updateStatus(state, text) {
             statusIndicator.className = 'status-indicator ' + state;
