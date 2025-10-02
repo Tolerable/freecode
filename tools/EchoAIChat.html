@@ -630,7 +630,7 @@
             wakeWordGroup.style.display = 'none';
         }
 
-        personaSelect.addEventListener('change', () => {
+		personaSelect.addEventListener('change', () => {
             if (personaSelect.value !== 'custom') {
                 systemPromptInput.value = '';
                 systemPromptInput.placeholder = PERSONAS[personaSelect.value];
@@ -639,24 +639,59 @@
             }
         });
 
-		recognition.onresult = (event) => {
-			if (!isListening) return;
-			if (synthesis.speaking || isProcessing) return;
+        function initRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                alert('Speech recognition not supported in this browser. Please use Chrome or Edge.');
+                return null;
+            }
 
-			let finalTranscript = '';
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
 
-			for (let i = event.resultIndex; i < event.results.length; i++) {
-				const transcript = event.results[i][0].transcript;
-				if (event.results[i].isFinal) {
-					finalTranscript += transcript + ' ';
-				}
-			}
+            recognition.onresult = (event) => {
+                if (!isListening) return;
+                if (synthesis.speaking || isProcessing) return;
 
-			if (finalTranscript) {
-				currentTranscript += finalTranscript;
-				resetSilenceTimer();
-			}
-		};
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    }
+                }
+
+                if (finalTranscript) {
+                    currentTranscript += finalTranscript;
+                    resetSilenceTimer();
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                if (event.error === 'no-speech' || event.error === 'aborted') {
+                    if (isListening && !synthesis.speaking) {
+                        setTimeout(() => {
+                            try { recognition.start(); } catch (e) {}
+                        }, 100);
+                    }
+                }
+            };
+
+            recognition.onend = () => {
+                if (isListening && !synthesis.speaking && !isProcessing) {
+                    setTimeout(() => {
+                        try { recognition.start(); } catch (e) {}
+                    }, 100);
+                }
+            };
+
+            return recognition;
+        }
 
         function resetSilenceTimer() {
             clearTimeout(silenceTimer);
