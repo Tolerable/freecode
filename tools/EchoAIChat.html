@@ -639,24 +639,16 @@
             }
         });
 
-        function initRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            
-            if (!SpeechRecognition) {
-                alert('Speech recognition not supported in this browser. Please use Chrome or Edge.');
-                return null;
-            }
-
-            recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-
-			recognition.onresult = (event) => {
-				if (!isListening) return;
-				
-				// Still accumulate transcript, but don't process during speaking
-				let finalTranscript = '';
+		recognition.onresult = (event) => {
+			if (!isListening) return;
+			
+			// CRITICAL: Don't process ANY speech while AI is speaking
+			if (synthesis.speaking) {
+				console.log('Ignoring speech while AI is talking');
+				return;
+			}
+			
+			let finalTranscript = '';
 
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const transcript = event.results[i][0].transcript;
@@ -996,13 +988,22 @@
             stopBtn.disabled = true;
         });
 
-        // Handle text input
+		// Handle text input
         async function handleTextInput() {
             const text = textInput.value.trim();
             if (!text) return;
             
             textInput.value = '';
             sendBtn.disabled = true;
+            
+            // Pause listening while handling text input
+            const wasListening = isListening;
+            if (wasListening) {
+                isListening = false;
+                if (recognition) {
+                    try { recognition.abort(); } catch (e) {}
+                }
+            }
             
             addMessage('user', text);
             
@@ -1011,11 +1012,35 @@
             
             if (response) {
                 addMessage('ai', response);
+                
+                // Speak the response if we were listening
+                if (wasListening) {
+                    await speakText(response);
+                }
+                
                 updateStatus('', 'Ready');
+            }
+            
+            // Resume listening if we were listening before
+            if (wasListening) {
+                isListening = true;
+                try {
+                    recognition.start();
+                } catch (e) {}
+                resetSilenceTimer();
+                updateStatus('listening', 'Listening...');
             }
             
             sendBtn.disabled = false;
         }
+
+        sendBtn.addEventListener('click', handleTextInput);
+        
+        textInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleTextInput();
+            }
+        });
 
         sendBtn.addEventListener('click', handleTextInput);
         
