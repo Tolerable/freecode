@@ -11,7 +11,7 @@
             box-sizing: border-box;
         }
 
-        body {
+		body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
@@ -19,27 +19,32 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            margin: 0;
         }
 
         .container {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            padding: 40px;
-            max-width: 650px;
+            padding: 30px;
+            max-width: 800px;
             width: 100%;
+            height: 90vh;
+            max-height: 900px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
         }
 
-        h1 {
+		h1 {
             color: #667eea;
-            margin-bottom: 10px;
-            font-size: 2em;
+            margin-bottom: 5px;
+            font-size: 1.8em;
         }
 
-		.subtitle {
+        .subtitle {
             color: #666;
-            margin-bottom: 15px;
-            font-size: 0.9em;
+            margin-bottom: 10px;
+            font-size: 0.85em;
         }
 
         .toggle-settings-btn {
@@ -243,39 +248,98 @@
             background: #d0d0d0;
         }
 
-		.transcript-area {
+        .transcript-area {
             background: #f8f9fa;
             border-radius: 10px;
             padding: 20px;
-            max-height: 450px;
+            flex: 1;
             overflow-y: auto;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
-        .message {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 8px;
+		.message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .message.user {
-            background: #e3f2fd;
+            background: #667eea;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
         }
 
         .message.ai {
             background: #f3e5f5;
+            color: #333;
+            align-self: flex-start;
         }
 
         .message.system {
             background: #ffebee;
+            color: #c62828;
             font-size: 0.85em;
+            align-self: center;
+            max-width: 90%;
         }
 
         .message strong {
             display: block;
-            margin-bottom: 5px;
-            font-size: 0.85em;
-            opacity: 0.7;
+            margin-bottom: 6px;
+            font-size: 0.75em;
+            opacity: 0.8;
+            font-weight: 600;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+        }
+
+        .input-area button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .input-area button:hover {
+            background: #5568d3;
+        }
+
+        .input-area button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
 
         .info-text {
@@ -404,10 +468,15 @@
             <button class="main-btn btn-secondary" id="stopBtn" disabled>Stop</button>
         </div>
 
-        <div class="transcript-area" id="transcriptArea">
-            <div style="text-align: center; color: #999; padding: 20px;">
+		<div class="transcript-area" id="transcriptArea">
+            <div style="text-align: center; color: #999; padding: 20px; margin: auto;">
                 Conversation will appear here...
             </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="textInput" placeholder="Type a message..." />
+            <button id="sendBtn">Send</button>
         </div>
     </div>
 
@@ -456,6 +525,8 @@
         const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
         const configSection = document.getElementById('configSection');
         const saveConversationCheckbox = document.getElementById('saveConversation');
+        const textInput = document.getElementById('textInput');
+        const sendBtn = document.getElementById('sendBtn');
 
         const browserVoiceGroup = document.getElementById('browserVoiceGroup');
 
@@ -862,7 +933,7 @@
             statusText.textContent = text;
         }
 
-        function addMessage(type, text) {
+		function addMessage(type, text) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
             
@@ -870,13 +941,16 @@
             if (type === 'user') label = 'You';
             else if (type === 'ai') label = 'AI';
             
-            messageDiv.innerHTML = `<strong>${label}:</strong>${text}`;
+            messageDiv.innerHTML = `<strong>${label}</strong>${text}`;
             
-            if (transcriptArea.children[0]?.style.textAlign === 'center') {
-                transcriptArea.innerHTML = '';
-			}	
-				transcriptArea.appendChild(messageDiv);
-				transcriptArea.scrollTop = transcriptArea.scrollHeight;
+            // Clear placeholder message
+            const placeholder = transcriptArea.querySelector('[style*="text-align: center"]');
+            if (placeholder) {
+                placeholder.remove();
+            }
+            
+            transcriptArea.appendChild(messageDiv);
+            transcriptArea.scrollTop = transcriptArea.scrollHeight;
         }
 
 		startBtn.addEventListener('click', () => {
@@ -902,7 +976,7 @@
             }
         });
 
-        stopBtn.addEventListener('click', () => {
+		stopBtn.addEventListener('click', () => {
             isListening = false;
             isProcessing = false;
             
@@ -920,6 +994,35 @@
             updateStatus('', 'Stopped');
             startBtn.disabled = false;
             stopBtn.disabled = true;
+        });
+
+        // Handle text input
+        async function handleTextInput() {
+            const text = textInput.value.trim();
+            if (!text) return;
+            
+            textInput.value = '';
+            sendBtn.disabled = true;
+            
+            addMessage('user', text);
+            
+            updateStatus('processing', 'Processing your request...');
+            const response = await getAIResponse(text);
+            
+            if (response) {
+                addMessage('ai', response);
+                updateStatus('', 'Ready');
+            }
+            
+            sendBtn.disabled = false;
+        }
+
+        sendBtn.addEventListener('click', handleTextInput);
+        
+        textInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleTextInput();
+            }
         });
 
 		function saveSettings() {
