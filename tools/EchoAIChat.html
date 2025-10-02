@@ -258,14 +258,30 @@
             line-height: 1;
         }
 
-        .status {
+		.status {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
             padding: 15px;
             background: #f8f9fa;
             border-radius: 10px;
             margin-bottom: 20px;
+        }
+
+        .status-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 2px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .status-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
         }
 
         .status-indicator {
@@ -542,6 +558,18 @@
                         <option value="custom">Custom Persona...</option>
                     </select>
                 </div>
+				
+			</div>
+
+            <div class="config-row">
+                <div class="config-group">
+                    <label>Avatar Image URL</label>
+                    <input type="text" id="avatarUrl" placeholder="Enter image URL or leave blank for default">
+                </div>
+            </div>
+
+            <div class="config-row">				
+				
                 <div class="config-group">
                     <label>AI Model</label>
                     <select id="aiModel">
@@ -599,8 +627,11 @@
         </div>
 
 		<div class="status">
-            <div class="status-indicator" id="statusIndicator"></div>
-            <div class="status-text" id="statusText">READY</div>
+            <img src="" id="statusAvatar" class="status-avatar" alt="AI Avatar">
+            <div class="status-info">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <div class="status-text" id="statusText">READY</div>
+            </div>
         </div>
 
 		<div class="controls">
@@ -692,6 +723,42 @@
         const sendBtn = document.getElementById('sendBtn');
 
         const browserVoiceGroup = document.getElementById('browserVoiceGroup');
+
+		const textInput = document.getElementById('textInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const statusAvatar = document.getElementById('statusAvatar');
+        const avatarUrlInput = document.getElementById('avatarUrl');
+
+        const browserVoiceGroup = document.getElementById('browserVoiceGroup');
+
+        // Default avatars for each persona
+        const DEFAULT_AVATARS = {
+            helpful: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23667eea" width="100" height="100"/><text x="50" y="50" font-size="40" text-anchor="middle" dy=".3em" fill="white" font-family="Arial">💡</text></svg>',
+            friendly: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%234caf50" width="100" height="100"/><text x="50" y="50" font-size="40" text-anchor="middle" dy=".3em" fill="white" font-family="Arial">😊</text></svg>',
+            professional: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23424242" width="100" height="100"/><text x="50" y="50" font-size="40" text-anchor="middle" dy=".3em" fill="white" font-family="Arial">💼</text></svg>',
+            witty: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23ff9800" width="100" height="100"/><text x="50" y="50" font-size="40" text-anchor="middle" dy=".3em" fill="white" font-family="Arial">😄</text></svg>',
+            teacher: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%232196f3" width="100" height="100"/><text x="50" y="50" font-size="40" text-anchor="middle" dy=".3em" fill="white" font-family="Arial">📚</text></svg>',
+            therapist: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%239c27b0" width="100" height="100"/><text x="50" y="50" font-size="40" text-anchor="middle" dy=".3em" fill="white" font-family="Arial">💜</text></svg>',
+            custom: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23607d8b" width="100" height="100"/><text x="50" y="50" font-size="40" text-anchor="middle" dy=".3em" fill="white" font-family="Arial">⚙️</text></svg>'
+        };
+
+        function updateAvatar() {
+            const customUrl = avatarUrlInput.value.trim();
+            const persona = personaSelect.value;
+            
+            if (customUrl) {
+                statusAvatar.src = customUrl;
+            } else {
+                statusAvatar.src = DEFAULT_AVATARS[persona] || DEFAULT_AVATARS.helpful;
+            }
+        }
+
+        // Update avatar when persona or URL changes
+        personaSelect.addEventListener('change', updateAvatar);
+        avatarUrlInput.addEventListener('input', updateAvatar);
+
+        // Initialize avatar
+        updateAvatar();
 
         // Toggle settings panel
         toggleSettingsBtn.addEventListener('click', () => {
@@ -1244,8 +1311,9 @@
                 silenceThreshold: silenceThresholdInput.value,
                 speechRate: speechRateInput.value,
                 voicePitch: voicePitchInput.value,
-                systemPrompt: systemPromptInput.value,
-                saveConversation: saveConversationCheckbox.checked
+				systemPrompt: systemPromptInput.value,
+                saveConversation: saveConversationCheckbox.checked,
+                avatarUrl: avatarUrlInput.value
             };
             localStorage.setItem('aiVoiceAssistantSettings', JSON.stringify(settings));
             
@@ -1283,7 +1351,8 @@
                 if (settings.voicePitch) voicePitchInput.value = settings.voicePitch;
 				if (settings.systemPrompt) systemPromptInput.value = settings.systemPrompt;
                 if (settings.saveConversation !== undefined) saveConversationCheckbox.checked = settings.saveConversation;
-
+				if (settings.avatarUrl) avatarUrlInput.value = settings.avatarUrl;
+				
                 // Load saved conversation if enabled
                 if (saveConversationCheckbox.checked) {
                     const savedChat = localStorage.getItem('aiVoiceAssistantChat');
@@ -1302,7 +1371,7 @@
 
 		[responseModeSelect, wakeWordSelect, personaSelect, aiModelSelect, voiceTypeSelect, 
          voiceSelect, silenceThresholdInput, speechRateInput, 
-         voicePitchInput, systemPromptInput, saveConversationCheckbox].forEach(element => {
+         voicePitchInput, systemPromptInput, saveConversationCheckbox, avatarUrlInput].forEach(element => {
             element.addEventListener('change', saveSettings);
         });
 
