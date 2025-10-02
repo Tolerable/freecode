@@ -774,22 +774,16 @@
 		async function processTranscript(text) {
 			if (!isListening) return;
 			if (isProcessing || synthesis.speaking) return;
-
 			if (isSimilarToLast(text)) {
 				console.log('Ignoring duplicate/similar text:', text);
 				return;
 			}
-
 			lastProcessedText = text;
-
 			const responseMode = responseModeSelect.value;
 			const lowerText = text.toLowerCase();
-
 			addMessage('user', text);
-
 			let shouldRespond = false;
 			let message = text;
-
 			if (responseMode === 'continuous') {
 				shouldRespond = true;
 			} else if (responseMode === 'wakeword') {
@@ -804,7 +798,6 @@
 					}
 				}
 			}
-
 			if (shouldRespond && message.trim()) {
 				isProcessing = true;
 				
@@ -814,7 +807,6 @@
 				}
 				
 				updateStatus('processing', 'PROCESSING');
-
 				const response = await getAIResponse(message);
 				
 				if (!isListening) {
@@ -831,16 +823,12 @@
 					}
 					
 					await speakText(response);
-                
-                // Double-check we're still listening before updating status
-                if (isListening && !isProcessing) {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    if (isListening) {  // Check again after the delay
-                        updateStatus('listening', 'LISTENING');
-                    }
-                }
+					
+					// Brief pause before resuming, status already updated in speakText
+					if (isListening) {
+						await new Promise(resolve => setTimeout(resolve, 1000));
+					}
 				}
-
 				isProcessing = false;
 			}
 		}
@@ -906,8 +894,12 @@
 			if (!isListening) return;
 			updateStatus('speaking', 'SPEAKING');
 			await speakWithBrowser(text);
+			
+			// After speaking completes, update status back to listening if still active
+			if (isListening && !isProcessing) {
+				updateStatus('listening', 'LISTENING');
+			}
 		}
-
 
         async function speakWithBrowser(text) {
             return new Promise((resolve) => {
