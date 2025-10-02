@@ -251,9 +251,14 @@
                         <option value="wakeword">Wake Word - Only respond to wake word</option>
                     </select>
                 </div>
-                <div class="config-group">
-                    <label>AI Wake Word (for wake word mode)</label>
-                    <input type="text" id="aiWakeWord" value="assistant" placeholder="e.g., assistant, computer">
+                <div class="config-group" id="wakeWordGroup">
+                    <label>AI Wake Word</label>
+                    <select id="aiWakeWord">
+                        <option value="alexa">Alexa</option>
+                        <option value="echo">Echo</option>
+                        <option value="computer">Computer</option>
+                        <option value="hey google">Hey Google</option>
+                    </select>
                 </div>
             </div>
             <div class="config-row">
@@ -269,7 +274,7 @@
             </div>
             <div class="config-row">
                 <div class="config-group">
-                    <label>Silence Threshold (ms) - How long to wait for pauses</label>
+                    <label>Silence Threshold (ms)</label>
                     <input type="number" id="silenceThreshold" value="3000" min="1000" max="8000" step="500">
                 </div>
                 <div class="config-group">
@@ -278,8 +283,9 @@
                 </div>
             </div>
             <div class="config-row">
-                <div class="config-group">
-                    <label>System Prompt (Optional)</label>
+            <div class="config-row">
+                <div class="config-group" style="flex: 1 1 100%;">
+                    <label>System Prompt</label>
                     <textarea id="systemPrompt" placeholder="You are a helpful AI assistant...">You are a helpful AI assistant having a conversation. Keep responses very brief (1-2 sentences). IMPORTANT: Always start your response with the word "Echo" followed by a comma, then your actual response. Example: "Echo, that's interesting!" or "Echo, I think..."</textarea>
                 </div>
             </div>
@@ -341,6 +347,21 @@
         const aiModelSelect = document.getElementById('aiModel');
         const systemPromptInput = document.getElementById('systemPrompt');
         const responseModeSelect = document.getElementById('responseMode');
+        const wakeWordGroup = document.getElementById('wakeWordGroup');
+
+        // Toggle wake word visibility based on mode
+        responseModeSelect.addEventListener('change', () => {
+            if (responseModeSelect.value === 'continuous') {
+                wakeWordGroup.style.display = 'none';
+            } else {
+                wakeWordGroup.style.display = 'block';
+            }
+        });
+
+        // Initialize visibility
+        if (responseModeSelect.value === 'continuous') {
+            wakeWordGroup.style.display = 'none';
+        }
 
         // Initialize Speech Recognition
         function initRecognition() {
@@ -452,7 +473,6 @@
             lastProcessedText = text;
 
             const responseMode = responseModeSelect.value;
-            const aiWakeWord = aiWakeWordInput.value.toLowerCase();
             const lowerText = text.toLowerCase();
 
             addMessage('user', text);
@@ -465,6 +485,7 @@
                 // Respond to everything
                 shouldRespond = true;
             } else if (responseMode === 'wakeword') {
+                const aiWakeWord = aiWakeWordInput.value.toLowerCase();
                 // Only respond if wake word is present
                 if (lowerText.includes(aiWakeWord)) {
                     shouldRespond = true;
