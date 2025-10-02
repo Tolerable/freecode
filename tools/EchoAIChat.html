@@ -544,11 +544,11 @@
             recognition.interimResults = true;
             recognition.lang = 'en-US';
 
-            recognition.onresult = (event) => {
-                if (!isListening) return;
-                if (synthesis.speaking || isProcessing) return;
-
-                let finalTranscript = '';
+			recognition.onresult = (event) => {
+				if (!isListening) return;
+				
+				// Still accumulate transcript, but don't process during speaking
+				let finalTranscript = '';
 
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const transcript = event.results[i][0].transcript;
@@ -557,10 +557,14 @@
                     }
                 }
 
-                if (finalTranscript) {
-                    currentTranscript += finalTranscript;
-                    resetSilenceTimer();
-                }
+				if (finalTranscript) {
+					currentTranscript += finalTranscript;
+					
+					// Only reset silence timer if we're not speaking or processing
+					if (!synthesis.speaking && !isProcessing) {
+						resetSilenceTimer();
+					}
+				}
             };
 
             recognition.onerror = (event) => {
@@ -574,13 +578,20 @@
                 }
             };
 
-            recognition.onend = () => {
-                if (isListening && !synthesis.speaking && !isProcessing) {
-                    setTimeout(() => {
-                        try { recognition.start(); } catch (e) {}
-                    }, 100);
-                }
-            };
+			recognition.onend = () => {
+				if (isListening && !isProcessing) {
+					// Wait a bit longer to ensure speech has fully finished
+					setTimeout(() => {
+						if (isListening && !synthesis.speaking && !isProcessing) {
+							try { 
+								recognition.start(); 
+							} catch (e) {
+								console.log('Recognition already running');
+							}
+						}
+					}, 500);
+				}
+			};
 
             return recognition;
         }
@@ -678,12 +689,20 @@
                         return;
                     }
                     
-                    await speakText(response);
-                    
-                    if (isListening) {
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        updateStatus('listening', 'Listening...');
-                    }
+					await speakText(response);
+
+					if (isListening) {
+						await new Promise(resolve => setTimeout(resolve, 1000));
+						updateStatus('listening', 'Listening...');
+						
+						// Restart recognition and silence timer
+						try {
+							recognition.start();
+						} catch (e) {
+							// Already running, that's fine
+						}
+						resetSilenceTimer();
+					}
                 }
 
                 isProcessing = false;
