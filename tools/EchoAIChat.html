@@ -338,7 +338,7 @@
                     <label>Voice Type</label>
                     <select id="voiceTypeSelect">
                         <option value="browser">Browser Native</option>
-                        <option value="openai">OpenAI TTS (requires API)</option>
+                        <option value="speechify">Speechify (Narrator, etc.)</option>
                     </select>
                 </div>
                 <div class="config-group" id="browserVoiceGroup">
@@ -347,15 +347,14 @@
                         <option value="">Default</option>
                     </select>
                 </div>
-                <div class="config-group" id="openaiVoiceGroup" style="display: none;">
-                    <label>OpenAI Voice</label>
-                    <select id="openaiVoiceSelect">
-                        <option value="alloy">Alloy</option>
-                        <option value="echo">Echo</option>
-                        <option value="fable">Fable</option>
-                        <option value="onyx">Onyx</option>
-                        <option value="nova">Nova</option>
-                        <option value="shimmer">Shimmer</option>
+                <div class="config-group" id="speechifyVoiceGroup" style="display: none;">
+                    <label>Speechify Voice</label>
+                    <select id="speechifyVoiceSelect">
+                        <option value="Narrator">Narrator</option>
+                        <option value="Gwyneth">Gwyneth</option>
+                        <option value="Snoop">Snoop</option>
+                        <option value="Matthew">Matthew</option>
+                        <option value="Wavenet-D">Wavenet-D</option>
                     </select>
                 </div>
             </div>
@@ -393,8 +392,8 @@
         </div>
 
         <div class="info-text">
-            Using Pollinations.AI with referrer: www.ai-ministries.com<br>
-            <strong>Note:</strong> OpenAI TTS requires API key configuration (not yet implemented - will fall back to browser voices)
+            Using Pollinations.AI for text generation (referrer: www.ai-ministries.com)<br>
+            Speechify voices use their public API endpoint
         </div>
     </div>
 
@@ -440,20 +439,20 @@
         const speechRateInput = document.getElementById('speechRate');
         const voicePitchInput = document.getElementById('voicePitch');
         const voiceTypeSelect = document.getElementById('voiceTypeSelect');
-        const openaiVoiceSelect = document.getElementById('openaiVoiceSelect');
+        const speechifyVoiceSelect = document.getElementById('speechifyVoiceSelect');
         const browserVoiceGroup = document.getElementById('browserVoiceGroup');
-        const openaiVoiceGroup = document.getElementById('openaiVoiceGroup');
+        const speechifyVoiceGroup = document.getElementById('speechifyVoiceGroup');
         const customWakeWordSection = document.getElementById('customWakeWordSection');
         const customWakeWordInput = document.getElementById('customWakeWordInput');
 
         // Voice type toggle
         voiceTypeSelect.addEventListener('change', () => {
-            if (voiceTypeSelect.value === 'openai') {
+            if (voiceTypeSelect.value === 'speechify') {
                 browserVoiceGroup.style.display = 'none';
-                openaiVoiceGroup.style.display = 'block';
+                speechifyVoiceGroup.style.display = 'block';
             } else {
                 browserVoiceGroup.style.display = 'block';
-                openaiVoiceGroup.style.display = 'none';
+                speechifyVoiceGroup.style.display = 'none';
             }
         });
 
@@ -788,9 +787,9 @@
             
             const voiceType = voiceTypeSelect.value;
             
-            if (voiceType === 'openai') {
-                // Use OpenAI TTS API
-                await speakWithOpenAI(text);
+            if (voiceType === 'speechify') {
+                // Use Speechify API
+                await speakWithSpeechify(text);
             } else {
                 // Use browser speech synthesis
                 await speakWithBrowser(text);
@@ -807,7 +806,6 @@
                 utterance.pitch = pitch;
                 utterance.volume = 1.0;
 
-                // Apply selected voice by name
                 const selectedVoiceName = voiceSelect.value;
                 if (selectedVoiceName) {
                     const selectedVoice = availableVoices.find(v => v.name === selectedVoiceName);
@@ -823,31 +821,49 @@
             });
         }
 
-        async function speakWithOpenAI(text) {
+        async function speakWithSpeechify(text) {
             try {
-                const voice = openaiVoiceSelect.value;
-                const speed = parseFloat(speechRateInput.value) || 0.9;
+                const voice = speechifyVoiceSelect.value;
                 
-                // This would require OpenAI API key - for now, fall back to browser
-                addMessage('system', 'OpenAI TTS requires API key configuration. Using browser voice instead.');
-                await speakWithBrowser(text);
-                
-                /* Future implementation with API key:
-                const response = await fetch('https://api.openai.com/v1/audio/speech', {
+                const requestData = {
+                    audioFormat: "mp3",
+                    paragraphChunks: [text],
+                    voiceParams: {
+                        name: voice === "Wavenet-D" ? "Wavenet-D" : voice,
+                        engine: voice === "Wavenet-D" ? "google" : "resemble",
+                        languageCode: "en-US",
+                        ...(voice === "Wavenet-D" && { speakingRate: 0.1 })
+                    }
+                };
+
+                const response = await fetch('https://audio.api.speechify.dev/generateAudioFiles', {
                     method: 'POST',
                     headers: {
-                        'Authorization': 'Bearer YOUR_API_KEY',
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
+                        'X-Speechify-Client': 'API'
                     },
-                    body: JSON.stringify({
-                        model: 'tts-1',
-                        voice: voice,
-                        input: text,
-                        speed: speed
-                    })
+                    body: JSON.stringify(requestData)
                 });
+
+                if (!response.ok) {
+                    throw new Error(`Speechify API failed: ${response.status}`);
+                }
+
+                const responseData = await response.json();
                 
-                const audioBlob = await response.blob();
+                if (!responseData.audioStream) {
+                    throw new Error('No audio stream received');
+                }
+
+                // Decode base64 audio
+                const binaryData = atob(responseData.audioStream);
+                const bytes = new Uint8Array(binaryData.length);
+                for (let i = 0; i < binaryData.length; i++) {
+                    bytes[i] = binaryData.charCodeAt(i);
+                }
+                
+                const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
                 const audioUrl = URL.createObjectURL(audioBlob);
                 const audio = new Audio(audioUrl);
                 
@@ -862,10 +878,10 @@
                     };
                     audio.play();
                 });
-                */
+
             } catch (error) {
-                console.error('OpenAI TTS error:', error);
-                addMessage('system', 'OpenAI TTS failed, using browser voice.');
+                console.error('Speechify TTS error:', error);
+                addMessage('system', 'Speechify TTS failed, using browser voice.');
                 await speakWithBrowser(text);
             }
         }
