@@ -36,10 +36,28 @@
             font-size: 2em;
         }
 
-        .subtitle {
+		.subtitle {
             color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
             font-size: 0.9em;
+        }
+
+        .toggle-settings-btn {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        .toggle-settings-btn:hover {
+            background: #5568d3;
         }
 
         .config-section {
@@ -225,11 +243,11 @@
             background: #d0d0d0;
         }
 
-        .transcript-area {
+		.transcript-area {
             background: #f8f9fa;
             border-radius: 10px;
             padding: 20px;
-            max-height: 300px;
+            max-height: 450px;
             overflow-y: auto;
             margin-bottom: 20px;
         }
@@ -273,10 +291,12 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎤 AI Voice Assistant</h1>
+		<h1>🎤 AI Voice Assistant</h1>
         <p class="subtitle">Customizable voice assistant with multiple personas</p>
 
-        <div class="config-section">
+        <button class="toggle-settings-btn" id="toggleSettingsBtn">⚙️ Settings</button>
+
+        <div class="config-section" id="configSection" style="display: none;">
             <div class="config-row">
                 <div class="config-group">
                     <label>Response Mode</label>
@@ -355,13 +375,16 @@
                 </div>
             </div>
 
-            <div class="config-row">
+			<div class="config-row">
                 <div class="config-group">
                     <label>Voice Pitch (Browser only)</label>
                     <input type="number" id="voicePitch" value="1.0" min="0.5" max="2.0" step="0.1">
                 </div>
                 <div class="config-group">
-                    <!-- Empty for alignment -->
+                    <label>
+                        <input type="checkbox" id="saveConversation" checked style="width: auto; margin-right: 8px;">
+                        Save conversation on refresh
+                    </label>
                 </div>
             </div>
 
@@ -429,9 +452,23 @@
         const voiceSelect = document.getElementById('voiceSelect');
         const speechRateInput = document.getElementById('speechRate');
         const voicePitchInput = document.getElementById('voicePitch');
-        const voiceTypeSelect = document.getElementById('voiceTypeSelect');
+		const voiceTypeSelect = document.getElementById('voiceTypeSelect');
+        const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
+        const configSection = document.getElementById('configSection');
+        const saveConversationCheckbox = document.getElementById('saveConversation');
 
         const browserVoiceGroup = document.getElementById('browserVoiceGroup');
+
+        // Toggle settings panel
+        toggleSettingsBtn.addEventListener('click', () => {
+            if (configSection.style.display === 'none') {
+                configSection.style.display = 'block';
+                toggleSettingsBtn.textContent = '▲ Hide Settings';
+            } else {
+                configSection.style.display = 'none';
+                toggleSettingsBtn.textContent = '⚙️ Settings';
+            }
+        });
 
         const customWakeWordSection = document.getElementById('customWakeWordSection');
         const customWakeWordInput = document.getElementById('customWakeWordInput');
@@ -842,7 +879,7 @@
 				transcriptArea.scrollTop = transcriptArea.scrollHeight;
         }
 
-        startBtn.addEventListener('click', () => {
+		startBtn.addEventListener('click', () => {
             if (!recognition) {
                 recognition = initRecognition();
             }
@@ -857,7 +894,11 @@
                 updateStatus('listening', 'Listening...');
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
-                transcriptArea.innerHTML = '';
+                
+                // Only clear chat if save conversation is unchecked
+                if (!saveConversationCheckbox.checked) {
+                    transcriptArea.innerHTML = '';
+                }
             }
         });
 
@@ -881,8 +922,7 @@
             stopBtn.disabled = true;
         });
 
-        // Settings persistence
-        function saveSettings() {
+		function saveSettings() {
             const settings = {
                 responseMode: responseModeSelect.value,
                 wakeWord: wakeWordSelect.value,
@@ -894,9 +934,17 @@
                 silenceThreshold: silenceThresholdInput.value,
                 speechRate: speechRateInput.value,
                 voicePitch: voicePitchInput.value,
-                systemPrompt: systemPromptInput.value
+                systemPrompt: systemPromptInput.value,
+                saveConversation: saveConversationCheckbox.checked
             };
             localStorage.setItem('aiVoiceAssistantSettings', JSON.stringify(settings));
+            
+            // Save conversation if enabled
+            if (saveConversationCheckbox.checked) {
+                localStorage.setItem('aiVoiceAssistantChat', transcriptArea.innerHTML);
+            } else {
+                localStorage.removeItem('aiVoiceAssistantChat');
+            }
         }
 
         function loadSettings() {
@@ -923,7 +971,16 @@
                 if (settings.silenceThreshold) silenceThresholdInput.value = settings.silenceThreshold;
                 if (settings.speechRate) speechRateInput.value = settings.speechRate;
                 if (settings.voicePitch) voicePitchInput.value = settings.voicePitch;
-                if (settings.systemPrompt) systemPromptInput.value = settings.systemPrompt;
+				if (settings.systemPrompt) systemPromptInput.value = settings.systemPrompt;
+                if (settings.saveConversation !== undefined) saveConversationCheckbox.checked = settings.saveConversation;
+
+                // Load saved conversation if enabled
+                if (saveConversationCheckbox.checked) {
+                    const savedChat = localStorage.getItem('aiVoiceAssistantChat');
+                    if (savedChat) {
+                        transcriptArea.innerHTML = savedChat;
+                    }
+                }
 
                 responseModeSelect.dispatchEvent(new Event('change'));
                 wakeWordSelect.dispatchEvent(new Event('change'));
@@ -933,11 +990,20 @@
             }
         }
 
-        [responseModeSelect, wakeWordSelect, personaSelect, aiModelSelect, voiceTypeSelect, 
+		[responseModeSelect, wakeWordSelect, personaSelect, aiModelSelect, voiceTypeSelect, 
          voiceSelect, silenceThresholdInput, speechRateInput, 
-         voicePitchInput, systemPromptInput].forEach(element => {
+         voicePitchInput, systemPromptInput, saveConversationCheckbox].forEach(element => {
             element.addEventListener('change', saveSettings);
         });
+
+        // Save chat after each message when save is enabled
+        const originalAddMessage = addMessage;
+        addMessage = function(type, text) {
+            originalAddMessage(type, text);
+            if (saveConversationCheckbox.checked) {
+                localStorage.setItem('aiVoiceAssistantChat', transcriptArea.innerHTML);
+            }
+        };
 
         // Initialize once the page is ready
         window.addEventListener('load', () => {
