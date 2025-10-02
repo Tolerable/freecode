@@ -268,9 +268,9 @@
             margin-bottom: 20px;
         }
 
-        .status-avatar {
-            width: 60px;
-            height: 60px;
+		.status-avatar {
+            width: 120px;
+            height: 120px;
             border-radius: 10px;
             object-fit: cover;
             border: 2px solid #e0e0e0;
@@ -738,15 +738,24 @@
             custom: './avatars/custom.jpg'
         };
 
-        function updateAvatar() {
+		function updateAvatar() {
             const customUrl = avatarUrlInput.value.trim();
             const persona = personaSelect.value;
             
             if (customUrl) {
+                // Handle both web URLs (http/https) and local file paths
                 statusAvatar.src = customUrl;
             } else {
                 statusAvatar.src = DEFAULT_AVATARS[persona] || DEFAULT_AVATARS.helpful;
             }
+            
+            // Handle image load errors
+            statusAvatar.onerror = function() {
+                console.log('Avatar image failed to load, using fallback');
+                this.onerror = null; // Prevent infinite loop
+                // Show a generic placeholder if image fails
+                this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23ccc" width="100" height="100"/><text x="50" y="50" font-size="40" text-anchor="middle" dy=".3em" fill="white" font-family="Arial">?</text></svg>';
+            };
         }
 
         // Update avatar when persona or URL changes
