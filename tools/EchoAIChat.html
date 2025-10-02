@@ -784,6 +784,21 @@
 				console.log('Ignoring duplicate/similar text:', text);
 				return;
 			}
+
+			// Check for voice commands (single words only)
+			const trimmedText = text.trim().toLowerCase();
+			const words = trimmedText.split(/\s+/);
+
+			// Only process as command if it's a single word or very short phrase
+			if (words.length <= 2) {
+				if (trimmedText === 'shutdown' || trimmedText === 'shut down' || trimmedText === 'stop listening') {
+					addMessage('system', 'Voice assistant stopped');
+					// Trigger the stop button
+					toggleBtn.click();
+					return;
+				}
+			}
+
 			lastProcessedText = text;
 			const responseMode = responseModeSelect.value;
 			const lowerText = text.toLowerCase();
