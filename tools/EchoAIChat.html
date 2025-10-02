@@ -641,60 +641,22 @@
 
 		recognition.onresult = (event) => {
 			if (!isListening) return;
-			
-			// CRITICAL: Don't process ANY speech while AI is speaking
-			if (synthesis.speaking) {
-				console.log('Ignoring speech while AI is talking');
-				return;
-			}
-			
+			if (synthesis.speaking || isProcessing) return;
+
 			let finalTranscript = '';
 
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        finalTranscript += transcript + ' ';
-                    }
-                }
-
-				if (finalTranscript) {
-					currentTranscript += finalTranscript;
-					
-					// Only reset silence timer if we're not speaking or processing
-					if (!synthesis.speaking && !isProcessing) {
-						resetSilenceTimer();
-					}
+			for (let i = event.resultIndex; i < event.results.length; i++) {
+				const transcript = event.results[i][0].transcript;
+				if (event.results[i].isFinal) {
+					finalTranscript += transcript + ' ';
 				}
-            };
+			}
 
-            recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
-                if (event.error === 'no-speech' || event.error === 'aborted') {
-                    if (isListening && !synthesis.speaking) {
-                        setTimeout(() => {
-                            try { recognition.start(); } catch (e) {}
-                        }, 100);
-                    }
-                }
-            };
-
-			recognition.onend = () => {
-				if (isListening && !isProcessing) {
-					// Wait a bit longer to ensure speech has fully finished
-					setTimeout(() => {
-						if (isListening && !synthesis.speaking && !isProcessing) {
-							try { 
-								recognition.start(); 
-							} catch (e) {
-								console.log('Recognition already running');
-							}
-						}
-					}, 500);
-				}
-			};
-
-            return recognition;
-        }
+			if (finalTranscript) {
+				currentTranscript += finalTranscript;
+				resetSilenceTimer();
+			}
+		};
 
         function resetSilenceTimer() {
             clearTimeout(silenceTimer);
@@ -733,28 +695,6 @@
 		async function processTranscript(text) {
 			if (!isListening) return;
 			if (isProcessing || synthesis.speaking) return;
-
-			// Filter out noise, empty speech, and non-meaningful input
-			const cleanText = text.trim().toLowerCase();
-			
-			// Ignore if too short
-			if (cleanText.length < 3) {
-				console.log('Ignoring too short:', text);
-				return;
-			}
-			
-			// Ignore common noise words that speech recognition picks up
-			const noiseWords = ['noise', 'uh', 'um', 'hmm', 'hm', 'ah', 'er', 'uh huh'];
-			if (noiseWords.includes(cleanText)) {
-				console.log('Ignoring noise word:', text);
-				return;
-			}
-			
-			// Ignore if it's just repeated single characters or gibberish
-			if (/^(.)\1+$/.test(cleanText) || cleanText.length < 5 && !/\s/.test(cleanText)) {
-				console.log('Ignoring gibberish:', text);
-				return;
-			}
 
 			if (isSimilarToLast(text)) {
 				console.log('Ignoring duplicate/similar text:', text);
@@ -816,14 +756,6 @@
 					if (isListening) {
 						await new Promise(resolve => setTimeout(resolve, 1000));
 						updateStatus('listening', 'Listening...');
-						
-						// Restart recognition and silence timer
-						try {
-							recognition.start();
-						} catch (e) {
-							// Already running, that's fine
-						}
-						resetSilenceTimer();
 					}
 				}
 
