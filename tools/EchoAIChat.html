@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Echo AI Chat</title>
+    <title>AI Voice Assistant</title>
     <style>
         * {
             margin: 0;
@@ -25,7 +25,7 @@
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
             padding: 40px;
-            max-width: 600px;
+            max-width: 650px;
             width: 100%;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
@@ -89,6 +89,58 @@
             border-color: #667eea;
         }
 
+        .wake-word-controls {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .wake-word-controls input {
+            flex: 1;
+        }
+
+        .wake-word-controls button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .wake-word-controls button:hover {
+            background: #5568d3;
+        }
+
+        .custom-wake-words {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .wake-word-tag {
+            background: #e3f2fd;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .wake-word-tag button {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 0;
+            font-size: 16px;
+            line-height: 1;
+        }
+
         .status {
             display: flex;
             align-items: center;
@@ -137,7 +189,7 @@
             margin-bottom: 20px;
         }
 
-        button {
+        button.main-btn {
             flex: 1;
             padding: 15px 30px;
             border: none;
@@ -208,16 +260,6 @@
             opacity: 0.7;
         }
 
-        .help-text {
-            font-size: 0.85em;
-            color: #666;
-            margin-top: 20px;
-            padding: 15px;
-            background: #fff3cd;
-            border-radius: 8px;
-            border-left: 4px solid #ffc107;
-        }
-
         .info-text {
             font-size: 0.85em;
             color: #666;
@@ -231,8 +273,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>🤖 Echo AI Chat</h1>
-        <p class="subtitle">Voice conversation between AI and your Echo device</p>
+        <h1>🎤 AI Voice Assistant</h1>
+        <p class="subtitle">Customizable voice assistant with multiple personas</p>
 
         <div class="config-section">
             <div class="config-row">
@@ -240,20 +282,41 @@
                     <label>Response Mode</label>
                     <select id="responseMode">
                         <option value="continuous">Continuous - Respond to all speech</option>
-                        <option value="wakeword">Wake Word - Only respond to wake word</option>
+                        <option value="wakeword">Wake Word - Require activation phrase</option>
                     </select>
                 </div>
                 <div class="config-group" id="wakeWordGroup">
-                    <label>AI Wake Word</label>
-                    <select id="aiWakeWord">
-                        <option value="alexa">Alexa</option>
-                        <option value="echo">Echo</option>
+                    <label>Wake Word</label>
+                    <select id="wakeWordSelect">
+                        <option value="hey assistant">Hey Assistant</option>
                         <option value="computer">Computer</option>
-                        <option value="hey google">Hey Google</option>
+                        <option value="jarvis">Jarvis</option>
+                        <option value="custom">Custom...</option>
                     </select>
                 </div>
             </div>
+
+            <div id="customWakeWordSection" style="display: none; margin-bottom: 15px;">
+                <label>Add Custom Wake Words</label>
+                <div class="wake-word-controls">
+                    <input type="text" id="customWakeWordInput" placeholder="e.g., hey buddy, yo bot">
+                    <button onclick="addCustomWakeWord()">Add</button>
+                </div>
+                <div class="custom-wake-words" id="customWakeWords"></div>
+            </div>
+
             <div class="config-row">
+                <div class="config-group">
+                    <label>AI Persona</label>
+                    <select id="personaSelect">
+                        <option value="helpful">Helpful Assistant</option>
+                        <option value="friendly">Friendly Companion</option>
+                        <option value="professional">Professional Expert</option>
+                        <option value="witty">Witty Comedian</option>
+                        <option value="teacher">Patient Teacher</option>
+                        <option value="custom">Custom Persona...</option>
+                    </select>
+                </div>
                 <div class="config-group">
                     <label>AI Model</label>
                     <select id="aiModel">
@@ -263,14 +326,24 @@
                         <option value="mistral">Mistral Small</option>
                     </select>
                 </div>
+            </div>
+
+            <div class="config-row">
+                <div class="config-group">
+                    <label>Voice</label>
+                    <select id="voiceSelect">
+                        <option value="">Default</option>
+                    </select>
+                </div>
                 <div class="config-group">
                     <label>Silence Threshold (ms)</label>
                     <input type="number" id="silenceThreshold" value="3000" min="1000" max="8000" step="500">
                 </div>
             </div>
+
             <div style="margin-bottom: 15px;">
-                <label>System Prompt</label>
-                <textarea id="systemPrompt" placeholder="You are a helpful AI assistant...">You are a helpful AI assistant having a conversation. Keep responses very brief (1-2 sentences). IMPORTANT: Always start your response with the word "Echo" followed by a comma, then your actual response. Example: "Echo, that's interesting!" or "Echo, I think..."</textarea>
+                <label>Custom System Prompt (Optional)</label>
+                <textarea id="systemPrompt" placeholder="Leave blank to use the selected persona..."></textarea>
             </div>
         </div>
 
@@ -280,8 +353,8 @@
         </div>
 
         <div class="controls">
-            <button class="btn-primary" id="startBtn">Start Listening</button>
-            <button class="btn-secondary" id="stopBtn" disabled>Stop</button>
+            <button class="main-btn btn-primary" id="startBtn">Start Listening</button>
+            <button class="main-btn btn-secondary" id="stopBtn" disabled>Stop</button>
         </div>
 
         <div class="transcript-area" id="transcriptArea">
@@ -291,16 +364,7 @@
         </div>
 
         <div class="info-text">
-            <strong>🔧 API Info:</strong><br>
-            Using Pollinations.AI API with referrer: www.ai-ministries.com
-        </div>
-
-        <div class="help-text">
-            <strong>💡 How to use:</strong><br>
-            <strong>Continuous Mode:</strong> AI responds to any speech it hears - great for natural conversation flow!<br>
-            <strong>Wake Word Mode:</strong> Say the wake word (e.g., "Alexa, tell me a joke") to trigger AI response<br>
-            <br>
-            The AI will always start responses with "Echo" to trigger your Echo device and keep the conversation going.
+            Using Pollinations.AI with referrer: www.ai-ministries.com
         </div>
     </div>
 
@@ -316,19 +380,88 @@
         let isProcessing = false;
         let conversationHistory = [];
         let lastProcessedText = '';
+        let availableVoices = [];
+        let customWakeWords = [];
 
+        const PERSONAS = {
+            helpful: "You are a helpful AI assistant. Keep responses brief and clear (2-3 sentences).",
+            friendly: "You are a friendly, warm AI companion. Be conversational and upbeat. Keep responses brief (2-3 sentences).",
+            professional: "You are a professional expert assistant. Be formal, precise, and informative. Keep responses concise (2-3 sentences).",
+            witty: "You are a witty AI with a great sense of humor. Be playful and clever. Keep responses brief (2-3 sentences).",
+            teacher: "You are a patient, encouraging teacher. Explain things clearly and ask if they understand. Keep responses brief (2-3 sentences).",
+            custom: ""
+        };
+
+        // DOM Elements
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const statusIndicator = document.getElementById('statusIndicator');
         const statusText = document.getElementById('statusText');
         const transcriptArea = document.getElementById('transcriptArea');
-        const aiWakeWordInput = document.getElementById('aiWakeWord');
+        const wakeWordSelect = document.getElementById('wakeWordSelect');
         const silenceThresholdInput = document.getElementById('silenceThreshold');
         const aiModelSelect = document.getElementById('aiModel');
         const systemPromptInput = document.getElementById('systemPrompt');
         const responseModeSelect = document.getElementById('responseMode');
         const wakeWordGroup = document.getElementById('wakeWordGroup');
+        const personaSelect = document.getElementById('personaSelect');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const customWakeWordSection = document.getElementById('customWakeWordSection');
+        const customWakeWordInput = document.getElementById('customWakeWordInput');
 
+        // Load available voices
+        function loadVoices() {
+            availableVoices = synthesis.getVoices();
+            voiceSelect.innerHTML = '<option value="">Default</option>';
+            
+            availableVoices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                voiceSelect.appendChild(option);
+            });
+        }
+
+        // Load voices when ready
+        if (synthesis.onvoiceschanged !== undefined) {
+            synthesis.onvoiceschanged = loadVoices;
+        }
+        loadVoices();
+
+        // Wake word handling
+        wakeWordSelect.addEventListener('change', () => {
+            customWakeWordSection.style.display = wakeWordSelect.value === 'custom' ? 'block' : 'none';
+        });
+
+        function addCustomWakeWord() {
+            const word = customWakeWordInput.value.trim().toLowerCase();
+            if (word && !customWakeWords.includes(word)) {
+                customWakeWords.push(word);
+                renderCustomWakeWords();
+                customWakeWordInput.value = '';
+            }
+        }
+
+        function removeCustomWakeWord(word) {
+            customWakeWords = customWakeWords.filter(w => w !== word);
+            renderCustomWakeWords();
+        }
+
+        function renderCustomWakeWords() {
+            const container = document.getElementById('customWakeWords');
+            container.innerHTML = '';
+            customWakeWords.forEach(word => {
+                const tag = document.createElement('div');
+                tag.className = 'wake-word-tag';
+                tag.innerHTML = `${word} <button onclick="removeCustomWakeWord('${word}')">×</button>`;
+                container.appendChild(tag);
+            });
+        }
+
+        window.addCustomWakeWord = addCustomWakeWord;
+        window.removeCustomWakeWord = removeCustomWakeWord;
+
+        // Mode toggle
         responseModeSelect.addEventListener('change', () => {
             wakeWordGroup.style.display = responseModeSelect.value === 'continuous' ? 'none' : 'block';
         });
@@ -336,6 +469,16 @@
         if (responseModeSelect.value === 'continuous') {
             wakeWordGroup.style.display = 'none';
         }
+
+        // Persona handling
+        personaSelect.addEventListener('change', () => {
+            if (personaSelect.value !== 'custom') {
+                systemPromptInput.value = '';
+                systemPromptInput.placeholder = PERSONAS[personaSelect.value];
+            } else {
+                systemPromptInput.placeholder = 'Enter your custom persona prompt...';
+            }
+        });
 
         function initRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -351,7 +494,6 @@
             recognition.lang = 'en-US';
 
             recognition.onresult = (event) => {
-                // Check if we should be listening at all
                 if (!isListening || synthesis.speaking || isProcessing) return;
 
                 let finalTranscript = '';
@@ -394,7 +536,6 @@
         function resetSilenceTimer() {
             clearTimeout(silenceTimer);
             
-            // Don't set timer if not listening
             if (!isListening) return;
             
             const threshold = parseInt(silenceThresholdInput.value);
@@ -419,6 +560,13 @@
             return false;
         }
 
+        function getActiveWakeWords() {
+            if (wakeWordSelect.value === 'custom') {
+                return customWakeWords;
+            }
+            return [wakeWordSelect.value];
+        }
+
         async function processTranscript(text) {
             if (isProcessing || synthesis.speaking) return;
 
@@ -440,11 +588,16 @@
             if (responseMode === 'continuous') {
                 shouldRespond = true;
             } else if (responseMode === 'wakeword') {
-                const aiWakeWord = aiWakeWordInput.value.toLowerCase();
-                if (lowerText.includes(aiWakeWord)) {
-                    shouldRespond = true;
-                    const wakeIndex = lowerText.indexOf(aiWakeWord);
-                    message = text.substring(wakeIndex + aiWakeWord.length).trim();
+                const wakeWords = getActiveWakeWords();
+                
+                for (const wakeWord of wakeWords) {
+                    if (lowerText.includes(wakeWord.toLowerCase())) {
+                        shouldRespond = true;
+                        // Extract only the part AFTER the wake word
+                        const wakeIndex = lowerText.indexOf(wakeWord.toLowerCase());
+                        message = text.substring(wakeIndex + wakeWord.length).trim();
+                        break;
+                    }
                 }
             }
 
@@ -467,7 +620,12 @@
 
         async function getAIResponse(message) {
             const model = aiModelSelect.value;
-            const systemPrompt = systemPromptInput.value.trim();
+            let systemPrompt = systemPromptInput.value.trim();
+            
+            // Use persona if no custom prompt
+            if (!systemPrompt && personaSelect.value !== 'custom') {
+                systemPrompt = PERSONAS[personaSelect.value];
+            }
 
             const messages = [];
             
@@ -486,8 +644,6 @@
                     stream: false
                 };
 
-                console.log('API Request:', JSON.stringify(requestBody, null, 2));
-
                 const response = await fetch(`${API_BASE}?referrer=${encodeURIComponent(REFERRER)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -497,12 +653,10 @@
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error('API Response:', errorText);
-                    throw new Error(`API Error: ${response.status} - ${errorText}`);
+                    throw new Error(`API Error: ${response.status}`);
                 }
 
                 const data = await response.json();
-                console.log('API Response:', data);
-                
                 const aiResponse = data.choices[0].message.content;
 
                 conversationHistory.push({ role: 'user', content: message });
@@ -513,7 +667,7 @@
             } catch (error) {
                 console.error('API Error:', error);
                 addMessage('system', `Error: ${error.message}`);
-                return `Interesting point about ${message}. Echo, what do you think?`;
+                return `I heard you say: ${message}`;
             }
         }
 
@@ -525,6 +679,12 @@
                 utterance.rate = 0.9;
                 utterance.pitch = 1.0;
                 utterance.volume = 1.0;
+
+                // Apply selected voice
+                const voiceIndex = voiceSelect.value;
+                if (voiceIndex !== '' && availableVoices[voiceIndex]) {
+                    utterance.voice = availableVoices[voiceIndex];
+                }
 
                 utterance.onend = () => resolve();
                 utterance.onerror = () => resolve();
@@ -579,21 +739,14 @@
             isListening = false;
             isProcessing = false;
             
-            // Stop recognition
             if (recognition) {
-                try { 
-                    recognition.abort(); // Use abort instead of stop for immediate termination
-                } catch (e) {
-                    console.log('Recognition abort error:', e);
-                }
+                try { recognition.abort(); } catch (e) {}
             }
             
-            // Stop any speech
             if (synthesis.speaking) {
                 synthesis.cancel();
             }
             
-            // Clear timers and transcript
             clearTimeout(silenceTimer);
             currentTranscript = '';
             
