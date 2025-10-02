@@ -201,9 +201,31 @@
             50% { opacity: 0.5; }
         }
 
-        .status-text {
+		.status-text {
+            font-size: 1.1em;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: color 0.3s;
+        }
+
+        .status-text.listening {
+            color: #4caf50;
+        }
+
+        .status-text.processing {
+            color: #ff9800;
+        }
+
+        .status-text.speaking {
+            color: #2196f3;
+        }
+
+        .status-text.ready {
             color: #666;
-            font-size: 0.9em;
+        }
+
+        .status-text.stopped {
+            color: #999;
         }
 
         .controls {
@@ -250,13 +272,24 @@
             background: #d0d0d0;
         }
 
-        .btn-stop {
+		.btn-stop {
             background: #f44336;
             color: white;
         }
 
         .btn-stop:hover {
             background: #d32f2f;
+            transform: translateY(-2px);
+        }
+
+        .btn-start {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #45a049;
+            transform: translateY(-2px);
         }
 		
         .transcript-area {
@@ -469,9 +502,9 @@
             </div>
         </div>
 
-        <div class="status">
+		<div class="status">
             <div class="status-indicator" id="statusIndicator"></div>
-            <div class="status-text" id="statusText">Ready to start</div>
+            <div class="status-text" id="statusText">READY</div>
         </div>
 
 		<div class="controls">
@@ -780,7 +813,7 @@
 					return;
 				}
 				
-				updateStatus('processing', 'Processing your request...');
+				updateStatus('processing', 'PROCESSING');
 
 				const response = await getAIResponse(message);
 				
@@ -801,7 +834,7 @@
 					
 					if (isListening) {
 						await new Promise(resolve => setTimeout(resolve, 1000));
-						updateStatus('listening', 'Listening...');
+						updateStatus('listening', 'LISTENING');
 					}
 				}
 
@@ -868,7 +901,7 @@
 
 		async function speakText(text) {
 			if (!isListening) return;
-			updateStatus('speaking', 'Speaking...');
+			updateStatus('speaking', 'SPEAKING');
 			await speakWithBrowser(text);
 		}
 
@@ -898,8 +931,9 @@
             });
         }
 
-        function updateStatus(state, text) {
+		function updateStatus(state, text) {
             statusIndicator.className = 'status-indicator ' + state;
+            statusText.className = 'status-text ' + state;
             statusText.textContent = text;
         }
 
@@ -937,8 +971,8 @@
                     
                     try { recognition.start(); } catch (e) {}
                     
-                    updateStatus('listening', 'Listening...');
-                    toggleBtn.textContent = 'Stop Listening';
+                    updateStatus('listening', 'LISTENING');
+                    toggleBtn.textContent = 'Stop';
                     toggleBtn.className = 'main-btn btn-stop';
                     
                     // Only clear chat if save conversation is unchecked
@@ -962,9 +996,9 @@
                 clearTimeout(silenceTimer);
                 currentTranscript = '';
                 
-                updateStatus('', 'Stopped');
-                toggleBtn.textContent = 'Start Listening';
-                toggleBtn.className = 'main-btn btn-primary';
+                updateStatus('stopped', 'STOPPED');
+                toggleBtn.textContent = 'Start';
+                toggleBtn.className = 'main-btn btn-start';
             }
         });
 
@@ -987,7 +1021,8 @@
             
             addMessage('user', text);
             
-            updateStatus('processing', 'Processing your request...');
+            updateStatus('processing', 'PROCESSING');
+
             const response = await getAIResponse(text);
             
             if (response) {
@@ -998,7 +1033,7 @@
                     await speakText(response);
                 }
                 
-                updateStatus('', 'Ready');
+                updateStatus('ready', 'READY');
             }
             
             // Resume listening if we were listening before
