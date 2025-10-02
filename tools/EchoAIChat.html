@@ -630,67 +630,89 @@
             return [wakeWordSelect.value];
         }
 
-        async function processTranscript(text) {
-            if (!isListening) return;
-            if (isProcessing || synthesis.speaking) return;
+		async function processTranscript(text) {
+			if (!isListening) return;
+			if (isProcessing || synthesis.speaking) return;
 
-            if (isSimilarToLast(text)) {
-                console.log('Ignoring duplicate/similar text:', text);
-                return;
-            }
+			// Filter out noise, empty speech, and non-meaningful input
+			const cleanText = text.trim().toLowerCase();
+			
+			// Ignore if too short
+			if (cleanText.length < 3) {
+				console.log('Ignoring too short:', text);
+				return;
+			}
+			
+			// Ignore common noise words that speech recognition picks up
+			const noiseWords = ['noise', 'uh', 'um', 'hmm', 'hm', 'ah', 'er', 'uh huh'];
+			if (noiseWords.includes(cleanText)) {
+				console.log('Ignoring noise word:', text);
+				return;
+			}
+			
+			// Ignore if it's just repeated single characters or gibberish
+			if (/^(.)\1+$/.test(cleanText) || cleanText.length < 5 && !/\s/.test(cleanText)) {
+				console.log('Ignoring gibberish:', text);
+				return;
+			}
 
-            lastProcessedText = text;
+			if (isSimilarToLast(text)) {
+				console.log('Ignoring duplicate/similar text:', text);
+				return;
+			}
 
-            const responseMode = responseModeSelect.value;
-            const lowerText = text.toLowerCase();
+			lastProcessedText = text;
 
-            addMessage('user', text);
+			const responseMode = responseModeSelect.value;
+			const lowerText = text.toLowerCase();
 
-            let shouldRespond = false;
-            let message = text;
+			addMessage('user', text);
 
-            if (responseMode === 'continuous') {
-                shouldRespond = true;
-            } else if (responseMode === 'wakeword') {
-                const wakeWords = getActiveWakeWords();
-                
-                for (const wakeWord of wakeWords) {
-                    if (lowerText.includes(wakeWord.toLowerCase())) {
-                        shouldRespond = true;
-                        const wakeIndex = lowerText.indexOf(wakeWord.toLowerCase());
-                        message = text.substring(wakeIndex + wakeWord.length).trim();
-                        break;
-                    }
-                }
-            }
+			let shouldRespond = false;
+			let message = text;
 
-            if (shouldRespond && message.trim()) {
-                isProcessing = true;
-                
-                if (!isListening) {
-                    isProcessing = false;
-                    return;
-                }
-                
-                updateStatus('processing', 'Processing your request...');
+			if (responseMode === 'continuous') {
+				shouldRespond = true;
+			} else if (responseMode === 'wakeword') {
+				const wakeWords = getActiveWakeWords();
+				
+				for (const wakeWord of wakeWords) {
+					if (lowerText.includes(wakeWord.toLowerCase())) {
+						shouldRespond = true;
+						const wakeIndex = lowerText.indexOf(wakeWord.toLowerCase());
+						message = text.substring(wakeIndex + wakeWord.length).trim();
+						break;
+					}
+				}
+			}
 
-                const response = await getAIResponse(message);
-                
-                if (!isListening) {
-                    isProcessing = false;
-                    return;
-                }
-                
-                if (response) {
-                    addMessage('ai', response);
-                    
-                    if (!isListening) {
-                        isProcessing = false;
-                        return;
-                    }
-                    
+			if (shouldRespond && message.trim()) {
+				isProcessing = true;
+				
+				if (!isListening) {
+					isProcessing = false;
+					return;
+				}
+				
+				updateStatus('processing', 'Processing your request...');
+
+				const response = await getAIResponse(message);
+				
+				if (!isListening) {
+					isProcessing = false;
+					return;
+				}
+				
+				if (response) {
+					addMessage('ai', response);
+					
+					if (!isListening) {
+						isProcessing = false;
+						return;
+					}
+					
 					await speakText(response);
-
+					
 					if (isListening) {
 						await new Promise(resolve => setTimeout(resolve, 1000));
 						updateStatus('listening', 'Listening...');
@@ -703,11 +725,11 @@
 						}
 						resetSilenceTimer();
 					}
-                }
+				}
 
-                isProcessing = false;
-            }
-        }
+				isProcessing = false;
+			}
+		}
 
         async function getAIResponse(message) {
             const model = aiModelSelect.value;
