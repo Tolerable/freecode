@@ -334,23 +334,12 @@
                     <label>Voice Type</label>
                     <select id="voiceTypeSelect">
                         <option value="browser">Browser Native</option>
-                        <option value="speechify">Others</option>
                     </select>
                 </div>
                 <div class="config-group" id="browserVoiceGroup">
                     <label>Browser Voice</label>
                     <select id="voiceSelect">
                         <option value="">Default</option>
-                    </select>
-                </div>
-                <div class="config-group" id="speechifyVoiceGroup" style="display: none;">
-                    <label>Voice</label>
-                    <select id="speechifyVoiceSelect">
-                        <option value="Narrator">Narrator</option>
-                        <option value="Gwyneth">Gwyneth</option>
-                        <option value="Snoop">Snoop</option>
-                        <option value="Matthew">Matthew</option>
-                        <option value="Wavenet-D">Wavenet-D</option>
                     </select>
                 </div>
             </div>
@@ -441,22 +430,16 @@
         const speechRateInput = document.getElementById('speechRate');
         const voicePitchInput = document.getElementById('voicePitch');
         const voiceTypeSelect = document.getElementById('voiceTypeSelect');
-        const speechifyVoiceSelect = document.getElementById('speechifyVoiceSelect');
+
         const browserVoiceGroup = document.getElementById('browserVoiceGroup');
-        const speechifyVoiceGroup = document.getElementById('speechifyVoiceGroup');
+
         const customWakeWordSection = document.getElementById('customWakeWordSection');
         const customWakeWordInput = document.getElementById('customWakeWordInput');
 
         // Voice type toggle
-        voiceTypeSelect.addEventListener('change', () => {
-            if (voiceTypeSelect.value === 'speechify') {
-                browserVoiceGroup.style.display = 'none';
-                speechifyVoiceGroup.style.display = 'block';
-            } else {
-                browserVoiceGroup.style.display = 'block';
-                speechifyVoiceGroup.style.display = 'none';
-            }
-        });
+		voiceTypeSelect.addEventListener('change', () => {
+			browserVoiceGroup.style.display = 'block';
+		});
 
         // Load available voices
         function loadVoices() {
@@ -764,19 +747,12 @@
             }
         }
 
-        async function speakText(text) {
-            if (!isListening) return;
-            
-            updateStatus('speaking', 'Speaking...');
-            
-            const voiceType = voiceTypeSelect.value;
-            
-            if (voiceType === 'speechify') {
-                await speakWithSpeechify(text);
-            } else {
-                await speakWithBrowser(text);
-            }
-        }
+		async function speakText(text) {
+			if (!isListening) return;
+			updateStatus('speaking', 'Speaking...');
+			await speakWithBrowser(text);
+		}
+
 
         async function speakWithBrowser(text) {
             return new Promise((resolve) => {
@@ -801,69 +777,6 @@
 
                 synthesis.speak(utterance);
             });
-        }
-
-        async function speakWithSpeechify(text) {
-            try {
-                const voice = speechifyVoiceSelect.value;
-                
-                const requestData = {
-                    audioFormat: "mp3",
-                    paragraphChunks: [text],
-                    voiceParams: {
-                        name: voice === "Wavenet-D" ? "Wavenet-D" : voice,
-                        engine: voice === "Wavenet-D" ? "google" : "resemble",
-                        languageCode: "en-US",
-                        ...(voice === "Wavenet-D" && { speakingRate: 0.1 })
-                    }
-                };
-
-                const response = await fetch('https://audio.api.speechify.dev/generateAudioFiles', {
-                    method: 'POST',
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
-                        'X-Speechify-Client': 'API'
-                    },
-                    body: JSON.stringify(requestData)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Speechify API failed: ${response.status}`);
-                }
-
-                const responseData = await response.json();
-                
-                if (!responseData.audioStream) {
-                    throw new Error('No audio stream received');
-                }
-
-                const binaryData = atob(responseData.audioStream);
-                const bytes = new Uint8Array(binaryData.length);
-                for (let i = 0; i < binaryData.length; i++) {
-                    bytes[i] = binaryData.charCodeAt(i);
-                }
-                
-                const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-                const audio = new Audio(audioUrl);
-                
-                return new Promise((resolve) => {
-                    audio.onended = () => {
-                        URL.revokeObjectURL(audioUrl);
-                        resolve();
-                    };
-                    audio.onerror = () => {
-                        URL.revokeObjectURL(audioUrl);
-                        resolve();
-                    };
-                    audio.play();
-                });
-
-            } catch (error) {
-                console.error('Speechify TTS error:', error);
-                addMessage('system', 'Speechify TTS failed, using browser voice.');
-                await speakWithBrowser(text);
-            }
         }
 
         function updateStatus(state, text) {
@@ -937,7 +850,6 @@
                 model: aiModelSelect.value,
                 voiceType: voiceTypeSelect.value,
                 browserVoice: voiceSelect.value,
-                speechifyVoice: speechifyVoiceSelect.value,
                 silenceThreshold: silenceThresholdInput.value,
                 speechRate: speechRateInput.value,
                 voicePitch: voicePitchInput.value,
@@ -966,7 +878,7 @@
                     voiceTypeSelect.dispatchEvent(new Event('change'));
                 }
                 if (settings.browserVoice) voiceSelect.value = settings.browserVoice;
-                if (settings.speechifyVoice) speechifyVoiceSelect.value = settings.speechifyVoice;
+
                 if (settings.silenceThreshold) silenceThresholdInput.value = settings.silenceThreshold;
                 if (settings.speechRate) speechRateInput.value = settings.speechRate;
                 if (settings.voicePitch) voicePitchInput.value = settings.voicePitch;
@@ -981,7 +893,7 @@
         }
 
         [responseModeSelect, wakeWordSelect, personaSelect, aiModelSelect, voiceTypeSelect, 
-         voiceSelect, speechifyVoiceSelect, silenceThresholdInput, speechRateInput, 
+         voiceSelect, silenceThresholdInput, speechRateInput, 
          voicePitchInput, systemPromptInput].forEach(element => {
             element.addEventListener('change', saveSettings);
         });
