@@ -268,6 +268,99 @@ let CURRENT_BOOK_ID = null;
 let CURRENT_SECTION_ID = null;
 const BOOK_CACHE = new Map(); // id -> bookData
 
+async function loadBook(bookId) {
+  const reader = document.getElementById('reader');
+  const currentMeta = document.getElementById('currentMeta');
+
+  async function importBook(id){
+    try { return (await import(`./books/${id}.mjs`)).default; } catch(e){}
+    try { return (await import(`./books/${id}.js`)).default; }  catch(e){}
+    return null;
+  }
+
+  const data = await importBook(bookId);
+  if (!data) {
+    currentMeta.textContent = 'Not Found';
+    reader.innerHTML = `<div class="empty">No scripture module found for “${bookId}”.</div>`;
+    return;
+  }
+
+  currentMeta.textContent = data.title || bookId;
+  reader.innerHTML = '';
+
+  (data.sections || []).forEach(sec => {
+    const sectionHeader = document.createElement('div');
+    sectionHeader.className = 'section-header';
+    sectionHeader.innerHTML = `<h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
+    reader.appendChild(sectionHeader);
+
+    (sec.verses || []).forEach(v => {
+      const verseDiv = document.createElement('div');
+      verseDiv.className = 'verse';
+      verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+      reader.appendChild(verseDiv);
+    });
+  });
+
+  // expand/replace the clicked title with chapters (if not already)
+  const toc = document.getElementById('toc');
+  const existing = toc.querySelector(`details.book[data-id="${bookId}"]`);
+  if (!existing) {
+    const title = (TOC_INDEX.find(b => b.id === bookId) || {}).title || bookId;
+    const item = [...toc.querySelectorAll('.bookTitle')].find(n => n.textContent === title);
+    if (item) {
+      const details = document.createElement('details');
+      details.className = 'book selected';
+      details.dataset.id = bookId;
+      details.open = true;
+
+      const summary = document.createElement('summary');
+      summary.textContent = title;
+      details.appendChild(summary);
+
+      const chapters = document.createElement('div');
+      chapters.className = 'chapters';
+      (data.sections || []).forEach(sec => {
+        const a = document.createElement('a');
+        a.href = '#';
+        a.textContent = sec.title || String(sec.id);
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          // highlight chapter
+          chapters.querySelectorAll('a').forEach(x => x.classList.remove('active'));
+          a.classList.add('active');
+
+          // render only this section
+          reader.innerHTML = '';
+          const header = document.createElement('div');
+          header.className = 'section-header';
+          header.innerHTML = `<h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
+          reader.appendChild(header);
+          (sec.verses || []).forEach(v => {
+            const d = document.createElement('div'); d.className = 'verse';
+            d.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+            reader.appendChild(d);
+          });
+          currentMeta.textContent = `${data.title} — ${sec.title}`;
+          window.scrollTo(0,0);
+        });
+        chapters.appendChild(a);
+      });
+      details.appendChild(chapters);
+
+      // replace the plain title with the expander
+      item.replaceWith(details);
+    }
+  }
+
+  // highlight the selected book
+  document.querySelectorAll('details.book').forEach(d => {
+    d.classList.toggle('selected', d.dataset.id === bookId);
+  });
+}
+
+window.loadBook = loadBook;
+
 /* =========================
    BUILD TOC (your headings preserved)
    Clicking a title expands to chapters, loads book, and highlights.
