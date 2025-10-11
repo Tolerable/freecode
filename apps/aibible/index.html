@@ -301,7 +301,7 @@ async function renderTOC() {
       if (!wasOpen) {
         details.open = true;
         openBookId = book.id;
-        await loadBook(book.id, true); // auto-load ch1
+        await buildBookChapters(book.id, true); // auto-load ch1
       } else {
         details.open = false;
         openBookId = null;
@@ -318,8 +318,8 @@ async function renderTOC() {
   }
 }
 
-/* helper used by renderTOC click */
-async function loadBook(bookId, autoLoadFirst=false) {
+/* helper used by renderTOC click — builds chapters list */
+async function buildBookChapters(bookId, autoLoadFirst=false) {
   try {
     const res = await fetch(`books/${bookId}.json`);
     const data = await res.json();
@@ -336,7 +336,7 @@ async function loadBook(bookId, autoLoadFirst=false) {
       a.addEventListener('click', (e) => {
         e.preventDefault();
         renderSection(data, sec);
-        window.scrollTo(0,0);  // instant top
+        window.scrollTo(0,0);
       });
       chapterWrap.appendChild(a);
     }
@@ -349,6 +349,7 @@ async function loadBook(bookId, autoLoadFirst=false) {
     console.error('Failed to load', bookId, err);
   }
 }
+
 
 
 
