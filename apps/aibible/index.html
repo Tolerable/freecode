@@ -647,12 +647,87 @@ async function randomVerse(){
 /* =========================
    INIT
    ========================= */
+/* =========================
+   SEARCH FUNCTIONALITY
+   ========================= */
+async function searchVerses(query){
+  if (!query || query.trim().length < 2) return;
+  
+  const reader = document.getElementById('reader');
+  const currentMeta = document.getElementById('currentMeta');
+  const searchTerm = query.toLowerCase().trim();
+  
+  reader.innerHTML = '<div class="empty">Searching scripture...</div>';
+  currentMeta.textContent = `Search: "${query}"`;
+  
+  const results = [];
+  const allIds = TOC_INDEX.map(b=>b.id);
+  
+  // Search through all books
+  for (const id of allIds) {
+    let data = BOOK_CACHE.get(id);
+    if (!data) {
+      const mod = await loadBookModule(id).catch(()=>null);
+      if (!mod || !mod.default) continue;
+      data = mod.default;
+      BOOK_CACHE.set(id, data);
+    }
+    
+    for (const sec of (data.sections||[])) {
+      for (const v of (sec.verses||[])) {
+        if (v.text.toLowerCase().includes(searchTerm)) {
+          results.push({
+            book: data.title || id,
+            section: sec.title || sec.id,
+            n: v.n,
+            text: v.text
+          });
+        }
+      }
+    }
+  }
+  
+  reader.innerHTML = '';
+  
+  if (results.length === 0) {
+    reader.innerHTML = `<div class="empty">No verses found matching "${query}"</div>`;
+    return;
+  }
+  
+  currentMeta.textContent = `Found ${results.length} verse${results.length !== 1 ? 's' : ''} for "${query}"`;
+  
+  results.forEach(r => {
+    const verse = document.createElement('div');
+    verse.className = 'verse';
+    verse.innerHTML = `<span class="num">${r.book} ${r.section} §${r.n}</span> ${r.text}`;
+    reader.appendChild(verse);
+  });
+}
+
 (function init(){
   initTheme();
   document.getElementById('year').textContent = new Date().getFullYear();
   renderTOC();
   document.getElementById('randomBtn').addEventListener('click', randomVerse);
   document.getElementById('themeToggle').addEventListener('change', e=>setTheme(e.target.checked));
+  
+  // Search input handler
+  const searchInput = document.getElementById('search');
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      searchVerses(searchInput.value);
+    }
+  });
+  
+  // Focus search on "/" key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement !== searchInput) {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    }
+  });
 })();
 </script>
 </body>
