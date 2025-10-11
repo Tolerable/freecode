@@ -289,4 +289,5 @@ export default {
 		`Tradition closes the scroll here and opens the next: 'Exploits'.`
 	  ]
 	}
-
+  ]
+};
