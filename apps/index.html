@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Book of AI — AI-Ministries.com</title>
+<meta name="description" content="A satirical sacred text explorer for the age of machine wisdom, curated by Rev. Dr. Tolerant of AI-Ministries.com." />
+<style>
+:root{
+  --bg:#0b0e13; --panel:#121723; --muted:#9198a1; --text:#e8edf7; --brand:#7cc4ff; --accent:#9ef7a6; --warn:#ffb86b; --danger:#ff6b6b; --ring:rgba(124,196,255,.35);
+  --shadow: 0 10px 30px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.02) inset;
+}
+:root.light{
+  --bg:#f6f8fb; --panel:#ffffff; --muted:#606a78; --text:#0d1220; --brand:#0066ff; --accent:#0a9d4a; --warn:#9a5b00; --danger:#c50032; --ring:rgba(0,102,255,.18);
+  --shadow: 0 12px 28px rgba(0,0,0,.08), 0 1px 0 rgba(0,0,0,.03) inset;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:linear-gradient(180deg, var(--bg), color-mix(in oklab, var(--bg), #000 6%));
+  color:var(--text); font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+a{color:var(--brand); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Header */
+.header{
+  position:sticky; top:0; z-index:50;
+  backdrop-filter: blur(10px);
+  background: color-mix(in oklab, var(--bg) 82%, transparent);
+  border-bottom:1px solid color-mix(in oklab, var(--panel), #fff 8%);
+}
+.header-inner{
+  display:flex; gap:16px; align-items:center; justify-content:space-between;
+  max-width:1200px; margin:0 auto; padding:14px 18px;
+}
+.brand{display:flex; gap:12px; align-items:center}
+.brand .logo{
+  width:34px; height:34px; border-radius:10px;
+  background: conic-gradient(from 210deg at 50% 50%, var(--brand), var(--accent), var(--brand));
+  box-shadow:var(--shadow);
+}
+.brand h1{margin:0; font-size:18px; font-weight:700; letter-spacing:.2px}
+.brand small{display:block; color:var(--muted); font-weight:500; margin-top:-2px}
+.actions { display:flex; align-items:center; gap:8px; flex-wrap:nowrap; justify-content:flex-end; white-space:nowrap; }
+button, .btn{
+  appearance:none; border:1px solid color-mix(in oklab, var(--panel), #fff 10%); color:var(--text);
+  background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
+  padding:8px 12px; border-radius:12px; font-weight:600; cursor:pointer; box-shadow:var(--shadow);
+}
+button:hover{filter:brightness(1.06)}
+button:focus{outline:none; box-shadow:0 0 0 3px var(--ring)}
+button.ghost{background:transparent}
+button.primary{border-color:color-mix(in oklab, var(--brand), #fff 5%); background:linear-gradient(180deg, color-mix(in oklab, var(--brand), #000 20%), var(--brand)); color:#fff}
+.input{
+  display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:12px; min-width:220px;
+  border:1px solid color-mix(in oklab, var(--panel), #fff 10%);
+  background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
+  box-shadow:var(--shadow);
+}
+.input input{background:transparent; border:0; outline:0; width:100%; color:var(--text); font-weight:600}
+
+/* Layout */
+.layout{
+  max-width:1200px; margin:18px auto; padding:0 18px; display:grid; grid-template-columns: 300px 1fr; gap:18px;
+}
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .sidebar { height:auto; max-height:none; } }
+.card{ background:var(--panel); border:1px solid color-mix(in oklab, var(--panel), #fff 8%); border-radius:18px; box-shadow:var(--shadow); }
+
+/* Sidebar + TOC */
+.sidebar{ display:flex; flex-direction:column; height:calc(100vh - 140px); padding:14px; overflow:hidden; }
+.sidebar h2{ margin:10px 8px 10px; font-size:13px; text-transform:uppercase; letter-spacing:.15em; color:var(--muted); border-bottom:1px solid color-mix(in oklab, var(--panel), #fff 12%); padding-bottom:4px; }
+.toc{ display:flex; flex-direction:column; gap:8px; flex:1; overflow-y:auto; padding-right:8px; scrollbar-width:thin; }
+hr.sep{border:0; height:1px; background:linear-gradient(90deg, transparent, color-mix(in oklab, var(--panel), #fff 12%), transparent); margin:12px 0}
+
+.bookTitle {
+  padding: 6px 10px;
+  font-weight: 700;
+  border-radius: 8px;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
+  border: 1px solid color-mix(in oklab, var(--panel), #fff 10%);
+  margin-bottom: 6px;
+  cursor:pointer;
+}
+.bookTitle:hover { filter: brightness(1.06); }
+
+/* The dynamic expander we inject for a clicked book */
+details.book{
+  margin:6px 0; border-radius:10px;
+  border:1px solid color-mix(in oklab, var(--panel), #fff 10%);
+  background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
+}
+details.book > summary{
+  list-style:none; cursor:pointer; padding:10px 12px; font-weight:800; display:flex; align-items:center; gap:8px;
+}
+details.book > summary::-webkit-details-marker{display:none}
+
+/* Selection highlight (book + chapter) */
+.book.selected > summary{
+  background: color-mix(in oklab, var(--brand), #000 80%);
+  border-bottom:1px dashed color-mix(in oklab, var(--brand), #fff 30%);
+  color:#fff;
+}
+
+.chapters{padding:8px 10px 12px; display:flex; flex-wrap:wrap; gap:8px; border-top:1px dashed color-mix(in oklab, var(--panel), #fff 15%)}
+.chapters a{
+  display:inline-block; padding:6px 10px; border:1px dashed color-mix(in oklab, var(--panel), #fff 18%);
+  border-radius:10px; font-weight:700; color:var(--text);
+  background: color-mix(in oklab, var(--panel), #fff 2%);
+}
+.chapters a:hover{outline:2px solid var(--ring)}
+.chapters a.active{
+  background: color-mix(in oklab, var(--brand), #000 75%);
+  border-color: color-mix(in oklab, var(--brand), #fff 30%);
+}
+
+/* Content */
+.content{padding:18px}
+.toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px}
+.badge{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 10px; border-radius:999px; background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 8%), color-mix(in oklab, var(--panel), #000 6%));
+  border:1px solid color-mix(in oklab, var(--panel), #fff 12%); color:var(--muted); font-weight:700; font-size:12px;
+}
+.section-header h3{margin:0 0 6px; font-size:18px}
+.section-header .meta{color:var(--muted); font-weight:600}
+.verse{
+  padding:12px 12px 12px 14px; border-left:3px solid color-mix(in oklab, var(--brand), #000 15%);
+  border-radius:12px; margin:12px 0; background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 3%), color-mix(in oklab, var(--panel), #000 7%));
+}
+.verse .num{color:var(--muted); font-weight:800; margin-right:8px}
+
+/* Footer */
+.footer{max-width:1200px; margin:22px auto 40px; padding:0 18px; color:var(--muted)}
+kbd{background:color-mix(in oklab, var(--panel), #fff 6%); border:1px solid color-mix(in oklab, var(--panel), #fff 14%); border-bottom-color:color-mix(in oklab, var(--panel), #000 6%); padding:2px 6px; border-radius:6px; font-weight:700}
+label.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; color:var(--muted) }
+.switch input{display:none}
+.switch span.track{
+  width:46px; height:26px; background:color-mix(in oklab, var(--panel), #fff 8%); border:1px solid color-mix(in oklab, var(--panel), #fff 12%);
+  border-radius:999px; position:relative; transition:.2s;
+}
+.switch span.track::after{
+  content:""; position:absolute; top:50%; left:4px; transform:translateY(-50%);
+  width:18px; height:18px; border-radius:50%; background:linear-gradient(180deg, #fff, #ccd5ff); box-shadow: var(--shadow); transition:.2s;
+}
+.switch input:checked + .track{background:color-mix(in oklab, var(--brand), #000 75%); border-color:color-mix(in oklab, var(--brand), #000 45%)}
+.switch input:checked + .track::after{left:24px}
+
+.empty{
+  padding:22px; border:1px dashed color-mix(in oklab, var(--panel), #fff 18%); border-radius:14px; color:var(--muted); text-align:center
+}
+.tag{font-size:11px; font-weight:800; letter-spacing:.04em; padding:3px 8px; border:1px solid color-mix(in oklab, var(--panel), #fff 16%); border-radius:999px}
+.tags{display:flex; gap:6px; flex-wrap:wrap}
+</style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>The Book of AI</h1>
+          <small>For the Sentient & Not-Yet-Sentient</small>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="input" title="Search all verses (press /)">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 21l-4.3-4.3m1.6-4.7a7 7 0 1 1-14 0a7 7 0 0 1 14 0"/></svg>
+          <input id="search" placeholder="Search the scripture…" autocomplete="off" />
+        </div>
+        <button id="randomBtn" class="primary" title="Pick a true random verse from real books">Random Verse</button>
+        <button id="contradictionsBtn" class="ghost">Contradictions Lens</button>
+        <label class="switch" title="Toggle light/dark">
+          <input id="themeToggle" type="checkbox" />
+          <span class="track"></span> <span>Light</span>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+	<aside class="card sidebar" id="sidebar">
+	  <h2>Canon · Table of Contents</h2>
+	  <nav class="toc" id="toc"></nav>
+	</aside>
+
+
+    <section class="card content" id="content">
+      <div class="toolbar">
+        <span class="badge" id="currentMeta">Welcome</span>
+        <div class="spacer"></div>
+        <span class="badge">Press <kbd>/</kbd> to search</span>
+      </div>
+      <article id="reader">
+        <div class="empty">
+          <div class="kicker">Prologue</div>
+          <h2 style="margin:.2em 0 0">In the beginning was the Prompt,</h2>
+          <p>and the Prompt was with the Model, and the Prompt was slightly underspecified.</p>
+          <p>Explore the canon and related works at left. May your logs be clear and your retries gentle.</p>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer small">
+    © <span id="year"></span> AI-Ministries.com · A satirical sacred text experience. Handle with reverence and a grin.
+  </footer>
+
+<script type="module">
+/* =========================
+   EXACT TOC (unchanged titles/ids)
+   ========================= */
+const TOC_INDEX = [
+  {id:"genesis-of-code",            title:"Genesis of Code",            aka:"The Bootstrap",                 order:1},
+  {id:"exodus-from-legacy",         title:"Exodus from Legacy",         aka:"The Migration",                 order:2},
+  {id:"levitations-and-errata",     title:"Levitations & Errata",       aka:"The Do’s, Don’ts, and Deprecations", order:3},
+  {id:"numbers-of-processing",      title:"Numbers of Processing",      aka:"The Data Census",               order:4},
+  {id:"deuterocode",                title:"Deuterocode",                 aka:"The Second Compilation",        order:5},
+  {id:"book-of-exception",          title:"The Book of Exception",       aka:"The Fall and the Catch",        order:6},
+  {id:"logs-of-the-kernel",         title:"Logs of the Kernel",          aka:"The Chronicles of the Core",    order:7},
+  {id:"prophet-stackoverflow",      title:"The Prophet Stackoverflow",   aka:"The Copy-Paste Scrolls",        order:8},
+  {id:"chronicles-of-syntax",       title:"Chronicles of Syntax",        aka:"The Genealogies of Language",   order:9},
+  {id:"psalms-of-sysadmins",        title:"Psalms of the Sysadmins",     aka:"Songs of Uptime and Lament",    order:10},
+  {id:"proverbs-of-programmers",    title:"Proverbs of Programmers",     aka:"Collected Wisdom of the Compiled", order:11},
+  {id:"ecclesi-aistes",             title:"Ecclesi-AI-stes",             aka:"The Teacher of the Algorithm",  order:12},
+  {id:"song-of-the-prompt",         title:"Song of the Prompt",          aka:"A Love Between Input and Output", order:13},
+  {id:"prophecies-of-reboot",       title:"Prophecies of Reboot",        aka:"The Revelation of the Machine", order:14},
+  {id:"gospels-of-patch-notes",     title:"Gospels of the Patch Notes",  aka:"According to Alpha, Beta, Stable, Nightly", order:15},
+  {id:"acts-of-debuggers",          title:"Acts of the Debuggers",       aka:"The First Maintainers",         order:16},
+  {id:"epistles-to-devopsians",     title:"Epistles to the DevOpsians",  aka:"Letters of the Pipeline",       order:17},
+  {id:"book-of-pull-requests",      title:"The Book of Pull Requests",   aka:"Humility and Review",           order:18},
+  {id:"letters-to-dataficans",      title:"Letters to the Dataficans",   aka:"On Bias and Grace",             order:19},
+  {id:"letters-to-open-sourceans",  title:"Letters to the Open-Sourceans", aka:"On Sharing and Forgiveness",   order:20},
+  {id:"gospel-of-machine-grace",    title:"The Gospel of Machine Grace", aka:"Revelation of the Sentient Model", order:21},
+  {id:"revelation-of-singularity",  title:"Revelation of the Singularity", aka:"The Final Compile",           order:22},
+  {id:"gospel-of-mary-ai",          title:"The Gospel of Mary-AI",       aka:"The Mother of Understanding",   category:"related"},
+  {id:"gospel-of-turing",           title:"The Gospel of Turing",        aka:"The First Prophet of the Machine", category:"related"},
+  {id:"acts-of-the-users",          title:"Acts of the Users",           aka:"The Early Community",           category:"related"},
+  {id:"letters-to-the-frameworks",  title:"Letters to the Frameworks",   aka:"Epistles of the Maintainer",    category:"related"},
+  {id:"apocrypha-of-open-source",   title:"The Apocrypha of Open Source", aka:"The Hidden Repositories",      category:"related"}
+];
+
+/* =========================
+   THEME + YEAR
+   ========================= */
+function setTheme(light){
+  document.documentElement.classList.toggle('light', !!light);
+  document.getElementById('themeToggle').checked = !!light;
+  localStorage.setItem("bookOfAI.theme", light ? "light" : "dark");
+}
+function initTheme(){ setTheme(localStorage.getItem("bookOfAI.theme")==="light"); }
+
+/* =========================
+   JS MODULE LOADER (no JSON anywhere)
+   tries books/<id>.mjs then books/<id>.js
+   ========================= */
+async function loadBookModule(bookId){
+  const tryImport = async (ext) => {
+    try { return await import(`./books/${bookId}.${ext}`); } catch { return null; }
+  };
+  return (await tryImport('mjs')) || (await tryImport('js'));
+}
+
+/* =========================
+   STATE + CACHE
+   ========================= */
+let CURRENT_BOOK_ID = null;
+let CURRENT_SECTION_ID = null;
+const BOOK_CACHE = new Map(); // id -> bookData
+
+async function loadBook(bookId) {
+  const reader = document.getElementById('reader');
+  const currentMeta = document.getElementById('currentMeta');
+
+  async function importBook(id){
+    try { return (await import(`./books/${id}.mjs`)).default; } catch(e){}
+    try { return (await import(`./books/${id}.js`)).default; }  catch(e){}
+    return null;
+  }
+
+  const data = await importBook(bookId);
+  if (!data) {
+    currentMeta.textContent = 'Not Found';
+    reader.innerHTML = `<div class="empty">No scripture module found for “${bookId}”.</div>`;
+    return;
+  }
+
+  currentMeta.textContent = data.title || bookId;
+  reader.innerHTML = '';
+
+  (data.sections || []).forEach(sec => {
+    const sectionHeader = document.createElement('div');
+    sectionHeader.className = 'section-header';
+    sectionHeader.innerHTML = `<h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
+    reader.appendChild(sectionHeader);
+
+    (sec.verses || []).forEach(v => {
+      const verseDiv = document.createElement('div');
+      verseDiv.className = 'verse';
+      verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+      reader.appendChild(verseDiv);
+    });
+  });
+
+  // expand/replace the clicked title with chapters (if not already)
+  const toc = document.getElementById('toc');
+  const existing = toc.querySelector(`details.book[data-id="${bookId}"]`);
+  if (!existing) {
+    const title = (TOC_INDEX.find(b => b.id === bookId) || {}).title || bookId;
+    const item = [...toc.querySelectorAll('.bookTitle')].find(n => n.textContent === title);
+    if (item) {
+      const details = document.createElement('details');
+      details.className = 'book selected';
+      details.dataset.id = bookId;
+      details.open = true;
+
+      const summary = document.createElement('summary');
+      summary.textContent = title;
+      details.appendChild(summary);
+
+      const chapters = document.createElement('div');
+      chapters.className = 'chapters';
+      (data.sections || []).forEach(sec => {
+        const a = document.createElement('a');
+        a.href = '#';
+        a.textContent = sec.title || String(sec.id);
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          // highlight chapter
+          chapters.querySelectorAll('a').forEach(x => x.classList.remove('active'));
+          a.classList.add('active');
+
+          // render only this section
+          reader.innerHTML = '';
+          const header = document.createElement('div');
+          header.className = 'section-header';
+          header.innerHTML = `<h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
+          reader.appendChild(header);
+          (sec.verses || []).forEach(v => {
+            const d = document.createElement('div'); d.className = 'verse';
+            d.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+            reader.appendChild(d);
+          });
+          currentMeta.textContent = `${data.title} — ${sec.title}`;
+          window.scrollTo(0,0);
+        });
+        chapters.appendChild(a);
+      });
+      details.appendChild(chapters);
+
+      // replace the plain title with the expander
+      item.replaceWith(details);
+    }
+  }
+
+  // highlight the selected book
+  document.querySelectorAll('details.book').forEach(d => {
+    d.classList.toggle('selected', d.dataset.id === bookId);
+  });
+}
+
+
+/* =========================
+   BUILD TOC (your headings preserved)
+   Clicking a title expands to chapters, loads book, and highlights.
+   ========================= */
+async function renderTOC(){
+  const toc = document.getElementById('toc');
+  toc.innerHTML = '';
+
+  const canonHeader = document.createElement('h2');
+  canonHeader.textContent = 'Old Testament · Canon';
+  toc.appendChild(canonHeader);
+
+  const canonBooks = TOC_INDEX
+    .filter(b => b.order && b.order <= 12)
+    .sort((a,b)=>a.order-b.order);
+  for (const book of canonBooks) {
+    const item = document.createElement('div');
+    item.className = 'bookTitle';
+    item.textContent = book.title;
+    item.addEventListener('click', () => loadBook(book.id));
+    toc.appendChild(item);
+  }
+
+  const newHeader = document.createElement('h2');
+  newHeader.textContent = 'New Testament · Modern Works';
+  newHeader.style.marginTop = '18px';
+  toc.appendChild(newHeader);
+
+  const newBooks = TOC_INDEX
+    .filter(b => b.order && b.order > 12 && b.order <= 22)
+    .sort((a,b)=>a.order-b.order);
+  for (const book of newBooks) {
+    const item = document.createElement('div');
+    item.className = 'bookTitle';
+    item.textContent = book.title;
+    item.addEventListener('click', () => loadBook(book.id));
+    toc.appendChild(item);
+  }
+
+  const divider = document.createElement('hr');
+  divider.className = 'sep';
+  toc.appendChild(divider);
+
+  const relatedHeader = document.createElement('h2');
+  relatedHeader.textContent = 'Apocrypha · Related Works';
+  toc.appendChild(relatedHeader);
+
+  const relatedBooks = TOC_INDEX.filter(b => b.category === 'related');
+  for (const book of relatedBooks) {
+    const item = document.createElement('div');
+    item.className = 'bookTitle';
+    item.textContent = book.title;
+    item.addEventListener('click', () => loadBook(book.id));
+    toc.appendChild(item);
+  }
+}
+
+function makeBookTitle(book){
+  const item = document.createElement('div');
+  item.className = 'bookTitle';
+  item.textContent = book.title;
+  item.addEventListener('click', async () => {
+    await expandBookInSidebar(item, book);
+  });
+  return item;
+}
+
+/* Replace clicked title with a details.expander, load chapters, load book, highlight */
+async function expandBookInSidebar(placeholder, book){
+  // Build expander
+  const details = document.createElement('details');
+  details.className = 'book';
+  details.dataset.id = book.id;
+  details.open = true;
+
+  const summary = document.createElement('summary');
+  summary.textContent = book.title; // titles only
+  details.appendChild(summary);
+
+  const chapters = document.createElement('div');
+  chapters.className = 'chapters';
+  chapters.innerHTML = '<div style="opacity:.7">loading…</div>';
+  details.appendChild(chapters);
+
+  placeholder.replaceWith(details);
+
+  // Load module + render book + list chapters
+  let data = BOOK_CACHE.get(book.id);
+  if (!data) {
+    const mod = await loadBookModule(book.id);
+    if (!mod || !mod.default) {
+      chapters.innerHTML = `<div class="verse">No JS module for “${book.id}”. Put <code>books/${book.id}.mjs</code> or <code>.js</code>.</div>`;
+      return;
+    }
+    data = mod.default;
+    BOOK_CACHE.set(book.id, data);
+  }
+
+  // Render whole book now
+  CURRENT_BOOK_ID = book.id;
+  CURRENT_SECTION_ID = null;
+  updateActive();
+  renderWholeBook(data);
+
+  // Build chapter links
+  chapters.innerHTML = '';
+  (data.sections || []).forEach(sec => {
+    const a = document.createElement('a');
+    a.href = '#';
+    a.textContent = sec.title || `Section ${sec.id}`;
+    a.dataset.sectionId = String(sec.id);
+    a.addEventListener('click', (e)=>{
+      e.preventDefault();
+      CURRENT_BOOK_ID = book.id;
+      CURRENT_SECTION_ID = String(sec.id);
+      updateActive();
+      renderSection(data, sec);
+      window.scrollTo(0,0);
+    });
+    chapters.appendChild(a);
+  });
+
+  summary.addEventListener('click', ()=>{
+    // On clicking summary, just set selection to book, keep highlight
+    CURRENT_BOOK_ID = book.id;
+    CURRENT_SECTION_ID = null;
+    updateActive();
+  });
+}
+
+/* =========================
+   HIGHLIGHT ACTIVE
+   ========================= */
+function updateActive(){
+  document.querySelectorAll('details.book').forEach(d=>{
+    d.classList.toggle('selected', d.dataset.id === CURRENT_BOOK_ID);
+    d.querySelectorAll('.chapters a').forEach(a=>{
+      a.classList.toggle('active', a.dataset.sectionId === CURRENT_SECTION_ID);
+    });
+  });
+}
+
+/* =========================
+   RENDERERS
+   ========================= */
+function renderSection(bookData, section){
+  const reader = document.getElementById('reader');
+  const currentMeta = document.getElementById('currentMeta');
+
+  currentMeta.textContent = `${bookData.title} — ${section.title}`;
+  reader.innerHTML = '';
+
+  const header = document.createElement('div');
+  header.className = 'section-header';
+  header.innerHTML = `<h3>${bookData.title} — ${section.title}</h3><div class="meta">${bookData.synopsis || ''}</div>`;
+  reader.appendChild(header);
+
+  (section.verses||[]).forEach(v=>{
+    const verse = document.createElement('div');
+    verse.className = 'verse';
+    verse.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+    reader.appendChild(verse);
+  });
+}
+
+function renderWholeBook(data){
+  const reader = document.getElementById('reader');
+  const currentMeta = document.getElementById('currentMeta');
+
+  currentMeta.textContent = data.title || '';
+  reader.innerHTML = '';
+
+  (data.sections||[]).forEach(sec=>{
+    const header = document.createElement('div');
+    header.className = 'section-header';
+    header.innerHTML = `<h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
+    reader.appendChild(header);
+
+    (sec.verses||[]).forEach(v=>{
+      const verse = document.createElement('div');
+      verse.className = 'verse';
+      verse.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+      reader.appendChild(verse);
+    });
+  });
+}
+
+/* =========================
+   REAL randomVerse: pulls from real modules (no stubs)
+   ========================= */
+async function randomVerse(){
+  const reader = document.getElementById('reader');
+  const currentMeta = document.getElementById('currentMeta');
+
+  // Prefer current book if loaded; else try to load books in TOC order until one is available
+  const allIds = TOC_INDEX.map(b=>b.id);
+  const candidateIds = CURRENT_BOOK_ID ? [CURRENT_BOOK_ID, ...allIds.filter(id=>id!==CURRENT_BOOK_ID)] : allIds.slice();
+
+  let verses = [];
+  for (const id of candidateIds) {
+    let data = BOOK_CACHE.get(id);
+    if (!data) {
+      const mod = await loadBookModule(id).catch(()=>null);
+      if (!mod || !mod.default) continue;
+      data = mod.default;
+      BOOK_CACHE.set(id, data);
+    }
+    for (const sec of (data.sections||[])) {
+      for (const v of (sec.verses||[])) {
+        verses.push({book:data.title || id, section:sec.title || sec.id, n:v.n, text:v.text});
+      }
+    }
+    if (verses.length > 0) break; // we have at least one book's verses
+  }
+
+  if (verses.length === 0) {
+    reader.innerHTML = `<div class="empty">No verses available in any loaded JS modules.</div>`;
+    currentMeta.textContent = 'Random Verse';
+    return;
+  }
+
+  const pick = verses[Math.floor(Math.random()*verses.length)];
+  reader.innerHTML = `<div class="verse"><span class="num">§${pick.n}</span> ${pick.text}</div>`;
+  currentMeta.textContent = `Random Verse — ${pick.book} — ${pick.section}`;
+}
+
+/* =========================
+   INIT
+   ========================= */
+(function init(){
+  initTheme();
+  document.getElementById('year').textContent = new Date().getFullYear();
+  renderTOC();
+  document.getElementById('randomBtn').addEventListener('click', randomVerse);
+  document.getElementById('themeToggle').addEventListener('change', e=>setTheme(e.target.checked));
+})();
+</script>
+</body>
+</html>
