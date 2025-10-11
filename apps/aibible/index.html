@@ -318,6 +318,8 @@ async function renderTOC() {
   }
 }
 
+
+
 /* helper used by renderTOC click — builds chapters list */
 async function buildBookChapters(bookId, autoLoadFirst=false) {
   try {
@@ -350,6 +352,33 @@ async function buildBookChapters(bookId, autoLoadFirst=false) {
   }
 }
 
+/* -------------------------------------------------
+   renderSection — used by buildBookChapters()
+   Renders a single chapter into the reader pane
+--------------------------------------------------- */
+function renderSection(bookData, section) {
+  const reader = document.getElementById('reader');
+  const currentMeta = document.getElementById('currentMeta');
+
+  currentMeta.textContent = `${bookData.title} — ${section.title}`;
+  reader.innerHTML = '';
+
+  const sectionHeader = document.createElement('div');
+  sectionHeader.className = 'section-header';
+  sectionHeader.innerHTML = `
+    <div class="kicker">${bookData.title}</div>
+    <h3>${bookData.title} — ${section.title}</h3>
+    <div class="meta">${section.synopsis || ''}</div>
+  `;
+  reader.appendChild(sectionHeader);
+
+  for (const v of section.verses) {
+    const verseDiv = document.createElement('div');
+    verseDiv.className = 'verse';
+    verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+    reader.appendChild(verseDiv);
+  }
+}
 
 
 
