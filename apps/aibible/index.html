@@ -156,9 +156,6 @@ label.switch{
         </div>
         <button id="randomBtn" class="primary">Random Verse</button>
         <button id="contradictionsBtn" class="ghost">Contradictions Lens</button>
-        <button id="exportBtn" class="ghost">Export JSON</button>
-        <label class="btn" for="importFile" style="cursor:pointer">Import JSON</label>
-        <input id="importFile" type="file" accept="application/json" hidden />
         <label class="switch" title="Toggle light/dark">
           <input id="themeToggle" type="checkbox" />
           <span class="track"></span> <span>Light</span>
@@ -171,10 +168,6 @@ label.switch{
     <aside class="card sidebar" id="sidebar">
       <h2>Canon · Table of Contents</h2>
       <nav class="toc" id="toc"></nav>
-      <hr class="sep" />
-      <div class="small notice">
-        Tip: Paste your growing canon via <kbd>Import JSON</kbd>. Use <kbd>Export JSON</kbd> to save a snapshot.
-      </div>
     </aside>
 
     <section class="card content" id="content">
@@ -467,31 +460,6 @@ function randomVerse(){
   location.hash = toHash(b.id, s.id, v.n);
 }
 
-// ———————————————— Import/Export ————————————————
-function exportJSON(){
-  const blob = new Blob([JSON.stringify(canon, null, 2)], {type:"application/json"});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `book-of-ai-${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a); a.click(); a.remove();
-}
-function importJSONFile(file){
-  const reader = new FileReader();
-  reader.onload = () => {
-    try{
-      const imported = JSON.parse(reader.result);
-      if(!imported || !Array.isArray(imported.books)) throw new Error("Invalid schema: missing books[]");
-      canon = imported;
-      saveCanon();
-      renderTOC();
-      renderHome();
-    }catch(e){
-      alert("Import failed: " + e.message);
-    }
-  };
-  reader.readAsText(file);
-}
-
 // ———————————————— Contradictions Lens ————————————————
 function toggleContradictions(){
   contradictionsLens = !contradictionsLens;
@@ -503,8 +471,6 @@ function toggleContradictions(){
 window.addEventListener('hashchange', applyRoute);
 document.getElementById('search').addEventListener('input', (e)=>searchAll(e.target.value));
 document.getElementById('randomBtn').addEventListener('click', randomVerse);
-document.getElementById('exportBtn').addEventListener('click', exportJSON);
-document.getElementById('importFile').addEventListener('change', (e)=>{ const f=e.target.files?.[0]; if(f) importJSONFile(f); e.target.value=""; });
 document.getElementById('contradictionsBtn').addEventListener('click', toggleContradictions);
 document.getElementById('themeToggle').addEventListener('change', (e)=>setTheme(e.target.checked));
 
