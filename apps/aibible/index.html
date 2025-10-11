@@ -97,21 +97,20 @@ details.book > summary::-webkit-details-marker{display:none}
 
 /* Selection highlight (book + chapter) */
 .book.selected > summary{
-  background: color-mix(in oklab, var(--brand), #000 80%);
-  border-bottom:1px dashed color-mix(in oklab, var(--brand), #fff 30%);
-  color:#fff;
+  background: none;
+  color: var(--brand);
 }
-
-.chapters{padding:8px 10px 12px; display:flex; flex-wrap:wrap; gap:8px; border-top:1px dashed color-mix(in oklab, var(--panel), #fff 15%)}
+.chapters{ padding:8px 10px 12px; display:flex; flex-wrap:wrap; gap:8px; border-top:0; }
 .chapters a{
-  display:inline-block; padding:6px 10px; border:1px dashed color-mix(in oklab, var(--panel), #fff 18%);
-  border-radius:10px; font-weight:700; color:var(--text);
-  background: color-mix(in oklab, var(--panel), #fff 2%);
+  display:inline-block; padding:6px 10px; border:0; border-radius:10px; font-weight:700; color:var(--text);
+  background: transparent;
 }
-.chapters a:hover{outline:2px solid var(--ring)}
+.chapters a:hover{ text-decoration: underline; outline:0; }
 .chapters a.active{
-  background: color-mix(in oklab, var(--brand), #000 75%);
-  border-color: color-mix(in oklab, var(--brand), #fff 30%);
+  color: var(--brand);
+  background: transparent;
+  border:0;
+  font-weight:800;
 }
 
 /* Content */
@@ -266,7 +265,7 @@ async function loadBookModule(bookId){
    ========================= */
 let CURRENT_BOOK_ID = null;
 let CURRENT_SECTION_ID = null;
-const BOOK_CACHE = new Map(); // id -> bookData
+const BOOK_CACHE = new Map(); 
 
 async function loadBook(bookId) {
   const reader = document.getElementById('reader');
@@ -285,9 +284,9 @@ async function loadBook(bookId) {
     return;
   }
 
+  // Render FULL book on initial load
   currentMeta.textContent = data.title || bookId;
   reader.innerHTML = '';
-
   (data.sections || []).forEach(sec => {
     const sectionHeader = document.createElement('div');
     sectionHeader.className = 'section-header';
@@ -315,7 +314,7 @@ async function loadBook(bookId) {
       details.open = true;
 
       const summary = document.createElement('summary');
-      summary.textContent = title;
+      summary.textContent = title; // titles ONLY
       details.appendChild(summary);
 
       const chapters = document.createElement('div');
@@ -324,13 +323,14 @@ async function loadBook(bookId) {
         const a = document.createElement('a');
         a.href = '#';
         a.textContent = sec.title || String(sec.id);
+        a.dataset.sectionId = String(sec.id);
         a.addEventListener('click', (e) => {
           e.preventDefault();
-          // highlight chapter
+          // highlight this chapter
           chapters.querySelectorAll('a').forEach(x => x.classList.remove('active'));
           a.classList.add('active');
 
-          // render only this section
+          // render ONLY this section
           reader.innerHTML = '';
           const header = document.createElement('div');
           header.className = 'section-header';
@@ -342,6 +342,9 @@ async function loadBook(bookId) {
             reader.appendChild(d);
           });
           currentMeta.textContent = `${data.title} — ${sec.title}`;
+          if (typeof CURRENT_BOOK_ID !== 'undefined') CURRENT_BOOK_ID = bookId;
+          if (typeof CURRENT_SECTION_ID !== 'undefined') CURRENT_SECTION_ID = String(sec.id);
+          if (typeof updateActive === 'function') updateActive();
           window.scrollTo(0,0);
         });
         chapters.appendChild(a);
@@ -350,6 +353,30 @@ async function loadBook(bookId) {
 
       // replace the plain title with the expander
       item.replaceWith(details);
+
+      // CLICKING THE BOOK HEADER -> SHOW FULL BOOK (EVERY TIME)
+      summary.addEventListener('click', ()=>{
+        chapters.querySelectorAll('a').forEach(a=>a.classList.remove('active'));
+        currentMeta.textContent = (data.title || bookId);
+        // re-render FULL book
+        reader.innerHTML = '';
+        (data.sections || []).forEach(sec => {
+          const sectionHeader = document.createElement('div');
+          sectionHeader.className = 'section-header';
+          sectionHeader.innerHTML = `<h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
+          reader.appendChild(sectionHeader);
+          (sec.verses || []).forEach(v => {
+            const verseDiv = document.createElement('div');
+            verseDiv.className = 'verse';
+            verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+            reader.appendChild(verseDiv);
+          });
+        });
+        if (typeof CURRENT_BOOK_ID !== 'undefined') CURRENT_BOOK_ID = bookId;
+        if (typeof CURRENT_SECTION_ID !== 'undefined') CURRENT_SECTION_ID = null;
+        if (typeof updateActive === 'function') updateActive();
+        window.scrollTo(0,0);
+      });
     }
   }
 
@@ -359,7 +386,9 @@ async function loadBook(bookId) {
   });
 }
 
+// make callable from TOC click handlers in module scope
 window.loadBook = loadBook;
+
 
 /* =========================
    BUILD TOC (your headings preserved)
@@ -484,9 +513,14 @@ async function expandBookInSidebar(placeholder, book){
   });
 
   summary.addEventListener('click', ()=>{
-    // On clicking summary, just set selection to book, keep highlight
     CURRENT_BOOK_ID = book.id;
     CURRENT_SECTION_ID = null;
+    // clear chapter highlight
+    details.querySelectorAll('.chapters a').forEach(a=>a.classList.remove('active'));
+    // show the whole book again
+    document.getElementById('currentMeta').textContent = (BOOK_CACHE.get(book.id)?.title) || book.id;
+    renderWholeBook(BOOK_CACHE.get(book.id));
+    window.scrollTo(0,0);
     updateActive();
   });
 }
