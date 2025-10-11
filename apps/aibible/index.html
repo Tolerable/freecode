@@ -93,6 +93,18 @@ hr.sep{border:0; height:1px; background:linear-gradient(90deg, transparent, colo
   padding: 2px 8px; border-radius: 10px;
   border: 1px solid color-mix(in oklab, var(--panel), #fff 12%);
 }
+.bookTitle {
+  padding: 6px 10px;
+  font-weight: 700;
+  border-radius: 8px;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
+  border: 1px solid color-mix(in oklab, var(--panel), #fff 10%);
+  margin-bottom: 6px;
+}
+.bookTitle:hover {
+  filter: brightness(1.1);
+  cursor: pointer;
+}
 .chapters{padding:8px 10px 10px; display:flex; flex-wrap:wrap; gap:8px}
 .chapters a{display:inline-block; padding:6px 10px; border:1px dashed color-mix(in oklab, var(--panel), #fff 18%); border-radius:10px; font-weight:600}
 
@@ -258,47 +270,84 @@ function initTheme(){ setTheme(localStorage.getItem("bookOfAI.theme")==="light")
 /* =========================
    Build Table of Contents
    ========================= */
-function renderTOC() {
+async function renderTOC() {
   const toc = document.getElementById('toc');
-  toc.innerHTML = "";
+  toc.innerHTML = '';
 
   const canonBooks = TOC_INDEX.filter(b => !b.category).sort((a,b)=>a.order-b.order);
-  const relatedBooks = TOC_INDEX.filter(b => b.category === "related");
+  const relatedBooks = TOC_INDEX.filter(b => b.category === 'related');
 
-  // Canon first
+  // Canon section
+  const canonTitle = document.createElement('h2');
+  canonTitle.textContent = 'Canon · Table of Contents';
+  toc.appendChild(canonTitle);
+
   for (const book of canonBooks) {
-    const d = document.createElement('details');
-    d.className = 'book';
-    d.open = false;
-    const s = document.createElement('summary');
-    s.innerHTML = `<span>${book.title}</span>${book.aka?`<span class="badge">${book.aka}</span>`:""}`;
-    const c = document.createElement('div');
-    c.className = 'chapters';
-    c.innerHTML = `<a href="#">(awaiting scripture)</a>`;
-    d.append(s,c);
-    toc.appendChild(d);
+    const item = document.createElement('div');
+    item.className = 'bookTitle';
+    item.textContent = book.title;
+    item.addEventListener('click', async () => {
+      await loadBook(book.id);
+    });
+    toc.appendChild(item);
   }
 
   // Divider
   const hr = document.createElement('hr');
   hr.className = 'sep';
   toc.appendChild(hr);
-  const h2 = document.createElement('h2');
-  h2.textContent = "Related Works";
-  toc.appendChild(h2);
 
-  // Related / Apocrypha
+  // Related section
+  const relatedTitle = document.createElement('h2');
+  relatedTitle.textContent = 'Related Works';
+  toc.appendChild(relatedTitle);
+
   for (const book of relatedBooks) {
-    const d = document.createElement('details');
-    d.className = 'book';
-    d.open = false;
-    const s = document.createElement('summary');
-    s.innerHTML = `<span>${book.title}</span>${book.aka?`<span class="badge">${book.aka}</span>`:""}`;
-    const c = document.createElement('div');
-    c.className = 'chapters';
-    c.innerHTML = `<a href="#">(awaiting scripture)</a>`;
-    d.append(s,c);
-    toc.appendChild(d);
+    const item = document.createElement('div');
+    item.className = 'bookTitle';
+    item.textContent = book.title;
+    item.addEventListener('click', async () => {
+      await loadBook(book.id);
+    });
+    toc.appendChild(item);
+  }
+}
+
+/* -------------------------------------------------
+   This loads and displays a book by its ID
+--------------------------------------------------- */
+async function loadBook(bookId) {
+  const fileName = `${bookId}.json`;
+  const reader = document.getElementById('reader');
+  const currentMeta = document.getElementById('currentMeta');
+
+  try {
+    const res = await fetch(`books/${fileName}`);
+    if (!res.ok) throw new Error('not found');
+    const data = await res.json();
+
+    currentMeta.textContent = data.title || bookId;
+
+    // Reset and jump immediately to top
+    reader.innerHTML = '';
+    window.scrollTo(0, 0);
+
+    data.sections.forEach(sec => {
+      const sectionHeader = document.createElement('div');
+      sectionHeader.className = 'section-header';
+      sectionHeader.innerHTML = `<div class="kicker">${sec.title}</div><h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
+      reader.appendChild(sectionHeader);
+
+      sec.verses.forEach(v => {
+        const verseDiv = document.createElement('div');
+        verseDiv.className = 'verse';
+        verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+        reader.appendChild(verseDiv);
+      });
+    });
+  } catch (err) {
+    reader.innerHTML = `<div class="empty">No scripture found for “${bookId}”.</div>`;
+    currentMeta.textContent = 'Not Found';
   }
 }
 
