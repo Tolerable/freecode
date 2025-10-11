@@ -179,14 +179,11 @@ label.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; 
   </header>
 
   <main class="layout">
-    <aside class="card sidebar" id="sidebar">
-      <h2>Canon · Table of Contents</h2>
-      <nav class="toc" id="toc"></nav>
+	<aside class="card sidebar" id="sidebar">
+	  <h2>Canon · Table of Contents</h2>
+	  <nav class="toc" id="toc"></nav>
+	</aside>
 
-      <hr class="sep" />
-      <h2>Apocrypha · Related Works</h2>
-      <nav class="toc" id="toc-related"></nav>
-    </aside>
 
     <section class="card content" id="content">
       <div class="toolbar">
@@ -277,16 +274,38 @@ const BOOK_CACHE = new Map(); // id -> bookData
    ========================= */
 async function renderTOC(){
   const toc = document.getElementById('toc');
-  const tocRelated = document.getElementById('toc-related');
   toc.innerHTML = '';
-  tocRelated.innerHTML = '';
 
+  // Canon first (order 1..22)
   const canonBooks = TOC_INDEX.filter(b => b.order).sort((a,b)=>a.order-b.order);
-  const relatedBooks = TOC_INDEX.filter(b => !b.order);
+  for (const book of canonBooks) {
+    const item = document.createElement('div');
+    item.className = 'bookTitle';
+    item.textContent = book.title;
+    item.addEventListener('click', () => loadBook(book.id));
+    toc.appendChild(item);
+  }
 
-  for (const book of canonBooks) toc.appendChild(makeBookTitle(book));
-  for (const book of relatedBooks) tocRelated.appendChild(makeBookTitle(book));
+  // Divider
+  const divider = document.createElement('hr');
+  divider.className = 'sep';
+  toc.appendChild(divider);
+
+  // Related (category === 'related') in the SAME column
+  const relatedHeader = document.createElement('h2');
+  relatedHeader.textContent = 'Apocrypha · Related Works';
+  toc.appendChild(relatedHeader);
+
+  const relatedBooks = TOC_INDEX.filter(b => b.category === 'related');
+  for (const book of relatedBooks) {
+    const item = document.createElement('div');
+    item.className = 'bookTitle';
+    item.textContent = book.title;
+    item.addEventListener('click', () => loadBook(book.id));
+    toc.appendChild(item);
+  }
 }
+
 
 function makeBookTitle(book){
   const item = document.createElement('div');
