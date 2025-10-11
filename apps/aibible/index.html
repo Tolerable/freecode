@@ -281,37 +281,75 @@ async function renderTOC() {
   const toc = document.getElementById('toc');
   toc.innerHTML = '';
 
-  const canonBooks = TOC_INDEX.filter(b => !b.category).sort((a,b)=>a.order-b.order);
-  const relatedBooks = TOC_INDEX.filter(b => b.category === 'related');
+  const allBooks = TOC_INDEX.sort((a,b)=>(a.order??999)-(b.order??999));
+  let openBookId = null;
 
-  // Canon list ONLY (no header here—your static H2 already exists)
-  for (const book of canonBooks) {
-    const item = document.createElement('div');
-    item.className = 'bookTitle';
-    item.textContent = book.title;
-    item.addEventListener('click', () => loadBook(book.id));
-    toc.appendChild(item);
-  }
+  for (const book of allBooks) {
+    const details = document.createElement('details');
+    details.className = 'book';
+    details.dataset.id = book.id;
 
-  // Related Works (with divider + its own header)
-  if (relatedBooks.length) {
-    const hr = document.createElement('hr');
-    hr.className = 'sep';
-    toc.appendChild(hr);
+    const summary = document.createElement('summary');
+    summary.textContent = book.title;
+    summary.addEventListener('click', async (e) => {
+      e.preventDefault();        // stop default jump
+      const wasOpen = details.open;
 
-    const relatedTitle = document.createElement('h2');
-    relatedTitle.textContent = 'Related Works';
-    toc.appendChild(relatedTitle);
+      // collapse others
+      document.querySelectorAll('.book[open]').forEach(d => d.open = false);
 
-    for (const book of relatedBooks) {
-      const item = document.createElement('div');
-      item.className = 'bookTitle';
-      item.textContent = book.title;
-      item.addEventListener('click', () => loadBook(book.id));
-      toc.appendChild(item);
-    }
+      if (!wasOpen) {
+        details.open = true;
+        openBookId = book.id;
+        await loadBook(book.id, true); // auto-load ch1
+      } else {
+        details.open = false;
+        openBookId = null;
+      }
+    });
+    details.appendChild(summary);
+
+    const chapterWrap = document.createElement('div');
+    chapterWrap.className = 'chapters';
+    chapterWrap.textContent = 'Loading chapters…';
+    details.appendChild(chapterWrap);
+
+    toc.appendChild(details);
   }
 }
+
+/* helper used by renderTOC click */
+async function loadBook(bookId, autoLoadFirst=false) {
+  try {
+    const res = await fetch(`books/${bookId}.json`);
+    const data = await res.json();
+
+    // build chapter links
+    const details = document.querySelector(`.book[data-id="${bookId}"]`);
+    const chapterWrap = details.querySelector('.chapters');
+    chapterWrap.innerHTML = '';
+
+    for (const sec of data.sections) {
+      const a = document.createElement('a');
+      a.textContent = sec.title;
+      a.href = '#';
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        renderSection(data, sec);
+        window.scrollTo(0,0);  // instant top
+      });
+      chapterWrap.appendChild(a);
+    }
+
+    if (autoLoadFirst && data.sections.length) {
+      renderSection(data, data.sections[0]);
+      window.scrollTo(0,0);
+    }
+  } catch (err) {
+    console.error('Failed to load', bookId, err);
+  }
+}
+
 
 
 /* -------------------------------------------------
