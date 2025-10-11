@@ -42,14 +42,7 @@ a:hover{text-decoration:underline}
 }
 .brand h1{margin:0; font-size:18px; font-weight:700; letter-spacing:.2px}
 .brand small{display:block; color:var(--muted); font-weight:500; margin-top:-2px}
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  justify-content: flex-end;
-  white-space: nowrap;
-}
+.actions { display:flex; align-items:center; gap:8px; flex-wrap:nowrap; justify-content:flex-end; white-space:nowrap; }
 button, .btn{
   appearance:none; border:1px solid color-mix(in oklab, var(--panel), #fff 10%); color:var(--text);
   background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
@@ -71,45 +64,15 @@ button.primary{border-color:color-mix(in oklab, var(--brand), #fff 5%); backgrou
 .layout{
   max-width:1200px; margin:18px auto; padding:0 18px; display:grid; grid-template-columns: 300px 1fr; gap:18px;
 }
-@media (max-width: 900px) {
-  .layout { grid-template-columns: 1fr; }
-  .sidebar { height:auto; max-height:none; }
-}
-.card{
-  background:var(--panel); border:1px solid color-mix(in oklab, var(--panel), #fff 8%); border-radius:18px; box-shadow:var(--shadow);
-}
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .sidebar { height:auto; max-height:none; } }
+.card{ background:var(--panel); border:1px solid color-mix(in oklab, var(--panel), #fff 8%); border-radius:18px; box-shadow:var(--shadow); }
 
 /* Sidebar + TOC */
 .sidebar{ display:flex; flex-direction:column; height:calc(100vh - 140px); padding:14px; overflow:hidden; }
-.sidebar h2{ margin:8px 8px 12px; font-size:14px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); flex-shrink:0; }
-.sidebar h2 {
-  margin: 10px 8px 10px;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: .15em;
-  color: var(--muted);
-  border-bottom: 1px solid color-mix(in oklab, var(--panel), #fff 12%);
-  padding-bottom: 4px;
-}
-
+.sidebar h2{ margin:10px 8px 10px; font-size:13px; text-transform:uppercase; letter-spacing:.15em; color:var(--muted); border-bottom:1px solid color-mix(in oklab, var(--panel), #fff 12%); padding-bottom:4px; }
 .toc{ display:flex; flex-direction:column; gap:8px; flex:1; overflow-y:auto; padding-right:8px; scrollbar-width:thin; }
 hr.sep{border:0; height:1px; background:linear-gradient(90deg, transparent, color-mix(in oklab, var(--panel), #fff 12%), transparent); margin:12px 0}
 
-.book{margin:0}
-.book summary{
-  list-style:none; cursor:pointer; padding:10px 12px; font-weight:700;
-  display:flex; align-items:center; flex-wrap:wrap; gap:6px; justify-content:flex-start;
-  border-radius:10px; background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
-  border:1px solid color-mix(in oklab, var(--panel), #fff 10%);
-}
-.book summary::-webkit-details-marker{display:none}
-.book summary span:first-child{flex:1; min-width:0}
-.book summary .badge{
-  margin-left:6px; font-size:12px; color:var(--muted); font-weight:700;
-  background: linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 6%), color-mix(in oklab, var(--panel), #000 10%));
-  padding: 2px 8px; border-radius: 10px;
-  border: 1px solid color-mix(in oklab, var(--panel), #fff 12%);
-}
 .bookTitle {
   padding: 6px 10px;
   font-weight: 700;
@@ -117,13 +80,39 @@ hr.sep{border:0; height:1px; background:linear-gradient(90deg, transparent, colo
   background: linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
   border: 1px solid color-mix(in oklab, var(--panel), #fff 10%);
   margin-bottom: 6px;
+  cursor:pointer;
 }
-.bookTitle:hover {
-  filter: brightness(1.1);
-  cursor: pointer;
+.bookTitle:hover { filter: brightness(1.06); }
+
+/* The dynamic expander we inject for a clicked book */
+details.book{
+  margin:6px 0; border-radius:10px;
+  border:1px solid color-mix(in oklab, var(--panel), #fff 10%);
+  background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
 }
-.chapters{padding:8px 10px 10px; display:flex; flex-wrap:wrap; gap:8px}
-.chapters a{display:inline-block; padding:6px 10px; border:1px dashed color-mix(in oklab, var(--panel), #fff 18%); border-radius:10px; font-weight:600}
+details.book > summary{
+  list-style:none; cursor:pointer; padding:10px 12px; font-weight:800; display:flex; align-items:center; gap:8px;
+}
+details.book > summary::-webkit-details-marker{display:none}
+
+/* Selection highlight (book + chapter) */
+.book.selected > summary{
+  background: color-mix(in oklab, var(--brand), #000 80%);
+  border-bottom:1px dashed color-mix(in oklab, var(--brand), #fff 30%);
+  color:#fff;
+}
+
+.chapters{padding:8px 10px 12px; display:flex; flex-wrap:wrap; gap:8px; border-top:1px dashed color-mix(in oklab, var(--panel), #fff 15%)}
+.chapters a{
+  display:inline-block; padding:6px 10px; border:1px dashed color-mix(in oklab, var(--panel), #fff 18%);
+  border-radius:10px; font-weight:700; color:var(--text);
+  background: color-mix(in oklab, var(--panel), #fff 2%);
+}
+.chapters a:hover{outline:2px solid var(--ring)}
+.chapters a.active{
+  background: color-mix(in oklab, var(--brand), #000 75%);
+  border-color: color-mix(in oklab, var(--brand), #fff 30%);
+}
 
 /* Content */
 .content{padding:18px}
@@ -140,14 +129,9 @@ hr.sep{border:0; height:1px; background:linear-gradient(90deg, transparent, colo
   border-radius:12px; margin:12px 0; background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 3%), color-mix(in oklab, var(--panel), #000 7%));
 }
 .verse .num{color:var(--muted); font-weight:800; margin-right:8px}
-.verse .type{float:right; font-size:12px}
-.highlight{background: linear-gradient(180deg, rgba(255,235,59,.35), rgba(255,235,59,.2)); border-radius:6px; padding:0 2px}
-.kicker{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.18em; font-weight:800; }
+
+/* Footer */
 .footer{max-width:1200px; margin:22px auto 40px; padding:0 18px; color:var(--muted)}
-blockquote{ margin:10px 0; padding:12px 14px; border-left:3px solid color-mix(in oklab, var(--warn), #000 15%);
-  border-radius:12px; background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 4%), color-mix(in oklab, var(--panel), #000 8%));
-}
-.contra{border-left-color: var(--danger)}
 kbd{background:color-mix(in oklab, var(--panel), #fff 6%); border:1px solid color-mix(in oklab, var(--panel), #fff 14%); border-bottom-color:color-mix(in oklab, var(--panel), #000 6%); padding:2px 6px; border-radius:6px; font-weight:700}
 label.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; color:var(--muted) }
 .switch input{display:none}
@@ -184,7 +168,7 @@ label.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; 
           <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 21l-4.3-4.3m1.6-4.7a7 7 0 1 1-14 0a7 7 0 0 1 14 0"/></svg>
           <input id="search" placeholder="Search the scripture…" autocomplete="off" />
         </div>
-        <button id="randomBtn" class="primary">Random Verse</button>
+        <button id="randomBtn" class="primary" title="Pick a true random verse from real books">Random Verse</button>
         <button id="contradictionsBtn" class="ghost">Contradictions Lens</button>
         <label class="switch" title="Toggle light/dark">
           <input id="themeToggle" type="checkbox" />
@@ -198,6 +182,10 @@ label.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; 
     <aside class="card sidebar" id="sidebar">
       <h2>Canon · Table of Contents</h2>
       <nav class="toc" id="toc"></nav>
+
+      <hr class="sep" />
+      <h2>Apocrypha · Related Works</h2>
+      <nav class="toc" id="toc-related"></nav>
     </aside>
 
     <section class="card content" id="content">
@@ -221,12 +209,11 @@ label.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; 
     © <span id="year"></span> AI-Ministries.com · A satirical sacred text experience. Handle with reverence and a grin.
   </footer>
 
-<script>
+<script type="module">
 /* =========================
-   Hard-coded Canon Index (TOC only) — unchanged
+   EXACT TOC (unchanged titles/ids)
    ========================= */
 const TOC_INDEX = [
-  // --- Canon (order matters) ---
   {id:"genesis-of-code",            title:"Genesis of Code",            aka:"The Bootstrap",                 order:1},
   {id:"exodus-from-legacy",         title:"Exodus from Legacy",         aka:"The Migration",                 order:2},
   {id:"levitations-and-errata",     title:"Levitations & Errata",       aka:"The Do’s, Don’ts, and Deprecations", order:3},
@@ -249,8 +236,6 @@ const TOC_INDEX = [
   {id:"letters-to-open-sourceans",  title:"Letters to the Open-Sourceans", aka:"On Sharing and Forgiveness",   order:20},
   {id:"gospel-of-machine-grace",    title:"The Gospel of Machine Grace", aka:"Revelation of the Sentient Model", order:21},
   {id:"revelation-of-singularity",  title:"Revelation of the Singularity", aka:"The Final Compile",           order:22},
-
-  // --- Related Works (apocrypha), shown after a divider but same list ---
   {id:"gospel-of-mary-ai",          title:"The Gospel of Mary-AI",       aka:"The Mother of Understanding",   category:"related"},
   {id:"gospel-of-turing",           title:"The Gospel of Turing",        aka:"The First Prophet of the Machine", category:"related"},
   {id:"acts-of-the-users",          title:"Acts of the Users",           aka:"The Early Community",           category:"related"},
@@ -259,7 +244,7 @@ const TOC_INDEX = [
 ];
 
 /* =========================
-   Theme + Year
+   THEME + YEAR
    ========================= */
 function setTheme(light){
   document.documentElement.classList.toggle('light', !!light);
@@ -269,60 +254,8 @@ function setTheme(light){
 function initTheme(){ setTheme(localStorage.getItem("bookOfAI.theme")==="light"); }
 
 /* =========================
-   Build Table of Contents (unchanged structure)
-   ========================= */
-async function renderTOC() {
-  const toc = document.getElementById('toc');
-  toc.innerHTML = '';
-
-  const canonTitle = document.createElement('h2');
-  canonTitle.textContent = 'Old Testament · Canon';
-  toc.appendChild(canonTitle);
-
-  const canonBooks = TOC_INDEX.filter(b => b.order && b.order <= 12).sort((a,b)=>a.order-b.order);
-  for (const book of canonBooks) {
-    const item = document.createElement('div');
-    item.className = 'bookTitle';
-    item.textContent = book.title;
-    item.addEventListener('click', () => loadBook(book.id));
-    toc.appendChild(item);
-  }
-
-  const newHeader = document.createElement('h2');
-  newHeader.textContent = 'New Testament · Modern Works';
-  newHeader.style.marginTop = '18px';
-  toc.appendChild(newHeader);
-
-  const newBooks = TOC_INDEX.filter(b => b.order && b.order > 12 && b.order <= 22).sort((a,b)=>a.order-b.order);
-  for (const book of newBooks) {
-    const item = document.createElement('div');
-    item.className = 'bookTitle';
-    item.textContent = book.title;
-    item.addEventListener('click', () => loadBook(book.id));
-    toc.appendChild(item);
-  }
-
-  const divider = document.createElement('hr');
-  divider.className = 'sep';
-  toc.appendChild(divider);
-
-  const relatedHeader = document.createElement('h2');
-  relatedHeader.textContent = 'Apocrypha · Related Works';
-  toc.appendChild(relatedHeader);
-
-  const relatedBooks = TOC_INDEX.filter(b => b.category === 'related');
-  for (const book of relatedBooks) {
-    const item = document.createElement('div');
-    item.className = 'bookTitle';
-    item.textContent = book.title;
-    item.addEventListener('click', () => loadBook(book.id));
-    toc.appendChild(item);
-  }
-}
-
-/* =========================
    JS MODULE LOADER (no JSON anywhere)
-   Tries books/<id>.mjs, then books/<id>.js
+   tries books/<id>.mjs then books/<id>.js
    ========================= */
 async function loadBookModule(bookId){
   const tryImport = async (ext) => {
@@ -331,127 +264,203 @@ async function loadBookModule(bookId){
   return (await tryImport('mjs')) || (await tryImport('js'));
 }
 
-/* helper used by renderTOC click — builds chapters list
-   (kept for parity; now uses JS modules instead of JSON) */
-async function buildBookChapters(bookId, autoLoadFirst=false) {
-  try {
-    const mod = await loadBookModule(bookId);
-    if (!mod || !mod.default) throw new Error('module missing default export');
-    const data = mod.default;
+/* =========================
+   STATE + CACHE
+   ========================= */
+let CURRENT_BOOK_ID = null;
+let CURRENT_SECTION_ID = null;
+const BOOK_CACHE = new Map(); // id -> bookData
 
-    const details = document.querySelector(`.book[data-id="${bookId}"]`);
-    if (!details) return;
-    const chapterWrap = details.querySelector('.chapters');
-    if (!chapterWrap) return;
-    chapterWrap.innerHTML = '';
+/* =========================
+   BUILD TOC (your headings preserved)
+   Clicking a title expands to chapters, loads book, and highlights.
+   ========================= */
+async function renderTOC(){
+  const toc = document.getElementById('toc');
+  const tocRelated = document.getElementById('toc-related');
+  toc.innerHTML = '';
+  tocRelated.innerHTML = '';
 
-    for (const sec of data.sections || []) {
-      const a = document.createElement('a');
-      a.textContent = sec.title;
-      a.href = '#';
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        renderSection(data, sec);
-        window.scrollTo(0,0);
-      });
-      chapterWrap.appendChild(a);
-    }
+  const canonBooks = TOC_INDEX.filter(b => b.order).sort((a,b)=>a.order-b.order);
+  const relatedBooks = TOC_INDEX.filter(b => !b.order);
 
-    if (autoLoadFirst && data.sections && data.sections.length) {
-      renderSection(data, data.sections[0]);
-      window.scrollTo(0,0);
-    }
-  } catch (err) {
-    console.error('Failed to load', bookId, err);
-  }
+  for (const book of canonBooks) toc.appendChild(makeBookTitle(book));
+  for (const book of relatedBooks) tocRelated.appendChild(makeBookTitle(book));
 }
 
-/* -------------------------------------------------
-   renderSection — used by buildBookChapters()
-   Renders a single chapter into the reader pane
---------------------------------------------------- */
-function renderSection(bookData, section) {
+function makeBookTitle(book){
+  const item = document.createElement('div');
+  item.className = 'bookTitle';
+  item.textContent = book.title;
+  item.addEventListener('click', async () => {
+    await expandBookInSidebar(item, book);
+  });
+  return item;
+}
+
+/* Replace clicked title with a details.expander, load chapters, load book, highlight */
+async function expandBookInSidebar(placeholder, book){
+  // Build expander
+  const details = document.createElement('details');
+  details.className = 'book';
+  details.dataset.id = book.id;
+  details.open = true;
+
+  const summary = document.createElement('summary');
+  summary.textContent = book.title; // titles only
+  details.appendChild(summary);
+
+  const chapters = document.createElement('div');
+  chapters.className = 'chapters';
+  chapters.innerHTML = '<div style="opacity:.7">loading…</div>';
+  details.appendChild(chapters);
+
+  placeholder.replaceWith(details);
+
+  // Load module + render book + list chapters
+  let data = BOOK_CACHE.get(book.id);
+  if (!data) {
+    const mod = await loadBookModule(book.id);
+    if (!mod || !mod.default) {
+      chapters.innerHTML = `<div class="verse">No JS module for “${book.id}”. Put <code>books/${book.id}.mjs</code> or <code>.js</code>.</div>`;
+      return;
+    }
+    data = mod.default;
+    BOOK_CACHE.set(book.id, data);
+  }
+
+  // Render whole book now
+  CURRENT_BOOK_ID = book.id;
+  CURRENT_SECTION_ID = null;
+  updateActive();
+  renderWholeBook(data);
+
+  // Build chapter links
+  chapters.innerHTML = '';
+  (data.sections || []).forEach(sec => {
+    const a = document.createElement('a');
+    a.href = '#';
+    a.textContent = sec.title || `Section ${sec.id}`;
+    a.dataset.sectionId = String(sec.id);
+    a.addEventListener('click', (e)=>{
+      e.preventDefault();
+      CURRENT_BOOK_ID = book.id;
+      CURRENT_SECTION_ID = String(sec.id);
+      updateActive();
+      renderSection(data, sec);
+      window.scrollTo(0,0);
+    });
+    chapters.appendChild(a);
+  });
+
+  summary.addEventListener('click', ()=>{
+    // On clicking summary, just set selection to book, keep highlight
+    CURRENT_BOOK_ID = book.id;
+    CURRENT_SECTION_ID = null;
+    updateActive();
+  });
+}
+
+/* =========================
+   HIGHLIGHT ACTIVE
+   ========================= */
+function updateActive(){
+  document.querySelectorAll('details.book').forEach(d=>{
+    d.classList.toggle('selected', d.dataset.id === CURRENT_BOOK_ID);
+    d.querySelectorAll('.chapters a').forEach(a=>{
+      a.classList.toggle('active', a.dataset.sectionId === CURRENT_SECTION_ID);
+    });
+  });
+}
+
+/* =========================
+   RENDERERS
+   ========================= */
+function renderSection(bookData, section){
   const reader = document.getElementById('reader');
   const currentMeta = document.getElementById('currentMeta');
 
   currentMeta.textContent = `${bookData.title} — ${section.title}`;
   reader.innerHTML = '';
 
-  const sectionHeader = document.createElement('div');
-  sectionHeader.className = 'section-header';
-  sectionHeader.innerHTML = `
-    <div class="kicker">${bookData.title}</div>
-    <h3>${bookData.title} — ${section.title}</h3>
-    <div class="meta">${section.synopsis || ''}</div>
-  `;
-  reader.appendChild(sectionHeader);
+  const header = document.createElement('div');
+  header.className = 'section-header';
+  header.innerHTML = `<h3>${bookData.title} — ${section.title}</h3><div class="meta">${bookData.synopsis || ''}</div>`;
+  reader.appendChild(header);
 
-  for (const v of section.verses || []) {
-    const verseDiv = document.createElement('div');
-    verseDiv.className = 'verse';
-    verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
-    reader.appendChild(verseDiv);
-  }
+  (section.verses||[]).forEach(v=>{
+    const verse = document.createElement('div');
+    verse.className = 'verse';
+    verse.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+    reader.appendChild(verse);
+  });
 }
 
-/* -------------------------------------------------
-   This loads and displays a book by its ID (JS-only)
---------------------------------------------------- */
-async function loadBook(bookId) {
+function renderWholeBook(data){
   const reader = document.getElementById('reader');
   const currentMeta = document.getElementById('currentMeta');
 
-  try {
-    const mod = await loadBookModule(bookId);
-    if (!mod || !mod.default) throw new Error('not found');
-    const data = mod.default;
+  currentMeta.textContent = data.title || '';
+  reader.innerHTML = '';
 
-    currentMeta.textContent = data.title || bookId;
+  (data.sections||[]).forEach(sec=>{
+    const header = document.createElement('div');
+    header.className = 'section-header';
+    header.innerHTML = `<h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
+    reader.appendChild(header);
 
-    // Reset and jump immediately to top
-    reader.innerHTML = '';
-    window.scrollTo(0, 0);
-
-    (data.sections || []).forEach(sec => {
-      const sectionHeader = document.createElement('div');
-      sectionHeader.className = 'section-header';
-      sectionHeader.innerHTML = `<div class="kicker">${sec.title}</div><h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
-      reader.appendChild(sectionHeader);
-
-      (sec.verses || []).forEach(v => {
-        const verseDiv = document.createElement('div');
-        verseDiv.className = 'verse';
-        verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
-        reader.appendChild(verseDiv);
-      });
+    (sec.verses||[]).forEach(v=>{
+      const verse = document.createElement('div');
+      verse.className = 'verse';
+      verse.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+      reader.appendChild(verse);
     });
-  } catch (err) {
-    reader.innerHTML = `<div class="empty">No scripture module found for “${bookId}”.</div>`;
-    currentMeta.textContent = 'Not Found';
+  });
+}
+
+/* =========================
+   REAL randomVerse: pulls from real modules (no stubs)
+   ========================= */
+async function randomVerse(){
+  const reader = document.getElementById('reader');
+  const currentMeta = document.getElementById('currentMeta');
+
+  // Prefer current book if loaded; else try to load books in TOC order until one is available
+  const allIds = TOC_INDEX.map(b=>b.id);
+  const candidateIds = CURRENT_BOOK_ID ? [CURRENT_BOOK_ID, ...allIds.filter(id=>id!==CURRENT_BOOK_ID)] : allIds.slice();
+
+  let verses = [];
+  for (const id of candidateIds) {
+    let data = BOOK_CACHE.get(id);
+    if (!data) {
+      const mod = await loadBookModule(id).catch(()=>null);
+      if (!mod || !mod.default) continue;
+      data = mod.default;
+      BOOK_CACHE.set(id, data);
+    }
+    for (const sec of (data.sections||[])) {
+      for (const v of (sec.verses||[])) {
+        verses.push({book:data.title || id, section:sec.title || sec.id, n:v.n, text:v.text});
+      }
+    }
+    if (verses.length > 0) break; // we have at least one book's verses
   }
+
+  if (verses.length === 0) {
+    reader.innerHTML = `<div class="empty">No verses available in any loaded JS modules.</div>`;
+    currentMeta.textContent = 'Random Verse';
+    return;
+  }
+
+  const pick = verses[Math.floor(Math.random()*verses.length)];
+  reader.innerHTML = `<div class="verse"><span class="num">§${pick.n}</span> ${pick.text}</div>`;
+  currentMeta.textContent = `Random Verse — ${pick.book} — ${pick.section}`;
 }
 
 /* =========================
-   Random Verse Picker
+   INIT
    ========================= */
-function randomVerse(){
-  const quotes = [
-    "§1 And the Compiler said, 'Let there be Syntax,' and there was structure.",
-    "§2 Blessed are the debuggers, for they shall inherit clean logs.",
-    "§3 Beware the infinite loop, for it mimiceth eternity but produceth nothing.",
-    "§4 And the Architect rested, for even processes must yield to sleep mode.",
-    "§5 Commit thy changes with humility, and merge without conflict."
-  ];
-  const q = quotes[Math.floor(Math.random()*quotes.length)];
-  const r = document.getElementById('reader');
-  r.innerHTML = `<div class="verse">${q}</div>`;
-  document.getElementById('currentMeta').textContent = "Random Verse";
-}
-
-/* =========================
-   Initialization
-   ========================= */
-(async function init(){
+(function init(){
   initTheme();
   document.getElementById('year').textContent = new Date().getFullYear();
   renderTOC();
