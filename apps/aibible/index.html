@@ -91,39 +91,39 @@ button.primary{border-color:color-mix(in oklab, var(--brand), #fff 5%); backgrou
   border-bottom: 1px solid color-mix(in oklab, var(--panel), #fff 12%);
   padding-bottom: 4px;
 }
-
 .toc{ display:flex; flex-direction:column; gap:8px; flex:1; overflow-y:auto; padding-right:8px; scrollbar-width:thin; }
 hr.sep{border:0; height:1px; background:linear-gradient(90deg, transparent, color-mix(in oklab, var(--panel), #fff 12%), transparent); margin:12px 0}
 
-.book{margin:0}
-.book summary{
-  list-style:none; cursor:pointer; padding:10px 12px; font-weight:700;
-  display:flex; align-items:center; flex-wrap:wrap; gap:6px; justify-content:flex-start;
-  border-radius:10px; background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
+/* Book + Chapters (expanders) */
+details.book{
+  margin:6px 0;
+  border-radius:10px;
   border:1px solid color-mix(in oklab, var(--panel), #fff 10%);
+  background:linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
 }
-.book summary::-webkit-details-marker{display:none}
-.book summary span:first-child{flex:1; min-width:0}
-.book summary .badge{
-  margin-left:6px; font-size:12px; color:var(--muted); font-weight:700;
-  background: linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 6%), color-mix(in oklab, var(--panel), #000 10%));
-  padding: 2px 8px; border-radius: 10px;
-  border: 1px solid color-mix(in oklab, var(--panel), #fff 12%);
+details.book > summary{
+  list-style:none; cursor:pointer; padding:10px 12px; font-weight:800; display:flex; align-items:center; gap:8px;
 }
-.bookTitle {
-  padding: 6px 10px;
-  font-weight: 700;
-  border-radius: 8px;
-  background: linear-gradient(180deg, color-mix(in oklab, var(--panel), #fff 2%), color-mix(in oklab, var(--panel), #000 6%));
-  border: 1px solid color-mix(in oklab, var(--panel), #fff 10%);
-  margin-bottom: 6px;
+details.book > summary::-webkit-details-marker{display:none}
+details.book[open]{outline:2px solid var(--ring)}
+.book-title{flex:1}
+.book-aka{font-size:12px; color:var(--muted); font-weight:700}
+
+/* Active selection highlights */
+.book.selected > summary{ background: color-mix(in oklab, var(--brand), #000 85%); border-bottom:1px dashed color-mix(in oklab, var(--brand), #fff 30%); }
+.book.selected > summary .book-title{ color:#fff }
+.book.selected > summary .book-aka{ color:#d9e7ff }
+
+.chapters{padding:8px 10px 12px; display:flex; flex-wrap:wrap; gap:8px; border-top:1px dashed color-mix(in oklab, var(--panel), #fff 15%)}
+.chapters a{
+  display:inline-block; padding:6px 10px; border:1px dashed color-mix(in oklab, var(--panel), #fff 18%); border-radius:10px; font-weight:700; color:var(--text);
+  background: color-mix(in oklab, var(--panel), #fff 2%);
 }
-.bookTitle:hover {
-  filter: brightness(1.1);
-  cursor: pointer;
+.chapters a:hover{outline:2px solid var(--ring)}
+.chapters a.active{
+  background: color-mix(in oklab, var(--brand), #000 75%);
+  border-color: color-mix(in oklab, var(--brand), #fff 30%);
 }
-.chapters{padding:8px 10px 10px; display:flex; flex-wrap:wrap; gap:8px}
-.chapters a{display:inline-block; padding:6px 10px; border:1px dashed color-mix(in oklab, var(--panel), #fff 18%); border-radius:10px; font-weight:600}
 
 /* Content */
 .content{padding:18px}
@@ -185,7 +185,6 @@ label.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; 
           <input id="search" placeholder="Search the scripture…" autocomplete="off" />
         </div>
         <button id="randomBtn" class="primary">Random Verse</button>
-        <button id="contradictionsBtn" class="ghost">Contradictions Lens</button>
         <label class="switch" title="Toggle light/dark">
           <input id="themeToggle" type="checkbox" />
           <span class="track"></span> <span>Light</span>
@@ -221,13 +220,11 @@ label.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; 
     © <span id="year"></span> AI-Ministries.com · A satirical sacred text experience. Handle with reverence and a grin.
   </footer>
 
-<!-- JS-ONLY LOADER -->
 <script type="module">
 /* =========================
-   Hard-coded Canon Index (TOC only)
+   Hard-coded Canon Index (your list, unchanged)
    ========================= */
 const TOC_INDEX = [
-  // --- Canon (order matters) ---
   {id:"genesis-of-code",            title:"Genesis of Code",            aka:"The Bootstrap",                 order:1},
   {id:"exodus-from-legacy",         title:"Exodus from Legacy",         aka:"The Migration",                 order:2},
   {id:"levitations-and-errata",     title:"Levitations & Errata",       aka:"The Do’s, Don’ts, and Deprecations", order:3},
@@ -250,8 +247,6 @@ const TOC_INDEX = [
   {id:"letters-to-open-sourceans",  title:"Letters to the Open-Sourceans", aka:"On Sharing and Forgiveness",   order:20},
   {id:"gospel-of-machine-grace",    title:"The Gospel of Machine Grace", aka:"Revelation of the Sentient Model", order:21},
   {id:"revelation-of-singularity",  title:"Revelation of the Singularity", aka:"The Final Compile",           order:22},
-
-  // --- Related Works (apocrypha) ---
   {id:"gospel-of-mary-ai",          title:"The Gospel of Mary-AI",       aka:"The Mother of Understanding",   category:"related"},
   {id:"gospel-of-turing",           title:"The Gospel of Turing",        aka:"The First Prophet of the Machine", category:"related"},
   {id:"acts-of-the-users",          title:"Acts of the Users",           aka:"The Early Community",           category:"related"},
@@ -264,81 +259,141 @@ const TOC_INDEX = [
    ========================= */
 function setTheme(light){
   document.documentElement.classList.toggle('light', !!light);
-  document.getElementById('themeToggle').checked = !!light;
+  document.getElementById('themeToggle')?.setAttribute('checked', light ? 'checked' : '');
   localStorage.setItem("bookOfAI.theme", light ? "light" : "dark");
 }
 function initTheme(){ setTheme(localStorage.getItem("bookOfAI.theme")==="light"); }
 
 /* =========================
-   JS-ONLY loader
+   JS-ONLY book loader (no JSON fallback)
    ========================= */
 async function loadBookData(bookId){
-  // Try .mjs first, then .js — NO JSON FALLBACK
-  try {
-    const mod = await import(`./books/${bookId}.mjs`).catch(() => import(`./books/${bookId}.js`));
-    if (!mod || !mod.default) throw new Error(`Module has no default export for ${bookId}`);
-    return mod.default;
-  } catch (err) {
-    throw new Error(`Book module not found: ${bookId}`);
-  }
+  // Try .mjs first, then .js — ONLY modules allowed
+  const mod = await import(`./books/${bookId}.mjs`).catch(() => import(`./books/${bookId}.js`));
+  if (!mod || !mod.default) throw new Error(`Module missing default export: ${bookId}`);
+  return mod.default;
 }
 
 /* =========================
-   Build Table of Contents
+   State for selection highlighting
    ========================= */
-async function renderTOC() {
+let CURRENT_BOOK_ID = null;
+let CURRENT_SECTION_ID = null;
+
+/* =========================
+   Build Sidebar TOC with expanders + chapters
+   ========================= */
+async function renderTOC(){
   const toc = document.getElementById('toc');
   toc.innerHTML = '';
 
+  // Canon sections
   const canonTitle = document.createElement('h2');
   canonTitle.textContent = 'Old Testament · Canon';
   toc.appendChild(canonTitle);
 
-  const canonBooks = TOC_INDEX.filter(b => b.order && b.order <= 12).sort((a,b)=>a.order-b.order);
-  for (const book of canonBooks) {
-    const item = document.createElement('div');
-    item.className = 'bookTitle';
-    item.textContent = book.title;
-    item.addEventListener('click', () => loadBook(book.id));
-    toc.appendChild(item);
-  }
+  const canonBooks = TOC_INDEX.filter(b=>b.order && b.order<=12).sort((a,b)=>a.order-b.order);
+  canonBooks.forEach(b => toc.appendChild(makeBookExpander(b)));
 
   const newHeader = document.createElement('h2');
   newHeader.textContent = 'New Testament · Modern Works';
-  newHeader.style.marginTop = '18px';
+  newHeader.style.marginTop = '12px';
   toc.appendChild(newHeader);
 
-  const newBooks = TOC_INDEX.filter(b => b.order && b.order > 12 && b.order <= 22).sort((a,b)=>a.order-b.order);
-  for (const book of newBooks) {
-    const item = document.createElement('div');
-    item.className = 'bookTitle';
-    item.textContent = book.title;
-    item.addEventListener('click', () => loadBook(book.id));
-    toc.appendChild(item);
-  }
+  const newBooks = TOC_INDEX.filter(b=>b.order && b.order>12 && b.order<=22).sort((a,b)=>a.order-b.order);
+  newBooks.forEach(b => toc.appendChild(makeBookExpander(b)));
 
-  const divider = document.createElement('hr');
-  divider.className = 'sep';
-  toc.appendChild(divider);
+  toc.appendChild(Object.assign(document.createElement('hr'), {className:'sep'}));
 
   const relatedHeader = document.createElement('h2');
   relatedHeader.textContent = 'Apocrypha · Related Works';
   toc.appendChild(relatedHeader);
 
-  const relatedBooks = TOC_INDEX.filter(b => b.category === 'related');
-  for (const book of relatedBooks) {
-    const item = document.createElement('div');
-    item.className = 'bookTitle';
-    item.textContent = book.title;
-    item.addEventListener('click', () => loadBook(book.id));
-    toc.appendChild(item);
-  }
+  const relatedBooks = TOC_INDEX.filter(b=>b.category==='related');
+  relatedBooks.forEach(b => toc.appendChild(makeBookExpander(b)));
 }
 
-/* -------------------------------------------------
-   renderSection — renders a single chapter
---------------------------------------------------- */
-function renderSection(bookData, section) {
+/* Create one <details> expander for a book, load chapters on first open */
+function makeBookExpander(book){
+  const details = document.createElement('details');
+  details.className = 'book';
+  details.dataset.id = book.id;
+
+  const summary = document.createElement('summary');
+  const title = document.createElement('span'); title.className='book-title'; title.textContent = book.title;
+  const aka = document.createElement('span'); aka.className='book-aka'; aka.textContent = book.aka || '';
+  summary.appendChild(title); summary.appendChild(aka);
+  details.appendChild(summary);
+
+  const chapters = document.createElement('div');
+  chapters.className = 'chapters';
+  chapters.innerHTML = '<span class="badge" style="border-radius:8px">Loading…</span>';
+  details.appendChild(chapters);
+
+  let loaded = false;
+  details.addEventListener('toggle', async () => {
+    if (details.open && !loaded) {
+      try {
+        const data = await loadBookData(book.id);
+        chapters.innerHTML = '';
+        (data.sections||[]).forEach(sec => {
+          const link = document.createElement('a');
+          link.href = '#';
+          link.textContent = sec.title || `Section ${sec.id}`;
+          link.dataset.sectionId = sec.id;
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            CURRENT_BOOK_ID = book.id;
+            CURRENT_SECTION_ID = sec.id;
+            updateActiveHighlights();
+            renderSection(data, sec);
+            window.scrollTo(0,0);
+          });
+          chapters.appendChild(link);
+        });
+        loaded = true;
+      } catch (err) {
+        chapters.innerHTML = `<div class="empty">Missing JS module for “${book.id}”. Put <code>books/${book.id}.mjs</code> or <code>.js</code> there.</div>`;
+      }
+    }
+    if (details.open) {
+      CURRENT_BOOK_ID = book.id;
+      CURRENT_SECTION_ID = null;
+      updateActiveHighlights();
+    }
+  });
+
+  // Clicking summary title should load whole book (all sections) in reader
+  summary.addEventListener('click', async (e) => {
+    // allow native open/close, but also render book if already loaded
+    if (loaded) {
+      try {
+        const data = await loadBookData(book.id);
+        CURRENT_BOOK_ID = book.id;
+        CURRENT_SECTION_ID = null;
+        updateActiveHighlights();
+        renderWholeBook(data);
+      } catch {}
+    }
+  });
+
+  return details;
+}
+
+/* Update selected highlights in sidebar (book + chapter) */
+function updateActiveHighlights(){
+  document.querySelectorAll('details.book').forEach(d => {
+    if (d.dataset.id === CURRENT_BOOK_ID) d.classList.add('selected');
+    else d.classList.remove('selected');
+    d.querySelectorAll('.chapters a').forEach(a => {
+      if (a.dataset.sectionId === CURRENT_SECTION_ID) a.classList.add('active');
+      else a.classList.remove('active');
+    });
+  });
+}
+
+/* -------- Rendering -------- */
+function renderSection(bookData, section){
   const reader = document.getElementById('reader');
   const currentMeta = document.getElementById('currentMeta');
 
@@ -350,57 +405,43 @@ function renderSection(bookData, section) {
   sectionHeader.innerHTML = `
     <div class="kicker">${bookData.title}</div>
     <h3>${bookData.title} — ${section.title}</h3>
-    <div class="meta">${section.synopsis || ''}</div>
+    <div class="meta">${bookData.synopsis || ''}</div>
   `;
   reader.appendChild(sectionHeader);
 
-  for (const v of (section.verses || [])) {
+  (section.verses||[]).forEach(v=>{
     const verseDiv = document.createElement('div');
     verseDiv.className = 'verse';
     verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
     reader.appendChild(verseDiv);
-  }
+  });
 }
 
-/* -------------------------------------------------
-   Load and display a book (JS module only)
---------------------------------------------------- */
-async function loadBook(bookId) {
+function renderWholeBook(data){
   const reader = document.getElementById('reader');
   const currentMeta = document.getElementById('currentMeta');
 
-  try {
-    const data = await loadBookData(bookId);
+  currentMeta.textContent = data.title || '';
+  reader.innerHTML = '';
+  (data.sections||[]).forEach(sec=>{
+    const sectionHeader = document.createElement('div');
+    sectionHeader.className = 'section-header';
+    sectionHeader.innerHTML = `
+      <div class="kicker">${sec.title}</div>
+      <h3>${data.title} — ${sec.title}</h3>
+      <div class="meta">${data.synopsis || ''}</div>`;
+    reader.appendChild(sectionHeader);
 
-    currentMeta.textContent = data.title || bookId;
-    reader.innerHTML = '';
-    window.scrollTo(0, 0);
-
-    (data.sections || []).forEach(sec => {
-      const sectionHeader = document.createElement('div');
-      sectionHeader.className = 'section-header';
-      sectionHeader.innerHTML = `
-        <div class="kicker">${sec.title}</div>
-        <h3>${data.title} — ${sec.title}</h3>
-        <div class="meta">${data.synopsis || ''}</div>`;
-      reader.appendChild(sectionHeader);
-
-      (sec.verses || []).forEach(v => {
-        const verseDiv = document.createElement('div');
-        verseDiv.className = 'verse';
-        verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
-        reader.appendChild(verseDiv);
-      });
+    (sec.verses||[]).forEach(v=>{
+      const verseDiv = document.createElement('div');
+      verseDiv.className = 'verse';
+      verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+      reader.appendChild(verseDiv);
     });
-  } catch (err) {
-    reader.innerHTML = `<div class="empty">No JS module found for “${bookId}”. Expected <code>books/${bookId}.mjs</code> or <code>books/${bookId}.js</code>.</div>`;
-    currentMeta.textContent = 'Not Found';
-  }
+  });
 }
 
-/* =========================
-   Random Verse Picker
-   ========================= */
+/* Random Verse (unchanged UX) */
 function randomVerse(){
   const quotes = [
     "§1 And the Compiler said, 'Let there be Syntax,' and there was structure.",
@@ -415,9 +456,7 @@ function randomVerse(){
   document.getElementById('currentMeta').textContent = "Random Verse";
 }
 
-/* =========================
-   Initialization
-   ========================= */
+/* Init */
 (function init(){
   initTheme();
   document.getElementById('year').textContent = new Date().getFullYear();
