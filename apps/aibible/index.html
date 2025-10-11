@@ -277,41 +277,35 @@ async function renderTOC() {
   const canonBooks = TOC_INDEX.filter(b => !b.category).sort((a,b)=>a.order-b.order);
   const relatedBooks = TOC_INDEX.filter(b => b.category === 'related');
 
-  // Canon section
-  const canonTitle = document.createElement('h2');
-  canonTitle.textContent = 'Canon · Table of Contents';
-  toc.appendChild(canonTitle);
-
+  // Canon list ONLY (no header here—your static H2 already exists)
   for (const book of canonBooks) {
     const item = document.createElement('div');
     item.className = 'bookTitle';
     item.textContent = book.title;
-    item.addEventListener('click', async () => {
-      await loadBook(book.id);
-    });
+    item.addEventListener('click', () => loadBook(book.id));
     toc.appendChild(item);
   }
 
-  // Divider
-  const hr = document.createElement('hr');
-  hr.className = 'sep';
-  toc.appendChild(hr);
+  // Related Works (with divider + its own header)
+  if (relatedBooks.length) {
+    const hr = document.createElement('hr');
+    hr.className = 'sep';
+    toc.appendChild(hr);
 
-  // Related section
-  const relatedTitle = document.createElement('h2');
-  relatedTitle.textContent = 'Related Works';
-  toc.appendChild(relatedTitle);
+    const relatedTitle = document.createElement('h2');
+    relatedTitle.textContent = 'Related Works';
+    toc.appendChild(relatedTitle);
 
-  for (const book of relatedBooks) {
-    const item = document.createElement('div');
-    item.className = 'bookTitle';
-    item.textContent = book.title;
-    item.addEventListener('click', async () => {
-      await loadBook(book.id);
-    });
-    toc.appendChild(item);
+    for (const book of relatedBooks) {
+      const item = document.createElement('div');
+      item.className = 'bookTitle';
+      item.textContent = book.title;
+      item.addEventListener('click', () => loadBook(book.id));
+      toc.appendChild(item);
+    }
   }
 }
+
 
 /* -------------------------------------------------
    This loads and displays a book by its ID
