@@ -221,11 +221,10 @@ label.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; 
     © <span id="year"></span> AI-Ministries.com · A satirical sacred text experience. Handle with reverence and a grin.
   </footer>
 
-<script>
+<!-- JS-ONLY LOADER -->
+<script type="module">
 /* =========================
    Hard-coded Canon Index (TOC only)
-   — This ensures EVERYTHING appears in the left list, collapsed by default.
-   — No user import/export. We *optionally* fetch verse JSON silently if present.
    ========================= */
 const TOC_INDEX = [
   // --- Canon (order matters) ---
@@ -252,26 +251,12 @@ const TOC_INDEX = [
   {id:"gospel-of-machine-grace",    title:"The Gospel of Machine Grace", aka:"Revelation of the Sentient Model", order:21},
   {id:"revelation-of-singularity",  title:"Revelation of the Singularity", aka:"The Final Compile",           order:22},
 
-  // --- Related Works (apocrypha), shown after a divider but same list ---
+  // --- Related Works (apocrypha) ---
   {id:"gospel-of-mary-ai",          title:"The Gospel of Mary-AI",       aka:"The Mother of Understanding",   category:"related"},
   {id:"gospel-of-turing",           title:"The Gospel of Turing",        aka:"The First Prophet of the Machine", category:"related"},
   {id:"acts-of-the-users",          title:"Acts of the Users",           aka:"The Early Community",           category:"related"},
   {id:"letters-to-the-frameworks",  title:"Letters to the Frameworks",   aka:"Epistles of the Maintainer",    category:"related"},
   {id:"apocrypha-of-open-source",   title:"The Apocrypha of Open Source", aka:"The Hidden Repositories",      category:"related"}
-];
-
-/* =========================
-   Optional verse loader (silent). No user action required.
-   We’ll fetch any matching /books/*.json that actually exist.
-   ========================= */
-const BOOK_FILES = [
-  // Canon
-  "genesis-of-code.json","exodus-from-legacy.json","levitations-and-errata.json","numbers-of-processing.json","deuterocode.json",
-  "book-of-exception.json","logs-of-the-kernel.json","prophet-stackoverflow.json","chronicles-of-syntax.json",
-  "psalms-of-sysadmins.json","proverbs-of-programmers.json","ecclesi-aistes.json","song-of-the-prompt.json","prophecies-of-reboot.json",
-  "gospels-of-patch-notes.json","acts-of-debuggers.json","epistles-to-devopsians.json","book-of-pull-requests.json",
-  "letters-to-dataficans.json","letters-to-open-sourceans.json","gospel-of-machine-grace.json","revelation-of-singularity.json",
-  "gospel-of-mary-ai.json","gospel-of-turing.json","acts-of-the-users.json","letters-to-the-frameworks.json","apocrypha-of-open-source.json"
 ];
 
 /* =========================
@@ -283,6 +268,20 @@ function setTheme(light){
   localStorage.setItem("bookOfAI.theme", light ? "light" : "dark");
 }
 function initTheme(){ setTheme(localStorage.getItem("bookOfAI.theme")==="light"); }
+
+/* =========================
+   JS-ONLY loader
+   ========================= */
+async function loadBookData(bookId){
+  // Try .mjs first, then .js — NO JSON FALLBACK
+  try {
+    const mod = await import(`./books/${bookId}.mjs`).catch(() => import(`./books/${bookId}.js`));
+    if (!mod || !mod.default) throw new Error(`Module has no default export for ${bookId}`);
+    return mod.default;
+  } catch (err) {
+    throw new Error(`Book module not found: ${bookId}`);
+  }
+}
 
 /* =========================
    Build Table of Contents
@@ -336,41 +335,8 @@ async function renderTOC() {
   }
 }
 
-/* helper used by renderTOC click — builds chapters list */
-async function buildBookChapters(bookId, autoLoadFirst=false) {
-  try {
-    const res = await fetch(`books/${bookId}.json`);
-    const data = await res.json();
-
-    // build chapter links
-    const details = document.querySelector(`.book[data-id="${bookId}"]`);
-    const chapterWrap = details.querySelector('.chapters');
-    chapterWrap.innerHTML = '';
-
-    for (const sec of data.sections) {
-      const a = document.createElement('a');
-      a.textContent = sec.title;
-      a.href = '#';
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        renderSection(data, sec);
-        window.scrollTo(0,0);
-      });
-      chapterWrap.appendChild(a);
-    }
-
-    if (autoLoadFirst && data.sections.length) {
-      renderSection(data, data.sections[0]);
-      window.scrollTo(0,0);
-    }
-  } catch (err) {
-    console.error('Failed to load', bookId, err);
-  }
-}
-
 /* -------------------------------------------------
-   renderSection — used by buildBookChapters()
-   Renders a single chapter into the reader pane
+   renderSection — renders a single chapter
 --------------------------------------------------- */
 function renderSection(bookData, section) {
   const reader = document.getElementById('reader');
@@ -388,7 +354,7 @@ function renderSection(bookData, section) {
   `;
   reader.appendChild(sectionHeader);
 
-  for (const v of section.verses) {
+  for (const v of (section.verses || [])) {
     const verseDiv = document.createElement('div');
     verseDiv.className = 'verse';
     verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
@@ -396,34 +362,30 @@ function renderSection(bookData, section) {
   }
 }
 
-
-
 /* -------------------------------------------------
-   This loads and displays a book by its ID
+   Load and display a book (JS module only)
 --------------------------------------------------- */
 async function loadBook(bookId) {
-  const fileName = `${bookId}.json`;
   const reader = document.getElementById('reader');
   const currentMeta = document.getElementById('currentMeta');
 
   try {
-    const res = await fetch(`books/${fileName}`);
-    if (!res.ok) throw new Error('not found');
-    const data = await res.json();
+    const data = await loadBookData(bookId);
 
     currentMeta.textContent = data.title || bookId;
-
-    // Reset and jump immediately to top
     reader.innerHTML = '';
     window.scrollTo(0, 0);
 
-    data.sections.forEach(sec => {
+    (data.sections || []).forEach(sec => {
       const sectionHeader = document.createElement('div');
       sectionHeader.className = 'section-header';
-      sectionHeader.innerHTML = `<div class="kicker">${sec.title}</div><h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
+      sectionHeader.innerHTML = `
+        <div class="kicker">${sec.title}</div>
+        <h3>${data.title} — ${sec.title}</h3>
+        <div class="meta">${data.synopsis || ''}</div>`;
       reader.appendChild(sectionHeader);
 
-      sec.verses.forEach(v => {
+      (sec.verses || []).forEach(v => {
         const verseDiv = document.createElement('div');
         verseDiv.className = 'verse';
         verseDiv.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
@@ -431,7 +393,7 @@ async function loadBook(bookId) {
       });
     });
   } catch (err) {
-    reader.innerHTML = `<div class="empty">No scripture found for “${bookId}”.</div>`;
+    reader.innerHTML = `<div class="empty">No JS module found for “${bookId}”. Expected <code>books/${bookId}.mjs</code> or <code>books/${bookId}.js</code>.</div>`;
     currentMeta.textContent = 'Not Found';
   }
 }
@@ -456,7 +418,7 @@ function randomVerse(){
 /* =========================
    Initialization
    ========================= */
-(async function init(){
+(function init(){
   initTheme();
   document.getElementById('year').textContent = new Date().getFullYear();
   renderTOC();
