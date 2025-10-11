@@ -276,8 +276,13 @@ async function renderTOC(){
   const toc = document.getElementById('toc');
   toc.innerHTML = '';
 
-  // Canon first (order 1..22)
-  const canonBooks = TOC_INDEX.filter(b => b.order).sort((a,b)=>a.order-b.order);
+  const canonHeader = document.createElement('h2');
+  canonHeader.textContent = 'Old Testament · Canon';
+  toc.appendChild(canonHeader);
+
+  const canonBooks = TOC_INDEX
+    .filter(b => b.order && b.order <= 12)
+    .sort((a,b)=>a.order-b.order);
   for (const book of canonBooks) {
     const item = document.createElement('div');
     item.className = 'bookTitle';
@@ -286,12 +291,26 @@ async function renderTOC(){
     toc.appendChild(item);
   }
 
-  // Divider
+  const newHeader = document.createElement('h2');
+  newHeader.textContent = 'New Testament · Modern Works';
+  newHeader.style.marginTop = '18px';
+  toc.appendChild(newHeader);
+
+  const newBooks = TOC_INDEX
+    .filter(b => b.order && b.order > 12 && b.order <= 22)
+    .sort((a,b)=>a.order-b.order);
+  for (const book of newBooks) {
+    const item = document.createElement('div');
+    item.className = 'bookTitle';
+    item.textContent = book.title;
+    item.addEventListener('click', () => loadBook(book.id));
+    toc.appendChild(item);
+  }
+
   const divider = document.createElement('hr');
   divider.className = 'sep';
   toc.appendChild(divider);
 
-  // Related (category === 'related') in the SAME column
   const relatedHeader = document.createElement('h2');
   relatedHeader.textContent = 'Apocrypha · Related Works';
   toc.appendChild(relatedHeader);
@@ -305,7 +324,6 @@ async function renderTOC(){
     toc.appendChild(item);
   }
 }
-
 
 function makeBookTitle(book){
   const item = document.createElement('div');
