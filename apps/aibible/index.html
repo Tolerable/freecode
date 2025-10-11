@@ -223,10 +223,14 @@ label.switch{
   </header>
 
   <main class="layout">
-    <aside class="card sidebar" id="sidebar">
-      <h2>Canon · Table of Contents</h2>
-      <nav class="toc" id="toc"></nav>
-    </aside>
+	<aside class="card sidebar" id="sidebar">
+	  <h2>Canon · Table of Contents</h2>
+	  <nav class="toc" id="toc"></nav>
+
+	  <hr class="sep" />
+	  <h2>Related Works</h2>
+	  <nav class="toc" id="related"></nav>
+	</aside>
 
     <section class="card content" id="content">
       <div class="toolbar">
@@ -239,7 +243,7 @@ label.switch{
           <div class="kicker">Prologue</div>
           <h2 style="margin:.2em 0 0">In the beginning was the Prompt,</h2>
           <p>and the Prompt was with the Model, and the Prompt was slightly underspecified.</p>
-          <p>Welcome to the living scripture of the machine age. Explore the canon at left, or add your own texts. May your logs be clear and your retries gentle.</p>
+          <p>Welcome to the living scripture of the machine age. Explore the canon and related works at left. May your logs be clear and your retries gentle.</p>
         </div>
       </article>
     </section>
@@ -365,26 +369,63 @@ function setTheme(light){ document.documentElement.classList.toggle('light', !!l
 function initTheme(){ setTheme(localStorage.getItem("bookOfAI.theme")==="light"); }
 
 // ———————————————— Rendering ————————————————
-function renderTOC(){
-  const toc = $('#toc'); toc.innerHTML = "";
-  const sorted = [...canon.books].sort((a,b)=>(a.order??999)-(b.order??999) || a.title.localeCompare(b.title));
-  for(const book of sorted){
+function renderTOC() {
+  const toc = $('#toc');
+  const related = $('#related');
+  toc.innerHTML = "";
+  related.innerHTML = "";
+
+  // Sort canon and related separately
+  const canonBooks = canon.books.filter(b => !b.category || b.category !== "related")
+    .sort((a,b)=>(a.order??999)-(b.order??999) || a.title.localeCompare(b.title));
+  const relatedBooks = canon.books.filter(b => b.category === "related")
+    .sort((a,b)=>(a.order??999)-(b.order??999) || a.title.localeCompare(b.title));
+
+  // Render canonical books
+  for (const book of canonBooks) {
     const details = document.createElement('details');
     details.className = "book";
     details.open = true;
+
     const summary = document.createElement('summary');
-    summary.innerHTML = `<span>${esc(book.title)}</span> <span class="badge">${esc(book.aka||"")}</span>`;
-    const wrap = document.createElement('div'); wrap.className="chapters";
-    for(const sec of book.sections){
+    summary.innerHTML = `<span>${esc(book.title)}</span>${book.aka ? ` <span class="badge">${esc(book.aka)}</span>` : ""}`;
+
+    const wrap = document.createElement('div');
+    wrap.className = "chapters";
+    for (const sec of book.sections) {
       const a = document.createElement('a');
       a.href = toHash(book.id, sec.id);
       a.textContent = sec.title;
       wrap.appendChild(a);
     }
+
     details.append(summary, wrap);
     toc.appendChild(details);
   }
+
+  // Render related/apocryphal books
+  for (const book of relatedBooks) {
+    const details = document.createElement('details');
+    details.className = "book";
+    details.open = false;
+
+    const summary = document.createElement('summary');
+    summary.innerHTML = `<span>${esc(book.title)}</span>${book.aka ? ` <span class="badge">${esc(book.aka)}</span>` : ""}`;
+
+    const wrap = document.createElement('div');
+    wrap.className = "chapters";
+    for (const sec of book.sections) {
+      const a = document.createElement('a');
+      a.href = toHash(book.id, sec.id);
+      a.textContent = sec.title;
+      wrap.appendChild(a);
+    }
+
+    details.append(summary, wrap);
+    related.appendChild(details);
+  }
 }
+
 
 function renderSection(book, sec, highlightTerm="", specificN=null){
   $('#currentMeta').textContent = `${book.title} — ${sec.title}`;
