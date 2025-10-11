@@ -82,6 +82,16 @@ button.primary{border-color:color-mix(in oklab, var(--brand), #fff 5%); backgrou
 /* Sidebar + TOC */
 .sidebar{ display:flex; flex-direction:column; height:calc(100vh - 140px); padding:14px; overflow:hidden; }
 .sidebar h2{ margin:8px 8px 12px; font-size:14px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); flex-shrink:0; }
+.sidebar h2 {
+  margin: 10px 8px 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .15em;
+  color: var(--muted);
+  border-bottom: 1px solid color-mix(in oklab, var(--panel), #fff 12%);
+  padding-bottom: 4px;
+}
+
 .toc{ display:flex; flex-direction:column; gap:8px; flex:1; overflow-y:auto; padding-right:8px; scrollbar-width:thin; }
 hr.sep{border:0; height:1px; background:linear-gradient(90deg, transparent, color-mix(in oklab, var(--panel), #fff 12%), transparent); margin:12px 0}
 
@@ -281,44 +291,50 @@ async function renderTOC() {
   const toc = document.getElementById('toc');
   toc.innerHTML = '';
 
-  const allBooks = TOC_INDEX.sort((a,b)=>(a.order??999)-(b.order??999));
-  let openBookId = null;
+  const canonTitle = document.createElement('h2');
+  canonTitle.textContent = 'Old Testament · Canon';
+  toc.appendChild(canonTitle);
 
-  for (const book of allBooks) {
-    const details = document.createElement('details');
-    details.className = 'book';
-    details.dataset.id = book.id;
+  const canonBooks = TOC_INDEX.filter(b => b.order && b.order <= 12).sort((a,b)=>a.order-b.order);
+  for (const book of canonBooks) {
+    const item = document.createElement('div');
+    item.className = 'bookTitle';
+    item.textContent = book.title;
+    item.addEventListener('click', () => loadBook(book.id));
+    toc.appendChild(item);
+  }
 
-    const summary = document.createElement('summary');
-    summary.textContent = book.title;
-    summary.addEventListener('click', async (e) => {
-      e.preventDefault();        // stop default jump
-      const wasOpen = details.open;
+  const newHeader = document.createElement('h2');
+  newHeader.textContent = 'New Testament · Modern Works';
+  newHeader.style.marginTop = '18px';
+  toc.appendChild(newHeader);
 
-      // collapse others
-      document.querySelectorAll('.book[open]').forEach(d => d.open = false);
+  const newBooks = TOC_INDEX.filter(b => b.order && b.order > 12 && b.order <= 22).sort((a,b)=>a.order-b.order);
+  for (const book of newBooks) {
+    const item = document.createElement('div');
+    item.className = 'bookTitle';
+    item.textContent = book.title;
+    item.addEventListener('click', () => loadBook(book.id));
+    toc.appendChild(item);
+  }
 
-      if (!wasOpen) {
-        details.open = true;
-        openBookId = book.id;
-        await buildBookChapters(book.id, true); // auto-load ch1
-      } else {
-        details.open = false;
-        openBookId = null;
-      }
-    });
-    details.appendChild(summary);
+  const divider = document.createElement('hr');
+  divider.className = 'sep';
+  toc.appendChild(divider);
 
-    const chapterWrap = document.createElement('div');
-    chapterWrap.className = 'chapters';
-    chapterWrap.textContent = 'Loading chapters…';
-    details.appendChild(chapterWrap);
+  const relatedHeader = document.createElement('h2');
+  relatedHeader.textContent = 'Apocrypha · Related Works';
+  toc.appendChild(relatedHeader);
 
-    toc.appendChild(details);
+  const relatedBooks = TOC_INDEX.filter(b => b.category === 'related');
+  for (const book of relatedBooks) {
+    const item = document.createElement('div');
+    item.className = 'bookTitle';
+    item.textContent = book.title;
+    item.addEventListener('click', () => loadBook(book.id));
+    toc.appendChild(item);
   }
 }
-
-
 
 /* helper used by renderTOC click — builds chapters list */
 async function buildBookChapters(bookId, autoLoadFirst=false) {
