@@ -644,47 +644,53 @@ function updateActive(){
 /* =========================
    RENDERERS
    ========================= */
-function renderSection(bookData, section){
-  const reader = document.getElementById('reader');
-  const currentMeta = document.getElementById('currentMeta');
+function renderSection(bookData, section) {
+  // create fresh local references each time
+  const readerEl = document.getElementById('reader');
+  const metaEl = document.getElementById('currentMeta');
 
-  currentMeta.textContent = `${bookData.title} — ${section.title}`;
-  reader.innerHTML = '';
+  metaEl.textContent = `${bookData.title} — ${section.title}`;
+  readerEl.innerHTML = '';
 
   const header = document.createElement('div');
   header.className = 'section-header';
-  header.innerHTML = `<h3>${bookData.title} — ${section.title}</h3><div class="meta">${bookData.synopsis || ''}</div>`;
-  reader.appendChild(header);
+  header.innerHTML = `<h3>${bookData.title} — ${section.title}</h3>
+                      <div class="meta">${bookData.synopsis || ''}</div>`;
+  readerEl.appendChild(header);
 
-  (section.verses||[]).forEach(v=>{
+  (section.verses || []).forEach(v => {
     const verse = document.createElement('div');
     verse.className = 'verse';
     verse.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
-    reader.appendChild(verse);
+    readerEl.appendChild(verse);
   });
 }
 
-function renderWholeBook(data){
-  const reader = document.getElementById('reader');
-  const currentMeta = document.getElementById('currentMeta');
 
-  currentMeta.textContent = data.title || '';
-  reader.innerHTML = '';
+function renderWholeBook(bookData) {
+  // separate variables so nothing ever collides
+  const readerEl = document.getElementById('reader');
+  const metaEl = document.getElementById('currentMeta');
 
-  (data.sections||[]).forEach(sec=>{
+  metaEl.textContent = bookData.title || '';
+  readerEl.innerHTML = '';
+
+  (bookData.sections || []).forEach(sec => {
     const header = document.createElement('div');
     header.className = 'section-header';
-    header.innerHTML = `<h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
-    reader.appendChild(header);
+    header.innerHTML = `<h3>${bookData.title} — ${sec.title}</h3>
+                        <div class="meta">${bookData.synopsis || ''}</div>`;
+    readerEl.appendChild(header);
 
-    (sec.verses||[]).forEach(v=>{
+    (sec.verses || []).forEach(v => {
       const verse = document.createElement('div');
       verse.className = 'verse';
       verse.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
-      reader.appendChild(verse);
+      readerEl.appendChild(verse);
     });
   });
 }
+
 
 /* =========================
    REAL randomVerse: pulls from real modules (no stubs)
