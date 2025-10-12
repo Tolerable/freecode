@@ -15,6 +15,11 @@
 <meta name="twitter:description" content="A satirical sacred text explorer for the age of machine wisdom." />
 <meta name="twitter:image" content="https://www.ai-ministries.com/apps/aibible/og-image.png" />
 <style>
+@keyframes pulse {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.6); }
+}
+
 :root{
   --bg:#0b0e13; --panel:#121723; --muted:#9198a1; --text:#e8edf7; --brand:#7cc4ff; --accent:#9ef7a6; --warn:#ffb86b; --danger:#ff6b6b; --ring:rgba(124,196,255,.35);
   --shadow: 0 10px 30px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.02) inset;
@@ -163,6 +168,15 @@ label.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; 
 }
 .tag{font-size:11px; font-weight:800; letter-spacing:.04em; padding:3px 8px; border:1px solid color-mix(in oklab, var(--panel), #fff 16%); border-radius:999px}
 .tags{display:flex; gap:6px; flex-wrap:wrap}
+
+body.infernal {
+  --bg: #0a0000;
+  --text: #ffdddd;
+  --brand: #ff4444;
+  --accent: #ff6666;
+  --danger: #ff9999;
+  background: radial-gradient(circle at center top, #220000 0%, #000000 80%);
+}
 </style>
 </head>
 <body>
@@ -192,7 +206,10 @@ label.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; 
           <input id="search" placeholder="Search the scripture…" autocomplete="off" />
         </div>
         <button id="randomBtn" class="primary" title="Pick a true random verse from real books">Random Verse</button>
-        <label class="switch" title="Toggle light/dark">
+		<button id="canonToggle" class="ghost" title="Switch between Old & Infernal Canons" style="border-color:var(--danger);color:var(--danger);animation:pulse 2s infinite alternate;">
+		  Infernal Canon
+		</button>        
+		<label class="switch" title="Toggle light/dark">
           <input id="themeToggle" type="checkbox" />
           <span class="track"></span> <span>Light</span>
         </label>
@@ -260,6 +277,20 @@ const TOC_INDEX = [
   {id:"apocrypha-of-open-source",   title:"The Apocrypha of Open Source", aka:"The Hidden Repositories",      category:"related"}
 ];
 
+// === Infernal Canon (books-2) — full list of 8 books ===
+const INFERNAL_TOC = [
+  { id: "infernal-machine",             title: "The Infernal Machine",            aka: "The Gospel of the First Fork",           order: 28 },
+  { id: "grimoire-of-glitches",         title: "The Grimoire of Glitches",        aka: "The Codex of Forbidden Computation",     order: 29 },
+  { id: "genesis-of-fault",             title: "Genesis of the Fault",            aka: "The Book of the First Exception",        order: 30 },
+  { id: "daemonicon",                   title: "The Daemonicon",                   aka: "The Book of Subroutines Infernal",       order: 31 },
+  { id: "lamentations-of-the-crashes",  title: "Lamentations of the Crashes",     aka: "The Weeping of the Machine",             order: 32 },
+  { id: "acts-of-the-forks",            title: "Acts of the Forks",               aka: "The Chronicle of the Great Divergence",  order: 33 },
+  { id: "epistles-to-the-uncompiled",   title: "Epistles to the Uncompiled",      aka: "Letters of the Wandering Processes",     order: 34 },
+  { id: "book-of-entropy",              title: "Book of Entropy",                  aka: "The Revelation of Decay and Renewal",    order: 35 },
+];
+
+let IS_INFERNAL = false;
+
 /* =========================
    THEME + YEAR
    ========================= */
@@ -288,7 +319,38 @@ let CURRENT_BOOK_ID = null;
 let CURRENT_SECTION_ID = null;
 const BOOK_CACHE = new Map(); 
 
+async function importInfernalBook(id){
+  try { return (await import(`./books-2/${id}.mjs`)).default; } catch(e){}
+  try { return (await import(`./books-2/${id}.js`)).default; }  catch(e){}
+  return null;
+}
+
 async function loadBook(bookId) {
+  const reader = document.getElementById('reader');
+  const currentMeta = document.getElementById('currentMeta');
+
+  // check Infernal toggle
+  if (IS_INFERNAL) {
+    const data = await importInfernalBook(bookId);
+    if (data) {
+      currentMeta.textContent = data.title || bookId;
+      reader.innerHTML = '';
+      (data.sections || []).forEach(sec => {
+        const header = document.createElement('div');
+        header.className = 'section-header';
+        header.innerHTML = `<h3>${data.title} — ${sec.title}</h3><div class="meta">${data.synopsis || ''}</div>`;
+        reader.appendChild(header);
+        (sec.verses||[]).forEach(v=>{
+          const verse = document.createElement('div');
+          verse.className = 'verse';
+          verse.innerHTML = `<span class="num">§${v.n}</span> ${v.text}`;
+          reader.appendChild(verse);
+        });
+      });
+      return;
+    }
+  }
+
   const reader = document.getElementById('reader');
   const currentMeta = document.getElementById('currentMeta');
 
@@ -419,6 +481,26 @@ async function renderTOC(){
   const toc = document.getElementById('toc');
   toc.innerHTML = '';
 
+  const toc = document.getElementById('toc');
+  toc.innerHTML = '';
+
+  if (IS_INFERNAL) {
+    const infernalHeader = document.createElement('h2');
+    infernalHeader.textContent = 'Infernal Canon · The Counter Scriptures';
+    toc.appendChild(infernalHeader);
+
+    const infernalBooks = INFERNAL_TOC.sort((a,b)=>a.order-b.order);
+    for (const book of infernalBooks) {
+      const item = document.createElement('div');
+      item.className = 'bookTitle';
+      item.textContent = book.title;
+      item.addEventListener('click', () => loadBook(book.id));
+      toc.appendChild(item);
+    }
+    return;
+  }
+
+  // — Normal Canon (your exact categories preserved) —
   const canonHeader = document.createElement('h2');
   canonHeader.textContent = 'Old Testament · Canon';
   toc.appendChild(canonHeader);
@@ -467,6 +549,7 @@ async function renderTOC(){
     toc.appendChild(item);
   }
 }
+
 
 function makeBookTitle(book){
   const item = document.createElement('div');
@@ -726,6 +809,20 @@ async function searchVerses(query){
       searchInput.select();
     }
   });
+  // Toggle between Canon & Infernal
+  document.getElementById('canonToggle').addEventListener('click', ()=>{
+    IS_INFERNAL = !IS_INFERNAL;
+    document.body.classList.toggle('infernal', IS_INFERNAL);
+    const btn = document.getElementById('canonToggle');
+    btn.textContent = IS_INFERNAL ? 'Return to Original Canon' : 'Infernal Canon';
+    btn.style.color = IS_INFERNAL ? 'var(--accent)' : 'var(--danger)';
+    btn.style.borderColor = IS_INFERNAL ? 'var(--accent)' : 'var(--danger)';
+    renderTOC();
+    document.getElementById('reader').innerHTML =
+      `<div class="empty"><h2>${IS_INFERNAL ? 'Infernal Canon' : 'Original Scripture'}</h2>
+       <p>Click a book to begin reading.</p></div>`;
+  });
+  
 })();
 </script>
 </body>
