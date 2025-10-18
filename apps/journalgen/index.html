@@ -662,15 +662,15 @@
         }
 
         // Display entries for current day
-        function displayEntries() {
-            const container = document.getElementById('entriesContainer');
-            container.innerHTML = '';
-            
-            const dayEntries = entries[currentDay] || [];
-            dayEntries.forEach(entry => {
-                createEntryElement(entry, container);
-            });
-        }
+		async function displayEntries() {
+			const container = document.getElementById('entriesContainer');
+			container.innerHTML = '';
+			
+			const dayEntries = entries[currentDay] || [];
+			for (const entry of dayEntries) {
+				await createEntryElement(entry, container);
+			}
+		}
 
         // Create entry element
 		async function createEntryElement(entry, container) {
@@ -725,31 +725,30 @@
 		}
 
         // Add new entry
-        async function addEntry() {
-            const input = document.getElementById('entryInput');
-            const text = input.value.trim();
-            
-            if (!text) return;
-            
-            const now = new Date();
-            const entryId = now.getTime().toString();
-            const timestamp = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            const fullText = `[${timestamp}] ${text}`;
-            
-            if (!entries[currentDay]) {
-                entries[currentDay] = [];
-            }
-            
-            entries[currentDay].unshift([entryId, fullText, null, currentStyle]);
-            saveEntries();
-            
-            input.value = '';
-            displayEntries();
-            initCalendar(); // Refresh calendar to show new entry indicator
-            
-            // Generate image with delay to avoid quota issues
-            setTimeout(() => generateImage(entryId, text, currentStyle), 1000);
-        }
+		async function addEntry() {
+			const input = document.getElementById('entryInput');
+			const text = input.value.trim();
+			
+			if (!text) return;
+			
+			const now = new Date();
+			const entryId = now.getTime().toString();
+			const timestamp = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+			const fullText = `[${timestamp}] ${text}`;
+			
+			if (!entries[currentDay]) {
+				entries[currentDay] = [];
+			}
+			
+			entries[currentDay].unshift([entryId, fullText, null, currentStyle]);
+			saveEntries();
+			
+			input.value = '';
+			await displayEntries();
+			initCalendar();
+			
+			setTimeout(() => generateImage(entryId, text, currentStyle), 1000);
+		}
 
 		// Generate image
 		async function generateImage(entryId, text, style, retryCount = 0) {
@@ -811,25 +810,16 @@
         }
 
         // Show context menu
-        function showContextMenu(e, entryId, text, style) {
-            const menu = document.getElementById('contextMenu');
-            currentContextEntry = { entryId, text, style };
-            
-            menu.style.left = e.pageX + 'px';
-            menu.style.top = e.pageY + 'px';
-            menu.classList.add('show');
-            
-            const closeMenu = (event) => {
-                if (!menu.contains(event.target)) {
-                    menu.classList.remove('show');
-                    document.removeEventListener('click', closeMenu);
-                }
-            };
-            
-            setTimeout(() => {
-                document.addEventListener('click', closeMenu);
-            }, 10);
-        }
+		function showContextMenu(e, entryId, text, style) {
+			const menu = document.getElementById('contextMenu');
+			currentContextEntry = { entryId, text, style };
+			
+			menu.style.left = e.pageX + 'px';
+			menu.style.top = e.pageY + 'px';
+			menu.classList.add('show');
+			
+			e.stopPropagation();
+		}
 
         // Event listeners
         document.getElementById('monthSelector').addEventListener('change', (e) => {
@@ -910,12 +900,14 @@
         });
 
         // Context menu actions
-        document.getElementById('regenImage').addEventListener('click', () => {
-            if (currentContextEntry) {
-                const content = currentContextEntry.text.split('] ')[1] || currentContextEntry.text;
-                generateImage(currentContextEntry.entryId, content, currentContextEntry.style);
-            }
-        });
+		document.getElementById('regenImage').addEventListener('click', async () => {
+			if (currentContextEntry) {
+				const content = currentContextEntry.text.split('] ')[1] || currentContextEntry.text;
+				generateImage(currentContextEntry.entryId, content, currentContextEntry.style);
+				await displayEntries();
+			}
+			document.getElementById('contextMenu').classList.remove('show');
+		});
 
         document.getElementById('editEntry').addEventListener('click', () => {
             if (currentContextEntry) {
@@ -923,14 +915,15 @@
             }
         });
 
-        document.getElementById('deleteEntry').addEventListener('click', () => {
-            if (currentContextEntry && confirm('Delete this entry?')) {
-                entries[currentDay] = entries[currentDay].filter(e => e[0] !== currentContextEntry.entryId);
-                saveEntries();
-                displayEntries();
-                initCalendar();
-            }
-        });
+		document.getElementById('deleteEntry').addEventListener('click', async () => {
+			if (currentContextEntry && confirm('Delete this entry?')) {
+				entries[currentDay] = entries[currentDay].filter(e => e[0] !== currentContextEntry.entryId);
+				saveEntries();
+				await displayEntries();
+				initCalendar();
+			}
+			document.getElementById('contextMenu').classList.remove('show');
+		});
 
         // Change style submenu
         document.querySelectorAll('[data-change-style]').forEach(item => {
