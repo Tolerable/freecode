@@ -97,6 +97,11 @@
             background: #90EE90;
         }
 
+        .calendar-day.has-entries {
+            font-weight: bold;
+            color: #2196F3;
+        }
+
         .today-btn {
             width: 100%;
             padding: 8px;
@@ -119,6 +124,7 @@
             padding: 8px 15px;
             display: flex;
             gap: 20px;
+            align-items: center;
         }
 
         .menu-item {
@@ -130,6 +136,15 @@
         .menu-item:hover {
             background: #e0e0e0;
             border-radius: 3px;
+        }
+
+        .current-style-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 5px;
+            vertical-align: middle;
         }
 
         .dropdown {
@@ -157,6 +172,11 @@
             background: #f0f0f0;
         }
 
+        .dropdown-item.active {
+            background: #e3f2fd;
+            font-weight: bold;
+        }
+
         .dropdown-separator {
             height: 1px;
             background: #ccc;
@@ -177,6 +197,7 @@
             margin-bottom: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
         }
 
         .entry-image-wrapper {
@@ -214,6 +235,17 @@
         .entry-text {
             flex: 1;
             line-height: 1.6;
+        }
+
+        .entry-error {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #f44336;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
         }
 
         .input-bar {
@@ -271,16 +303,95 @@
             padding: 8px 15px;
             cursor: pointer;
             white-space: nowrap;
+            position: relative;
         }
 
         .context-menu-item:hover {
             background: #f0f0f0;
         }
 
+        .submenu {
+            display: none;
+            position: absolute;
+            left: 100%;
+            top: 0;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            min-width: 150px;
+        }
+
+        .context-menu-item:hover .submenu {
+            display: block;
+        }
+
         .style-photographic { border-color: #4CAF50; }
         .style-anime { border-color: #2196F3; }
         .style-watercolor { border-color: #FFC107; }
         .style-sketch { border-color: #9E9E9E; }
+
+        .color-photographic { background-color: #4CAF50; }
+        .color-anime { background-color: #2196F3; }
+        .color-watercolor { background-color: #FFC107; }
+        .color-sketch { background-color: #9E9E9E; }
+
+        .edit-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .edit-modal.show {
+            display: flex;
+        }
+
+        .edit-dialog {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 500px;
+            max-width: 90%;
+        }
+
+        .edit-dialog textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+            margin-bottom: 15px;
+        }
+
+        .edit-dialog-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .edit-dialog button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .edit-dialog .save-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .edit-dialog .cancel-btn {
+            background: #f44336;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -315,7 +426,7 @@
         <div class="main-content">
             <div class="menu-bar">
                 <div class="menu-item" id="styleMenu">
-                    Image Style
+                    Image Style <span class="current-style-indicator" id="styleIndicator"></span>
                     <div class="dropdown" id="styleDropdown">
                         <div class="dropdown-item" data-style="photographic">Photographic</div>
                         <div class="dropdown-item" data-style="anime">Anime</div>
@@ -348,20 +459,32 @@
         <div class="context-menu-item" id="editEntry">Edit Entry</div>
         <div class="context-menu-item" id="deleteEntry">Delete Entry</div>
         <div class="dropdown-separator"></div>
-        <div class="context-menu-item">Change Style ▶
-            <div class="dropdown" id="styleChangeDropdown" style="left: 100%; top: 0;">
-                <div class="dropdown-item" data-change-style="photographic">Photographic</div>
-                <div class="dropdown-item" data-change-style="anime">Anime</div>
-                <div class="dropdown-item" data-change-style="watercolor">Watercolor</div>
-                <div class="dropdown-item" data-change-style="sketch">Sketch</div>
+        <div class="context-menu-item">
+            Change Style ▶
+            <div class="submenu" id="styleSubmenu">
+                <div class="context-menu-item" data-change-style="photographic">Photographic</div>
+                <div class="context-menu-item" data-change-style="anime">Anime</div>
+                <div class="context-menu-item" data-change-style="watercolor">Watercolor</div>
+                <div class="context-menu-item" data-change-style="sketch">Sketch</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="edit-modal" id="editModal">
+        <div class="edit-dialog">
+            <textarea id="editTextarea"></textarea>
+            <div class="edit-dialog-buttons">
+                <button class="cancel-btn" id="cancelEdit">Cancel</button>
+                <button class="save-btn" id="saveEdit">Save</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Storage using localStorage (since we can't write to files in browser)
+        // Storage using localStorage
         const STORAGE_KEY = 'journalgen_entries';
         const SETTINGS_KEY = 'journalgen_settings';
+        const IMAGE_CACHE_KEY = 'journalgen_image_cache';
         
         const styles = {
             photographic: { prepend: '', append: ', photorealistic style', color: '#4CAF50' },
@@ -378,6 +501,7 @@
         let entries = {};
         let imageCache = {};
         let currentContextEntry = null;
+        let pendingImageRequests = new Map(); // Track pending requests
 
         // Load settings
         function loadSettings() {
@@ -387,6 +511,7 @@
                 currentStyle = parsed.currentStyle || 'photographic';
                 userAppearance = parsed.userAppearance || '';
             }
+            updateStyleIndicator();
         }
 
         // Save settings
@@ -395,6 +520,22 @@
                 currentStyle,
                 userAppearance
             }));
+            updateStyleIndicator();
+        }
+
+        // Update style indicator
+        function updateStyleIndicator() {
+            const indicator = document.getElementById('styleIndicator');
+            indicator.className = `current-style-indicator color-${currentStyle}`;
+            
+            // Update active style in dropdown
+            document.querySelectorAll('[data-style]').forEach(item => {
+                if (item.dataset.style === currentStyle) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
         }
 
         // Load entries
@@ -408,6 +549,23 @@
         // Save entries
         function saveEntries() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        }
+
+        // Load image cache
+        function loadImageCache() {
+            const stored = localStorage.getItem(IMAGE_CACHE_KEY);
+            if (stored) {
+                imageCache = JSON.parse(stored);
+            }
+        }
+
+        // Save image cache
+        function saveImageCache() {
+            // Only save limited cache to avoid localStorage quota
+            const limitedCache = {};
+            const keys = Object.keys(imageCache).slice(-100); // Keep last 100 images
+            keys.forEach(key => limitedCache[key] = imageCache[key]);
+            localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(limitedCache));
         }
 
         // Initialize calendar
@@ -436,6 +594,12 @@
                 const dayCell = document.createElement('div');
                 dayCell.className = 'calendar-day';
                 dayCell.textContent = day;
+                
+                const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                if (entries[dateKey] && entries[dateKey].length > 0) {
+                    dayCell.classList.add('has-entries');
+                }
+                
                 dayCell.addEventListener('click', () => selectDay(day));
                 
                 const today = new Date();
@@ -474,7 +638,7 @@
 
         // Create entry element
         function createEntryElement(entry, container) {
-            const [entryId, text, imagePath, style] = entry;
+            const [entryId, text, imagePath, style, error] = entry;
             
             const entryDiv = document.createElement('div');
             entryDiv.className = 'entry';
@@ -485,15 +649,35 @@
             
             const img = document.createElement('img');
             img.className = `entry-image style-${style || 'photographic'}`;
-            img.src = imagePath || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="84"%3E%3Crect fill="%23ccc" width="150" height="84"/%3E%3C/svg%3E';
-            img.addEventListener('click', () => showImageModal(imagePath, style));
+            
+            if (imagePath && imagePath.startsWith('data:image')) {
+                img.src = imagePath;
+            } else if (imagePath) {
+                img.src = imagePath;
+            } else {
+                img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="84"%3E%3Crect fill="%23ccc" width="150" height="84"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23666" font-size="12"%3EGenerating...%3C/ssvg%3E';
+            }
+            
+            img.addEventListener('click', () => {
+                if (imagePath && imagePath.startsWith('data:image')) {
+                    showImageModal(imagePath, style);
+                }
+            });
             
             imageWrapper.appendChild(img);
             
-            if (!imagePath) {
+            if (!imagePath && !error) {
                 const spinner = document.createElement('div');
                 spinner.className = 'spinner';
                 imageWrapper.appendChild(spinner);
+            }
+            
+            if (error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'entry-error';
+                errorDiv.textContent = 'Error';
+                errorDiv.title = error;
+                entryDiv.appendChild(errorDiv);
             }
             
             const textDiv = document.createElement('div');
@@ -528,38 +712,86 @@
                 entries[currentDay] = [];
             }
             
-            entries[currentDay].push([entryId, fullText, null, currentStyle]);
+            entries[currentDay].unshift([entryId, fullText, null, currentStyle]);
             saveEntries();
             
             input.value = '';
             displayEntries();
+            initCalendar(); // Refresh calendar to show new entry indicator
             
-            // Generate image
-            generateImage(entryId, text, currentStyle);
+            // Generate image with delay to avoid quota issues
+            setTimeout(() => generateImage(entryId, text, currentStyle), 1000);
         }
 
         // Generate image
-        async function generateImage(entryId, text, style) {
+        async function generateImage(entryId, text, style, retryCount = 0) {
+            // Check if already generating
+            if (pendingImageRequests.has(entryId)) {
+                console.log('Already generating image for', entryId);
+                return;
+            }
+            
+            pendingImageRequests.set(entryId, true);
+            
             const styleInfo = styles[style];
             const prompt = `${userAppearance} ${styleInfo.prepend} ${text} ${styleInfo.append}`.trim();
             const seed = Math.floor(Math.random() * 1000000);
-            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&seed=${seed}&width=1920&height=1080&referrer=ai-ministries.com`;
+            
+            // Use pollinations.ai with proper referrer
+            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&seed=${seed}&width=1920&height=1080&model=flux&referrer=ai-ministries.com`;
             
             try {
+                console.log('Generating image:', entryId);
                 const response = await fetch(url);
-                const blob = await response.blob();
-                const imageUrl = URL.createObjectURL(blob);
                 
-                // Update entry with image
-                const dayEntries = entries[currentDay];
-                const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
-                if (entryIndex !== -1) {
-                    dayEntries[entryIndex][2] = imageUrl;
-                    saveEntries();
-                    displayEntries();
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                
+                const blob = await response.blob();
+                
+                // Convert to base64 for localStorage
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64data = reader.result;
+                    
+                    // Update entry with image
+                    const dayEntries = entries[currentDay];
+                    if (dayEntries) {
+                        const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
+                        if (entryIndex !== -1) {
+                            dayEntries[entryIndex][2] = base64data;
+                            dayEntries[entryIndex][4] = null; // Clear error
+                            saveEntries();
+                            displayEntries();
+                        }
+                    }
+                    
+                    pendingImageRequests.delete(entryId);
+                };
+                reader.readAsDataURL(blob);
+                
             } catch (error) {
                 console.error('Error generating image:', error);
+                pendingImageRequests.delete(entryId);
+                
+                // Retry logic with exponential backoff
+                if (retryCount < 3) {
+                    const delay = Math.pow(2, retryCount) * 2000; // 2s, 4s, 8s
+                    console.log(`Retrying in ${delay}ms...`);
+                    setTimeout(() => generateImage(entryId, text, style, retryCount + 1), delay);
+                } else {
+                    // Mark entry with error
+                    const dayEntries = entries[currentDay];
+                    if (dayEntries) {
+                        const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
+                        if (entryIndex !== -1) {
+                            dayEntries[entryIndex][4] = error.message;
+                            saveEntries();
+                            displayEntries();
+                        }
+                    }
+                }
             }
         }
 
@@ -575,7 +807,7 @@
             
             modal.addEventListener('click', () => {
                 modal.classList.remove('show');
-            });
+            }, { once: true });
         }
 
         // Show context menu
@@ -587,9 +819,16 @@
             menu.style.top = e.pageY + 'px';
             menu.classList.add('show');
             
-            document.addEventListener('click', () => {
-                menu.classList.remove('show');
-            }, { once: true });
+            const closeMenu = (event) => {
+                if (!menu.contains(event.target)) {
+                    menu.classList.remove('show');
+                    document.removeEventListener('click', closeMenu);
+                }
+            };
+            
+            setTimeout(() => {
+                document.addEventListener('click', closeMenu);
+            }, 10);
         }
 
         // Event listeners
@@ -634,22 +873,37 @@
             e.stopPropagation();
             const dropdown = document.getElementById('styleDropdown');
             dropdown.classList.toggle('show');
+            
+            if (dropdown.classList.contains('show')) {
+                const closeDropdown = (event) => {
+                    if (!document.getElementById('styleMenu').contains(event.target)) {
+                        dropdown.classList.remove('show');
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                };
+                setTimeout(() => {
+                    document.addEventListener('click', closeDropdown);
+                }, 10);
+            }
         });
 
         document.querySelectorAll('[data-style]').forEach(item => {
-            item.addEventListener('click', () => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
                 currentStyle = item.dataset.style;
                 saveSettings();
                 document.getElementById('styleDropdown').classList.remove('show');
             });
         });
 
-        document.getElementById('setAppearance').addEventListener('click', () => {
+        document.getElementById('setAppearance').addEventListener('click', (e) => {
+            e.stopPropagation();
             const appearance = prompt('Enter user appearance description:', userAppearance);
             if (appearance !== null) {
                 userAppearance = appearance;
                 saveSettings();
             }
+            document.getElementById('styleDropdown').classList.remove('show');
         });
 
         // Context menu actions
@@ -660,17 +914,166 @@
             }
         });
 
+        document.getElementById('editEntry').addEventListener('click', () => {
+            if (currentContextEntry) {
+                showEditModal(currentContextEntry.entryId, currentContextEntry.text);
+            }
+        });
+
         document.getElementById('deleteEntry').addEventListener('click', () => {
             if (currentContextEntry && confirm('Delete this entry?')) {
                 entries[currentDay] = entries[currentDay].filter(e => e[0] !== currentContextEntry.entryId);
                 saveEntries();
                 displayEntries();
+                initCalendar();
+            }
+        });
+
+        // Change style submenu
+        document.querySelectorAll('[data-change-style]').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentContextEntry) {
+                    const newStyle = item.dataset.changeStyle;
+                    const dayEntries = entries[currentDay];
+                    const entryIndex = dayEntries.findIndex(e => e[0] === currentContextEntry.entryId);
+                    if (entryIndex !== -1) {
+                        dayEntries[entryIndex][3] = newStyle;
+                        saveEntries();
+                        
+                        const content = currentContextEntry.text.split('] ')[1] || currentContextEntry.text;
+                        generateImage(currentContextEntry.entryId, content, newStyle);
+                    }
+                }
+            });
+        });
+
+        // Apply style functions
+        document.getElementById('applyDay').addEventListener('click', () => {
+            if (confirm(`Apply ${currentStyle} style to all entries today?`)) {
+                const dayEntries = entries[currentDay] || [];
+                dayEntries.forEach(entry => {
+                    entry[3] = currentStyle;
+                    const content = entry[1].split('] ')[1] || entry[1];
+                    setTimeout(() => generateImage(entry[0], content, currentStyle), Math.random() * 2000);
+                });
+                saveEntries();
+                displayEntries();
+            }
+            document.getElementById('styleDropdown').classList.remove('show');
+        });
+
+        document.getElementById('applyMonth').addEventListener('click', () => {
+            if (confirm(`Apply ${currentStyle} style to all entries this month?`)) {
+                const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+                let count = 0;
+                Object.keys(entries).forEach(day => {
+                    if (day.startsWith(monthKey)) {
+                        entries[day].forEach(entry => {
+                            entry[3] = currentStyle;
+                            const content = entry[1].split('] ')[1] || entry[1];
+                            setTimeout(() => generateImage(entry[0], content, currentStyle), count * 3000);
+                            count++;
+                        });
+                    }
+                });
+                saveEntries();
+                displayEntries();
+            }
+            document.getElementById('styleDropdown').classList.remove('show');
+        });
+
+        document.getElementById('applyAll').addEventListener('click', () => {
+            if (confirm(`Apply ${currentStyle} style to ALL entries? This may take a while.`)) {
+                let count = 0;
+                Object.keys(entries).forEach(day => {
+                    entries[day].forEach(entry => {
+                        entry[3] = currentStyle;
+                        const content = entry[1].split('] ')[1] || entry[1];
+                        setTimeout(() => generateImage(entry[0], content, currentStyle), count * 3000);
+                        count++;
+                    });
+                });
+                saveEntries();
+                displayEntries();
+            }
+            document.getElementById('styleDropdown').classList.remove('show');
+        });
+
+        // Edit modal functions
+        function showEditModal(entryId, text) {
+            const modal = document.getElementById('editModal');
+            const textarea = document.getElementById('editTextarea');
+            
+            // Extract content without timestamp
+            const content = text.split('] ')[1] || text;
+            textarea.value = content;
+            
+            modal.classList.add('show');
+            textarea.focus();
+            
+            // Store current edit
+            modal.dataset.entryId = entryId;
+        }
+
+        document.getElementById('saveEdit').addEventListener('click', () => {
+            const modal = document.getElementById('editModal');
+            const textarea = document.getElementById('editTextarea');
+            const entryId = modal.dataset.entryId;
+            const newContent = textarea.value.trim();
+            
+            if (newContent && entryId) {
+                const dayEntries = entries[currentDay];
+                const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
+                
+                if (entryIndex !== -1) {
+                    const timestamp = dayEntries[entryIndex][1].split(']')[0] + ']';
+                    dayEntries[entryIndex][1] = `${timestamp} ${newContent}`;
+                    saveEntries();
+                    displayEntries();
+                    
+                    // Regenerate image
+                    generateImage(entryId, newContent, dayEntries[entryIndex][3]);
+                }
+            }
+            
+            modal.classList.remove('show');
+        });
+
+        document.getElementById('cancelEdit').addEventListener('click', () => {
+            document.getElementById('editModal').classList.remove('show');
+        });
+
+        // Close edit modal on background click
+        document.getElementById('editModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                e.currentTarget.classList.remove('show');
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+S in edit modal
+            if (e.ctrlKey && e.key === 's') {
+                const editModal = document.getElementById('editModal');
+                if (editModal.classList.contains('show')) {
+                    e.preventDefault();
+                    document.getElementById('saveEdit').click();
+                }
+            }
+            
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                document.getElementById('imageModal').classList.remove('show');
+                document.getElementById('editModal').classList.remove('show');
+                document.getElementById('contextMenu').classList.remove('show');
             }
         });
 
         // Initialize
         loadSettings();
         loadEntries();
+        loadImageCache();
         
         const today = new Date();
         currentMonth = today.getMonth();
