@@ -498,6 +498,9 @@
 					if (!db.objectStoreNames.contains('images')) {
 						db.createObjectStore('images', { keyPath: 'id' });
 					}
+					if (!db.objectStoreNames.contains('entries')) {
+						db.createObjectStore('entries', { keyPath: 'day' });
+					}
 				};
 			});
 		}
@@ -579,13 +582,30 @@
             });
         }
 
-        // Load entries
-        function loadEntries() {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                entries = JSON.parse(stored);
-            }
-        }
+		// Load entries from IndexedDB
+		async function loadEntries() {
+			entries = {};
+			return new Promise((resolve, reject) => {
+				try {
+					const tx = db.transaction(['entries'], 'readonly');
+					const store = tx.objectStore('entries');
+					const req = store.getAll();
+					req.onsuccess = () => {
+						const rows = req.result || [];
+						// rows are { day: 'YYYY-MM-DD', items: [...] }
+						for (const row of rows) {
+							entries[row.day] = row.items;
+						}
+						resolve();
+					};
+					req.onerror = () => reject(req.error);
+				} catch (e) {
+					console.warn('Failed to load entries from IDB:', e);
+					resolve(); // don’t block the app
+				}
+			});
+		}
+
 
         // Load image cache
         function loadImageCache() {
@@ -786,13 +806,25 @@
 			}
 		}
 		
-		function saveEntries() {
-			try {
-				localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-			} catch(e) {
-				console.warn('Could not save to localStorage:', e);
-			}
+		async function saveEntries() {
+			return new Promise((resolve, reject) => {
+				try {
+					const tx = db.transaction(['entries'], 'readwrite');
+					const store = tx.objectStore('entries');
+					// Write each day’s entries as one record
+					for (const day of Object.keys(entries)) {
+						const items = entries[day];
+						store.put({ day, items });
+					}
+					tx.oncomplete = () => resolve();
+					tx.onerror = () => reject(tx.error);
+				} catch (e) {
+					console.warn('Failed to save entries to IDB:', e);
+					resolve();
+				}
+			});
 		}
+
 
         // Show image modal
         function showImageModal(imagePath, style) {
@@ -1077,19 +1109,20 @@
             }
         });
 
-	initDB().then(() => {
+	initDB().then(async () => {
 		loadSettings();
-		loadEntries();
-		
+		await loadEntries();
+
 		const today = new Date();
 		currentMonth = today.getMonth();
 		currentYear = today.getFullYear();
 		document.getElementById('monthSelector').value = currentMonth;
 		document.getElementById('yearLabel').textContent = currentYear;
-		
+
 		initCalendar();
 		selectDay(today.getDate());
 	});
+
     </script>
 </body>
 </html>
