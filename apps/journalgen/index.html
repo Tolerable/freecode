@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JOURNALGEN</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+        }
+
+        .sidebar {
+            width: 180px;
+            background: #e0e0e0;
+            padding: 15px;
+            overflow-y: auto;
+            border-right: 1px solid #ccc;
+        }
+
+        .month-selector {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #999;
+            border-radius: 4px;
+        }
+
+        .year-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .year-nav button {
+            padding: 5px 10px;
+            cursor: pointer;
+            border: 1px solid #999;
+            background: white;
+            border-radius: 3px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-bottom: 15px;
+        }
+
+        .calendar-header {
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 3px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background: white;
+            font-size: 11px;
+            border-radius: 3px;
+        }
+
+        .calendar-day:hover {
+            background: #f0f0f0;
+        }
+
+        .calendar-day.selected {
+            background: lightblue;
+            font-weight: bold;
+        }
+
+        .calendar-day.today {
+            background: #90EE90;
+        }
+
+        .today-btn {
+            width: 100%;
+            padding: 8px;
+            cursor: pointer;
+            border: 1px solid #999;
+            background: white;
+            border-radius: 3px;
+            margin-top: 10px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-bar {
+            background: #f8f8f8;
+            border-bottom: 1px solid #ccc;
+            padding: 8px 15px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .menu-item {
+            cursor: pointer;
+            padding: 5px 10px;
+            position: relative;
+        }
+
+        .menu-item:hover {
+            background: #e0e0e0;
+            border-radius: 3px;
+        }
+
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            min-width: 200px;
+            z-index: 1000;
+        }
+
+        .dropdown.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background: #f0f0f0;
+        }
+
+        .dropdown-separator {
+            height: 1px;
+            background: #ccc;
+            margin: 5px 0;
+        }
+
+        .entries-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .entry {
+            display: flex;
+            gap: 15px;
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .entry-image-wrapper {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .entry-image {
+            width: 150px;
+            height: 84px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 3px solid;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .entry-text {
+            flex: 1;
+            line-height: 1.6;
+        }
+
+        .input-bar {
+            padding: 15px;
+            background: #f8f8f8;
+            border-top: 1px solid #ccc;
+        }
+
+        .input-bar input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal img {
+            max-width: 80%;
+            max-height: 80%;
+            border: 5px solid;
+            border-radius: 8px;
+        }
+
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 3000;
+            display: none;
+        }
+
+        .context-menu.show {
+            display: block;
+        }
+
+        .context-menu-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .context-menu-item:hover {
+            background: #f0f0f0;
+        }
+
+        .style-photographic { border-color: #4CAF50; }
+        .style-anime { border-color: #2196F3; }
+        .style-watercolor { border-color: #FFC107; }
+        .style-sketch { border-color: #9E9E9E; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <select class="month-selector" id="monthSelector">
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+            </select>
+            
+            <div class="year-nav">
+                <button id="prevYear">&lt;</button>
+                <span id="yearLabel">2025</span>
+                <button id="nextYear">&gt;</button>
+            </div>
+
+            <div class="calendar-grid" id="calendar"></div>
+            
+            <button class="today-btn" id="todayBtn">Today</button>
+        </div>
+
+        <div class="main-content">
+            <div class="menu-bar">
+                <div class="menu-item" id="styleMenu">
+                    Image Style
+                    <div class="dropdown" id="styleDropdown">
+                        <div class="dropdown-item" data-style="photographic">Photographic</div>
+                        <div class="dropdown-item" data-style="anime">Anime</div>
+                        <div class="dropdown-item" data-style="watercolor">Watercolor</div>
+                        <div class="dropdown-item" data-style="sketch">Sketch</div>
+                        <div class="dropdown-separator"></div>
+                        <div class="dropdown-item" id="setAppearance">Set User Appearance</div>
+                        <div class="dropdown-separator"></div>
+                        <div class="dropdown-item" id="applyAll">Apply Style to All Entries</div>
+                        <div class="dropdown-item" id="applyMonth">Apply Style to This Month</div>
+                        <div class="dropdown-item" id="applyDay">Apply Style to Today</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="entries-container" id="entriesContainer"></div>
+
+            <div class="input-bar">
+                <input type="text" id="entryInput" placeholder="Write your journal entry here...">
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="imageModal">
+        <img id="modalImage" src="" alt="">
+    </div>
+
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" id="regenImage">Regen Image</div>
+        <div class="context-menu-item" id="editEntry">Edit Entry</div>
+        <div class="context-menu-item" id="deleteEntry">Delete Entry</div>
+        <div class="dropdown-separator"></div>
+        <div class="context-menu-item">Change Style ▶
+            <div class="dropdown" id="styleChangeDropdown" style="left: 100%; top: 0;">
+                <div class="dropdown-item" data-change-style="photographic">Photographic</div>
+                <div class="dropdown-item" data-change-style="anime">Anime</div>
+                <div class="dropdown-item" data-change-style="watercolor">Watercolor</div>
+                <div class="dropdown-item" data-change-style="sketch">Sketch</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Storage using localStorage (since we can't write to files in browser)
+        const STORAGE_KEY = 'journalgen_entries';
+        const SETTINGS_KEY = 'journalgen_settings';
+        
+        const styles = {
+            photographic: { prepend: '', append: ', photorealistic style', color: '#4CAF50' },
+            anime: { prepend: '', append: ', Illustrated_Anime_Style', color: '#2196F3' },
+            watercolor: { prepend: '', append: ', watercolor painting style', color: '#FFC107' },
+            sketch: { prepend: '', append: ', pencil sketch style', color: '#9E9E9E' }
+        };
+
+        let currentStyle = 'photographic';
+        let userAppearance = '';
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+        let currentDay = null;
+        let entries = {};
+        let imageCache = {};
+        let currentContextEntry = null;
+
+        // Load settings
+        function loadSettings() {
+            const settings = localStorage.getItem(SETTINGS_KEY);
+            if (settings) {
+                const parsed = JSON.parse(settings);
+                currentStyle = parsed.currentStyle || 'photographic';
+                userAppearance = parsed.userAppearance || '';
+            }
+        }
+
+        // Save settings
+        function saveSettings() {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+                currentStyle,
+                userAppearance
+            }));
+        }
+
+        // Load entries
+        function loadEntries() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                entries = JSON.parse(stored);
+            }
+        }
+
+        // Save entries
+        function saveEntries() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        }
+
+        // Initialize calendar
+        function initCalendar() {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            
+            // Add weekday headers
+            ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'calendar-header';
+                header.textContent = day;
+                calendar.appendChild(header);
+            });
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            // Empty cells before first day
+            for (let i = 0; i < firstDay; i++) {
+                calendar.appendChild(document.createElement('div'));
+            }
+
+            // Day cells
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+                dayCell.textContent = day;
+                dayCell.addEventListener('click', () => selectDay(day));
+                
+                const today = new Date();
+                if (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
+                    dayCell.classList.add('today');
+                }
+                
+                calendar.appendChild(dayCell);
+            }
+        }
+
+        // Select a day
+        function selectDay(day) {
+            currentDay = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            
+            document.querySelectorAll('.calendar-day').forEach(cell => {
+                cell.classList.remove('selected');
+                if (parseInt(cell.textContent) === day) {
+                    cell.classList.add('selected');
+                }
+            });
+            
+            displayEntries();
+        }
+
+        // Display entries for current day
+        function displayEntries() {
+            const container = document.getElementById('entriesContainer');
+            container.innerHTML = '';
+            
+            const dayEntries = entries[currentDay] || [];
+            dayEntries.forEach(entry => {
+                createEntryElement(entry, container);
+            });
+        }
+
+        // Create entry element
+        function createEntryElement(entry, container) {
+            const [entryId, text, imagePath, style] = entry;
+            
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'entry';
+            entryDiv.dataset.entryId = entryId;
+            
+            const imageWrapper = document.createElement('div');
+            imageWrapper.className = 'entry-image-wrapper';
+            
+            const img = document.createElement('img');
+            img.className = `entry-image style-${style || 'photographic'}`;
+            img.src = imagePath || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="84"%3E%3Crect fill="%23ccc" width="150" height="84"/%3E%3C/svg%3E';
+            img.addEventListener('click', () => showImageModal(imagePath, style));
+            
+            imageWrapper.appendChild(img);
+            
+            if (!imagePath) {
+                const spinner = document.createElement('div');
+                spinner.className = 'spinner';
+                imageWrapper.appendChild(spinner);
+            }
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'entry-text';
+            textDiv.textContent = text;
+            
+            entryDiv.appendChild(imageWrapper);
+            entryDiv.appendChild(textDiv);
+            
+            // Context menu
+            entryDiv.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showContextMenu(e, entryId, text, style);
+            });
+            
+            container.appendChild(entryDiv);
+        }
+
+        // Add new entry
+        async function addEntry() {
+            const input = document.getElementById('entryInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            const now = new Date();
+            const entryId = now.getTime().toString();
+            const timestamp = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const fullText = `[${timestamp}] ${text}`;
+            
+            if (!entries[currentDay]) {
+                entries[currentDay] = [];
+            }
+            
+            entries[currentDay].push([entryId, fullText, null, currentStyle]);
+            saveEntries();
+            
+            input.value = '';
+            displayEntries();
+            
+            // Generate image
+            generateImage(entryId, text, currentStyle);
+        }
+
+        // Generate image
+        async function generateImage(entryId, text, style) {
+            const styleInfo = styles[style];
+            const prompt = `${userAppearance} ${styleInfo.prepend} ${text} ${styleInfo.append}`.trim();
+            const seed = Math.floor(Math.random() * 1000000);
+            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&seed=${seed}&width=1920&height=1080&referrer=ai-ministries.com`;
+            
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                
+                // Update entry with image
+                const dayEntries = entries[currentDay];
+                const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
+                if (entryIndex !== -1) {
+                    dayEntries[entryIndex][2] = imageUrl;
+                    saveEntries();
+                    displayEntries();
+                }
+            } catch (error) {
+                console.error('Error generating image:', error);
+            }
+        }
+
+        // Show image modal
+        function showImageModal(imagePath, style) {
+            if (!imagePath) return;
+            
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('modalImage');
+            img.src = imagePath;
+            img.style.borderColor = styles[style].color;
+            modal.classList.add('show');
+            
+            modal.addEventListener('click', () => {
+                modal.classList.remove('show');
+            });
+        }
+
+        // Show context menu
+        function showContextMenu(e, entryId, text, style) {
+            const menu = document.getElementById('contextMenu');
+            currentContextEntry = { entryId, text, style };
+            
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            menu.classList.add('show');
+            
+            document.addEventListener('click', () => {
+                menu.classList.remove('show');
+            }, { once: true });
+        }
+
+        // Event listeners
+        document.getElementById('monthSelector').addEventListener('change', (e) => {
+            currentMonth = parseInt(e.target.value);
+            initCalendar();
+            selectDay(1);
+        });
+
+        document.getElementById('prevYear').addEventListener('click', () => {
+            currentYear--;
+            document.getElementById('yearLabel').textContent = currentYear;
+            initCalendar();
+            selectDay(1);
+        });
+
+        document.getElementById('nextYear').addEventListener('click', () => {
+            currentYear++;
+            document.getElementById('yearLabel').textContent = currentYear;
+            initCalendar();
+            selectDay(1);
+        });
+
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            const today = new Date();
+            currentYear = today.getFullYear();
+            currentMonth = today.getMonth();
+            document.getElementById('yearLabel').textContent = currentYear;
+            document.getElementById('monthSelector').value = currentMonth;
+            initCalendar();
+            selectDay(today.getDate());
+        });
+
+        document.getElementById('entryInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addEntry();
+            }
+        });
+
+        // Style menu
+        document.getElementById('styleMenu').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = document.getElementById('styleDropdown');
+            dropdown.classList.toggle('show');
+        });
+
+        document.querySelectorAll('[data-style]').forEach(item => {
+            item.addEventListener('click', () => {
+                currentStyle = item.dataset.style;
+                saveSettings();
+                document.getElementById('styleDropdown').classList.remove('show');
+            });
+        });
+
+        document.getElementById('setAppearance').addEventListener('click', () => {
+            const appearance = prompt('Enter user appearance description:', userAppearance);
+            if (appearance !== null) {
+                userAppearance = appearance;
+                saveSettings();
+            }
+        });
+
+        // Context menu actions
+        document.getElementById('regenImage').addEventListener('click', () => {
+            if (currentContextEntry) {
+                const content = currentContextEntry.text.split('] ')[1] || currentContextEntry.text;
+                generateImage(currentContextEntry.entryId, content, currentContextEntry.style);
+            }
+        });
+
+        document.getElementById('deleteEntry').addEventListener('click', () => {
+            if (currentContextEntry && confirm('Delete this entry?')) {
+                entries[currentDay] = entries[currentDay].filter(e => e[0] !== currentContextEntry.entryId);
+                saveEntries();
+                displayEntries();
+            }
+        });
+
+        // Initialize
+        loadSettings();
+        loadEntries();
+        
+        const today = new Date();
+        currentMonth = today.getMonth();
+        currentYear = today.getFullYear();
+        document.getElementById('monthSelector').value = currentMonth;
+        document.getElementById('yearLabel').textContent = currentYear;
+        
+        initCalendar();
+        selectDay(today.getDate());
+    </script>
+</body>
+</html>
