@@ -872,22 +872,25 @@
         document.getElementById('styleMenu').addEventListener('click', (e) => {
             e.stopPropagation();
             const dropdown = document.getElementById('styleDropdown');
-            dropdown.classList.toggle('show');
+            const isShowing = dropdown.classList.contains('show');
             
-            if (dropdown.classList.contains('show')) {
-                const closeDropdown = (event) => {
-                    if (!document.getElementById('styleMenu').contains(event.target)) {
-                        dropdown.classList.remove('show');
-                        document.removeEventListener('click', closeDropdown);
-                    }
-                };
-                setTimeout(() => {
-                    document.addEventListener('click', closeDropdown);
-                }, 10);
+            // Close all dropdowns first
+            document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+            
+            // Toggle this one
+            if (!isShowing) {
+                dropdown.classList.add('show');
             }
         });
 
-        document.querySelectorAll('[data-style]').forEach(item => {
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.menu-item')) {
+                document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
+
+        document.querySelectorAll('#styleDropdown [data-style]').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
                 currentStyle = item.dataset.style;
