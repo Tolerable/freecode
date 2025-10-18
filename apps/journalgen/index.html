@@ -546,11 +546,6 @@
             }
         }
 
-        // Save entries
-        function saveEntries() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-        }
-
         // Load image cache
         function loadImageCache() {
             const stored = localStorage.getItem(IMAGE_CACHE_KEY);
@@ -723,136 +718,109 @@
             setTimeout(() => generateImage(entryId, text, currentStyle), 1000);
         }
 
-        // Generate image
-        async function generateImage(entryId, text, style, retryCount = 0) {
-            // Check if already generating
-            if (pendingImageRequests.has(entryId)) {
-                console.log('Already generating image for', entryId);
-                return;
-            }
-            
-            pendingImageRequests.set(entryId, true);
-            
-            const styleInfo = styles[style];
-            const prompt = `${userAppearance} ${styleInfo.prepend} ${text} ${styleInfo.append}`.trim();
-            const seed = Math.floor(Math.random() * 1000000);
-            
-            // Build URL carefully - encode only the prompt part
-            const encodedPrompt = encodeURIComponent(prompt);
-            const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true&seed=${seed}&width=1024&height=1024`;
-            
-            try {
-                console.log('Generating image for:', entryId);
-                console.log('Full URL:', url);
-                
-                const response = await fetch(url);
-                
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Error response:', errorText);
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-                
-                const blob = await response.blob();
-                console.log('Received blob:', blob.size, 'bytes', blob.type);
-                
-                // Create blob URL (doesn't use localStorage quota!)
-                const blobUrl = URL.createObjectURL(blob);
-                
-                // Also create a compressed base64 for localStorage backup
-                const img = new Image();
-                img.onload = () => {
-                    // Create canvas to compress the image
-                    const canvas = document.createElement('canvas');
-                    const maxSize = 800; // Compress to max 800px
-                    let width = img.width;
-                    let height = img.height;
-                    
-                    if (width > height && width > maxSize) {
-                        height *= maxSize / width;
-                        width = maxSize;
-                    } else if (height > maxSize) {
-                        width *= maxSize / height;
-                        height = maxSize;
-                    }
-                    
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // Convert to compressed base64
-                    const base64data = canvas.toDataURL('image/jpeg', 0.7); // 70% quality
-                    
-                    // Update entry with both URLs
-                    const dayEntries = entries[currentDay];
-                    if (dayEntries) {
-                        const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
-                        if (entryIndex !== -1) {
-                            dayEntries[entryIndex][2] = base64data; // Store compressed version
-                            dayEntries[entryIndex][4] = null; // Clear error
-                            
-                            try {
-                                saveEntries();
-                                console.log('✓ Image saved successfully for:', entryId);
-                            } catch (quotaError) {
-                                console.warn('localStorage quota exceeded, storing blob URL only');
-                                // Store just the blob URL if localStorage is full
-                                dayEntries[entryIndex][2] = blobUrl;
-                                // Don't try to save to localStorage
-                            }
-                            
-                            displayEntries();
-                        }
-                    }
-                    
-                    pendingImageRequests.delete(entryId);
-                };
-                
-                img.onerror = (error) => {
-                    console.error('Image compression error:', error);
-                    // Fallback: just use the blob URL
-                    const dayEntries = entries[currentDay];
-                    if (dayEntries) {
-                        const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
-                        if (entryIndex !== -1) {
-                            dayEntries[entryIndex][2] = blobUrl;
-                            dayEntries[entryIndex][4] = null;
-                            displayEntries();
-                        }
-                    }
-                    pendingImageRequests.delete(entryId);
-                };
-                
-                img.src = blobUrl;
-                
-            } catch (error) {
-                console.error('✗ Error generating image:', error);
-                pendingImageRequests.delete(entryId);
-                
-                // Retry logic
-                if (retryCount < 3) {
-                    const delay = Math.pow(2, retryCount) * 5000;
-                    console.log(`⟳ Retrying in ${delay/1000}s... (attempt ${retryCount + 2}/4)`);
-                    setTimeout(() => generateImage(entryId, text, style, retryCount + 1), delay);
-                } else {
-                    // Mark entry with error
-                    const dayEntries = entries[currentDay];
-                    if (dayEntries) {
-                        const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
-                        if (entryIndex !== -1) {
-                            dayEntries[entryIndex][4] = error.message;
-                            saveEntries();
-                            displayEntries();
-                        }
-                    }
-                    console.error('✗ Failed after all retries');
-                }
-            }
-        }
+		// Generate image
+		async function generateImage(entryId, text, style, retryCount = 0) {
+			if (pendingImageRequests.has(entryId)) {
+				console.log('Already generating image for', entryId);
+				return;
+			}
+			
+			pendingImageRequests.set(entryId, true);
+			
+			const styleInfo = styles[style];
+			const prompt = `${userAppearance} ${styleInfo.prepend} ${text} ${styleInfo.append}`.trim();
+			const seed = Math.floor(Math.random() * 1000000);
+			const encodedPrompt = encodeURIComponent(prompt);
+			const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true&seed=${seed}&width=1024&height=1024`;
+			
+			try {
+				console.log('Generating image for:', entryId);
+				const response = await fetch(url);
+				
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}`);
+				}
+				
+				const blob = await response.blob();
+				const blobUrl = URL.createObjectURL(blob);
+				
+				const img = new Image();
+				img.onload = () => {
+					const canvas = document.createElement('canvas');
+					const maxSize = 300;
+					let width = img.width;
+					let height = img.height;
+					
+					if (width > height && width > maxSize) {
+						height *= maxSize / width;
+						width = maxSize;
+					} else if (height > maxSize) {
+						width *= maxSize / height;
+						height = maxSize;
+					}
+					
+					canvas.width = width;
+					canvas.height = height;
+					const ctx = canvas.getContext('2d');
+					ctx.drawImage(img, 0, 0, width, height);
+					
+					const base64data = canvas.toDataURL('image/jpeg', 0.5);
+					
+					const dayEntries = entries[currentDay];
+					if (dayEntries) {
+						const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
+						if (entryIndex !== -1) {
+							dayEntries[entryIndex][2] = base64data;
+							dayEntries[entryIndex][4] = null;
+							displayEntries();
+						}
+					}
+					
+					pendingImageRequests.delete(entryId);
+				};
+				
+				img.onerror = () => {
+					const dayEntries = entries[currentDay];
+					if (dayEntries) {
+						const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
+						if (entryIndex !== -1) {
+							dayEntries[entryIndex][2] = blobUrl;
+							dayEntries[entryIndex][4] = null;
+							displayEntries();
+						}
+					}
+					pendingImageRequests.delete(entryId);
+				};
+				
+				img.src = blobUrl;
+				
+			} catch (error) {
+				console.error('Error generating image:', error);
+				pendingImageRequests.delete(entryId);
+				
+				if (retryCount < 3) {
+					const delay = Math.pow(2, retryCount) * 5000;
+					setTimeout(() => generateImage(entryId, text, style, retryCount + 1), delay);
+				} else {
+					const dayEntries = entries[currentDay];
+					if (dayEntries) {
+						const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
+						if (entryIndex !== -1) {
+							dayEntries[entryIndex][4] = error.message;
+							displayEntries();
+						}
+					}
+				}
+			}
+		}
+
+		function saveEntries() {
+			try {
+				localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+			} catch(e) {
+				console.warn('Could not save to localStorage:', e);
+			}
+		}
 
         // Show image modal
         function showImageModal(imagePath, style) {
