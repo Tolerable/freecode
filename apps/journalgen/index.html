@@ -737,20 +737,29 @@
             const prompt = `${userAppearance} ${styleInfo.prepend} ${text} ${styleInfo.append}`.trim();
             const seed = Math.floor(Math.random() * 1000000);
             
-            // Use pollinations.ai with proper referrer
-            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&seed=${seed}&width=1920&height=1080&model=flux&referrer=ai-ministries.com`;
+            // Build URL carefully - encode only the prompt part
+            const encodedPrompt = encodeURIComponent(prompt);
+            const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true&seed=${seed}&width=1024&height=1024`;
             
             try {
-                console.log('Generating image:', entryId);
+                console.log('Generating image for:', entryId);
+                console.log('Full URL:', url);
+                
                 const response = await fetch(url);
                 
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
                 
                 const blob = await response.blob();
+                console.log('Received blob:', blob.size, 'bytes', blob.type);
                 
-                // Convert to base64 for localStorage
+                // Convert to base64
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     const base64data = reader.result;
@@ -764,21 +773,29 @@
                             dayEntries[entryIndex][4] = null; // Clear error
                             saveEntries();
                             displayEntries();
+                            console.log('✓ Image saved successfully for:', entryId);
                         }
                     }
                     
                     pendingImageRequests.delete(entryId);
                 };
+                
+                reader.onerror = (error) => {
+                    console.error('FileReader error:', error);
+                    pendingImageRequests.delete(entryId);
+                    throw error;
+                };
+                
                 reader.readAsDataURL(blob);
                 
             } catch (error) {
-                console.error('Error generating image:', error);
+                console.error('✗ Error generating image:', error);
                 pendingImageRequests.delete(entryId);
                 
-                // Retry logic with exponential backoff
+                // Retry logic
                 if (retryCount < 3) {
-                    const delay = Math.pow(2, retryCount) * 2000; // 2s, 4s, 8s
-                    console.log(`Retrying in ${delay}ms...`);
+                    const delay = Math.pow(2, retryCount) * 5000;
+                    console.log(`⟳ Retrying in ${delay/1000}s... (attempt ${retryCount + 2}/4)`);
                     setTimeout(() => generateImage(entryId, text, style, retryCount + 1), delay);
                 } else {
                     // Mark entry with error
@@ -791,6 +808,7 @@
                             displayEntries();
                         }
                     }
+                    console.error('✗ Failed after all retries');
                 }
             }
         }
