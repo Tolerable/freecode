@@ -759,34 +759,75 @@
                 const blob = await response.blob();
                 console.log('Received blob:', blob.size, 'bytes', blob.type);
                 
-                // Convert to base64
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const base64data = reader.result;
+                // Create blob URL (doesn't use localStorage quota!)
+                const blobUrl = URL.createObjectURL(blob);
+                
+                // Also create a compressed base64 for localStorage backup
+                const img = new Image();
+                img.onload = () => {
+                    // Create canvas to compress the image
+                    const canvas = document.createElement('canvas');
+                    const maxSize = 800; // Compress to max 800px
+                    let width = img.width;
+                    let height = img.height;
                     
-                    // Update entry with image
+                    if (width > height && width > maxSize) {
+                        height *= maxSize / width;
+                        width = maxSize;
+                    } else if (height > maxSize) {
+                        width *= maxSize / height;
+                        height = maxSize;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Convert to compressed base64
+                    const base64data = canvas.toDataURL('image/jpeg', 0.7); // 70% quality
+                    
+                    // Update entry with both URLs
                     const dayEntries = entries[currentDay];
                     if (dayEntries) {
                         const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
                         if (entryIndex !== -1) {
-                            dayEntries[entryIndex][2] = base64data;
+                            dayEntries[entryIndex][2] = base64data; // Store compressed version
                             dayEntries[entryIndex][4] = null; // Clear error
-                            saveEntries();
+                            
+                            try {
+                                saveEntries();
+                                console.log('✓ Image saved successfully for:', entryId);
+                            } catch (quotaError) {
+                                console.warn('localStorage quota exceeded, storing blob URL only');
+                                // Store just the blob URL if localStorage is full
+                                dayEntries[entryIndex][2] = blobUrl;
+                                // Don't try to save to localStorage
+                            }
+                            
                             displayEntries();
-                            console.log('✓ Image saved successfully for:', entryId);
                         }
                     }
                     
                     pendingImageRequests.delete(entryId);
                 };
                 
-                reader.onerror = (error) => {
-                    console.error('FileReader error:', error);
+                img.onerror = (error) => {
+                    console.error('Image compression error:', error);
+                    // Fallback: just use the blob URL
+                    const dayEntries = entries[currentDay];
+                    if (dayEntries) {
+                        const entryIndex = dayEntries.findIndex(e => e[0] === entryId);
+                        if (entryIndex !== -1) {
+                            dayEntries[entryIndex][2] = blobUrl;
+                            dayEntries[entryIndex][4] = null;
+                            displayEntries();
+                        }
+                    }
                     pendingImageRequests.delete(entryId);
-                    throw error;
                 };
                 
-                reader.readAsDataURL(blob);
+                img.src = blobUrl;
                 
             } catch (error) {
                 console.error('✗ Error generating image:', error);
