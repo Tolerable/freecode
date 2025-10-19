@@ -782,7 +782,8 @@
 			}
 
 			entries[currentDay].unshift([entryId, fullText, null, currentStyle]);
-			await saveEntries();              // <-- IMPORTANT: persist before UI update
+			await saveEntries();
+			if (typeof remoteSaveEntries === 'function') remoteSaveEntries();
 
 			input.value = '';
 			await displayEntries();
@@ -790,6 +791,7 @@
 
 			setTimeout(() => generateImage(entryId, text, currentStyle), 1000);
 		}
+
 
 
 		// Generate image
@@ -808,6 +810,7 @@
 				
 				const blob = await response.blob();
 				await saveImage(entryId, blob);
+				remoteUploadImage(entryId, blob);
 				
 				const dayEntries = entries[currentDay];
 				if (dayEntries) {
@@ -982,12 +985,14 @@
 		document.getElementById('deleteEntry').addEventListener('click', async () => {
 			if (currentContextEntry && confirm('Delete this entry?')) {
 				entries[currentDay] = entries[currentDay].filter(e => e[0] !== currentContextEntry.entryId);
-				saveEntries();
+				await saveEntries();
+				if (typeof remoteSaveEntries === 'function') remoteSaveEntries();
 				await displayEntries();
 				initCalendar();
 			}
 			document.getElementById('contextMenu').classList.remove('show');
 		});
+
 
         // Change style submenu
         document.querySelectorAll('[data-change-style]').forEach(item => {
@@ -1009,56 +1014,62 @@
         });
 
         // Apply style functions
-        document.getElementById('applyDay').addEventListener('click', () => {
-            if (confirm(`Apply ${currentStyle} style to all entries today?`)) {
-                const dayEntries = entries[currentDay] || [];
-                dayEntries.forEach(entry => {
-                    entry[3] = currentStyle;
-                    const content = entry[1].split('] ')[1] || entry[1];
-                    setTimeout(() => generateImage(entry[0], content, currentStyle), Math.random() * 2000);
-                });
-                saveEntries();
-                displayEntries();
-            }
-            document.getElementById('styleDropdown').classList.remove('show');
-        });
+		document.getElementById('applyDay').addEventListener('click', async () => {
+			if (confirm(`Apply ${currentStyle} style to all entries today?`)) {
+				const dayEntries = entries[currentDay] || [];
+				dayEntries.forEach(entry => {
+					entry[3] = currentStyle;
+					const content = entry[1].split('] ')[1] || entry[1];
+					setTimeout(() => generateImage(entry[0], content, currentStyle), Math.random() * 2000);
+				});
+				await saveEntries();
+				if (typeof remoteSaveEntries === 'function') remoteSaveEntries();
+				await displayEntries();
+			}
+			document.getElementById('styleDropdown').classList.remove('show');
+		});
 
-        document.getElementById('applyMonth').addEventListener('click', () => {
-            if (confirm(`Apply ${currentStyle} style to all entries this month?`)) {
-                const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-                let count = 0;
-                Object.keys(entries).forEach(day => {
-                    if (day.startsWith(monthKey)) {
-                        entries[day].forEach(entry => {
-                            entry[3] = currentStyle;
-                            const content = entry[1].split('] ')[1] || entry[1];
-                            setTimeout(() => generateImage(entry[0], content, currentStyle), count * 3000);
-                            count++;
-                        });
-                    }
-                });
-                saveEntries();
-                displayEntries();
-            }
-            document.getElementById('styleDropdown').classList.remove('show');
-        });
 
-        document.getElementById('applyAll').addEventListener('click', () => {
-            if (confirm(`Apply ${currentStyle} style to ALL entries? This may take a while.`)) {
-                let count = 0;
-                Object.keys(entries).forEach(day => {
-                    entries[day].forEach(entry => {
-                        entry[3] = currentStyle;
-                        const content = entry[1].split('] ')[1] || entry[1];
-                        setTimeout(() => generateImage(entry[0], content, currentStyle), count * 3000);
-                        count++;
-                    });
-                });
-                saveEntries();
-                displayEntries();
-            }
-            document.getElementById('styleDropdown').classList.remove('show');
-        });
+		document.getElementById('applyMonth').addEventListener('click', async () => {
+			if (confirm(`Apply ${currentStyle} style to all entries this month?`)) {
+				const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+				let count = 0;
+				Object.keys(entries).forEach(day => {
+					if (day.startsWith(monthKey)) {
+						entries[day].forEach(entry => {
+							entry[3] = currentStyle;
+							const content = entry[1].split('] ')[1] || entry[1];
+							setTimeout(() => generateImage(entry[0], content, currentStyle), count * 3000);
+							count++;
+						});
+					}
+				});
+				await saveEntries();
+				if (typeof remoteSaveEntries === 'function') remoteSaveEntries();
+				await displayEntries();
+			}
+			document.getElementById('styleDropdown').classList.remove('show');
+		});
+
+
+		document.getElementById('applyAll').addEventListener('click', async () => {
+			if (confirm(`Apply ${currentStyle} style to ALL entries? This may take a while.`)) {
+				let count = 0;
+				Object.keys(entries).forEach(day => {
+					entries[day].forEach(entry => {
+						entry[3] = currentStyle;
+						const content = entry[1].split('] ')[1] || entry[1];
+						setTimeout(() => generateImage(entry[0], content, currentStyle), count * 3000);
+						count++;
+					});
+				});
+				await saveEntries();
+				if (typeof remoteSaveEntries === 'function') remoteSaveEntries();
+				await displayEntries();
+			}
+			document.getElementById('styleDropdown').classList.remove('show');
+		});
+
 
         // Edit modal functions
         function showEditModal(entryId, text) {
@@ -1076,6 +1087,119 @@
             modal.dataset.entryId = entryId;
         }
 
+		async function blobToBase64(blob) {
+		  return new Promise((resolve, reject) => {
+			const r = new FileReader();
+			r.onloadend = () => resolve(r.result.split(',')[1]); // strip data: header
+			r.onerror = reject;
+			r.readAsDataURL(blob);
+		  });
+		}
+
+		async function authedCall(action, payload) {
+		  // uses your existing Netlify proxy and JWT in localStorage (same as auth.js)
+		  const token = localStorage.getItem('sn_auth_token');
+		  const resp = await fetch('/.netlify/functions/supabase-proxy', {
+			method: 'POST',
+			headers: {
+			  'Content-Type': 'application/json',
+			  ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+			},
+			body: JSON.stringify({ action, payload })
+		  });
+		  const json = await resp.json();
+		  if (!resp.ok || json.error) {
+			const msg = json.error?.message || json.error || `HTTP ${resp.status}`;
+			throw new Error(`Proxy ${action} failed: ${msg}`);
+		  }
+		  return json;
+		}
+
+		async function remoteSaveEntries() {
+		  // ship the whole `entries` map; server upserts per-day rows
+		  const rows = Object.keys(entries).map(day => ({ day, items: entries[day] }));
+		  try {
+			await authedCall('upsertJournalEntries', { rows });
+		  } catch (e) {
+			console.warn('remoteSaveEntries failed:', e.message);
+		  }
+		}
+
+		async function remoteLoadEntries() {
+		  try {
+			const res = await authedCall('fetchJournalEntries', {});
+			if (Array.isArray(res.data)) {
+			  const merged = {};
+			  for (const row of res.data) merged[row.day] = row.items;
+			  return merged;
+			}
+		  } catch (e) {
+			console.warn('remoteLoadEntries failed:', e.message);
+		  }
+		  return null;
+		}
+
+		async function remoteUploadImage(entryId, blob) {
+		  try {
+			const b64 = await blobToBase64(blob);
+			await authedCall('uploadJournalImage', { entryId, base64: b64 });
+		  } catch (e) {
+			console.warn('remoteUploadImage failed:', e.message);
+		  }
+		}
+
+		async function remoteFetchImage(entryId) {
+		  try {
+			const res = await authedCall('getJournalImage', { entryId });
+			if (res?.data?.base64) {
+			  const b64 = res.data.base64;
+			  const bin = atob(b64);
+			  const arr = new Uint8Array(bin.length);
+			  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+			  // images are saved as webp; adjust if you change server side
+			  const blob = new Blob([arr], { type: 'image/webp' });
+			  return blob;
+			}
+		  } catch (e) {
+			console.warn('remoteFetchImage failed:', e.message);
+		  }
+		  return null;
+		}
+
+		async function syncFromRemoteIntoIDB() {
+		  const remote = await remoteLoadEntries();
+		  if (!remote) return; // nothing to merge
+
+		  // Merge: remote wins per-day (you can change strategy if you like)
+		  let changed = false;
+		  for (const day of Object.keys(remote)) {
+			const rItems = remote[day] || [];
+			const lItems = entries[day] || [];
+			// simple replace if lengths differ or text differs
+			const same = JSON.stringify(rItems) === JSON.stringify(lItems);
+			if (!same) {
+			  entries[day] = rItems;
+			  changed = true;
+			}
+		  }
+		  if (changed) await saveEntries();
+		}
+
+		async function backfillMissingImagesFromRemote() {
+		  // For current day only (keep it light). You can expand to month if desired.
+		  const dayEntries = entries[currentDay] || [];
+		  for (const [entryId] of dayEntries) {
+			const cached = await getImage(entryId);
+			if (!cached || !cached.data) {
+			  const blob = await remoteFetchImage(entryId);
+			  if (blob) {
+				await saveImage(entryId, blob);
+			  }
+			}
+		  }
+		}
+
+
 		document.getElementById('saveEdit').addEventListener('click', async () => {
 			const modal = document.getElementById('editModal');
 			const textarea = document.getElementById('editTextarea');
@@ -1088,13 +1212,15 @@
 				if (entryIndex !== -1) {
 					const timestamp = dayEntries[entryIndex][1].split(']')[0] + ']';
 					dayEntries[entryIndex][1] = `${timestamp} ${newContent}`;
-					await saveEntries();          // persist the edit
+					await saveEntries();
+					if (typeof remoteSaveEntries === 'function') remoteSaveEntries();
 					await displayEntries();
 					generateImage(entryId, newContent, dayEntries[entryIndex][3]);
 				}
 			}
 			modal.classList.remove('show');
 		});
+
 
         document.getElementById('cancelEdit').addEventListener('click', () => {
             document.getElementById('editModal').classList.remove('show');
@@ -1129,7 +1255,7 @@
 	initDB().then(async () => {
 		loadSettings();
 		await loadEntries();
-
+		await syncFromRemoteIntoIDB();
 		const today = new Date();
 		currentMonth = today.getMonth();
 		currentYear = today.getFullYear();
