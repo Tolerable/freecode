@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orbital Salvage Crew — Idle(ish) EVA</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+  :root{
+    --bg:#0a0f1a; --panel:#0e1729; --card:#121b33; --ink:#e6ecff; --muted:#9fb0d1;
+    --acc:#60a5fa; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --chip:#1b2544;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;background:radial-gradient(1200px 600px at 50% -200px,#0f1a33 0,#0a0f1a 55%,#070a12 100%);color:var(--ink);font:14px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0}
+  .wrap{max-width:980px;margin:0 auto;display:grid;grid-template-rows:auto auto 1fr;gap:8px;padding:12px}
+  header{background:linear-gradient(180deg,#0f1930,#0d1628);border:1px solid #1f2a44;border-radius:14px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between}
+  header .title{font-weight:700;letter-spacing:.4px}
+  header .title small{color:var(--muted);font-weight:500}
+  .col{display:grid;grid-template-columns:1.1fr .9fr;gap:12px}
+  .panel{background:var(--panel);border:1px solid #1f2a44;border-radius:14px;padding:12px}
+  .card{background:var(--card);border:1px solid #213050;border-radius:12px;padding:10px}
+  #game{display:block;width:100%;aspect-ratio:16/9;border-radius:12px;background:#000;border:1px solid #1d2744}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .stat{display:flex;gap:6px;align-items:center;background:var(--chip);border:1px solid #24345a;border-radius:999px;padding:6px 10px}
+  .stat b{font-weight:700}
+  .controls .btn{background:linear-gradient(180deg,#1a2a54,#162449);border:1px solid #2a3d6b;padding:9px 12px;border-radius:10px;color:#dbe7ff;font-weight:700;cursor:pointer;user-select:none}
+  .controls .btn[disabled]{opacity:.45;cursor:not-allowed}
+  select, .slider{background:var(--chip);color:var(--ink);border:1px solid #2a3d6b;border-radius:10px;padding:8px 10px}
+  .bar{height:10px;background:#0c1427;border:1px solid #25365e;border-radius:999px;overflow:hidden}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,#3b82f6,#22c55e);width:0%}
+  .bar.threat > i{background:linear-gradient(90deg,#f59e0b,#ef4444)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .log{height:220px;overflow:auto;background:#0c1420;border:1px solid #223154;border-radius:10px;padding:8px;font-family:ui-monospace,Consolas,monospace}
+  .log p{margin:.2em 0}
+  .muted{color:var(--muted)}
+  .pill{padding:2px 8px;border-radius:999px;border:1px solid #2a3d6b;background:#142243}
+  .foot{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px}
+  .kbd{background:#0e1a32;border:1px solid #294077;border-radius:6px;padding:2px 6px;font-family:ui-monospace,Consolas,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">🚀 Orbital Salvage Crew <small>— EVA idle with pressure</small></div>
+    <div class="row">
+      <div class="stat"><span>🔧 Alloys:</span> <b id="alloys">0</b></div>
+      <div class="stat"><span>📦 Parts:</span> <b id="parts">0</b></div>
+      <div class="stat"><span>🤖 Drones:</span> <b id="drones">2</b></div>
+      <div class="stat"><span>👩‍🚀 EVA:</span> <b id="crew">3</b></div>
+    </div>
+  </header>
+
+  <div class="col">
+    <div class="panel">
+      <canvas id="game"></canvas>
+      <div class="row" style="margin-top:8px">
+        <div class="card" style="flex:1">
+          <div class="row" style="justify-content:space-between">
+            <div class="row controls">
+              <button id="boostBtn" class="btn">⚡ Boost Burn (30s)</button>
+              <button id="spawnBtn" class="btn">📡 Scan Sector</button>
+            </div>
+            <div class="row">
+              <span class="pill">Sector: <select id="sectorSel">
+                <option value="0">Belt α</option>
+                <option value="1">Graveyard β</option>
+                <option value="2">Halo γ</option>
+              </select></span>
+              <span class="pill">Zoom: <input id="zoom" class="slider" type="range" min="0.8" max="1.4" step="0.01" value="1.0"></span>
+            </div>
+          </div>
+          <div class="grid2" style="margin-top:8px">
+            <div>
+              <div class="muted" style="margin-bottom:4px">⛽ Boost Meter</div>
+              <div class="bar" aria-label="boost"><i id="boostBar"></i></div>
+              <div class="muted" style="margin:6px 0 4px">🛰️ Output Efficiency</div>
+              <div class="bar"><i id="effBar"></i></div>
+            </div>
+            <div>
+              <div class="muted" style="margin-bottom:4px">⚠️ Threat Index</div>
+              <div class="bar threat"><i id="threatBar"></i></div>
+              <div class="muted" style="margin:6px 0 4px">🛡️ Pirate Skim</div>
+              <div class="bar threat"><i id="skimBar"></i></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="width:320px">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div><b>Ship Status</b></div>
+            <div class="muted">Last input: <span id="lastInput">now</span></div>
+          </div>
+          <div class="row" style="margin-top:6px;gap:6px">
+            <div class="stat"><span>⚙️ Eff:</span> <b id="eff">100%</b></div>
+            <div class="stat"><span>⚠️ Threat:</span> <b id="threat">0</b></div>
+            <div class="stat"><span>🏴‍☠️ Skim:</span> <b id="skim">0%</b></div>
+          </div>
+          <div class="row" style="margin-top:8px;gap:6px">
+            <button id="buyDrone" class="btn" title="Costs 40 parts">Buy Drone (40🧩)</button>
+            <button id="hireEVA" class="btn" title="Costs 60 alloys">Hire EVA (60🔧)</button>
+          </div>
+          <div class="row" style="margin-top:6px;gap:6px">
+            <button id="saveBtn" class="btn">💾 Save</button>
+            <button id="wipeBtn" class="btn">🗑 Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <b>Mission Log</b>
+        <div class="muted">Tip: Click derelicts to **lock target** (extra haul). Use <span class="kbd">B</span> for Boost.</div>
+      </div>
+      <div id="log" class="log"></div>
+      <div class="foot">
+        <div>Offline progress pays 30% up to 4h. Threat rises after 60s inactivity; any action slows/bleeds it.</div>
+        <div>v1.0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ====== STATE ======
+  const SAVE_KEY = 'osc_save_v1';
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const rand = (a,b)=>a + Math.random()*(b-a);
+  const now = ()=>Date.now();
+
+  const state = {
+    alloys: 0,
+    parts: 0,
+    drones: 2,
+    crew: 3,
+    sector: 0,
+    boost: { active:false, t0:0, dur:30000, cd:45000, next:0 }, // 30s, 45s cd
+    efficiency: 1.0,  // overall multiplier displayed
+    threat: 0,        // 0..100
+    pirateSkim: 0,    // 0..0.5 (display as %)
+    lastInteraction: now(),
+    lastTick: now(),
+    lastSave: now(),
+    offlineAwarded: false,
+    zoom: 1.0,
+  };
+
+  // ====== UI HOOKS ======
+  const el = {
+    cvs: document.getElementById('game'),
+    alloys: document.getElementById('alloys'),
+    parts: document.getElementById('parts'),
+    drones: document.getElementById('drones'),
+    crew: document.getElementById('crew'),
+    sectorSel: document.getElementById('sectorSel'),
+    zoom: document.getElementById('zoom'),
+    boostBtn: document.getElementById('boostBtn'),
+    boostBar: document.getElementById('boostBar'),
+    effBar: document.getElementById('effBar'),
+    threatBar: document.getElementById('threatBar'),
+    skimBar: document.getElementById('skimBar'),
+    eff: document.getElementById('eff'),
+    threat: document.getElementById('threat'),
+    skim: document.getElementById('skim'),
+    spawnBtn: document.getElementById('spawnBtn'),
+    buyDrone: document.getElementById('buyDrone'),
+    hireEVA: document.getElementById('hireEVA'),
+    saveBtn: document.getElementById('saveBtn'),
+    wipeBtn: document.getElementById('wipeBtn'),
+    lastInput: document.getElementById('lastInput'),
+    log: document.getElementById('log'),
+  };
+
+  // ====== CANVAS SETUP ======
+  const ctx = el.cvs.getContext('2d');
+  const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const resize = ()=>{
+    const w = el.cvs.clientWidth;
+    const h = el.cvs.clientHeight;
+    el.cvs.width = Math.floor(w * DPR);
+    el.cvs.height = Math.floor(h * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  };
+  resize();
+  window.addEventListener('resize', resize);
+
+  // ====== WORLD MODEL ======
+  const world = {
+    width: 1400, height: 800,
+    ship: { x: 220, y: 400, r: 48 },
+    stars: [],
+    derelicts: [],
+    drones: [],
+    crew: [],
+    cacheEvents: [],
+    pirates: [],
+    selectedTarget: null,
+  };
+
+  // Parallax stars
+  for (let i=0;i<260;i++){
+    world.stars.push({
+      x: rand(0,world.width),
+      y: rand(0,world.height),
+      z: Math.random()*1.2+0.2,
+      b: Math.random()*0.6+0.4
+    });
+  }
+
+  // Seed derelicts
+  function spawnDerelict(ring=state.sector){
+    const zoneX = ring===0 ? [500,1300] : ring===1 ? [350,1250] : [250,1150];
+    const zoneY = ring===0 ? [120,700] : ring===1 ? [80,740] : [60,760];
+    const richness = ring===0? 1.0 : ring===1? 1.25 : 1.45;
+    const size = rand(24,48);
+    const id = 'D'+Math.floor(Math.random()*1e9);
+    world.derelicts.push({
+      id, x: rand(zoneX[0],zoneX[1]), y: rand(zoneY[0],zoneY[1]),
+      size, hp: size*3, richness, lockedUntil:0, pulse:0
+    });
+  }
+  for (let i=0;i<10;i++) spawnDerelict();
+
+  // Seed drones and crew
+  function makeDrone(){
+    const id = 'R'+Math.floor(Math.random()*1e9);
+    world.drones.push({
+      id, x: world.ship.x+rand(-30,30), y: world.ship.y+rand(-30,30),
+      v: 0.8, hauling:false, cargo:0, tgt:null, beam:0
+    });
+  }
+  function makeCrew(){
+    const id = 'E'+Math.floor(Math.random()*1e9);
+    world.crew.push({
+      id, x: world.ship.x+rand(-10,10), y: world.ship.y+rand(-10,10),
+      v: 1.1, hauling:false, cargo:0, tgt:null, bob:rand(0,Math.PI*2), beam:0
+    });
+  }
+  for (let i=0;i<state.drones;i++) makeDrone();
+  for (let i=0;i<state.crew;i++) makeCrew();
+
+  // ====== LOG ======
+  function log(msg,color){
+    const p=document.createElement('p'); if(color) p.style.color=color;
+    p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    el.log.prepend(p);
+    // limit
+    if (el.log.childNodes.length>200) el.log.removeChild(el.log.lastChild);
+  }
+
+  // ====== SAVE/LOAD/OFFLINE ======
+  function save(manual=false){
+    const payload = {
+      ...state,
+      lastSave: now(),
+      drones: state.drones,
+      crew: state.crew,
+      world:{
+        derelicts: world.derelicts.map(d=>({id:d.id,x:d.x,y:d.y,size:d.size,hp:d.hp,richness:d.richness,lockedUntil:d.lockedUntil})),
+      }
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    if (manual) log('Progress saved.', '#9fe5a0');
+  }
+  function load(){
+    const s = localStorage.getItem(SAVE_KEY);
+    if(!s) return;
+    try{
+      const data = JSON.parse(s);
+      Object.assign(state, data);
+      state.lastSave = data.lastSave || now();
+      // rebuild drones/crew
+      world.drones.length = 0; world.crew.length = 0;
+      for(let i=0;i<state.drones;i++) makeDrone();
+      for(let i=0;i<state.crew;i++) makeCrew();
+      // rebuild derelicts
+      world.derelicts.length = 0;
+      (data.world?.derelicts||[]).forEach(d=>{
+        world.derelicts.push({...d, pulse:0});
+      });
+      log('Save loaded.');
+    }catch(e){ console.error(e); }
+  }
+  function awardOffline(){
+    const dt = Math.min(4*3600*1000, now() - state.lastSave); // cap 4h
+    if (dt <= 5000) return; // negligible
+    const minutes = Math.floor(dt/60000);
+    // base passive rate depends on drones+crew, scaled at 30%
+    const baseRate = (state.drones*0.7 + state.crew*1.2) * 0.3;
+    const alloysGain = Math.floor(minutes * baseRate);
+    const partsGain  = Math.floor(minutes * baseRate * 0.25);
+    state.alloys += alloysGain;
+    state.parts  += partsGain;
+    log(`While you were away (${minutes}m), crew recovered ~${alloysGain} alloys & ${partsGain} parts at 30% efficiency.`, '#a0d7ff');
+  }
+  load();
+  awardOffline();
+
+  // ====== INPUT & ANTI-IDLE ======
+  function markInteraction(){
+    state.lastInteraction = now();
+    el.lastInput.textContent = 'now';
+  }
+  ['mousemove','mousedown','keydown','touchstart','wheel','click'].forEach(ev=>{
+    window.addEventListener(ev, markInteraction, {passive:true});
+  });
+
+  // ====== UI EVENTS ======
+  el.sectorSel.value = String(state.sector);
+  el.sectorSel.addEventListener('change', (e)=>{
+    state.sector = parseInt(e.target.value,10);
+    // spawn a few ring-appropriate derelicts
+    for (let i=0;i<3;i++) spawnDerelict(state.sector);
+    log(`Sector set to ${el.sectorSel.selectedOptions[0].textContent}.`);
+  });
+
+  el.zoom.value = state.zoom;
+  el.zoom.addEventListener('input', (e)=>{ state.zoom = parseFloat(e.target.value); });
+
+  el.boostBtn.addEventListener('click', ()=>{
+    const t = now();
+    if (t < state.boost.next) return;
+    state.boost.active = true;
+    state.boost.t0 = t;
+    state.boost.next = t + state.boost.cd + state.boost.dur;
+    log('Boost Burn engaged: engines overclocked for 30s!', '#a7ffb7');
+  });
+  window.addEventListener('keydown', (e)=>{ if(e.key==='b' || e.key==='B') el.boostBtn.click(); });
+
+  el.spawnBtn.addEventListener('click', ()=>{
+    for(let i=0;i<2;i++) spawnDerelict(state.sector);
+    log('Long-range scan found fresh salvage.');
+  });
+
+  el.buyDrone.addEventListener('click', ()=>{
+    if (state.parts < 40){ log('Need 40 parts to purchase a drone.', '#ffb4b4'); return; }
+    state.parts -= 40;
+    state.drones += 1;
+    makeDrone();
+    log('New drone commissioned. +1 auto-salvage.');
+  });
+
+  el.hireEVA.addEventListener('click', ()=>{
+    if (state.alloys < 60){ log('Need 60 alloys to hire an EVA specialist.', '#ffb4b4'); return; }
+    state.alloys -= 60;
+    state.crew += 1;
+    makeCrew();
+    log('EVA specialist joined the crew.');
+  });
+
+  el.saveBtn.addEventListener('click', ()=>save(true));
+  el.wipeBtn.addEventListener('click', ()=>{
+    if(!confirm('Reset all progress?')) return;
+    localStorage.removeItem(SAVE_KEY);
+    location.reload();
+  });
+
+  // ====== DERELICT CLICK TARGET LOCK ======
+  el.cvs.addEventListener('click', (ev)=>{
+    const rect = el.cvs.getBoundingClientRect();
+    const mx = (ev.clientX - rect.left) * (el.cvs.width/rect.width) / DPR;
+    const my = (ev.clientY - rect.top)  * (el.cvs.height/rect.height) / DPR;
+    // inverse of camera transform (zoom)
+    const zx = world.width/2, zy = world.height/2;
+    const sx = (mx - el.cvs.width/(2*DPR)) / state.zoom + zx;
+    const sy = (my - el.cvs.height/(2*DPR)) / state.zoom + zy;
+    // hit-test derelicts
+    let hit = null;
+    for (const d of world.derelicts){
+      const r = d.size+6;
+      if ((sx-d.x)**2 + (sy-d.y)**2 <= r*r){ hit = d; break; }
+    }
+    if (hit){
+      world.selectedTarget = hit.id;
+      hit.lockedUntil = now()+15000; // 15s better yield
+      hit.pulse = 1.0;
+      log(`Target locked on derelict ${hit.id.slice(0,4)}… bonus salvage for 15s.`);
+    }
+  });
+
+  // ====== GAME LOGIC ======
+  function chooseTarget(){
+    // prefer locked target, otherwise richest + closest
+    const locked = world.derelicts.find(d=>d.id===world.selectedTarget && d.hp>5);
+    if (locked) return locked;
+    let best=null, score=-1;
+    for(const d of world.derelicts){
+      if (d.hp<=5) continue;
+      const dx=d.x-world.ship.x, dy=d.y-world.ship.y;
+      const dist = Math.hypot(dx,dy);
+      const s = d.richness*100/(dist+60);
+      if (s>score){ score=s; best=d; }
+    }
+    return best;
+  }
+
+  function stepUnit(u, baseSpeed){
+    // target selection
+    if (!u.tgt || u.tgt.hp<=5){
+      u.tgt = chooseTarget();
+      if (!u.tgt) return; // nothing to do
+    }
+    const speed = baseSpeed * (state.boost.active?1.7:1.0) * (1.0 - state.pirateSkim*0.2);
+    if (!u.hauling){
+      // move toward derelict
+      const dx = u.tgt.x - u.x, dy = u.tgt.y - u.y;
+      const dist = Math.hypot(dx,dy);
+      if (dist>4){ u.x += dx/dist*speed; u.y += dy/dist*speed; u.beam = Math.max(0,u.beam-0.02); }
+      else{
+        // salvage
+        const lockedBonus = (u.tgt.lockedUntil>now())? 1.6 : 1.0;
+        const haul = (u===world.drones.find(d=>d.id===u.id) ? 0.45 : 0.75);
+        const richness = u.tgt.richness * (state.boost.active?1.25:1.0);
+        const gain = haul * richness * lockedBonus;
+        u.cargo += gain;
+        u.beam = 1.0;
+        u.tgt.hp -= gain*0.9;
+        if (u.tgt.hp<=5){
+          // break into parts chance
+          if (Math.random()<0.5) state.parts += 1;
+        }
+        if (u.cargo>=6){
+          u.hauling = true;
+        }
+      }
+    }else{
+      // return to ship
+      const dx = world.ship.x - u.x, dy = world.ship.y - u.y;
+      const dist = Math.hypot(dx,dy);
+      if (dist>4){ u.x += dx/dist*speed; u.y += dy/dist*speed; u.beam = Math.max(0,u.beam-0.02); }
+      else{
+        // deposit (apply pirate skim)
+        const skim = state.pirateSkim; // 0..0.5
+        const kept = u.cargo * (1 - skim);
+        const lost = u.cargo - kept;
+        state.alloys += Math.floor(kept);
+        if (lost>0.1 && Math.random()<0.3) log('Pirates skimmed a cut of your haul.', '#ffb067');
+        u.cargo = 0;
+        u.hauling = false;
+        u.beam = 0;
+        // retarget next
+        u.tgt = chooseTarget();
+      }
+    }
+  }
+
+  // Threat logic: after 60s inactive, threat rises every ~10s by 1–3; any interaction pauses growth and bleeds threat slowly
+  let threatTimer = 0;
+  function updateThreat(dt){
+    const idleMs = now() - state.lastInteraction;
+    el.lastInput.textContent = idleMs<5000 ? 'now' : `${Math.floor(idleMs/1000)}s ago`;
+
+    if (idleMs>60000){ // over 60s
+      threatTimer += dt;
+      if (threatTimer>10000){ // every 10s
+        threatTimer = 0;
+        state.threat = clamp(state.threat + (1+Math.floor(Math.random()*3)), 0, 100);
+      }
+    }else{
+      // bleed threat
+      threatTimer = 0;
+      if (state.threat>0){
+        state.threat = Math.max(0, state.threat - dt*0.006); // ~0.36 per minute
+      }
+    }
+    // translate threat to pirate skim and efficiency penalties
+    state.pirateSkim = clamp(state.threat/200, 0, 0.5); // 0..50% skim at max
+    // efficiency (UI) reflects output drag (not applied twice—just for display & effBar)
+    state.efficiency = clamp(1.0 - state.threat*0.003, 0.55, 1.0);
+  }
+
+  // Cleanup + respawn loop
+  let respawnTimer=0;
+  function maintainField(dt){
+    // remove dead derelicts and spawn new occasionally
+    world.derelicts = world.derelicts.filter(d=>d.hp>5);
+    respawnTimer += dt;
+    if (respawnTimer>4000){
+      respawnTimer=0;
+      if (world.derelicts.length<16) spawnDerelict(state.sector);
+    }
+    // pulses fade
+    for (const d of world.derelicts){ d.pulse = Math.max(0, d.pulse - dt*0.002); }
+  }
+
+  // Boost lifecycle
+  function updateBoost(){
+    const t = now();
+    if (state.boost.active){
+      const p = clamp((t - state.boost.t0)/state.boost.dur,0,1);
+      el.boostBar.style.width = `${(1-p)*100}%`;
+      if (t >= state.boost.t0 + state.boost.dur){
+        state.boost.active=false;
+        el.boostBar.style.width = '0%';
+        log('Boost Burn ended.');
+      }
+    }else{
+      // cooldown fill
+      const until = Math.max(0, state.boost.next - t);
+      const cdPct = 1 - clamp(until / (state.boost.cd + state.boost.dur), 0, 1);
+      el.boostBar.style.width = `${cdPct*100}%`;
+    }
+    el.boostBtn.disabled = now() < state.boost.next;
+  }
+
+  // ====== RENDER ======
+  function draw(){
+    const w = el.cvs.width/DPR, h = el.cvs.height/DPR;
+    ctx.clearRect(0,0,w,h);
+
+    // camera (zoom, centered)
+    const cx = world.width/2, cy = world.height/2;
+    ctx.save();
+    ctx.translate(w/2, h/2);
+    ctx.scale(state.zoom, state.zoom);
+    ctx.translate(-cx, -cy);
+
+    // stars (parallax)
+    for(const s of world.stars){
+      const px = s.x, py = s.y;
+      ctx.globalAlpha = s.b * 0.9;
+      ctx.fillStyle = '#bcd3ff';
+      ctx.fillRect(px, py, 1.2+s.z*1.2, 1.2+s.z*1.2);
+    }
+    ctx.globalAlpha=1;
+
+    // ship
+    drawShip(world.ship.x, world.ship.y, world.ship.r);
+
+    // derelicts
+    for(const d of world.derelicts){
+      drawDerelict(d);
+    }
+
+    // drones
+    for(const r of world.drones){ drawDrone(r); }
+
+    // crew
+    for(const e of world.crew){ drawEVA(e); }
+
+    ctx.restore();
+  }
+
+  function drawShip(x,y,r){
+    ctx.save();
+    ctx.translate(x,y);
+    // hull
+    ctx.fillStyle = '#12294d';
+    roundRect(-r,-r,r*2,r*2,12);
+    ctx.fill();
+    // window
+    ctx.fillStyle = '#75baff';
+    ctx.beginPath(); ctx.arc(0,-6,14,0,Math.PI*2); ctx.fill();
+    // antenna
+    ctx.strokeStyle='#8fb0ff'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(0,-r-18); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,-r-22,4,0,Math.PI*2); ctx.stroke();
+    // landing lights
+    ctx.fillStyle='#3df5d0';
+    for(let i=-1;i<=1;i++){ ctx.fillRect(-3+i*18,r-6,6,6); }
+    ctx.restore();
+  }
+
+  function drawDerelict(d){
+    ctx.save();
+    ctx.translate(d.x,d.y);
+    // body
+    ctx.fillStyle = '#2b2f3f';
+    ctx.strokeStyle='#49506a';
+    ctx.lineWidth=2;
+    polygon(6, d.size);
+    ctx.fill(); ctx.stroke();
+    // damage cracks
+    ctx.strokeStyle='#6f7899'; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(-d.size*0.6, -2); ctx.lineTo(0,0); ctx.lineTo(d.size*0.5, 3);
+    ctx.stroke();
+    // locked ring pulse
+    if (d.lockedUntil>now()){
+      const k = (d.lockedUntil-now())/15000;
+      ctx.globalAlpha=0.5+0.5*Math.sin((1-k)*12);
+      ctx.strokeStyle='#71ffa3';
+      ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(0,0,d.size+6+(1-k)*4,0,Math.PI*2); ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+    // pulse click
+    if (d.pulse>0){
+      ctx.globalAlpha=d.pulse*0.7;
+      ctx.strokeStyle='#b4ffea'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(0,0,d.size+10+d.pulse*8,0,Math.PI*2); ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+    // hp arc
+    const hpPct = clamp(d.hp/(d.size*3),0,1);
+    ctx.strokeStyle='#88a1ff'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(0,0,d.size+8,-Math.PI*0.15, -Math.PI*0.15 + Math.PI*2*hpPct); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawDrone(r){
+    ctx.save(); ctx.translate(r.x,r.y);
+    // body
+    ctx.fillStyle = '#1a365f'; roundRect(-10,-6,20,12,3); ctx.fill();
+    // arms
+    ctx.fillStyle='#8fb0ff'; ctx.fillRect(-14,-2,8,4); ctx.fillRect(6,-2,8,4);
+    // eye
+    ctx.fillStyle='#aee3ff'; ctx.fillRect(-3,-3,6,6);
+    // beam if active
+    if (r.beam>0 && r.tgt){
+      ctx.globalAlpha = 0.3 + 0.7*r.beam;
+      ctx.strokeStyle = '#70ffd6';
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.lineTo(r.tgt.x - r.x, r.tgt.y - r.y);
+      ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+    ctx.restore();
+  }
+
+  function drawEVA(e){
+    e.bob += 0.05;
+    ctx.save(); ctx.translate(e.x,e.y);
+    // tether
+    ctx.strokeStyle='#4c5f86'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(-14,0); ctx.lineTo(-24+Math.sin(e.bob)*4, -12+Math.cos(e.bob)*3); ctx.stroke();
+    // body
+    ctx.fillStyle='#314a7d'; roundRect(-8,-10,16,20,4); ctx.fill();
+    // helmet
+    ctx.fillStyle='#7fb6ff'; ctx.beginPath(); ctx.arc(0,-6,7,0,Math.PI*2); ctx.fill();
+    // visor shine
+    ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.arc(-2,-8,2.2,0,Math.PI*2); ctx.fill();
+    // beam
+    if (e.beam>0 && e.tgt){
+      ctx.globalAlpha = 0.3 + 0.7*e.beam;
+      ctx.strokeStyle = '#9affb8';
+      ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(e.tgt.x - e.x, e.tgt.y - e.y); ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+    ctx.restore();
+  }
+
+  function polygon(n, r){
+    ctx.beginPath();
+    for(let i=0;i<n;i++){
+      const a = (i/n)*Math.PI*2 + Math.PI/n;
+      const x = Math.cos(a)*r, y = Math.sin(a)*r;
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+  }
+  function roundRect(x,y,w,h,r){
+    const rr=Math.min(r,w/2,h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr,y);
+    ctx.arcTo(x+w,y,x+w,y+h,rr);
+    ctx.arcTo(x+w,y+h,x,y+h,rr);
+    ctx.arcTo(x,y+h,x,y,rr);
+    ctx.arcTo(x,y,x+w,y,rr);
+    ctx.closePath();
+  }
+
+  // ====== MAIN LOOP ======
+  let acc=0, last=now();
+  function frame(){
+    const t = now();
+    const dt = t - last; last = t;
+    acc += dt;
+
+    // fixed-step at 60Hz
+    while (acc >= 16){
+      tick(16);
+      acc -= 16;
+    }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  function tick(dt){
+    // threat & boost
+    updateThreat(dt);
+    updateBoost();
+
+    // units
+    for(const r of world.drones){ stepUnit(r, r.v); }
+    for(const e of world.crew){ stepUnit(e, e.v); }
+
+    // field upkeep
+    maintainField(dt);
+
+    // UI
+    flushUI();
+
+    // auto-save every 45s
+    if (now() - state.lastSave > 45000){
+      state.lastSave = now();
+      save(false);
+    }
+  }
+
+  function flushUI(){
+    el.alloys.textContent = Math.floor(state.alloys);
+    el.parts.textContent = Math.floor(state.parts);
+    el.drones.textContent = state.drones;
+    el.crew.textContent = state.crew;
+
+    el.eff.textContent = Math.round(state.efficiency*100)+'%';
+    el.threat.textContent = Math.round(state.threat);
+    el.skim.textContent = Math.round(state.pirateSkim*100)+'%';
+
+    el.effBar.style.width = (state.efficiency*100)+'%';
+    el.threatBar.style.width = (state.threat)+'%';
+    el.skimBar.style.width = (state.pirateSkim*100*2)+'%'; // 0..50 → 0..100
+
+    // tooltip on disabled boost
+    el.boostBtn.title = (now() < state.boost.next)
+      ? 'Boost recharging…'
+      : 'Overclock engines for 30 seconds. (B)';
+  }
+
+  // initial tutorial notes
+  if (!localStorage.getItem(SAVE_KEY)){
+    log('Welcome, Captain. Drones and EVA crew will auto-salvage.');
+    log('Click a derelict to LOCK TARGET and improve yield for 15s.');
+    log('Use Boost Burn (or press B) for 30s of speed & haul bonuses.');
+    log('Stay active! After 60s of silence, Threat rises and pirates skim.');
+  }
+
+  frame();
+})();
+</script>
+</body>
+</html>
