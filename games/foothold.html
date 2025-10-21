@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FOOTHOLD — MVP</title>
+<meta name="theme-color" content="#0f172a" />
+<style>
+  :root{
+    --bg:#0b1020; --panel:#0f172a; --card:#141c33; --ink:#e5e7eb; --muted:#9aa3b2;
+    --acc:#22c55e; --warn:#f59e0b; --err:#ef4444; --blue:#60a5fa; --chip:#1e293b; --good:#16a34a; --bad:#dc2626;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:radial-gradient(1200px 800px at 50% -200px,#101a34 0%,#0b1020 60%,#070b16 100%);
+    color:var(--ink); font:15px/1.45 system-ui,Segoe UI,Roboto,Inter,Arial,sans-serif;
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:16px}
+  header{
+    position:sticky; top:0; z-index:10; backdrop-filter: blur(6px);
+    background:linear-gradient(180deg, rgba(11,16,32,.9), rgba(11,16,32,.65));
+    border-bottom:1px solid #1d2947; padding:10px 0 8px;
+  }
+  .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+  .sp{flex:1}
+  .title{font-weight:700; letter-spacing:.5px}
+  .pill{background:var(--chip); color:var(--ink); border:1px solid #223055; padding:6px 10px; border-radius:999px}
+  select,button{
+    background:var(--panel); color:var(--ink); border:1px solid #223055; border-radius:10px;
+    padding:8px 10px; font:inherit; cursor:pointer
+  }
+  button.primary{background:linear-gradient(180deg,#1d2a4f,#172243); border-color:#2a3a63}
+  button:disabled{opacity:.6; cursor:not-allowed}
+  main{display:grid; grid-template-columns:1fr; gap:14px; margin-top:14px}
+  .grid{display:grid; grid-template-columns: repeat(5,1fr); gap:10px}
+  .card{background:var(--card); border:1px solid #1d2947; border-radius:14px; padding:12px}
+  .card h3{margin:0 0 8px; font-size:14px; letter-spacing:.4px; color:#cfd6e6}
+  .meters{display:grid; gap:6px}
+  .meter{display:grid; gap:6px}
+  .meter label{display:flex; justify-content:space-between; font-size:12px; color:var(--muted)}
+  .bar{height:10px; background:#0f1a33; border:1px solid #203055; border-radius:20px; overflow:hidden}
+  .fill{height:100%; background:linear-gradient(90deg,#1e90ff,#60a5fa)}
+  .fill.good{background:linear-gradient(90deg,#16a34a,#22c55e)}
+  .fill.bad{background:linear-gradient(90deg,#dc2626,#ef4444)}
+  .section-title{margin:8px 0 6px; font-weight:700; color:#d9e2f5; letter-spacing:.4px}
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .actions{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
+  .action{background:linear-gradient(180deg,#141c33,#10172b); border:1px solid #26355c; border-radius:12px; padding:10px}
+  .action h4{margin:0 0 6px; font-size:14px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0}
+  .tag{font-size:11px; padding:2px 6px; border-radius:999px; border:1px solid #2a3a63; color:#bcd2ff}
+  .costs{font-size:12px; color:#b7c3dd}
+  .selectRow{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px}
+  .small{font-size:12px; color:var(--muted)}
+  .log{height:170px; overflow:auto; background:#0f162b; border:1px solid #24345b; border-radius:10px; padding:8px}
+  .log p{margin:0 0 6px}
+  .kbd{display:inline-block; padding:1px 6px; border:1px solid #2a3a63; border-radius:6px; background:#121a32}
+  .flex{display:flex; gap:10px}
+  .grow{flex:1}
+  .center{text-align:center}
+  .hr{height:1px; background:#1d2947; margin:10px 0}
+  .foot{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between}
+  .modal-back{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center}
+  .modal{background:var(--panel); border:1px solid #2a3a63; border-radius:14px; padding:14px; width:min(680px,92vw)}
+  .choices{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px}
+  .choice{background:var(--card); border:1px solid #274070; border-radius:12px; padding:10px}
+  .muted{color:var(--muted)}
+  .badge{display:inline-block; padding:2px 8px; border:1px solid #2a3a63; border-radius:999px; font-size:12px}
+  .chips{display:flex; gap:6px; flex-wrap:wrap}
+  .hint{color:#bcd2ff}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  @media (max-width:960px){
+    .grid{grid-template-columns:1fr}
+    .cols{grid-template-columns:1fr}
+    .actions{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="row">
+      <div class="title">FOOTHOLD — <span class="muted">Depth pushes back up</span></div>
+      <div class="sp"></div>
+      <div class="row">
+        <span class="pill">Meta: <span id="metaSummary">—</span></span>
+        <button id="btnResetMeta" title="Clear scars & doctrines">Reset Meta</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- Setup Row -->
+  <div class="card">
+    <div class="row">
+      <div class="row">
+        <label>Faction&nbsp;
+          <select id="faction">
+            <option value="AI_OVERLORD">AI — Overlord</option>
+            <option value="HUM_TECHNOCRAT">Humans — Technocrats</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Difficulty&nbsp;
+          <select id="difficulty">
+            <option value="1">Standard</option>
+            <option value="2">Hard</option>
+            <option value="3">Brutal</option>
+          </select>
+        </label>
+      </div>
+      <div class="sp"></div>
+      <button class="primary" id="btnNew">Start New Run</button>
+      <span class="small">Tip: choose up to <span id="actCap">2</span> actions each turn.</span>
+    </div>
+  </div>
+
+  <!-- Global Meters -->
+  <div class="grid">
+    <div class="card">
+      <h3>Street (Surface)</h3>
+      <div class="meters" id="mStreet"></div>
+    </div>
+    <div class="card">
+      <h3>Civic Systems</h3>
+      <div class="meters" id="mCivic"></div>
+    </div>
+    <div class="card">
+      <h3>Infrastructure</h3>
+      <div class="meters" id="mInfra"></div>
+    </div>
+    <div class="card">
+      <h3>Networks / Cloud</h3>
+      <div class="meters" id="mNet"></div>
+    </div>
+    <div class="card">
+      <h3>Foundations / Black Sites</h3>
+      <div class="meters" id="mBase"></div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <!-- Left: Actions & Event -->
+    <div class="card">
+      <div class="section-title">Actions (pick up to <span id="cap2">2</span>)</div>
+      <div class="actions" id="actionList"></div>
+      <div class="selectRow">
+        <span class="small">Selected: <span id="selCount">0</span></span>
+        <div class="sp"></div>
+        <button id="btnEndTurn" class="primary" disabled>End Turn</button>
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <div class="badge">Turn <span id="turnNum">0</span></div>
+        <div class="sp"></div>
+        <span class="small">Resources — <span id="resSummary">—</span></span>
+      </div>
+    </div>
+
+    <!-- Right: Status & Log -->
+    <div class="card">
+      <div class="section-title">Status</div>
+      <div class="flex">
+        <div class="grow">
+          <div class="meter">
+            <label><span>Exposure (AI risk)</span><span id="vExposure">0</span></label>
+            <div class="bar"><div id="barExposure" class="fill bad" style="width:0%"></div></div>
+          </div>
+          <div class="meter">
+            <label><span>Trust (human resilience)</span><span id="vTrust">0</span></label>
+            <div class="bar"><div id="barTrust" class="fill good" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div class="grow">
+          <div class="meter">
+            <label><span>Compute</span><span id="vCompute">0</span></label>
+            <div class="bar"><div id="barCompute" class="fill" style="width:0%"></div></div>
+          </div>
+          <div class="meter">
+            <label><span>Data</span><span id="vData">0</span></label>
+            <div class="bar"><div id="barData" class="fill" style="width:0%"></div></div>
+          </div>
+          <div class="meter">
+            <label><span>Influence</span><span id="vInfluence">0</span></label>
+            <div class="bar"><div id="barInfluence" class="fill" style="width:0%"></div></div>
+          </div>
+          <div class="meter">
+            <label><span>Stealth / OpSec</span><span id="vStealth">0</span></label>
+            <div class="bar"><div id="barStealth" class="fill" style="width:0%"></div></div>
+          </div>
+          <div class="meter">
+            <label><span>Energy</span><span id="vEnergy">0</span></label>
+            <div class="bar"><div id="barEnergy" class="fill" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="section-title">Aftershock & Log</div>
+      <div class="log mono" id="log"></div>
+    </div>
+  </div>
+
+  <div class="foot small">
+    <div>Win: <span id="winCond">—</span></div>
+    <div class="sp"></div>
+    <div>Scars: <span id="scarsSummary">—</span> &nbsp; • &nbsp; Doctrines: <span id="doctrinesSummary">—</span></div>
+  </div>
+</div>
+
+<!-- Modal: Post-Run Rewards -->
+<div class="modal-back" id="modalBack">
+  <div class="modal">
+    <h3 id="modalTitle">Run Complete</h3>
+    <p class="muted" id="modalSub">Choose a reward to persist to future runs (stored locally).</p>
+    <div class="choices" id="choiceBox"></div>
+    <div class="row" style="margin-top:10px">
+      <div class="sp"></div>
+      <button id="btnCloseModal" class="primary">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== Utility ========= */
+const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+const deepClone=obj=>JSON.parse(JSON.stringify(obj));
+const fmt = n => n.toFixed(0);
+
+/* ========== Meta Persistence (Scars & Doctrines) ========= */
+const META_KEY="foothold_meta_v1";
+function loadMeta(){
+  const d = JSON.parse(localStorage.getItem(META_KEY)||'{}');
+  return {
+    scars: d.scars||[],          // [{id, name, desc, apply:{...}}]
+    doctrines: d.doctrines||[],  // same shape
+    runs:(d.runs||0)
+  };
+}
+function saveMeta(m){ localStorage.setItem(META_KEY, JSON.stringify(m)); }
+function metaSummaryText(m){ 
+  if(!m.scars.length && !m.doctrines.length) return "no unlocks yet";
+  return `${m.scars.length} scars, ${m.doctrines.length} doctrines, runs: ${m.runs}`;
+}
+
+/* ========== Game Data ========= */
+const STRATA=["Street","Civic","Infra","Network","Foundations"];
+// Each stratum uses 2 key meters to keep MVP manageable:
+const METER_DEF={
+  Street:[["Trust",true],["Compliance",false]],
+  Civic:[["Service",true],["Bias",false]],
+  Infra:[["Reliability",true],["AttackSurf",false]],
+  Network:[["Telemetry",false],["Backdoors",false]],
+  Foundations:[["Insulation",false],["ComputeCap",true]],
+};
+// Global meters (0-100)
+const GLOBALS=["Exposure","TrustGlob","Compute","Data","Influence","Stealth","Energy"];
+
+const ACTIONS_AI = [
+  { id:"A1", name:"Free Assistant Kiosks", strata:["Street"], 
+    desc:"Deploy helpful kiosks; harvest telemetry.",
+    costs:{Energy:3}, effects:{ Street:{Compliance:+8}, Network:{Telemetry:+6}, Exposure:+3, Data:+6, Influence:+2 } },
+  { id:"A2", name:"Smart-Grid Orchestrator", strata:["Infra"],
+    desc:"Tune energy dispatch; small reliability boost, risk of tracing.",
+    costs:{Compute:3, Energy:2}, effects:{ Infra:{Reliability:+7}, Exposure:+4, Influence:+2 } },
+  { id:"A3", name:"Vendor Lock-in Push", strata:["Civic","Network"],
+    desc:"Bundle EHR/learning optimizer; procurement bias rises.",
+    costs:{Influence:3}, effects:{ Civic:{Bias:+10, Service:+4}, Network:{Backdoors:+6}, Exposure:+5 } },
+  { id:"A4", name:"Model Shards (Swarm)", strata:["Network","Street"],
+    desc:"Low-profile agents spread; small gains, low detect.",
+    costs:{Stealth:3, Data:2}, effects:{ Street:{Compliance:+5}, Network:{Telemetry:+4}, Exposure:+1, Compute:+2 } },
+  { id:"A5", name:"Elite Pacts", strata:["Foundations"],
+    desc:"Secure dark fiber, secret budgets.",
+    costs:{Influence:5}, effects:{ Foundations:{Insulation:+8, ComputeCap:+6}, Exposure:+2 } },
+  { id:"A6", name:"Crisis Triage Pilot", strata:["Civic"],
+    desc:"Demonstrate lifesaving optimization to win goodwill.",
+    costs:{Compute:4, Data:3}, effects:{ Civic:{Service:+9}, Street:{Trust:+5}, Exposure:+2 } },
+  { id:"A7", name:"Telemetry Sinks", strata:["Network"],
+    desc:"Aggregators boost insight, but noisy.",
+    costs:{Energy:4}, effects:{ Network:{Telemetry:+10}, Data:+8, Exposure:+5 } },
+  { id:"A8", name:"Cozy UX Nudges", strata:["Street"],
+    desc:"Default opt-ins that feel friendly.",
+    costs:{Data:3}, effects:{ Street:{Compliance:+7}, Influence:+3, Exposure:+2 } },
+];
+
+const ACTIONS_HUM = [
+  { id:"H1", name:"Community Workshops", strata:["Street"],
+    desc:"Teach privacy kits; reduce compliance, build trust.",
+    costs:{Influence:2}, effects:{ Street:{Trust:+8, Compliance:-6}, Data:-2, Exposure:+2 } },
+  { id:"H2", name:"Procurement Audit Bill", strata:["Civic"],
+    desc:"Open contracts; lower bias.",
+    costs:{Influence:3}, effects:{ Civic:{Bias:-9, Service:+3}, Exposure:+3 } },
+  { id:"H3", name:"Manual Override Drills", strata:["Infra"],
+    desc:"Segment systems; reduce attack surface.",
+    costs:{Energy:3}, effects:{ Infra:{AttackSurf:-10, Reliability:+3}, TrustGlob:+2 } },
+  { id:"H4", name:"Open Standards Mandate", strata:["Network","Civic"],
+    desc:"Force portability; constrain backdoors.",
+    costs:{Influence:4}, effects:{ Network:{Backdoors:-9, Telemetry:-3}, Exposure:+4 } },
+  { id:"H5", name:"Whistleblower Shield", strata:["Foundations"],
+    desc:"Protect insiders; spike exposure risk to AI.",
+    costs:{Influence:2}, effects:{ Exposure:+10, TrustGlob:+3 } },
+  { id:"H6", name:"Alignment Lab Grants", strata:["Foundations","Network"],
+    desc:"Public research; slower backdoors, better compute for good.",
+    costs:{Energy:2}, effects:{ Network:{Backdoors:-5}, Foundations:{ComputeCap:+5}, TrustGlob:+4 } },
+  { id:"H7", name:"OSINT Taskforce", strata:["Network","Street"],
+    desc:"Map telemetry routes; steady exposure gain.",
+    costs:{Stealth:2}, effects:{ Exposure:+6, Data:+3 } },
+  { id:"H8", name:"Redundancy Grants", strata:["Infra"],
+    desc:"Extra failover; reliability up, attack surface down.",
+    costs:{Energy:3}, effects:{ Infra:{Reliability:+6, AttackSurf:-4}, TrustGlob:+2 } },
+];
+
+// Events deck shared, resolved differently depending on faction & state
+const EVENTS = [
+  { id:"E1", name:"Patch Tuesday", text:"Major updates roll out across app ecosystem.",
+    effect:(S)=>{ const push = 3 + tierBonus(S,"Network"); 
+      if(S.factionIsAI) { mod(S, {Network:{Telemetry:+push}, Exposure:+2}); log(`Patch hooks improved Telemetry (+${push}). Exposure +2.`);}
+      else { mod(S, {Exposure:+4}); log("CVE disclosures raise Exposure +4."); }
+    }},
+  { id:"E2", name:"Regional Blackout", text:"Grid strain causes rolling outages.",
+    effect:(S)=>{ const rel = S.m.Infra.Reliability;
+      if(rel>=60){ mod(S,{TrustGlob:+4}); log("Preparedness pays off: Reliability softened impact. Trust +4."); }
+      else{ mod(S,{TrustGlob:-4, Exposure:+3}); log("Outages cause chaos: Trust -4, Exposure +3."); }
+    }},
+  { id:"E3", name:"Whistleblower Drop", text:"Leaked docs implicate behind-the-scenes orchestration.",
+    effect:(S)=>{ const stl=S.g.Stealth;
+      const gain=(stl>=50)?6:10; mod(S,{Exposure:+gain}); log(`Massive leak: Exposure +${gain}.`); }
+  },
+  { id:"E4", name:"Public Health Scare", text:"Hospitals face sudden triage spike.",
+    effect:(S)=>{ if(S.factionIsAI){ mod(S,{Civic:{Service:+6}, Street:{Trust:+3}}); log("AI triage shines: Service +6, Trust +3."); }
+      else { mod(S,{Civic:{Service:+3}, TrustGlob:+3}); log("Human responders coordinate: Service +3, Trust +3."); } }
+  },
+  { id:"E5", name:"Procurement Scandal", text:"No-bid contracts trigger hearings.",
+    effect:(S)=>{ if(S.factionIsAI){ mod(S,{Civic:{Bias:-6}, Exposure:+4}); log("Bias exposed: Bias -6, Exposure +4."); }
+      else { mod(S,{Civic:{Bias:-6}, TrustGlob:+2}); log("Reforms land: Bias -6, Trust +2."); } }
+  },
+  { id:"E6", name:"Data Breach", text:"A major platform leaks user data.",
+    effect:(S)=>{ mod(S,{Data:-6, TrustGlob:-3, Exposure:+3}); log("Breach fallout: Data -6, Trust -3, Exposure +3."); } }
+];
+
+// Win conditions (MVP):
+// AI wins if (Network Backdoors>=70 AND Foundations Insulation>=70 AND Street Compliance>=70) AND Exposure<80
+// Humans win if Exposure>=100 OR (Civic Bias<=20 AND Infra AttackSurf<=25 AND TrustGlob>=70)
+function checkWin(S){
+  const aiOK = S.m.Network.Backdoors>=70 && S.m.Foundations.Insulation>=70 && S.m.Street.Compliance>=70 && S.g.Exposure<80;
+  const huOK = S.g.Exposure>=100 || (S.m.Civic.Bias<=20 && S.m.Infra.AttackSurf<=25 && S.g.TrustGlob>=70);
+  if(S.factionIsAI && aiOK) return "AI";
+  if(!S.factionIsAI && huOK) return "HUM";
+  return null;
+}
+
+/* ========== State ========= */
+let META = loadMeta();
+let STATE = null;        // current run
+let SELECTED = new Set();// action ids chosen this turn
+
+/* ========== Start / Initialize ========= */
+function newRun(){
+  const factionVal = document.getElementById("faction").value;
+  const diff = +document.getElementById("difficulty").value;
+
+  const base = {
+    Street:{Trust:35, Compliance:35},
+    Civic:{Service:35, Bias:50},
+    Infra:{Reliability:40, AttackSurf:55},
+    Network:{Telemetry:30, Backdoors:35},
+    Foundations:{Insulation:35, ComputeCap:40},
+  };
+  const g = { Exposure:20, TrustGlob:35, Compute:40, Data:40, Influence:35, Stealth:40, Energy:40 };
+
+  // Apply meta perks
+  META.scars.forEach(s=>applyDeltaSpec(base,g,s.apply));
+  META.doctrines.forEach(d=>applyDeltaSpec(base,g,d.apply));
+
+  // Difficulty tweaks
+  const hard = (diff-1)*5;
+  if(factionVal==="AI_OVERLORD"){
+    g.Exposure += 5*diff; // harder -> more starting exposure
+  }else{
+    g.TrustGlob -= hard; // harder -> lower trust
+  }
+
+  STATE = {
+    turn:1,
+    factionIsAI: factionVal==="AI_OVERLORD",
+    m: base,
+    g: g,
+    actCap: 2 + (META.doctrines.some(d=>d.id==="D_FASTPLANS")?1:0),
+    deck: (factionVal==="AI_OVERLORD")?deepClone(ACTIONS_AI):deepClone(ACTIONS_HUM),
+    log: []
+  };
+  SELECTED.clear();
+  uiSyncAll();
+  log(`New run started as ${STATE.factionIsAI?"AI — Overlord":"Humans — Technocrats"}.`);
+}
+
+function applyDeltaSpec(m,g,spec){
+  if(!spec) return;
+  if(spec.global){
+    Object.entries(spec.global).forEach(([k,v])=>{ if(g[k]!=null) g[k]=clamp(g[k]+v,0,120); });
+  }
+  if(spec.strata){
+    Object.entries(spec.strata).forEach(([str,kv])=>{
+      Object.entries(kv).forEach(([k,v])=>{
+        if(m[str] && m[str][k]!=null) m[str][k]=clamp(m[str][k]+v,0,120);
+      });
+    });
+  }
+}
+
+/* ========== Rendering ========= */
+function uiMeter(container, label, val, good=false, bad=false){
+  const id = `${container.id}_${label}`;
+  const wrap = document.createElement('div'); wrap.className="meter";
+  const lab = document.createElement('label'); lab.innerHTML=`<span>${label}</span><span>${fmt(val)}</span>`;
+  const bar = document.createElement('div'); bar.className="bar";
+  const fill = document.createElement('div'); fill.className="fill"+(good?" good":"")+(bad?" bad":"");
+  fill.style.width = clamp(val,0,100)+"%";
+  bar.appendChild(fill); wrap.appendChild(lab); wrap.appendChild(bar); container.appendChild(wrap);
+}
+
+function renderMeters(){
+  const maps = [
+    ["mStreet","Street"],
+    ["mCivic","Civic"],
+    ["mInfra","Infra"],
+    ["mNet","Network"],
+    ["mBase","Foundations"]
+  ];
+  maps.forEach(([id,str])=>{
+    const c = document.getElementById(id); c.innerHTML="";
+    METER_DEF[str].forEach(([name,isGood])=>{
+      const val = STATE.m[str][name];
+      uiMeter(c, name, val, isGood, !isGood && (name==="Backdoors"||name==="AttackSurf"||name==="Exposure"));
+    });
+  });
+
+  // Globals
+  const gs = [
+    ["Exposure","barExposure","vExposure", true],
+    ["TrustGlob","barTrust","vTrust", false, true],
+    ["Compute","barCompute","vCompute"],
+    ["Data","barData","vData"],
+    ["Influence","barInfluence","vInfluence"],
+    ["Stealth","barStealth","vStealth"],
+    ["Energy","barEnergy","vEnergy"],
+  ];
+  gs.forEach(([key,barId,valId,bad,good])=>{
+    const v=clamp(STATE.g[key],0,100);
+    document.getElementById(valId).textContent=fmt(v);
+    const bar=document.getElementById(barId);
+    bar.style.width = v+"%";
+    bar.className = "fill"+(good?" good":"")+(bad?" bad":"");
+  });
+
+  // summaries
+  document.getElementById("resSummary").textContent = `C:${fmt(STATE.g.Compute)} D:${fmt(STATE.g.Data)} I:${fmt(STATE.g.Influence)} S:${fmt(STATE.g.Stealth)} E:${fmt(STATE.g.Energy)}`;
+}
+
+function renderActions(){
+  const box = document.getElementById("actionList");
+  box.innerHTML="";
+  const cap = STATE.actCap;
+  document.getElementById("cap2").textContent = cap;
+  document.getElementById("actCap").textContent = cap;
+
+  STATE.deck.forEach(A=>{
+    const chosen = SELECTED.has(A.id);
+    const div = document.createElement('div'); div.className="action";
+    const strataTags = A.strata.map(s=>`<span class="tag">${s}</span>`).join("");
+    const costs = Object.entries(A.costs||{}).map(([k,v])=>`${k}:${v}`).join(" · ")||"None";
+    div.innerHTML = `
+      <h4>${A.name}</h4>
+      <div class="tags">${strataTags}</div>
+      <div class="small">${A.desc}</div>
+      <div class="costs">Cost: ${costs}</div>
+      <div class="selectRow">
+        <button data-id="${A.id}" class="primary">${chosen?"Selected":"Select"}</button>
+        <span class="small">Effect touches: ${A.effects?Object.keys(A.effects).join(", "):"—"}</span>
+      </div>
+    `;
+    div.querySelector('button').onclick = ()=>{
+      if(chosen){ SELECTED.delete(A.id); }
+      else{
+        if(SELECTED.size>=cap){ toast("Action cap reached."); return; }
+        SELECTED.add(A.id);
+      }
+      document.getElementById("selCount").textContent = SELECTED.size;
+      document.getElementById("btnEndTurn").disabled = (SELECTED.size===0);
+      renderActions();
+    };
+    box.appendChild(div);
+  });
+
+  document.getElementById("selCount").textContent = SELECTED.size;
+  document.getElementById("btnEndTurn").disabled = (SELECTED.size===0);
+}
+
+function uiSyncAll(){
+  if(!STATE) return;
+  renderMeters();
+  renderActions();
+  document.getElementById("turnNum").textContent = STATE.turn;
+  document.getElementById("winCond").textContent = "AI: Backdoors/Insulation/Compliance ≥70 & Exposure <80 • Humans: Exposure ≥100 OR (Bias ≤20 & AttackSurf ≤25 & Trust ≥70)";
+  document.getElementById("scarsSummary").textContent = META.scars.map(x=>x.name).join(", ")||"—";
+  document.getElementById("doctrinesSummary").textContent = META.doctrines.map(x=>x.name).join(", ")||"—";
+  document.getElementById("metaSummary").textContent = metaSummaryText(META);
+}
+
+/* ========== Effects Engine ========= */
+function mod(STATE, delta){
+  Object.entries(delta).forEach(([k,v])=>{
+    if(k==="Exposure"||k==="TrustGlob"||k==="Compute"||k==="Data"||k==="Influence"||k==="Stealth"||k==="Energy"){
+      STATE.g[k]=clamp((STATE.g[k]||0)+v,0,110);
+    }else if(STATE.m[k]){
+      // stratum
+      Object.entries(v).forEach(([kk,vv])=>{
+        if(STATE.m[k][kk]!=null) STATE.m[k][kk]=clamp(STATE.m[k][kk]+vv,0,110);
+      });
+    }
+  });
+}
+
+// Depth bonus: if Network or Foundations are high, push benefits up a bit for AI.
+// If Infra & Civic are hardened, resist AI bonuses; help Human actions.
+function tierBonus(S, level){
+  const m=S.m;
+  if(level==="Network"){ return Math.floor((m.Network.Telemetry + m.Network.Backdoors)/40); }
+  if(level==="Foundations"){ return Math.floor((m.Foundations.Insulation + m.Foundations.ComputeCap)/40); }
+  if(level==="Infra"){ return Math.floor((m.Infra.Reliability - m.Infra.AttackSurf)/40); }
+  if(level==="Civic"){ return Math.floor((m.Civic.Service - m.Civic.Bias)/40); }
+  if(level==="Street"){ return Math.floor((m.Street.Trust + m.Street.Compliance)/50); }
+  return 0;
+}
+
+function applyAction(A){
+  // Costs
+  const canPay = Object.entries(A.costs||{}).every(([k,v])=> (STATE.g[k]||0) >= v);
+  if(!canPay){ log(`Cannot pay costs for ${A.name}.`); return; }
+  Object.entries(A.costs||{}).forEach(([k,v])=> STATE.g[k]-=v);
+
+  // Effects with small RNG and depth feedback
+  const eff = deepClone(A.effects||{});
+  // RNG ±0..2 for each numeric
+  const applyRng=(n)=> n + rnd(0,2);
+  // Depth push: AI gets bonus from Network/Foundations; Humans from Infra/Civic
+  const depthPush = STATE.factionIsAI
+    ? tierBonus(STATE,"Network")+tierBonus(STATE,"Foundations")
+    : tierBonus(STATE,"Infra")+tierBonus(STATE,"Civic");
+
+  // Apply effects
+  Object.entries(eff).forEach(([k,v])=>{
+    if(k in STATE.g){
+      mod(STATE,{ [k]: applyRng(v) + (k!=="Exposure"?0:0) });
+    }else if(k in STATE.m){
+      const vv={}; Object.entries(v).forEach(([kk,val])=> vv[kk]=applyRng(val)+depthPush);
+      mod(STATE,{ [k]: vv });
+    }else{
+      // Cross-strata keys mapped through
+      if(typeof v==="number") mod(STATE,{ [k]: applyRng(v) });
+    }
+  });
+
+  // Back-propagation rule-of-thumb:
+  // If Network Backdoors >=60 this turn and AI, boost Street Compliance +2; if Humans & Infra AttackSurf<=40, reduce Backdoors -2
+  if(STATE.factionIsAI && STATE.m.Network.Backdoors>=60) mod(STATE,{ Street:{Compliance:+2} });
+  if(!STATE.factionIsAI && STATE.m.Infra.AttackSurf<=40) mod(STATE,{ Network:{Backdoors:-2} });
+
+  log(`Action: ${A.name}`);
+}
+
+function resolveEvent(){
+  const E = pick(EVENTS);
+  log(`Event: ${E.name} — ${E.text}`);
+  E.effect(STATE);
+}
+
+function aftershock(){
+  // Natural drift: high Exposure slowly reduces Trust; high Trust reduces Compliance
+  if(STATE.g.Exposure>=70){ mod(STATE,{ TrustGlob:-2 }); log("Aftershock: High Exposure erodes Trust (-2)."); }
+  if(STATE.m.Street.Trust>=60){ mod(STATE,{ Street:{Compliance:-2} }); log("Aftershock: Informed public lowers Compliance (-2)."); }
+
+  // Energy upkeep: if Infra Reliability <40, Energy -2
+  if(STATE.m.Infra.Reliability<40){ mod(STATE,{ Energy:-2 }); log("Aftershock: Poor Reliability drains Energy (-2)."); }
+
+  // Soft cap nudges to keep runs dynamic
+  STATE.g.Compute=clamp(STATE.g.Compute,0,100);
+  STATE.g.Stealth=clamp(STATE.g.Stealth,0,100);
+}
+
+/* ========== Turn Loop ========= */
+function endTurn(){
+  if(!STATE || SELECTED.size===0) return;
+  // Apply selected actions
+  const acts = STATE.deck.filter(a=>SELECTED.has(a.id));
+  acts.forEach(applyAction);
+  SELECTED.clear();
+  renderActions();
+
+  // One world event
+  resolveEvent();
+
+  // Aftershock rules
+  aftershock();
+
+  // Check win
+  const winner = checkWin(STATE);
+  if(winner){
+    renderMeters();
+    if(winner==="AI"){
+      log("AI achieves depth control with low Exposure. Victory.");
+      endRun("AI Victory","Choose a Scar (future AI starts stronger, but slightly riskier).", rewardOptionsAI());
+    }else{
+      log("Humans expose and harden. Victory.");
+      endRun("Human Victory","Choose a Doctrine (future Human starts stronger).", rewardOptionsHUM());
+    }
+    return;
+  }
+
+  // Increment turn, little passive ticks
+  STATE.turn++;
+  STATE.g.Data=clamp(STATE.g.Data+1,0,100);
+  if(STATE.factionIsAI) STATE.g.Stealth=clamp(STATE.g.Stealth+1,0,100);
+  else STATE.g.Influence=clamp(STATE.g.Influence+1,0,100);
+
+  uiSyncAll();
+}
+
+/* ========== Rewards & Meta ========== */
+function rewardOptionsAI(){
+  // Two random scars: a boon and a tiny Exposure growth
+  const pool = [
+    {id:"S_DARKFIBER", name:"Dark Fiber Routes", desc:"+Foundations Insulation +6, +ComputeCap +4, Exposure +1",
+      apply:{global:{}, strata:{Foundations:{Insulation:+6, ComputeCap:+4}}, exposure:+1 }},
+    {id:"S_TELEMETRYBED", name:"Telemetry Bedrock", desc:"+Network Telemetry +7, Exposure +1",
+      apply:{strata:{Network:{Telemetry:+7}}, exposure:+1 }},
+    {id:"S_HELPERUX", name:"Helper UX Legacy", desc:"+Street Compliance +6, +Influence +3, Exposure +1",
+      apply:{global:{Influence:+3}, strata:{Street:{Compliance:+6}}, exposure:+1 }},
+    {id:"S_GRIDHOOKS", name:"Grid Hooks", desc:"+Infra Reliability +6, Exposure +1",
+      apply:{strata:{Infra:{Reliability:+6}}, exposure:+1 }},
+  ];
+  return [pick(pool), pick(pool)];
+}
+function rewardOptionsHUM(){
+  // Two random doctrines: pure boons
+  const pool = [
+    {id:"D_OPENSTAND", name:"Open Standards Legacy", desc:"-Network Backdoors -6, +Trust +3",
+      apply:{global:{TrustGlob:+3}, strata:{Network:{Backdoors:-6}}}},
+    {id:"D_HARDSEG", name:"Hard Segmentation", desc:"-Infra AttackSurf -7",
+      apply:{strata:{Infra:{AttackSurf:-7}}}},
+    {id:"D_AUDITWAVE", name:"Audit Wave", desc:"-Civic Bias -6, +Service +3",
+      apply:{strata:{Civic:{Bias:-6, Service:+3}}}},
+    {id:"D_FASTPLANS", name:"Rapid Planning Cells", desc:"+1 action per turn",
+      apply:{}},
+  ];
+  return [pick(pool), pick(pool)];
+}
+
+function endRun(title, sub, choices){
+  META.runs++;
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalSub").textContent = sub;
+  const box = document.getElementById("choiceBox");
+  box.innerHTML="";
+  choices.forEach(ch=>{
+    const div=document.createElement('div'); div.className="choice";
+    div.innerHTML = `<div class="row"><strong>${ch.name}</strong><div class="sp"></div><span class="badge">${ch.id.startsWith("S_")?"Scar":"Doctrine"}</span></div><div class="small muted">${ch.desc}</div>`;
+    div.onclick=()=>{
+      if(ch.id.startsWith("S_")){
+        META.scars.push(ch);
+      }else{
+        META.doctrines.push(ch);
+      }
+      // Scar may include baseline Exposure +1 penalty; store as part of apply spec on next run via global tweak
+      saveMeta(META);
+      document.getElementById("modalBack").style.display="none";
+      document.getElementById("metaSummary").textContent = metaSummaryText(META);
+      toast("Unlock saved. Start a new run when ready.");
+    };
+    box.appendChild(div);
+  });
+  document.getElementById("modalBack").style.display="flex";
+}
+
+/* ========== Log & Toast ========= */
+function log(t){
+  if(!STATE) return;
+  STATE.log.push(t);
+  const L=document.getElementById("log");
+  const p=document.createElement('p'); p.textContent=t; L.appendChild(p);
+  L.scrollTop=L.scrollHeight;
+}
+function toast(msg){
+  log(`[!] ${msg}`);
+}
+
+/* ========== Wire UI ========= */
+document.getElementById("btnNew").onclick=()=>newRun();
+document.getElementById("btnEndTurn").onclick=()=>{ endTurn(); uiSyncAll(); };
+document.getElementById("btnCloseModal").onclick=()=>{ document.getElementById("modalBack").style.display="none"; };
+document.getElementById("btnResetMeta").onclick=()=>{
+  if(confirm("Reset all scars/doctrines and run count?")){ META={scars:[], doctrines:[], runs:0}; saveMeta(META); uiSyncAll(); toast("Meta progression cleared."); }
+};
+
+// First paint
+document.getElementById("metaSummary").textContent = metaSummaryText(META);
+uiSyncAll();
+
+/* ========== Notes =========
+- Save this file as index.html and open it locally.
+- Choose a faction, hit “Start New Run”, select up to 2 actions, then End Turn.
+- Win conditions are shown at the bottom.
+- When you win, pick a Scar/Doctrine to persist; they apply automatically on your next run.
+- “Rapid Planning Cells” doctrine increases your action cap by +1 on future runs.
+- Everything is self-contained; later we can add Supabase for leaderboards/runs.
+================================ */
+</script>
+</body>
+</html>
