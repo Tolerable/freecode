@@ -391,6 +391,10 @@
             ⚠️ CRITICAL: November SNAP benefits at risk for 42 million Americans
         </div>
 
+        <div class="info-box" style="margin: 0; border-radius: 0; border-left: none; border-right: none;">
+            <strong>Important:</strong> SNAP benefit dates, state policies, and available resources vary significantly by location. This tool provides general guidance - always verify specific information with your state's SNAP office and local resources. Benefit deposit dates can range from the 1st to the 20th of each month depending on your state and case number.
+        </div>
+
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="showTab('current')">📍 Where You Are</button>
             <button class="nav-tab" onclick="showTab('immediate')">⚡ Act Now</button>
@@ -421,9 +425,10 @@
                     <ul>
                         <li><strong>Oct 27:</strong> Texas stops November SNAP if shutdown continues</li>
                         <li><strong>Oct 31:</strong> WIC runs out of emergency funding</li>
-                        <li><strong>Nov 1:</strong> SNAP benefits normally issued - may not happen</li>
+                        <li><strong>November (dates vary by state/case):</strong> SNAP benefits normally issued - may not happen</li>
                         <li><strong>Each day beyond:</strong> Situation worsens</li>
                     </ul>
+                    <p style="margin-top: 10px; font-size: 0.9em;"><em>Note: SNAP benefit dates vary by state and individual case. Check your state's schedule for your specific benefit date.</em></p>
                 </div>
 
                 <div class="escalation-meter">
@@ -436,6 +441,11 @@
                         <span>😌 Normal</span>
                         <span>😟 Concerning</span>
                         <span>😱 Critical</span>
+                    </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+                        <p style="font-size: 0.9em; margin-bottom: 10px;"><em>If the automatic status detection isn't working, you can manually update:</em></p>
+                        <button class="action-button secondary" onclick="manualOverrideShutdown(true)" style="font-size: 0.9em; padding: 8px 16px;">Mark as Still Shutdown</button>
+                        <button class="action-button" onclick="manualOverrideShutdown(false)" style="font-size: 0.9em; padding: 8px 16px;">Mark as Ended</button>
                     </div>
                 </div>
 
@@ -469,10 +479,12 @@
                     <ul class="checklist">
                         <li onclick="toggleCheck(this)">Check your state SNAP website for official updates</li>
                         <li onclick="toggleCheck(this)">Sign up for text/email alerts from state SNAP office</li>
-                        <li onclick="toggleCheck(this)">Know your usual benefit date and monthly amount</li>
+                        <li onclick="toggleCheck(this)">Know your usual benefit date (varies by state - check your last deposit date or state schedule)</li>
+                        <li onclick="toggleCheck(this)">Know your monthly SNAP amount</li>
                         <li onclick="toggleCheck(this)">Screenshot your current EBT balance and benefit schedule</li>
                         <li onclick="toggleCheck(this)">Check if SSI/SSD payments are on schedule (they should be unaffected)</li>
                     </ul>
+                    <p style="margin-top: 10px; font-size: 0.9em;"><em>SNAP benefit dates vary by state and sometimes by case number within states. Some states issue benefits on a specific date (like the 5th), others spread them across multiple days (1st-20th). Your state SNAP website will have your specific schedule.</em></p>
                 </div>
 
                 <button class="collapsible">2. Emergency Food Acquisition (This Week)</button>
@@ -932,7 +944,8 @@
         <footer>
             <p><strong>This tool was created on October 23, 2025 to help individuals navigate the current crisis.</strong></p>
             <p style="margin-top: 10px;">Information based on current reporting from NPR, CNN, ABC News, CBS News, and government sources.</p>
-            <p style="margin-top: 10px;"><em>Not legal advice. Verify all information with official sources. Stay safe.</em></p>
+            <p style="margin-top: 10px;"><strong>Important Disclaimer:</strong> SNAP benefit schedules, state policies, resource availability, and shutdown impacts vary significantly by location. This tool provides general guidance based on federal-level information. Always verify details with your state's SNAP office, local resources, and official government sources for information specific to your situation.</p>
+            <p style="margin-top: 10px;"><em>Not legal advice. This is an informational tool. Stay safe.</em></p>
         </footer>
     </div>
 
@@ -940,28 +953,80 @@
         // ===== GOVERNMENT SHUTDOWN STATUS CHECKER =====
         // Checks if BLS API is responding to determine if shutdown has ended
         async function checkShutdownStatus() {
+            // Try multiple government endpoints to determine status
+            
+            // Method 1: Try BLS API with POST (the correct method)
             try {
-                // BLS API endpoint - returns 503 during shutdown, responds normally when operational
                 const response = await fetch('https://api.bls.gov/publicAPI/v2/timeseries/data/', {
-                    method: 'GET',
-                    mode: 'cors'
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        seriesid: ['LNS14000000'],
+                        startyear: '2024',
+                        endyear: '2024'
+                    })
                 });
                 
-                // If we get ANY response (even error about parameters), API is back online
-                if (response.ok || response.status === 400) {
-                    // 200 OK or 400 Bad Request = API responding = government operational
-                    return false; // Shutdown ended
+                // If we get a response (even if it's an error about our request), API is operational
+                if (response.status === 200 || response.status === 400) {
+                    return false; // Shutdown ended - API responding
                 } else if (response.status === 503 || response.status === 502) {
-                    // 503 Service Unavailable or 502 Bad Gateway = shutdown continues
-                    return true; // Shutdown ongoing
+                    return true; // Shutdown continues - service unavailable
                 }
             } catch (error) {
-                // Complete network failure or CORS issue
-                console.log('Unable to check BLS API status:', error);
-                return null; // Unknown status
+                console.log('BLS API check failed, trying fallback...', error);
             }
             
-            return null; // Uncertain
+            // Method 2: Try checking BLS website itself for shutdown message
+            try {
+                const response = await fetch('https://www.bls.gov/', {
+                    method: 'HEAD',
+                    mode: 'no-cors' // Avoid CORS issues
+                });
+                // If fetch completes without error, site is likely up
+                // Note: no-cors means we can't read the response, but we know if it fails
+                return false; // Likely operational
+            } catch (error) {
+                console.log('BLS website check failed', error);
+            }
+            
+            // Method 3: Check Census API (also affected by shutdown)
+            try {
+                const response = await fetch('https://api.census.gov/data.json');
+                if (response.ok) {
+                    return false; // Census API working = government operational
+                }
+            } catch (error) {
+                console.log('Census API check failed', error);
+            }
+            
+            // Method 4: Date-based logic with localStorage override
+            const manualOverride = localStorage.getItem('shutdownEnded');
+            if (manualOverride === 'true') {
+                return false; // User manually marked as ended
+            } else if (manualOverride === 'false') {
+                return true; // User manually marked as ongoing
+            }
+            
+            // Unable to determine automatically
+            return null; // Unknown status
+        }
+
+        // ===== MANUAL OVERRIDE FUNCTION =====
+        function manualOverrideShutdown(isShutdown) {
+            const message = isShutdown 
+                ? 'Mark the government shutdown as still ongoing?' 
+                : 'Mark the government shutdown as ENDED?';
+            
+            if (confirm(message)) {
+                localStorage.setItem('shutdownEnded', isShutdown ? 'false' : 'true');
+                updatePageStatus();
+                alert(isShutdown 
+                    ? 'Marked as ongoing shutdown. Page will update accordingly.' 
+                    : 'Marked as ended. Page will update accordingly. Remember to check your state SNAP office for benefit restoration timeline!');
+            }
         }
 
         // ===== UPDATE PAGE WITH CURRENT STATUS =====
