@@ -58,28 +58,28 @@
             50% { opacity: 0.8; }
         }
 
-		.nav-tabs {
-			display: flex;
-			background: #f8f9fa;
-			border-bottom: 2px solid #dee2e6;
-			overflow-x: auto;
-			flex-wrap: wrap;
-		}
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            overflow-x: auto;
+            flex-wrap: wrap;
+        }
 
-		.nav-tab {
-			padding: 12px 16px;
-			cursor: pointer;
-			border: none;
-			background: none;
-			font-size: 0.95em;
-			font-weight: 500;
-			color: #666;
-			transition: all 0.3s;
-			white-space: nowrap;
-			border-bottom: 3px solid transparent;
-			flex: 1 1 auto;
-			min-width: fit-content;
-		}
+        .nav-tab {
+            padding: 12px 16px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 0.95em;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            flex: 1 1 auto;
+            min-width: fit-content;
+        }
 
         .nav-tab:hover {
             background: #e9ecef;
@@ -937,6 +937,150 @@
     </div>
 
     <script>
+        // ===== GOVERNMENT SHUTDOWN STATUS CHECKER =====
+        // Checks if BLS API is responding to determine if shutdown has ended
+        async function checkShutdownStatus() {
+            try {
+                // BLS API endpoint - returns 503 during shutdown, responds normally when operational
+                const response = await fetch('https://api.bls.gov/publicAPI/v2/timeseries/data/', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                // If we get ANY response (even error about parameters), API is back online
+                if (response.ok || response.status === 400) {
+                    // 200 OK or 400 Bad Request = API responding = government operational
+                    return false; // Shutdown ended
+                } else if (response.status === 503 || response.status === 502) {
+                    // 503 Service Unavailable or 502 Bad Gateway = shutdown continues
+                    return true; // Shutdown ongoing
+                }
+            } catch (error) {
+                // Complete network failure or CORS issue
+                console.log('Unable to check BLS API status:', error);
+                return null; // Unknown status
+            }
+            
+            return null; // Uncertain
+        }
+
+        // ===== UPDATE PAGE WITH CURRENT STATUS =====
+        async function updatePageStatus() {
+            const shutdownStartDate = new Date('2025-10-01');
+            const today = new Date();
+            const daysSince = Math.ceil((today - shutdownStartDate) / (1000 * 60 * 60 * 24));
+            
+            // Format current date
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = today.toLocaleDateString('en-US', options);
+            
+            // Check shutdown status via API
+            const shutdownActive = await checkShutdownStatus();
+            
+            const headerDate = document.querySelector('.header .date');
+            const alertBanner = document.querySelector('.alert-banner');
+            const currentTabStatus = document.querySelector('#current .happening-now ul li:first-child strong');
+            const escalationMarker = document.querySelector('.meter-marker');
+            
+            if (shutdownActive === false) {
+                // ===== SHUTDOWN HAS ENDED =====
+                if (headerDate) {
+                    headerDate.textContent = `${formattedDate} - Government Reopened (After ${daysSince} days)`;
+                }
+                
+                if (alertBanner) {
+                    alertBanner.style.background = '#51cf66';
+                    alertBanner.style.animation = 'none';
+                    alertBanner.innerHTML = '✅ <strong>Government shutdown has ENDED</strong> - Check state SNAP offices for benefit restoration timeline';
+                }
+                
+                if (currentTabStatus) {
+                    currentTabStatus.parentElement.innerHTML = '<strong>Government Reopened:</strong> ' + formattedDate + ' (After ' + daysSince + ' day shutdown)';
+                }
+                
+                // Lower escalation meter
+                if (escalationMarker) {
+                    escalationMarker.style.left = '45%';
+                }
+                
+                // Add notice at top of current tab
+                const currentTab = document.getElementById('current');
+                const existingNotice = currentTab.querySelector('.shutdown-ended-notice');
+                if (!existingNotice) {
+                    const endNotice = document.createElement('div');
+                    endNotice.className = 'info-box shutdown-ended-notice';
+                    endNotice.innerHTML = `
+                        <strong>Government Shutdown Ended ${formattedDate}</strong><br>
+                        <p style="margin-top: 10px;">Benefits should resume, but timing varies by state. Key actions:</p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>Check your state SNAP website for restoration timeline</li>
+                            <li>Monitor your EBT card for benefit deposits</li>
+                            <li>Back pay for federal workers should be processed</li>
+                            <li>Keep documentation of shutdown impacts for potential claims</li>
+                        </ul>
+                    `;
+                    currentTab.insertBefore(endNotice, currentTab.firstChild.nextSibling);
+                }
+                
+            } else if (shutdownActive === true) {
+                // ===== SHUTDOWN CONTINUES =====
+                if (headerDate) {
+                    headerDate.textContent = `${formattedDate} - Government Shutdown Day ${daysSince}`;
+                }
+                
+                if (currentTabStatus && currentTabStatus.nextSibling) {
+                    currentTabStatus.nextSibling.textContent = ` Day ${daysSince} (began Oct 1)`;
+                }
+                
+                // Adjust escalation level based on days
+                if (escalationMarker) {
+                    let escalationPercent = 75; // Default
+                    if (daysSince > 35) escalationPercent = 95; // Over 35 days = critical
+                    else if (daysSince > 25) escalationPercent = 85; // Over 25 days = severe
+                    escalationMarker.style.left = escalationPercent + '%';
+                }
+                
+                // Add warning if shutdown is extremely long
+                if (daysSince > 40) {
+                    const currentTab = document.getElementById('current');
+                    const existingWarning = currentTab.querySelector('.extreme-duration-warning');
+                    if (!existingWarning) {
+                        const warning = document.createElement('div');
+                        warning.className = 'card critical extreme-duration-warning';
+                        warning.innerHTML = `
+                            <h3>⚠️ EXTREME DURATION SHUTDOWN</h3>
+                            <p><strong>This shutdown has exceeded 40 days - the longest in U.S. history.</strong></p>
+                            <p>This represents an unprecedented crisis. Multiple benefit systems are likely affected beyond SNAP.</p>
+                        `;
+                        currentTab.insertBefore(warning, currentTab.children[2]);
+                    }
+                }
+                
+            } else {
+                // ===== UNABLE TO DETERMINE - USE DATE LOGIC =====
+                if (headerDate) {
+                    headerDate.textContent = `${formattedDate} - Day ${daysSince} since shutdown began (Status Unknown)`;
+                }
+                
+                // If it's been a really long time, show data may be outdated
+                if (daysSince > 60) {
+                    const currentTab = document.getElementById('current');
+                    const existingWarning = currentTab.querySelector('.outdated-warning');
+                    if (!existingWarning) {
+                        const warning = document.createElement('div');
+                        warning.className = 'warning-box outdated-warning';
+                        warning.innerHTML = `
+                            <strong>⚠️ Page May Be Outdated</strong><br>
+                            It's been over 60 days since the shutdown began. This page cannot verify current status.
+                            Please check official government sources for the latest information.
+                        `;
+                        currentTab.insertBefore(warning, currentTab.firstChild.nextSibling);
+                    }
+                }
+            }
+        }
+
+        // ===== TAB NAVIGATION =====
         function showTab(tabName) {
             // Hide all tabs
             const tabs = document.querySelectorAll('.tab-pane');
@@ -956,8 +1100,8 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Collapsible sections
-        document.addEventListener('DOMContentLoaded', function() {
+        // ===== COLLAPSIBLE SECTIONS =====
+        function initCollapsibles() {
             const collapsibles = document.querySelectorAll('.collapsible');
             
             collapsibles.forEach(button => {
@@ -967,41 +1111,56 @@
                     content.classList.toggle('active');
                 });
             });
-        });
-
-        // Checklist functionality
-        function toggleCheck(element) {
-            element.classList.toggle('checked');
         }
 
-        // Save checklist state to localStorage
+        // ===== CHECKLIST FUNCTIONALITY =====
+        function toggleCheck(element) {
+            element.classList.toggle('checked');
+            saveProgress();
+        }
+
         function saveProgress() {
             const checked = [];
             document.querySelectorAll('.checklist li.checked').forEach(item => {
-                checked.push(item.textContent);
+                checked.push(item.textContent.trim());
             });
             localStorage.setItem('snapCrisisChecklist', JSON.stringify(checked));
         }
 
-        // Load checklist state
         function loadProgress() {
             const saved = localStorage.getItem('snapCrisisChecklist');
             if (saved) {
                 const checked = JSON.parse(saved);
                 document.querySelectorAll('.checklist li').forEach(item => {
-                    if (checked.includes(item.textContent)) {
+                    if (checked.includes(item.textContent.trim())) {
                         item.classList.add('checked');
                     }
                 });
             }
         }
 
-        // Auto-save on check
+        // ===== INITIALIZATION =====
         document.addEventListener('DOMContentLoaded', function() {
+            // Initial status check
+            updatePageStatus();
+            
+            // Load saved checklist progress
             loadProgress();
+            
+            // Initialize collapsibles
+            initCollapsibles();
+            
+            // Add click handlers to checklist items
             document.querySelectorAll('.checklist li').forEach(item => {
-                item.addEventListener('click', saveProgress);
+                item.addEventListener('click', function() {
+                    toggleCheck(this);
+                });
             });
+            
+            // Check for updates every hour
+            setInterval(updatePageStatus, 3600000); // 3600000ms = 1 hour
+            
+            console.log('SNAP Crisis Navigator loaded. Checking government status every hour via BLS API.');
         });
     </script>
 </body>
