@@ -443,9 +443,10 @@
                         <span>😱 Critical</span>
                     </div>
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
-                        <p style="font-size: 0.9em; margin-bottom: 10px;"><em>If the automatic status detection isn't working, you can manually update:</em></p>
-                        <button class="action-button secondary" onclick="manualOverrideShutdown(true)" style="font-size: 0.9em; padding: 8px 16px;">Mark as Still Shutdown</button>
-                        <button class="action-button" onclick="manualOverrideShutdown(false)" style="font-size: 0.9em; padding: 8px 16px;">Mark as Ended</button>
+                        <p style="font-size: 0.9em; margin-bottom: 10px;"><strong>Update Shutdown Status:</strong></p>
+                        <p style="font-size: 0.85em; margin-bottom: 10px; color: #666;">This page cannot automatically detect when the shutdown ends. Please update manually when you hear official news:</p>
+                        <button class="action-button secondary" onclick="manualOverrideShutdown(true)" style="font-size: 0.9em; padding: 8px 16px;">Mark as Still Ongoing</button>
+                        <button class="action-button" onclick="manualOverrideShutdown(false)" style="font-size: 0.9em; padding: 8px 16px;">Mark as Ended ✓</button>
                     </div>
                 </div>
 
@@ -951,58 +952,13 @@
 
     <script>
         // ===== GOVERNMENT SHUTDOWN STATUS CHECKER =====
-        // Checks if BLS API is responding to determine if shutdown has ended
-        async function checkShutdownStatus() {
-            // Try multiple government endpoints to determine status
+        // Uses date logic and manual override (API checks don't work due to CORS)
+        function checkShutdownStatus() {
+            const shutdownStartDate = new Date('2025-10-01');
+            const today = new Date();
+            const daysSince = Math.ceil((today - shutdownStartDate) / (1000 * 60 * 60 * 24));
             
-            // Method 1: Try BLS API with POST (the correct method)
-            try {
-                const response = await fetch('https://api.bls.gov/publicAPI/v2/timeseries/data/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        seriesid: ['LNS14000000'],
-                        startyear: '2024',
-                        endyear: '2024'
-                    })
-                });
-                
-                // If we get a response (even if it's an error about our request), API is operational
-                if (response.status === 200 || response.status === 400) {
-                    return false; // Shutdown ended - API responding
-                } else if (response.status === 503 || response.status === 502) {
-                    return true; // Shutdown continues - service unavailable
-                }
-            } catch (error) {
-                console.log('BLS API check failed, trying fallback...', error);
-            }
-            
-            // Method 2: Try checking BLS website itself for shutdown message
-            try {
-                const response = await fetch('https://www.bls.gov/', {
-                    method: 'HEAD',
-                    mode: 'no-cors' // Avoid CORS issues
-                });
-                // If fetch completes without error, site is likely up
-                // Note: no-cors means we can't read the response, but we know if it fails
-                return false; // Likely operational
-            } catch (error) {
-                console.log('BLS website check failed', error);
-            }
-            
-            // Method 3: Check Census API (also affected by shutdown)
-            try {
-                const response = await fetch('https://api.census.gov/data.json');
-                if (response.ok) {
-                    return false; // Census API working = government operational
-                }
-            } catch (error) {
-                console.log('Census API check failed', error);
-            }
-            
-            // Method 4: Date-based logic with localStorage override
+            // Check for manual override first
             const manualOverride = localStorage.getItem('shutdownEnded');
             if (manualOverride === 'true') {
                 return false; // User manually marked as ended
@@ -1010,8 +966,13 @@
                 return true; // User manually marked as ongoing
             }
             
-            // Unable to determine automatically
-            return null; // Unknown status
+            // Default assumption: if it's been less than 60 days, assume ongoing
+            // After 60 days, we can't reliably know without manual input
+            if (daysSince < 60) {
+                return true; // Likely still ongoing
+            } else {
+                return null; // Too old to assume, needs manual verification
+            }
         }
 
         // ===== MANUAL OVERRIDE FUNCTION =====
@@ -1030,7 +991,7 @@
         }
 
         // ===== UPDATE PAGE WITH CURRENT STATUS =====
-        async function updatePageStatus() {
+        function updatePageStatus() {
             const shutdownStartDate = new Date('2025-10-01');
             const today = new Date();
             const daysSince = Math.ceil((today - shutdownStartDate) / (1000 * 60 * 60 * 24));
@@ -1039,8 +1000,8 @@
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const formattedDate = today.toLocaleDateString('en-US', options);
             
-            // Check shutdown status via API
-            const shutdownActive = await checkShutdownStatus();
+            // Check shutdown status via date logic and manual override
+            const shutdownActive = checkShutdownStatus();
             
             const headerDate = document.querySelector('.header .date');
             const alertBanner = document.querySelector('.alert-banner');
@@ -1225,7 +1186,7 @@
             // Check for updates every hour
             setInterval(updatePageStatus, 3600000); // 3600000ms = 1 hour
             
-            console.log('SNAP Crisis Navigator loaded. Checking government status every hour via BLS API.');
+            console.log('SNAP Crisis Navigator loaded. Status updates every hour. Use manual override buttons if needed.');
         });
     </script>
 </body>
