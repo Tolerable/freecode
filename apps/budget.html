@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Budget Wizard + Dashboard</title>
+<style>
+  :root{
+    /* Theme */
+    --bg:#0b1020; --panel:#0f1733; --card:#12214a; --line:#22315e;
+    --ink:#e7ecf6; --muted:#a7b0c8;
+    --acc:#60a5fa; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+
+    /* User colors */
+    --u1:#86efac; --u2:#93c5fd; --u3:#f9a8d4; --u4:#facc15;
+
+    /* Type pills */
+    --pill-income:#112716; --pill-cash:#2a1114; --pill-cc:#0a1a36;
+
+    /* calendar cell width (zoomable) */
+    --cellW: 88px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:linear-gradient(180deg,#0b1020,#0a0f1d);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial}
+  /* Layout */
+  header{
+    position:sticky;top:0;z-index:50;background:var(--panel);
+    border-bottom:1px solid var(--line);padding:8px 12px;
+  }
+  header .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  h1{margin:0;font-size:clamp(16px,2vw,20px)}
+  input,select,button{
+    background:#0c1630;color:var(--ink);border:1px solid var(--line);
+    border-radius:10px;padding:8px 10px;font-size:clamp(12px,1.6vw,14px)
+  }
+  button.primary{background:var(--acc);border:0;color:#031028;font-weight:700}
+  button.good{background:var(--ok);border:0;color:#05240f;font-weight:700}
+  button.danger{background:var(--bad);border:0;color:#fff}
+  button.ghost{background:transparent}
+  main{
+    max-width:1200px;margin:12px auto;padding:0 12px;
+    display:grid;grid-template-columns:1fr;gap:12px;
+  }
+
+  /* Cards & panels */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .card h2{margin:0 0 8px 0;font-size:clamp(14px,2vw,16px);color:#dfe8ff}
+  .muted{color:var(--muted)}
+  .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .right{margin-left:auto}
+
+  /* Stepper */
+  .stepper{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px}
+  .step{
+    background:#0f1a3b;border:1px solid var(--line);border-radius:12px;padding:8px;
+    display:flex;align-items:center;gap:8px;justify-content:center;
+    font-weight:700;min-height:46px
+  }
+  .step.active{outline:2px solid var(--acc)}
+  .step.done{opacity:.8}
+  .step .icon{font-size:18px}
+  .panel{display:none}
+  .panel.active{display:block}
+
+  /* Icon cards */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media (max-width:900px){ .grid2,.grid3{grid-template-columns:1fr} }
+
+  .ibox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+  .ibox h3{margin:0 0 6px 0;font-size:clamp(13px,2vw,15px)}
+  .ibox .row{display:flex;align-items:center;gap:8px}
+  .ibox .icon{font-size:18px}
+
+  /* Users list */
+  .ulist > div{display:flex;align-items:center;gap:8px;margin:6px 0}
+  .dot{width:12px;height:12px;border-radius:50%}
+  .u1{background:var(--u1)} .u2{background:var(--u2)} .u3{background:var(--u3)} .u4{background:var(--u4)}
+
+  /* Rules table */
+  table{border-collapse:separate;border-spacing:0;width:100%}
+  th,td{padding:6px 8px;border-bottom:1px solid var(--line);font-size:clamp(12px,1.6vw,14px)}
+  th{background:#0f1836;text-align:left;position:sticky;top:0}
+
+  /* Dashboard layout */
+  .dash{display:grid;grid-template-columns:320px 1fr;gap:12px}
+  @media (max-width:1100px){ .dash{grid-template-columns:1fr} }
+  .legend{display:flex;gap:10px;flex-wrap:wrap}
+  .legend .chip{display:flex;gap:6px;align-items:center}
+  .legend .sm{font-size:12px}
+
+  /* Calendar grid (responsive & scrollable) */
+  .gridWrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#0f1836;scroll-behavior:smooth}
+  .cal{table-layout:fixed;border-collapse:separate;min-width:unset;width:max(100%, calc(32 * var(--cellW)));}
+  .cal th,.cal td{text-align:right;white-space:nowrap;min-width:var(--cellW)}
+  .cal th.left,.cal td.left{text-align:left}
+  /* sticky first column */
+  .cal th.left,.cal td.left{position:sticky;left:0;z-index:2;background:#0f1836}
+  .cal .pill{padding:2px 6px;border-radius:999px;font-weight:700;font-size:12px;display:inline-block}
+  .p-income{color:var(--ok);background:var(--pill-income)}
+  .p-cash{color:var(--bad);background:var(--pill-cash)}
+  .p-cc{color:#dbeafe;background:var(--pill-cc);border:1px solid #19315d}
+  .due{background:#3c2c0e !important;outline:1px solid var(--warn)}
+  .total{background:#0f1836;font-weight:700}
+  .daycell{cursor:pointer}
+  .roll{font-weight:700}
+  .neg{color:var(--bad)} .pos{color:var(--ok)}
+
+  dialog{border:0;padding:0;background:transparent}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;min-width:320px;max-width:520px;padding:12px}
+  .modal h3{margin:0 0 8px 0}
+  .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <h1>Budget Assistant</h1>
+    <button id="goWizard" class="right">Wizard</button>
+    <button id="goDash" class="primary">Dashboard</button>
+  </div>
+</header>
+
+<main>
+  <!-- STEP WIZARD -->
+  <section id="wizard" class="card">
+    <div class="stepper">
+      <div class="step active" data-step="1"><span class="icon">👥</span> Household</div>
+      <div class="step" data-step="2"><span class="icon">💳</span> Accounts</div>
+      <div class="step" data-step="3"><span class="icon">🗂️</span> Categories</div>
+      <div class="step" data-step="4"><span class="icon">🔁</span> Recurring</div>
+      <div class="step" data-step="5"><span class="icon">✅</span> Review</div>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="panel active" id="s1">
+      <div class="grid2">
+        <div class="ibox">
+          <h3><span class="icon">👤</span> Add Adults / Users</h3>
+          <div class="muted">Color-coded users (1–4). These tag incomes/bills for filtering and totals.</div>
+          <div id="userList" class="ulist" style="margin-top:8px"></div>
+          <div class="flex">
+            <input id="userName" placeholder="Name (e.g., John)" style="flex:1"/>
+            <select id="userColor">
+              <option value="u1">User 1</option>
+              <option value="u2">User 2</option>
+              <option value="u3">User 3</option>
+              <option value="u4">User 4</option>
+            </select>
+            <button id="addUser" class="primary">Add</button>
+          </div>
+        </div>
+        <div class="ibox">
+          <h3><span class="icon">📅</span> Month & Starting Cash</h3>
+          <div class="row">
+            <label>Month <input type="month" id="wizMonth"/></label>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <label>Starting Cash $ <input type="number" id="wizStartCash" step="0.01" style="width:140px"/></label>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <label>Credit Card Auto-Pay Day
+              <select id="wizCCDay"><option value="">— off —</option></select>
+            </label>
+          </div>
+          <div class="muted" style="margin-top:6px">Blue “credit pass-through” items don’t hit cash until auto-pay day.</div>
+        </div>
+      </div>
+      <div class="actions"><button class="primary" id="next1">Next →</button></div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="panel" id="s2">
+      <div class="grid2">
+        <div class="ibox">
+          <h3><span class="icon">🏦</span> Cash Accounts</h3>
+          <table id="acctTable">
+            <thead><tr><th>Name</th><th>Start $</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="flex" style="margin-top:8px">
+            <input id="acctName" placeholder="e.g., Checking" style="flex:1"/>
+            <input id="acctStart" type="number" step="0.01" placeholder="0.00" style="width:140px"/>
+            <button id="addAcct" class="primary">Add</button>
+          </div>
+          <div class="muted" style="margin-top:6px">We’ll sum cash accounts into your daily rollover.</div>
+        </div>
+        <div class="ibox">
+          <h3><span class="icon">💳</span> Credit Cards (optional)</h3>
+          <table id="cardTable">
+            <thead><tr><th>Name</th><th>Due Day</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="flex" style="margin-top:8px">
+            <input id="cardName" placeholder="e.g., Visa" style="flex:1"/>
+            <select id="cardDue"></select>
+            <button id="addCard" class="primary">Add</button>
+          </div>
+          <div class="muted" style="margin-top:6px">Purchases (blue) accrue here; cash changes when you pay.</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="back2">← Back</button>
+        <button class="primary" id="next2">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="panel" id="s3">
+      <div class="ibox">
+        <h3><span class="icon">🗂️</span> Categories / Rows & Due Flags</h3>
+        <table id="catTable" class="stickyHead">
+          <thead><tr><th>Category</th><th>Default Type</th><th>User</th><th>Due row?</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="flex" style="margin-top:8px">
+          <input id="catName" placeholder="e.g., GROCERIES" style="flex:1"/>
+          <select id="catType">
+            <option value="income">Income</option>
+            <option value="cash" selected>Cash spend</option>
+            <option value="cc">Credit pass-through</option>
+          </select>
+          <select id="catUser"></select>
+          <label class="muted"><input type="checkbox" id="catDue"> Due</label>
+          <button id="addCat" class="primary">Add</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="back3">← Back</button>
+        <button class="primary" id="next3">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="panel" id="s4">
+      <div class="grid2">
+        <div class="ibox">
+          <h3><span class="icon">➕</span> Recurring Income</h3>
+          <table id="incTable">
+            <thead><tr><th>Name</th><th>$</th><th>Category</th><th>Freq</th><th>Day</th><th>User</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+
+          <div class="flex" style="margin-top:8px">
+            <input id="incName" placeholder="e.g., Paycheck" style="flex:1"/>
+            <input id="incAmt" type="number" step="0.01" placeholder="0.00" style="width:120px"/>
+            <select id="incCat"></select>
+            <select id="incFreq">
+              <option value="monthly">Monthly</option>
+              <option value="biweekly">Bi-weekly</option>
+              <option value="weekly">Weekly</option>
+            </select>
+            <select id="incDay"></select>
+            <select id="incUser"></select>
+            <button id="addInc" class="primary">Add</button>
+          </div>
+        </div>
+
+        <div class="ibox">
+          <h3><span class="icon">➖</span> Recurring Bills</h3>
+          <table id="billTable">
+            <thead><tr><th>Name</th><th>$</th><th>Category</th><th>Type</th><th>Freq</th><th>Day</th><th>User</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+
+          <div class="flex" style="margin-top:8px">
+            <input id="billName" placeholder="e.g., Spectrum" style="flex:1"/>
+            <input id="billAmt" type="number" step="0.01" placeholder="0.00" style="width:120px"/>
+            <select id="billCat"></select>
+            <select id="billType">
+              <option value="cash">Cash spend</option>
+              <option value="cc">Credit pass-through</option>
+            </select>
+            <select id="billFreq">
+              <option value="monthly">Monthly</option>
+              <option value="biweekly">Bi-weekly</option>
+              <option value="weekly">Weekly</option>
+              <option value="quarterly">Every 3 months</option>
+            </select>
+            <select id="billDay"></select>
+            <select id="billUser"></select>
+            <button id="addBill" class="primary">Add</button>
+          </div>
+
+          <div class="muted" style="margin-top:6px">“Credit pass-through” posts in blue and hits cash on CC Auto-Pay day.</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="back4">← Back</button>
+        <button class="primary" id="next4">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="panel" id="s5">
+      <div class="ibox">
+        <h3><span class="icon">✅</span> Review & Generate Month</h3>
+        <div class="muted">Click “Build Month” to create calendar entries for the selected month. You can still edit individual days later on the Dashboard.</div>
+        <div id="reviewBox" style="margin:8px 0"></div>
+        <div class="actions">
+          <button id="back5">← Back</button>
+          <button id="buildMonth" class="good">Build Month → Dashboard</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="card" style="display:none">
+    <div class="dash">
+      <aside class="card">
+        <h2>Controls</h2>
+        <div class="flex">
+          <label>Month <input type="month" id="dMonth"/></label>
+        </div>
+        <div class="flex" style="margin-top:6px">
+          <label>Starting Cash $ <input type="number" id="dStart" step="0.01" style="width:140px"/></label>
+        </div>
+        <div class="flex" style="margin-top:6px">
+          <label>CC Auto-Pay Day
+            <select id="dCCDay"><option value="">— off —</option></select>
+          </label>
+        </div>
+        <hr style="border-color:#22315e;opacity:.4">
+        <h2>Legend</h2>
+        <div class="legend">
+          <span class="chip sm"><span class="dot" style="background:var(--ok)"></span> Income</span>
+          <span class="chip sm"><span class="dot" style="background:var(--bad)"></span> Cash spend</span>
+          <span class="chip sm"><span class="dot" style="background:var(--acc)"></span> Credit</span>
+          <span id="userLegend" class="chip sm"></span>
+        </div>
+        <hr style="border-color:#22315e;opacity:.4">
+        <h2>Totals</h2>
+        <div id="totalsBox"></div>
+        <hr style="border-color:#22315e;opacity:.4">
+        <h2>Daily Cash Rollover</h2>
+        <div id="rollBox" class="roll"></div>
+        <hr style="border-color:#22315e;opacity:.4">
+        <div class="flex">
+          <button id="toWizard">Wizard</button>
+          <button id="exportJSON" class="right">Export JSON</button>
+          <input type="file" id="importJSON" accept="application/json"/>
+        </div>
+      </aside>
+
+      <section>
+        <div class="flex">
+          <h2>View</h2>
+          <div class="right flex">
+            <label>Mode
+              <select id="viewMode">
+                <option value="cal">Calendar</option>
+                <option value="agenda">Agenda</option>
+              </select>
+            </label>
+            <label style="margin-left:10px">Cell width
+              <input id="zoom" type="range" min="64" max="140" value="88" />
+            </label>
+            <button id="scrollLeft" title="Scroll left">◀</button>
+            <button id="scrollRight" title="Scroll right">▶</button>
+          </div>
+        </div>
+
+        <!-- Calendar -->
+        <div class="gridWrap" id="calWrap" style="margin-top:8px">
+          <table class="cal" id="cal"></table>
+        </div>
+
+        <!-- Agenda -->
+        <div id="agenda" class="card" style="display:none;max-height:70vh;overflow:auto;margin-top:8px"></div>
+      </section>
+    </div>
+  </section>
+</main>
+
+<!-- CELL EDITOR -->
+<dialog id="cellDlg">
+  <div class="modal">
+    <h3 id="cellTitle">Edit</h3>
+    <div class="grid2">
+      <label>Type
+        <select id="cellType">
+          <option value="income">Income (+)</option>
+          <option value="cash">Cash spend (−)</option>
+          <option value="cc">Credit pass-through</option>
+        </select>
+      </label>
+      <label>Amount $
+        <input type="number" id="cellAmt" step="0.01"/>
+      </label>
+      <label>User
+        <select id="cellUser"></select>
+      </label>
+      <label>Note
+        <input id="cellNote" placeholder="optional"/>
+      </label>
+    </div>
+    <div class="actions">
+      <button id="cellDel" class="danger">Delete</button>
+      <button id="cellCancel">Cancel</button>
+      <button id="cellSave" class="primary">Save</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function(){
+  const $ = (q,el=document)=>el.querySelector(q);
+  const $$= (q,el=document)=>Array.from(el.querySelectorAll(q));
+  const fmt = n => (n<0?'-':'') + '$' + Math.abs(n).toFixed(2);
+  const uid = ()=> Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+  const today = new Date();
+  const monthStr = today.toISOString().slice(0,7);
+
+  // DOM
+  const wizard = $('#wizard'), dashboard = $('#dashboard');
+  const wizMonth = $('#wizMonth'), wizStartCash = $('#wizStartCash'), wizCCDay = $('#wizCCDay');
+  const userList = $('#userList'), userName = $('#userName'), userColor = $('#userColor'), addUser = $('#addUser');
+  const acctTable = $('#acctTable tbody'), acctName = $('#acctName'), acctStart = $('#acctStart'), addAcct = $('#addAcct');
+  const cardTable = $('#cardTable tbody'), cardName = $('#cardName'), cardDue = $('#cardDue'), addCard = $('#addCard');
+  const catTable = $('#catTable tbody'), catName = $('#catName'), catType = $('#catType'), catUser = $('#catUser'), catDue = $('#catDue'), addCat = $('#addCat');
+  const incTable = $('#incTable tbody'), incName = $('#incName'), incAmt = $('#incAmt'), incCat = $('#incCat'), incFreq = $('#incFreq'), incDay = $('#incDay'), incUser = $('#incUser'), addInc = $('#addInc');
+  const billTable= $('#billTable tbody'), billName= $('#billName'), billAmt= $('#billAmt'), billCat = $('#billCat'), billType= $('#billType'), billFreq= $('#billFreq'), billDay= $('#billDay'), billUser= $('#billUser'), addBill= $('#addBill');
+
+  const reviewBox = $('#reviewBox');
+
+  const dMonth = $('#dMonth'), dStart = $('#dStart'), dCCDay = $('#dCCDay');
+  const userLegend = $('#userLegend'), totalsBox = $('#totalsBox'), rollBox = $('#rollBox'), cal = $('#cal');
+  const calWrap = $('#calWrap'), viewMode = $('#viewMode'), agenda = $('#agenda'), zoom = $('#zoom'), scrollLeftBtn = $('#scrollLeft'), scrollRightBtn = $('#scrollRight');
+
+  const goWizard = $('#goWizard'), goDash = $('#goDash'), toWizard = $('#toWizard');
+  const exportJSON = $('#exportJSON'), importJSON = $('#importJSON');
+
+  const cellDlg = $('#cellDlg'), cellTitle = $('#cellTitle'), cellType = $('#cellType'), cellAmt = $('#cellAmt'),
+        cellUser = $('#cellUser'), cellNote = $('#cellNote'), cellDel = $('#cellDel'), cellSave = $('#cellSave'), cellCancel = $('#cellCancel');
+
+  // Data
+  const key = 'budget.assistant.v1';
+  let state = load() || seed();
+
+  function seed(){
+    return {
+      month: monthStr,
+      users: [{id:'u1', name:'User 1', color:'u1'}],
+      accounts: [{id:uid(), name:'Checking', start:0}],
+      cards: [],
+      categories: [
+        {id:uid(), name:'INCOME', defType:'income', user:'u1', due:false},
+        {id:uid(), name:'GROCERIES', defType:'cash', user:'u1', due:false},
+        {id:uid(), name:'INTERNET', defType:'cash', user:'u1', due:true},
+      ],
+      rules: { incomes:[], bills:[] },
+      monthData: {}
+    };
+  }
+  function mkey(){ return state.month; }
+  function ensureMonth(){
+    if(!state.monthData[mkey()]){
+      state.monthData[mkey()] = {
+        startCash: 0, ccDay: '',
+        rows: state.categories.map(c=>({id:c.id,name:c.name,defType:c.defType,user:c.user,due:c.due})),
+        entries: {}
+      };
+    }
+    return state.monthData[mkey()];
+  }
+
+  function save(){ localStorage.setItem(key, JSON.stringify(state)); }
+  function load(){
+    const s = localStorage.getItem(key);
+    if(!s) return null;
+    try{
+      const obj = JSON.parse(s);
+      if (!obj.rules) obj.rules = {incomes:[], bills:[]};
+      if (!obj.rules.incomes) obj.rules.incomes = [];
+      if (!obj.rules.bills)   obj.rules.bills   = [];
+      if (!obj.categories) obj.categories = [];
+      if (!obj.users) obj.users = [{id:'u1',name:'User 1',color:'u1'}];
+      if (!obj.monthData) obj.monthData = {};
+      if (!obj.month) obj.month = new Date().toISOString().slice(0,7);
+      for (const k of Object.keys(obj.monthData)){
+        const md = obj.monthData[k] || {};
+        if (!md.rows) md.rows = [];
+        if (!md.entries) md.entries = {};
+        if (md.startCash === undefined) md.startCash = 0;
+        if (md.ccDay === undefined) md.ccDay = '';
+      }
+      localStorage.setItem(key, JSON.stringify(obj));
+      return obj;
+    }catch{
+      return null;
+    }
+  }
+
+  // Helpers
+  function clampDay(d,y,m){ const last = new Date(y,m,0).getDate(); return Math.max(1, Math.min(last, d)); }
+  function daysInMonth(ym){ const [y,m]=ym.split('-').map(n=>parseInt(n,10)); return new Date(y,m,0).getDate(); }
+
+  // Build day selectors
+  function fillDays(sel){
+    sel.innerHTML = ''; for(let d=1; d<=31; d++){ const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); }
+  }
+  fillDays(wizCCDay); fillDays(cardDue); fillDays(incDay); fillDays(billDay); fillDays(dCCDay);
+
+  // INIT wizard fields
+  wizMonth.value = state.month;
+  dMonth.value = state.month;
+
+  // Renderers (Wizard)
+  function renderUsers(){
+    const list = $('#userList'); list.innerHTML='';
+    state.users.forEach(u=>{
+      const div=document.createElement('div');
+      div.innerHTML = `<span class="dot ${u.color}"></span><strong>${escape(u.name)}</strong>
+        <button data-act="del" data-id="${u.id}" class="ghost">✖</button>`;
+      list.appendChild(div);
+    });
+    const opts = state.users.map(u=>`<option value="${u.id}">${escape(u.name)}</option>`).join('');
+    $('#catUser').innerHTML = opts;
+    $('#incUser').innerHTML = opts;
+    $('#billUser').innerHTML = opts;
+    cellUser.innerHTML = opts;
+    userLegend.innerHTML = state.users.map(u=>`<span class="chip sm"><span class="dot ${u.color}"></span>${escape(u.name)}</span>`).join(' ');
+    list.onclick = (e)=>{
+      if(e.target.dataset.act==='del'){
+        const id=e.target.dataset.id;
+        if(state.users.length===1){ alert('At least one user required.'); return; }
+        state.users = state.users.filter(x=>x.id!==id);
+        const def = state.users[0]?.id || 'u1';
+        state.categories.forEach(c=>{ if(c.user===id) c.user=def; });
+        state.rules.incomes.forEach(r=>{ if(r.user===id) r.user=def; });
+        state.rules.bills.forEach(r=>{ if(r.user===id) r.user=def; });
+        save(); renderUsers(); renderCats(); renderRules();
+      }
+    };
+  }
+  function renderAccounts(){
+    acctTable.innerHTML='';
+    state.accounts.forEach(a=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${escape(a.name)}</td><td>${(+a.start).toFixed(2)}</td>
+                    <td><button class="ghost" data-act="del" data-id="${a.id}">✖</button></td>`;
+      acctTable.appendChild(tr);
+    });
+    acctTable.onclick = (e)=>{
+      if(e.target.dataset.act==='del'){
+        const id=e.target.dataset.id;
+        state.accounts = state.accounts.filter(x=>x.id!==id); save(); renderAccounts();
+      }
+    };
+  }
+  function renderCards(){
+    cardTable.innerHTML='';
+    state.cards.forEach(c=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${escape(c.name)}</td><td>${c.due}</td>
+                    <td><button class="ghost" data-act="del" data-id="${c.id}">✖</button></td>`;
+      cardTable.appendChild(tr);
+    });
+    cardTable.onclick = (e)=>{
+      if(e.target.dataset.act==='del'){ state.cards = state.cards.filter(x=>x.id!==e.target.dataset.id); save(); renderCards(); }
+    };
+  }
+  function renderCats(){
+    catTable.innerHTML='';
+    state.categories.forEach(c=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escape(c.name)}</td>
+        <td>${c.defType}</td>
+        <td>${escape(userNameById(c.user))}</td>
+        <td>${c.due?'Yes':'No'}</td>
+        <td><button class="ghost" data-act="del" data-id="${c.id}">✖</button></td>`;
+      catTable.appendChild(tr);
+    });
+    catTable.onclick=(e)=>{
+      if(e.target.dataset.act==='del'){
+        const id=e.target.dataset.id;
+        state.categories = state.categories.filter(x=>x.id!==id);
+        const md = ensureMonth();
+        md.rows = md.rows.filter(r=>r.id!==id);
+        delete md.entries[id];
+        save(); renderCats();
+      }
+    };
+    const optsCats = state.categories.map(c=>`<option value="${c.id}">${escape(c.name)}</option>`).join('');
+    $('#incCat').innerHTML = `<option value="">(choose)</option>` + optsCats;
+    $('#billCat').innerHTML = `<option value="">(choose)</option>` + optsCats;
+  }
+  function renderRules(){
+    incTable.innerHTML='';
+    state.rules.incomes.forEach(r=>{
+      const catName = state.categories.find(c=>c.id===r.cat)?.name || '—';
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${escape(r.name)}</td><td>${(+r.amt).toFixed(2)}</td><td>${escape(catName)}</td><td>${r.freq}</td><td>${r.day}</td><td>${escape(userNameById(r.user))}</td>
+      <td><button class="ghost" data-act="del-inc" data-id="${r.id}">✖</button></td>`;
+      incTable.appendChild(tr);
+    });
+
+    billTable.innerHTML='';
+    state.rules.bills.forEach(r=>{
+      const catName = state.categories.find(c=>c.id===r.cat)?.name || '—';
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${escape(r.name)}</td><td>${(+r.amt).toFixed(2)}</td><td>${escape(catName)}</td><td>${r.type}</td><td>${r.freq}</td><td>${r.day}</td><td>${escape(userNameById(r.user))}</td>
+      <td><button class="ghost" data-act="del-bill" data-id="${r.id}">✖</button></td>`;
+      billTable.appendChild(tr);
+    });
+
+    incTable.onclick=(e)=>{ if(e.target.dataset.act==='del-inc'){ state.rules.incomes = state.rules.incomes.filter(x=>x.id!==e.target.dataset.id); save(); renderRules(); } };
+    billTable.onclick=(e)=>{ if(e.target.dataset.act==='del-bill'){ state.rules.bills   = state.rules.bills.filter(x=>x.id!==e.target.dataset.id); save(); renderRules(); } };
+  }
+  function renderReview(){
+    reviewBox.innerHTML = `
+      <div class="grid3">
+        <div class="ibox"><h3>Users</h3>${state.users.map(u=>`<div><span class="dot ${u.color}"></span> ${escape(u.name)}</div>`).join('')}</div>
+        <div class="ibox"><h3>Accounts</h3>${state.accounts.map(a=>`<div>🏦 ${escape(a.name)} — $${(+a.start).toFixed(2)}</div>`).join('')||'<div class="muted">None</div>'}</div>
+        <div class="ibox"><h3>Cards</h3>${state.cards.map(c=>`<div>💳 ${escape(c.name)} — due ${c.due}</div>`).join('')||'<div class="muted">None</div>'}</div>
+      </div>
+      <div class="grid2" style="margin-top:8px">
+        <div class="ibox"><h3>Categories</h3>${state.categories.map(c=>`<div>${escape(c.name)} · ${c.defType} · ${escape(userNameById(c.user))} ${c.due?'· Due':''}</div>`).join('')}</div>
+        <div class="ibox"><h3>Recurring</h3>
+        <div><strong>Income</strong>${state.rules.incomes.length?'<ul>'+state.rules.incomes.map(r=>`<li>${escape(r.name)} $${(+r.amt).toFixed(2)} ${r.freq} on ${r.day} (${escape(userNameById(r.user))})</li>`).join('')+'</ul>':' — none'}</div>
+        <div><strong>Bills</strong>${state.rules.bills.length?'<ul>'+state.rules.bills.map(r=>`<li>${escape(r.name)} $${(+r.amt).toFixed(2)} ${r.type} ${r.freq} on ${r.day} (${escape(userNameById(r.user))})</li>`).join('')+'</ul>':' — none'}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Wizard actions
+  $('#addUser').onclick = ()=>{
+    const name = ($('#userName').value||'').trim(); const color = $('#userColor').value;
+    if(!name) return;
+    const id = uid(); state.users.push({id,name,color}); $('#userName').value=''; save(); renderUsers();
+  };
+  $('#addAcct').onclick = ()=>{
+    const name=($('#acctName').value||'').trim(); const start=parseFloat($('#acctStart').value||0);
+    if(!name) return; state.accounts.push({id:uid(),name,start}); $('#acctName').value=''; $('#acctStart').value=''; save(); renderAccounts();
+  };
+  $('#addCard').onclick = ()=>{
+    const name=($('#cardName').value||'').trim(); const due=parseInt($('#cardDue').value||0,10);
+    if(!name || !due) return; state.cards.push({id:uid(),name,due}); $('#cardName').value=''; $('#cardDue').value=''; save(); renderCards();
+  };
+  $('#addCat').onclick = ()=>{
+    const name=($('#catName').value||'').trim(); if(!name) return;
+    const c={id:uid(),name,$def:0,defType:$('#catType').value,user:$('#catUser').value,due:!!$('#catDue').checked};
+    delete c.$def;
+    state.categories.push(c);
+    const md=ensureMonth(); md.rows.push({id:c.id,name:c.name,defType:c.defType,user:c.user,due:c.due});
+    $('#catName').value=''; $('#catDue').checked=false; save(); renderCats();
+  };
+  $('#addInc').onclick = ()=>{
+    const name=($('#incName').value||'').trim(); const amt=parseFloat($('#incAmt').value||0);
+    if(!name || !amt) return;
+    state.rules.incomes.push({
+      id: uid(),
+      name,
+      amt,
+      freq: $('#incFreq').value,
+      day: $('#incDay').value,
+      user: $('#incUser').value,
+      cat: $('#incCat').value || null
+    });
+    $('#incName').value=''; $('#incAmt').value=''; save(); renderRules();
+  };
+  $('#addBill').onclick = ()=>{
+    const name=($('#billName').value||'').trim(); const amt=parseFloat($('#billAmt').value||0);
+    if(!name || !amt) return;
+    state.rules.bills.push({
+      id: uid(),
+      name,
+      amt,
+      type: $('#billType').value,
+      freq: $('#billFreq').value,
+      day: $('#billDay').value,
+      user: $('#billUser').value,
+      cat: $('#billCat').value || null,
+      start: state.month
+    });
+    $('#billName').value=''; $('#billAmt').value='';
+    save(); renderRules();
+  };
+
+  // Step nav
+  $('#next1').onclick = ()=> gotoStep(2);
+  $('#next2').onclick = ()=> gotoStep(3);
+  $('#next3').onclick = ()=> gotoStep(4);
+  $('#next4').onclick = ()=> { renderReview(); gotoStep(5); };
+  $('#back2').onclick = ()=> gotoStep(1);
+  $('#back3').onclick = ()=> gotoStep(2);
+  $('#back4').onclick = ()=> gotoStep(3);
+  $('#back5').onclick = ()=> gotoStep(4);
+
+  function gotoStep(n){
+    $$('.step').forEach((s,i)=>{ s.classList.toggle('active',i===n-1); s.classList.toggle('done',i<n-1); });
+    $$('.panel').forEach(p=>p.classList.remove('active')); $('#s'+n).classList.add('active');
+  }
+
+  // Month & CC in wizard
+  wizMonth.onchange = ()=>{ state.month = wizMonth.value; save(); };
+  wizStartCash.onchange = ()=>{ const md=ensureMonth(); md.startCash=parseFloat(wizStartCash.value||0); save(); };
+  wizCCDay.onchange = ()=>{ const md=ensureMonth(); md.ccDay = wizCCDay.value; save(); };
+
+  // Build month entries from rules
+  $('#buildMonth').onclick = ()=>{
+    const md = ensureMonth();
+    md.entries = {};
+    const ym = state.month; const [Y,M]=ym.split('-').map(n=>parseInt(n,10)); const last = new Date(Y,M,0).getDate();
+
+    function apply(rowId, day, type, amt, user){
+      day = clampDay(day, Y, M);
+      md.entries[rowId] = md.entries[rowId] || {};
+      md.entries[rowId][day] = {type, amt:Math.abs(+amt), user, note:''};
+    }
+    function ensureRowByCategory(catId, fallbackName, defType, user, due=false){
+      let r = md.rows.find(x=>x.id===catId);
+      if (r) return r.id;
+      if (catId){
+        const c = state.categories.find(x=>x.id===catId);
+        if (c){
+          md.rows.push({id:c.id, name:c.name, defType:c.defType, user:c.user, due:c.due});
+          return c.id;
+        }
+      }
+      let ex = md.rows.find(x=>x.name===fallbackName);
+      if (!ex){ ex = {id:uid(), name:fallbackName, defType, user, due}; md.rows.push(ex); }
+      return ex.id;
+    }
+
+    // Income
+    state.rules.incomes.forEach(r=>{
+      const rowId = ensureRowByCategory(r.cat, r.name, 'income', r.user, false);
+      if (r.freq==='monthly'){ apply(rowId, +r.day, 'income', r.amt, r.user); }
+      else if (r.freq==='weekly'){ for(let d=+r.day; d<=last; d+=7) apply(rowId, d, 'income', r.amt, r.user); }
+      else if (r.freq==='biweekly'){ for(let d=+r.day; d<=last; d+=14) apply(rowId, d, 'income', r.amt, r.user); }
+    });
+
+    // Bills
+    state.rules.bills.forEach(r=>{
+      const t = r.type==='cc' ? 'cc' : 'cash';
+      const rowId = ensureRowByCategory(r.cat, r.name, t, r.user, true);
+
+      if (r.freq==='monthly'){
+        apply(rowId, +r.day, t, r.amt, r.user);
+
+      } else if (r.freq==='weekly'){
+        for (let d=+r.day; d<=last; d+=7) apply(rowId, d, t, r.amt, r.user);
+
+      } else if (r.freq==='biweekly'){
+        for (let d=+r.day; d<=last; d+=14) apply(rowId, d, t, r.amt, r.user);
+
+      } else if (r.freq==='quarterly'){
+        const [Ys,Ms] = (r.start || state.month).split('-').map(n=>parseInt(n,10));
+        const monthsBetween = (Y*12 + M) - (Ys*12 + Ms);
+        if (monthsBetween % 3 === 0) apply(rowId, +r.day, t, r.amt, r.user);
+      }
+    });
+
+    md.startCash = parseFloat(wizStartCash.value||0);
+    md.ccDay = wizCCDay.value;
+
+    save();
+    dMonth.value = state.month; dStart.value = md.startCash; dCCDay.value = md.ccDay || '';
+    showDash();
+    refreshView();
+  };
+
+  // DASHBOARD
+  function showDash(){ wizard.style.display='none'; dashboard.style.display='block'; }
+  function showWizard(){ wizard.style.display='block'; dashboard.style.display='none'; }
+
+  function totalsAndRollover(md){
+    const days = daysInMonth(state.month);
+    const cashImpact = Array(days).fill(0);
+    let income=0, cash=0, credit=0;
+    const userNet = Object.fromEntries(state.users.map(u=>[u.id,0]));
+
+    // migrate any name-keyed entries -> rowId keyed
+    const fixedEntries = {};
+    for(const k in md.entries){
+      const row = md.rows.find(r=>r.name===k) || md.rows.find(r=>r.id===k);
+      const rowId = row ? row.id : k;
+      fixedEntries[rowId] = md.entries[k];
+    }
+    md.entries = fixedEntries;
+
+    for(const rid in md.entries){
+      for(const d in md.entries[rid]){
+        const c = md.entries[rid][d];
+        if(c.type==='income'){ income += c.amt; cashImpact[d-1]+=c.amt; userNet[c.user] = (userNet[c.user]||0)+c.amt; }
+        if(c.type==='cash'){   cash   += c.amt; cashImpact[d-1]-=c.amt; userNet[c.user] = (userNet[c.user]||0)-c.amt; }
+        if(c.type==='cc'){     credit += c.amt; }
+      }
+    }
+    const ccDay = parseInt(md.ccDay||0,10);
+    if(ccDay){ cashImpact[ccDay-1] -= credit; }
+
+    let bal = parseFloat(md.startCash||0);
+    const rollList = [];
+    for(let d=1; d<=days; d++){
+      bal += cashImpact[d-1];
+      rollList.push({d, bal});
+    }
+    return {income, cash, credit, userNet, rollList, cashImpact};
+  }
+
+  function buildCalendar(){
+    const md = ensureMonth();
+    dStart.value = md.startCash||0;
+    dCCDay.value = md.ccDay||'';
+
+    const days = daysInMonth(state.month);
+    cal.innerHTML='';
+    const thead=document.createElement('thead');
+    let h='<tr><th class="left">Row</th>';
+    for(let d=1; d<=days; d++){ h+=`<th>${d}</th>`; }
+    h+='<th class="total">TOTAL</th></tr>';
+    thead.innerHTML=h; cal.appendChild(thead);
+
+    const tbody=document.createElement('tbody');
+    const entries = md.entries;
+    function getCell(rid,day){ return entries[rid] && entries[rid][day] ? entries[rid][day] : null; }
+
+    md.rows.forEach(r=>{
+      const tr=document.createElement('tr');
+      const left=document.createElement('td'); left.className='left';
+      const dotCls = state.users.find(u=>u.id===r.user)?.color || 'u1';
+      left.innerHTML = `<div class="flex"><span class="dot ${dotCls}"></span><strong>${escape(r.name)}</strong>${r.due?'<span class="muted"> · Due</span>':''}</div>`;
+      tr.appendChild(left);
+
+      let rowTotal = 0;
+      for(let d=1; d<=days; d++){
+        const td=document.createElement('td'); td.className='daycell';
+        const c = getCell(r.id,d);
+        if(c){
+          const cls = c.type==='income'?'p-income':(c.type==='cc'?'p-cc':'p-cash');
+          const sign = c.type==='income'?'+':(c.type==='cash'?'−':'CC');
+          td.innerHTML = `<span class="pill ${cls}" title="${escape(c.note||'')}">${sign} ${c.amt.toFixed(2)}</span>`;
+          if(c.type==='income') rowTotal += c.amt;
+          if(c.type==='cash')   rowTotal -= c.amt;
+        } else { td.textContent=''; }
+        if(r.due) td.classList.add('due');
+        td.dataset.rid=r.id; td.dataset.day=d;
+        tr.appendChild(td);
+      }
+      const t=document.createElement('td'); t.className='total'; t.textContent = fmt(rowTotal);
+      tr.appendChild(t);
+      tbody.appendChild(tr);
+    });
+
+    // total row per day (cash impact only)
+    const trT=document.createElement('tr');
+    const lbl=document.createElement('td'); lbl.className='left total'; lbl.textContent='TOTAL';
+    trT.appendChild(lbl);
+    const summary = totalsAndRollover(md);
+    for(let d=1; d<=days; d++){
+      const td=document.createElement('td'); td.className='total'; 
+      td.textContent = fmt(summary.cashImpact[d-1]);
+      trT.appendChild(td);
+    }
+    const grand=document.createElement('td'); grand.className='total'; 
+    grand.textContent = fmt(summary.cashImpact.reduce((a,b)=>a+b,0));
+    trT.appendChild(grand);
+    tbody.appendChild(trT);
+
+    cal.appendChild(tbody);
+
+    cal.onclick = (e)=>{
+      const td = e.target.closest('td.daycell'); if(!td) return;
+      openCellEditor(td.dataset.rid, parseInt(td.dataset.day,10));
+    };
+
+    const {income, cash, credit, userNet, rollList} = summary;
+    totalsBox.innerHTML = `
+      <div>Income: <strong style="color:var(--ok)">${fmt(income)}</strong></div>
+      <div>Cash spend: <strong style="color:var(--bad)">${fmt(cash)}</strong></div>
+      <div>Credit pass-through: <strong>${fmt(credit)}</strong> <span class="muted">(cash hits at CC day)</span></div>
+      ${state.users.map(u=>`<div>${escape(u.name)} net: <strong style="color:var(--ink)">${fmt(userNet[u.id]||0)}</strong></div>`).join('')}
+    `;
+    rollBox.innerHTML = `Start: <span class="${(md.startCash||0)<0?'neg':'pos'}">${fmt(md.startCash||0)}</span><br>` +
+      rollList.map(x=>`${x.d}: <span class="${x.bal<0?'neg':'pos'}">${fmt(x.bal)}</span>`).join(' · ');
+  }
+
+  // Agenda view
+  function buildAgenda(){
+    const md = ensureMonth();
+    const days = daysInMonth(state.month);
+
+    const items = [];
+    for (const rid in md.entries){
+      const row = md.rows.find(r=>r.id===rid);
+      for (const d in md.entries[rid]){
+        const c = md.entries[rid][d];
+        items.push({
+          day: +d,
+          row: row ? row.name : rid,
+          due: !!(row && row.due),
+          type: c.type,
+          amt: c.amt,
+          user: userNameById(c.user),
+          note: c.note || ''
+        });
+      }
+    }
+    items.sort((a,b)=> a.day - b.day || a.row.localeCompare(b.row));
+
+    let html = '';
+    for(let d=1; d<=days; d++){
+      const dayItems = items.filter(x=>x.day===d);
+      if(!dayItems.length) continue;
+      const tag = (t)=>(t==='income'?'<span class="pill p-income">+ :</span>':(t==='cash'?'<span class="pill p-cash">− :</span>':'<span class="pill p-cc">CC :</span>'));
+      html += `<div class="ibox" style="margin-bottom:8px">
+        <div class="flex"><strong>Day ${d}</strong></div>
+        ${dayItems.map(x=>`
+          <div class="flex" style="margin-top:6px">
+            ${tag(x.type)}
+            <div style="min-width:90px;text-align:right"><strong>$${x.amt.toFixed(2)}</strong></div>
+            <div style="flex:1;margin-left:8px">${escape(x.row)}${x.note?` — <span class="muted">${escape(x.note)}</span>`:''}</div>
+            <div class="muted">${escape(x.user)}</div>
+          </div>`).join('')}
+      </div>`;
+    }
+    agenda.innerHTML = html || '<div class="muted">No entries this month.</div>';
+  }
+
+  // Cell editor
+  let editRid=null, editDay=null;
+  function openCellEditor(rid,day){
+    editRid=rid; editDay=day;
+    const md=ensureMonth();
+    const c= md.entries[rid] && md.entries[rid][day] ? md.entries[rid][day]: null;
+    const rowName = md.rows.find(r=>r.id===rid)?.name || '';
+    $('#cellTitle').textContent = `${rowName} — day ${day}`;
+    cellType.value = c? c.type : md.rows.find(r=>r.id===rid)?.defType || 'cash';
+    cellAmt.value  = c? c.amt  : '';
+    cellUser.value = c? c.user : md.rows.find(r=>r.id===rid)?.user || state.users[0].id;
+    cellNote.value = c? (c.note||'') : '';
+    cellDel.style.display = c? 'inline-block':'none';
+    cellDlg.showModal();
+  }
+  cellCancel.onclick = ()=> cellDlg.close();
+  cellDel.onclick = ()=>{ const md=ensureMonth(); if(md.entries[editRid]) delete md.entries[editRid][editDay]; save(); cellDlg.close(); refreshView(); };
+  cellSave.onclick = ()=>{
+    const md=ensureMonth();
+    const amt=parseFloat(cellAmt.value||0); if(!amt||amt<=0){ alert('Amount must be > 0'); return; }
+    md.entries[editRid] = md.entries[editRid] || {};
+    md.entries[editRid][editDay] = {type:cellType.value, amt:Math.abs(amt), user:cellUser.value, note:cellNote.value};
+    save(); cellDlg.close(); refreshView();
+  };
+
+  // Zoom + scroll controls
+  function applyZoom(px){ document.documentElement.style.setProperty('--cellW', px+'px'); }
+  zoom.oninput = ()=> applyZoom(parseInt(zoom.value,10));
+  applyZoom(parseInt(zoom.value,10));
+  scrollLeftBtn.onclick  = ()=> calWrap.scrollLeft -= 420;
+  scrollRightBtn.onclick = ()=> calWrap.scrollLeft += 420;
+  calWrap.addEventListener('wheel', (e)=>{
+    if(e.shiftKey){ calWrap.scrollLeft += e.deltaY; e.preventDefault(); }
+  }, {passive:false});
+
+  // Dashboard controls
+  function refreshView(){ if(viewMode.value==='agenda') buildAgenda(); else buildCalendar(); }
+  dMonth.onchange = ()=>{ state.month = dMonth.value; save(); refreshView(); };
+  dStart.onchange = ()=>{ const md=ensureMonth(); md.startCash=parseFloat(dStart.value||0); save(); refreshView(); };
+  dCCDay.onchange = ()=>{ const md=ensureMonth(); md.ccDay=dCCDay.value; save(); refreshView(); };
+
+  viewMode.onchange = ()=>{ if(viewMode.value==='agenda'){ calWrap.style.display='none'; agenda.style.display='block'; buildAgenda(); } else { agenda.style.display='none'; calWrap.style.display='block'; buildCalendar(); } };
+
+  // Nav buttons
+  goDash.onclick = ()=>{ showDash(); refreshView(); };
+  goWizard.onclick = ()=> showWizard();
+  toWizard.onclick = ()=> showWizard();
+
+  // Import/Export
+  exportJSON.onclick = ()=>{
+    const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='budget-state.json'; a.click(); URL.revokeObjectURL(a.href);
+  };
+  importJSON.onchange = (e)=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader(); r.onload=()=>{
+      try{
+        const obj=JSON.parse(r.result);
+        if(!obj || !obj.monthData) throw new Error('Invalid file');
+        state=obj; save(); dMonth.value=state.month; showDash(); refreshView();
+      }catch(err){ alert('Bad file: '+err.message); }
+    }; r.readAsText(f);
+  };
+
+  // Utilities
+  function escape(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+  function userNameById(id){ return state.users.find(u=>u.id===id)?.name || id; }
+
+  // Initial renders
+  renderUsers(); renderAccounts(); renderCards(); renderCats(); renderRules();
+  wizStartCash.value = ensureMonth().startCash || 0;
+  wizCCDay.value = ensureMonth().ccDay || '';
+  dCCDay.value   = ensureMonth().ccDay || '';
+
+  if(Object.keys(ensureMonth().entries).length){ showDash(); refreshView(); }
+  else { showWizard(); }
+
+})();
+</script>
+</body>
+</html>
