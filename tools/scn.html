@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNAP Crisis Navigator - October 2025</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header .date {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .alert-banner {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px 30px;
+            font-weight: 600;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1em;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-tab:hover {
+            background: #e9ecef;
+        }
+
+        .nav-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: white;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-critical { background: #ff6b6b; }
+        .status-warning { background: #ffd93d; }
+        .status-happening { background: #ff6b6b; animation: blink 1s infinite; }
+
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.4; }
+        }
+
+        .card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .card.critical {
+            border-left-color: #ff6b6b;
+            background: #fff5f5;
+        }
+
+        .card.happening-now {
+            border-left-color: #ff4757;
+            background: #ffe5e5;
+            box-shadow: 0 4px 12px rgba(255, 71, 87, 0.2);
+        }
+
+        .card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .card ul {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+
+        .action-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 10px 5px 10px 0;
+            transition: all 0.3s;
+        }
+
+        .action-button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .action-button.secondary {
+            background: #95a5a6;
+        }
+
+        .action-button.secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            margin: 20px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 20px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -35px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+
+        .timeline-item.happening::before {
+            background: #ff6b6b;
+            animation: blink 1s infinite;
+        }
+
+        .collapsible {
+            background: #f8f9fa;
+            cursor: pointer;
+            padding: 15px;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-size: 1em;
+            font-weight: 600;
+            border-radius: 4px;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+
+        .collapsible:hover {
+            background: #e9ecef;
+        }
+
+        .collapsible.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background: #f8f9fa;
+            padding: 0 15px;
+            border-radius: 0 0 4px 4px;
+        }
+
+        .collapsible-content.active {
+            max-height: 2000px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .resource-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            margin: 5px 5px 5px 0;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .resource-link:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .warning-box strong {
+            color: #856404;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .checklist {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .checklist li {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .checklist li:hover {
+            background: #f8f9fa;
+        }
+
+        .checklist li::before {
+            content: '☐';
+            font-size: 1.5em;
+            margin-right: 10px;
+            color: #999;
+        }
+
+        .checklist li.checked {
+            opacity: 0.6;
+        }
+
+        .checklist li.checked::before {
+            content: '☑';
+            color: #667eea;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .escalation-meter {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .meter-bar {
+            height: 30px;
+            background: linear-gradient(to right, #95e1d3 0%, #ffd93d 50%, #ff6b6b 100%);
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .meter-marker {
+            position: absolute;
+            top: -5px;
+            width: 4px;
+            height: 40px;
+            background: #2c3e50;
+            animation: slideIn 1s;
+        }
+
+        @keyframes slideIn {
+            from { left: 0; }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5em;
+            }
+            
+            .nav-tab {
+                padding: 12px 15px;
+                font-size: 0.9em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 SNAP Crisis Navigator</h1>
+            <div class="date">October 23, 2025 - Government Shutdown Day 23</div>
+        </div>
+
+        <div class="alert-banner">
+            ⚠️ CRITICAL: November SNAP benefits at risk for 42 million Americans
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('current')">📍 Where You Are</button>
+            <button class="nav-tab" onclick="showTab('immediate')">⚡ Act Now</button>
+            <button class="nav-tab" onclick="showTab('watchlist')">👁️ What to Watch</button>
+            <button class="nav-tab" onclick="showTab('escalation')">⚠️ If It Gets Worse</button>
+            <button class="nav-tab" onclick="showTab('resources')">🔗 Resources</button>
+            <button class="nav-tab" onclick="showTab('context')">📊 Big Picture</button>
+        </div>
+
+        <div class="content">
+            <!-- CURRENT STATUS TAB -->
+            <div id="current" class="tab-pane active">
+                <h2>📍 Your Current Situation (Oct 23, 2025)</h2>
+                
+                <div class="card happening-now">
+                    <h3><span class="status-indicator status-happening"></span>HAPPENING NOW</h3>
+                    <ul>
+                        <li><strong>Government Shutdown:</strong> Day 23 (began Oct 1)</li>
+                        <li><strong>October SNAP:</strong> ✅ Safe - Already distributed</li>
+                        <li><strong>November SNAP:</strong> ❌ At risk - May not be paid</li>
+                        <li><strong>42 million people affected</strong> if shutdown continues</li>
+                        <li><strong>States warning:</strong> PA, TX, NY, NJ, MD, NV, ND, MN and more</li>
+                    </ul>
+                </div>
+
+                <div class="card critical">
+                    <h3>⏰ Critical Dates</h3>
+                    <ul>
+                        <li><strong>Oct 27:</strong> Texas stops November SNAP if shutdown continues</li>
+                        <li><strong>Oct 31:</strong> WIC runs out of emergency funding</li>
+                        <li><strong>Nov 1:</strong> SNAP benefits normally issued - may not happen</li>
+                        <li><strong>Each day beyond:</strong> Situation worsens</li>
+                    </ul>
+                </div>
+
+                <div class="escalation-meter">
+                    <h3>Situation Escalation Level</h3>
+                    <p style="margin: 10px 0;">Based on current indicators:</p>
+                    <div class="meter-bar">
+                        <div class="meter-marker" style="left: 75%;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.9em;">
+                        <span>😌 Normal</span>
+                        <span>😟 Concerning</span>
+                        <span>😱 Critical</span>
+                    </div>
+                </div>
+
+                <div class="card happening-now">
+                    <h3><span class="status-indicator status-happening"></span>National Guard Deployments - ALREADY ACTIVE</h3>
+                    <p><strong>This is not a future warning - this is happening right now:</strong></p>
+                    <ul>
+                        <li>✅ <strong>Los Angeles:</strong> Deployed June 2025</li>
+                        <li>✅ <strong>Washington DC:</strong> Deployed August 2025</li>
+                        <li>✅ <strong>Memphis, TN:</strong> Active since Oct 1, patrolling streets</li>
+                        <li>⚖️ <strong>Chicago:</strong> Texas NG positioned, blocked by federal court</li>
+                        <li>⚖️ <strong>Portland, OR:</strong> Deployment ordered, blocked by federal court</li>
+                        <li>📋 <strong>Planned:</strong> Baltimore, NYC, San Francisco, Oakland, New Orleans</li>
+                    </ul>
+                    <p style="margin-top: 10px;"><em>Justification given: "Crime, protests, immigration enforcement" - all targeting Democratic cities</em></p>
+                </div>
+
+                <button class="action-button" onclick="showTab('immediate')">What Should I Do Right Now? →</button>
+            </div>
+
+            <!-- IMMEDIATE ACTIONS TAB -->
+            <div id="immediate" class="tab-pane">
+                <h2>⚡ Take These Actions Immediately</h2>
+                
+                <div class="warning-box">
+                    <strong>Time Sensitive:</strong> You have less than 1 week before November benefits should arrive. Act today.
+                </div>
+
+                <button class="collapsible">1. Verify Your Benefits Status (Do This First)</button>
+                <div class="collapsible-content">
+                    <ul class="checklist">
+                        <li onclick="toggleCheck(this)">Check your state SNAP website for official updates</li>
+                        <li onclick="toggleCheck(this)">Sign up for text/email alerts from state SNAP office</li>
+                        <li onclick="toggleCheck(this)">Know your usual benefit date and monthly amount</li>
+                        <li onclick="toggleCheck(this)">Screenshot your current EBT balance and benefit schedule</li>
+                        <li onclick="toggleCheck(this)">Check if SSI/SSD payments are on schedule (they should be unaffected)</li>
+                    </ul>
+                </div>
+
+                <button class="collapsible">2. Emergency Food Acquisition (This Week)</button>
+                <div class="collapsible-content">
+                    <ul class="checklist">
+                        <li onclick="toggleCheck(this)">Use remaining October SNAP to buy shelf-stable foods (rice, beans, pasta, canned goods, peanut butter, oats)</li>
+                        <li onclick="toggleCheck(this)">Find local food banks at FeedingAmerica.org or dial 211</li>
+                        <li onclick="toggleCheck(this)">Visit food banks THIS WEEK before crowds increase</li>
+                        <li onclick="toggleCheck(this)">Most food banks don't require shutdown documentation</li>
+                        <li onclick="toggleCheck(this)">Look for community fridges in your neighborhood</li>
+                        <li onclick="toggleCheck(this)">Check if local Sikh temples offer free meals (langar - no questions asked)</li>
+                    </ul>
+                </div>
+
+                <button class="collapsible">3. Financial Triage (Today/Tomorrow)</button>
+                <div class="collapsible-content">
+                    <ul class="checklist">
+                        <li onclick="toggleCheck(this)">List ALL November expenses (rent, utilities, medications)</li>
+                        <li onclick="toggleCheck(this)">Identify which can be delayed without catastrophic consequences</li>
+                        <li onclick="toggleCheck(this)">Contact landlord NOW about potential payment delays</li>
+                        <li onclick="toggleCheck(this)">Call utility companies about hardship programs</li>
+                        <li onclick="toggleCheck(this)">Apply for LIHEAP (energy assistance) immediately</li>
+                        <li onclick="toggleCheck(this)">Cancel non-essential subscriptions (streaming, etc.)</li>
+                        <li onclick="toggleCheck(this)">Keep $20-50 cash on hand if possible</li>
+                    </ul>
+                </div>
+
+                <button class="collapsible">4. Medication Management (Urgent)</button>
+                <div class="collapsible-content">
+                    <ul class="checklist">
+                        <li onclick="toggleCheck(this)">Ask doctor for medication samples NOW</li>
+                        <li onclick="toggleCheck(this)">Request 90-day prescriptions instead of 30-day</li>
+                        <li onclick="toggleCheck(this)">Check if your medications have patient assistance programs</li>
+                        <li onclick="toggleCheck(this)">Use GoodRx to reduce costs (works with Medicare/Medicaid)</li>
+                        <li onclick="toggleCheck(this)">Talk to pharmacist about the situation - they may have options</li>
+                    </ul>
+                </div>
+
+                <button class="collapsible">5. Build Support Network (This Week)</button>
+                <div class="collapsible-content">
+                    <ul class="checklist">
+                        <li onclick="toggleCheck(this)">Reach out to family/friends about potential help</li>
+                        <li onclick="toggleCheck(this)">Connect with neighbors - mutual aid is powerful</li>
+                        <li onclick="toggleCheck(this)">Join local mutual aid groups (search Facebook for "[city] mutual aid")</li>
+                        <li onclick="toggleCheck(this)">Contact faith communities (regardless of your religion)</li>
+                        <li onclick="toggleCheck(this)">Connect with disability advocacy organizations</li>
+                        <li onclick="toggleCheck(this)">Identify one trusted person to check in with regularly</li>
+                    </ul>
+                </div>
+
+                <button class="collapsible">6. Document Everything</button>
+                <div class="collapsible-content">
+                    <ul class="checklist">
+                        <li onclick="toggleCheck(this)">Screenshot EBT balance and payment history</li>
+                        <li onclick="toggleCheck(this)">Save all communications about the shutdown</li>
+                        <li onclick="toggleCheck(this)">Keep physical copies of: ID, SSI award letters, medical records</li>
+                        <li onclick="toggleCheck(this)">Document your situation in case of future backpay claims</li>
+                        <li onclick="toggleCheck(this)">Take photos of important documents with your phone</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <strong>Remember:</strong> This is NOT your fault. You are taking smart, proactive steps. 42 million Americans are in this with you.
+                </div>
+
+                <button class="action-button" onclick="showTab('watchlist')">What Should I Watch For? →</button>
+            </div>
+
+            <!-- WATCHLIST TAB -->
+            <div id="watchlist" class="tab-pane">
+                <h2>👁️ Escalation Warning Signs</h2>
+                
+                <p style="margin-bottom: 20px;">These indicators tell you the situation is getting worse. Check news daily for these developments:</p>
+
+                <div class="timeline">
+                    <div class="timeline-item happening">
+                        <h3>🔴 ALREADY HAPPENING</h3>
+                        <ul>
+                            <li>✅ Government shutdown ongoing (Day 23)</li>
+                            <li>✅ National Guard in LA, DC, Memphis</li>
+                            <li>✅ SNAP cuts already enacted ($186B over 10 years)</li>
+                            <li>✅ 22.3 million families losing benefits from previous cuts</li>
+                            <li>✅ Multiple states warning November payments at risk</li>
+                            <li>✅ Federal courts blocking some deployments (Chicago, Portland)</li>
+                            <li>✅ Trump claiming authority to deploy NG "anywhere he sees problems"</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h3>🟡 IMMEDIATE WARNING (Next 1-7 Days)</h3>
+                        <ul>
+                            <li>Shutdown extends past Oct 27 → TX stops November SNAP</li>
+                            <li>No announcement of contingency fund use by Oct 28</li>
+                            <li>States officially confirm no November benefits</li>
+                            <li>WIC funding depletes (Oct 31)</li>
+                            <li>Court rulings allowing NG deployments to proceed</li>
+                            <li>Additional cities added to deployment list</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h3>🟠 CRITICAL ESCALATION (1-4 Weeks)</h3>
+                        <ul>
+                            <li>Food banks overwhelmed - long lines, depleted supplies</li>
+                            <li>Civil unrest begins - protests over food insecurity</li>
+                            <li>Utility shutoff protections not implemented</li>
+                            <li>SSI/SSD payment delays begin</li>
+                            <li>Medicaid processing stops</li>
+                            <li>Emergency declarations invoked (state or federal)</li>
+                            <li>National Guard expands to more cities</li>
+                            <li>Reports of NG engaging with protesters/civilians</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h3>🔴 SEVERE ESCALATION (1+ Months)</h3>
+                        <ul>
+                            <li>December benefits also announced at risk</li>
+                            <li>Mass protests/demonstrations</li>
+                            <li>Curfews or movement restrictions implemented</li>
+                            <li>Internet/communication disruptions</li>
+                            <li>Mass arrests at protests</li>
+                            <li>Banking instability or withdrawal limits</li>
+                            <li>Suspension of normal government operations</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h3>🚨 DEMOCRATIC CRISIS (2+ Months)</h3>
+                        <ul>
+                            <li>Announcements about 2026 election changes/delays</li>
+                            <li>Federal takeover of state election systems</li>
+                            <li>Expanded surveillance without warrants</li>
+                            <li>Media suppression or restrictions</li>
+                            <li>Loyalty oaths required for benefits</li>
+                            <li>Mass detention of political opponents</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="warning-box">
+                    <strong>The Red Line:</strong> Any interference with elections is the clearest indicator of authoritarian consolidation. If this happens, democracy itself is at stake.
+                </div>
+
+                <button class="action-button" onclick="showTab('escalation')">If Things Get Worse... →</button>
+            </div>
+
+            <!-- ESCALATION RESPONSE TAB -->
+            <div id="escalation" class="tab-pane">
+                <h2>⚠️ If the Situation Escalates</h2>
+
+                <button class="collapsible">If Shutdown Continues Past Mid-November</button>
+                <div class="collapsible-content">
+                    <h4>Immediate Actions:</h4>
+                    <ul>
+                        <li>Assume December benefits also at risk</li>
+                        <li>Look into emergency rental assistance NOW (long waitlists)</li>
+                        <li>Research holiday food distribution programs</li>
+                        <li>Reduce heat/electricity usage to minimum</li>
+                        <li>Know your state's winter utility shutoff protections</li>
+                    </ul>
+                    <h4>Food Sources:</h4>
+                    <ul>
+                        <li>Too Good To Go app (discounted restaurant food)</li>
+                        <li>Flashfood app (discounted grocery items)</li>
+                        <li>Evening grocery store visits (near-expiration discounts)</li>
+                        <li>Senior centers meal programs</li>
+                        <li>Churches doing holiday distributions</li>
+                    </ul>
+                </div>
+
+                <button class="collapsible">If Civil Unrest Occurs</button>
+                <div class="collapsible-content">
+                    <h4>Safety First:</h4>
+                    <ul>
+                        <li>Stay informed through MULTIPLE news sources</li>
+                        <li>Avoid large gatherings if you're vulnerable</li>
+                        <li>Keep medications stocked</li>
+                        <li>Have a "go bag" with essentials ready</li>
+                        <li>Know alternate routes in your area</li>
+                    </ul>
+                    <h4>Your Rights:</h4>
+                    <ul>
+                        <li>You have the right to peaceful assembly</li>
+                        <li>You do NOT have to consent to searches without warrants</li>
+                        <li>Document interactions with law enforcement (if safe)</li>
+                        <li>Know your local ACLU contact number</li>
+                    </ul>
+                </div>
+
+                <button class="collapsible">If Emergency Powers Declared</button>
+                <div class="collapsible-content">
+                    <div class="warning-box">
+                        <strong>Critical Understanding:</strong> Emergency declarations are NOT normal, even in crises. They represent a significant escalation.
+                    </div>
+                    <h4>What This Means:</h4>
+                    <ul>
+                        <li>Potential curfews or movement restrictions</li>
+                        <li>Expanded law enforcement powers</li>
+                        <li>Possible suspension of certain civil liberties</li>
+                        <li>Justification for more military presence</li>
+                    </ul>
+                    <h4>Your Response:</h4>
+                    <ul>
+                        <li>Document everything (photos, videos, dates, times)</li>
+                        <li>Keep physical copies of important documents</li>
+                        <li>Know your rights regarding detention</li>
+                        <li>Stay connected with community networks</li>
+                        <li>Share information through trusted channels</li>
+                    </ul>
+                </div>
+
+                <button class="collapsible">If Elections Are Threatened</button>
+                <div class="collapsible-content">
+                    <div class="card critical">
+                        <h3>🚨 THIS IS THE LINE</h3>
+                        <p><strong>Election interference is the clearest sign of authoritarian consolidation.</strong></p>
+                        <p>Delaying, manipulating, or interfering with elections has NO constitutional basis and represents an existential threat to democracy.</p>
+                    </div>
+                    <h4>Actions to Take:</h4>
+                    <ul>
+                        <li>Connect with voting rights organizations immediately</li>
+                        <li>Know your state's election officials and how to report problems</li>
+                        <li>Document any irregularities thoroughly</li>
+                        <li>Share information widely but verify sources</li>
+                        <li>Support organizations defending election integrity</li>
+                        <li>Understand this is not normal - even in severe crises</li>
+                    </ul>
+                    <h4>Key Organizations:</h4>
+                    <ul>
+                        <li>League of Women Voters</li>
+                        <li>Common Cause</li>
+                        <li>Brennan Center for Justice</li>
+                        <li>ACLU Voting Rights Project</li>
+                        <li>Your state's election protection coalition</li>
+                    </ul>
+                </div>
+
+                <button class="collapsible">Long-Term Survival Strategies</button>
+                <div class="collapsible-content">
+                    <h4>Community Building:</h4>
+                    <ul>
+                        <li>Join or create mutual aid networks</li>
+                        <li>Share resources with neighbors</li>
+                        <li>Skill-sharing (cooking, repairs, etc.)</li>
+                        <li>Organize collective purchasing</li>
+                        <li>Create neighborhood watch/support systems</li>
+                    </ul>
+                    <h4>Resource Management:</h4>
+                    <ul>
+                        <li>Learn food preservation techniques</li>
+                        <li>Understand rationing if necessary</li>
+                        <li>Know free/low-cost healthcare options</li>
+                        <li>Research homemade alternatives for essentials</li>
+                        <li>Build a small emergency fund (even $10-20)</li>
+                    </ul>
+                    <h4>Mental Health:</h4>
+                    <ul>
+                        <li>Connect with others in similar situations</li>
+                        <li>Limit news consumption to reduce anxiety</li>
+                        <li>Practice stress management techniques</li>
+                        <li>Remember: humans are incredibly resilient</li>
+                        <li>Acknowledge this is NOT your fault</li>
+                    </ul>
+                </div>
+
+                <button class="action-button" onclick="showTab('resources')">Find Resources →</button>
+            </div>
+
+            <!-- RESOURCES TAB -->
+            <div id="resources" class="tab-pane">
+                <h2>🔗 Essential Resources</h2>
+
+                <div class="card">
+                    <h3>📞 Emergency Contacts</h3>
+                    <ul>
+                        <li><strong>211:</strong> United Way helpline - connects to local services</li>
+                        <li><strong>988:</strong> Suicide & Crisis Lifeline</li>
+                        <li><strong>1-866-348-6479:</strong> SNAP hotline</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>🍲 Food Resources</h3>
+                    <a href="https://www.feedingamerica.org/find-your-local-foodbank" class="resource-link" target="_blank">Feeding America Food Bank Finder</a>
+                    <a href="https://www.fns.usda.gov/snap/state-directory" class="resource-link" target="_blank">Your State SNAP Office</a>
+                    <a href="https://www.findhelp.org" class="resource-link" target="_blank">FindHelp.org - Local Resources</a>
+                    <p style="margin-top: 10px;"><strong>Apps for Discounted Food:</strong></p>
+                    <ul>
+                        <li>Too Good To Go - Restaurant surplus food</li>
+                        <li>Flashfood - Grocery store discounts</li>
+                        <li>Olio - Community food sharing</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>💰 Financial Assistance</h3>
+                    <a href="https://www.benefits.gov" class="resource-link" target="_blank">Benefits.gov - Find Programs</a>
+                    <a href="https://www.needhelppayingbills.com" class="resource-link" target="_blank">Utility Assistance Programs</a>
+                    <a href="https://liheapch.acf.hhs.gov" class="resource-link" target="_blank">LIHEAP - Energy Assistance</a>
+                    <ul style="margin-top: 10px;">
+                        <li>Catholic Charities (regardless of religion)</li>
+                        <li>Salvation Army emergency assistance</li>
+                        <li>Local United Way chapters</li>
+                        <li>Modest Needs Foundation</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>💊 Medication Assistance</h3>
+                    <a href="https://www.goodrx.com" class="resource-link" target="_blank">GoodRx - Prescription Discounts</a>
+                    <a href="https://www.needymeds.org" class="resource-link" target="_blank">NeedyMeds - Patient Assistance</a>
+                    <a href="https://www.pparx.org" class="resource-link" target="_blank">Partnership for Prescription Assistance</a>
+                </div>
+
+                <div class="card">
+                    <h3>🏠 Housing/Utilities</h3>
+                    <ul>
+                        <li>Know your state's eviction moratorium rules</li>
+                        <li>Winter utility shutoff protections (many states)</li>
+                        <li>Emergency rental assistance (search "[state] ERA")</li>
+                        <li>Local housing authority hardship programs</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>⚖️ Legal Rights & Advocacy</h3>
+                    <a href="https://www.aclu.org" class="resource-link" target="_blank">ACLU - Civil Liberties</a>
+                    <a href="https://thearc.org" class="resource-link" target="_blank">The Arc - Disability Advocacy</a>
+                    <a href="https://www.brennancenter.org" class="resource-link" target="_blank">Brennan Center - Democracy</a>
+                    <p style="margin-top: 10px;"><strong>Your State's Disability Rights Organization</strong></p>
+                    <ul>
+                        <li>Search: "[Your State] Protection & Advocacy"</li>
+                        <li>Free legal help for disability-related issues</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>📱 Stay Informed</h3>
+                    <ul>
+                        <li><strong>Reliable News:</strong> NPR, AP News, Reuters (fact-based)</li>
+                        <li><strong>SNAP Updates:</strong> Your state DHS/HHS website</li>
+                        <li><strong>Local Alerts:</strong> Sign up for city/county emergency alerts</li>
+                        <li><strong>Verify Info:</strong> Snopes.com, FactCheck.org</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>🤝 Mutual Aid & Community</h3>
+                    <ul>
+                        <li>Search Facebook: "[Your City] Mutual Aid"</li>
+                        <li>NextDoor app for neighborhood connections</li>
+                        <li>Local Buy Nothing groups</li>
+                        <li>Community fridges/pantries in your area</li>
+                        <li>Faith communities (most welcome everyone)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- CONTEXT TAB -->
+            <div id="context" class="tab-pane">
+                <h2>📊 Understanding the Big Picture</h2>
+
+                <div class="card">
+                    <h3>What's Actually Happening</h3>
+                    <p><strong>Government Shutdown (Oct 1 - Present):</strong></p>
+                    <ul>
+                        <li>Congress failed to pass funding bill</li>
+                        <li>Republicans and Democrats in stalemate</li>
+                        <li>42 million Americans on SNAP affected</li>
+                        <li>$6 billion in contingency funds available but not committed</li>
+                        <li>Administration has not announced plans to use emergency funds</li>
+                    </ul>
+                </div>
+
+                <div class="card happening-now">
+                    <h3>National Guard Deployments - Context</h3>
+                    <p><strong>Timeline of Escalation:</strong></p>
+                    <ul>
+                        <li>June 2025: Los Angeles deployment</li>
+                        <li>Aug 2025: Washington DC deployment</li>
+                        <li>Oct 2025: Memphis active, Chicago/Portland ordered (courts blocking)</li>
+                        <li>All deployments target Democratic-led cities</li>
+                        <li>Justifications: "crime, protests, immigration"</li>
+                        <li>Local officials say crime is declining, didn't request troops</li>
+                        <li>Federal judges have ruled some deployments violate Posse Comitatus Act</li>
+                    </ul>
+                    <p style="margin-top: 10px;"><em><strong>Historical Context:</strong> Using military domestically against the wishes of state/local governments is extremely rare and legally controversial. This represents a significant departure from American norms.</em></p>
+                </div>
+
+                <div class="card critical">
+                    <h3>Pattern Recognition</h3>
+                    <p><strong>If someone were following an authoritarian playbook, you would expect:</strong></p>
+                    <ol>
+                        <li>✅ Create or exploit crises (SNAP shutdown)</li>
+                        <li>✅ Generate instability (food insecurity, protests)</li>
+                        <li>✅ Normalize military presence (National Guard deployments)</li>
+                        <li>✅ Target opposition (Democratic cities)</li>
+                        <li>⏳ Justify emergency measures (potentially next)</li>
+                        <li>⏳ Expand executive power (ongoing legal battles)</li>
+                        <li>⏳ Weaken democratic norms (TBD)</li>
+                        <li>⏳ Interfere with elections (2026 midterms at risk)</li>
+                    </ol>
+                    <p style="margin-top: 15px;"><strong>This doesn't prove intent, but the pattern is concerning.</strong></p>
+                </div>
+
+                <div class="card">
+                    <h3>What Makes This Different</h3>
+                    <ul>
+                        <li><strong>Scale:</strong> 42 million people - 1 in 8 Americans</li>
+                        <li><strong>Timing:</strong> During holidays when food banks already strained</li>
+                        <li><strong>Compound Effects:</strong> Following $186B in cuts already enacted</li>
+                        <li><strong>Vulnerable Populations:</strong> Seniors, disabled, working poor disproportionately affected</li>
+                        <li><strong>Military Normalization:</strong> Troops in cities becoming normalized</li>
+                        <li><strong>Time Frame:</strong> 3+ more years of current administration</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>Historical Comparisons</h3>
+                    <p><strong>When democracies backslide, common elements include:</strong></p>
+                    <ul>
+                        <li>Economic hardship imposed on population</li>
+                        <li>Expansion of executive power</li>
+                        <li>Normalization of military in civilian spaces</li>
+                        <li>Erosion of institutional independence</li>
+                        <li>Targeting of opposition groups</li>
+                        <li>Crisis used to justify expanded authority</li>
+                        <li>Gradual then sudden acceleration</li>
+                    </ul>
+                    <p style="margin-top: 10px;"><em>Examples: Hungary (2010-2020s), Turkey (2010s), Venezuela (2000-2010s), Philippines (2016-2022)</em></p>
+                </div>
+
+                <div class="warning-box">
+                    <strong>Why This Matters:</strong> Whether this is incompetence, ideology, or intentional strategy, the EFFECT is the same: 42 million vulnerable people facing food insecurity, military normalization in cities, and potential for social instability that could justify further crackdowns. The next 3+ years are critical.
+                </div>
+
+                <div class="card">
+                    <h3>Your Agency</h3>
+                    <p><strong>Even in difficult circumstances, you're not powerless:</strong></p>
+                    <ul>
+                        <li><strong>Document:</strong> Keep records of what's happening</li>
+                        <li><strong>Connect:</strong> Build community networks</li>
+                        <li><strong>Communicate:</strong> Tell your story to media, representatives</li>
+                        <li><strong>Vote:</strong> If elections happen, participate</li>
+                        <li><strong>Resist:</strong> In ways that are safe for you</li>
+                        <li><strong>Survive:</strong> Take care of yourself and help others</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <strong>Remember:</strong> Democracy requires active participation and vigilance. Your survival is important. Your story matters. You are not alone - 42 million Americans are experiencing this crisis with you.
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><strong>This tool was created on October 23, 2025 to help individuals navigate the current crisis.</strong></p>
+            <p style="margin-top: 10px;">Information based on current reporting from NPR, CNN, ABC News, CBS News, and government sources.</p>
+            <p style="margin-top: 10px;"><em>Not legal advice. Verify all information with official sources. Stay safe.</em></p>
+        </footer>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-pane');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Remove active from all nav buttons
+            const navTabs = document.querySelectorAll('.nav-tab');
+            navTabs.forEach(nav => nav.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Highlight nav button
+            event.target.classList.add('active');
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Collapsible sections
+        document.addEventListener('DOMContentLoaded', function() {
+            const collapsibles = document.querySelectorAll('.collapsible');
+            
+            collapsibles.forEach(button => {
+                button.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    const content = this.nextElementSibling;
+                    content.classList.toggle('active');
+                });
+            });
+        });
+
+        // Checklist functionality
+        function toggleCheck(element) {
+            element.classList.toggle('checked');
+        }
+
+        // Save checklist state to localStorage
+        function saveProgress() {
+            const checked = [];
+            document.querySelectorAll('.checklist li.checked').forEach(item => {
+                checked.push(item.textContent);
+            });
+            localStorage.setItem('snapCrisisChecklist', JSON.stringify(checked));
+        }
+
+        // Load checklist state
+        function loadProgress() {
+            const saved = localStorage.getItem('snapCrisisChecklist');
+            if (saved) {
+                const checked = JSON.parse(saved);
+                document.querySelectorAll('.checklist li').forEach(item => {
+                    if (checked.includes(item.textContent)) {
+                        item.classList.add('checked');
+                    }
+                });
+            }
+        }
+
+        // Auto-save on check
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProgress();
+            document.querySelectorAll('.checklist li').forEach(item => {
+                item.addEventListener('click', saveProgress);
+            });
+        });
+    </script>
+</body>
+</html>
