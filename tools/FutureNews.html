@@ -552,6 +552,7 @@ Create an interconnected narrative where these elements influence each other rea
                     body: JSON.stringify({
                         model: 'openai-large',
                         max_tokens: 2000,
+                        seed: Math.floor(Math.random() * 1000000), // Random seed for unique generation
                         messages: [
                             {
                                 role: 'system',
@@ -591,105 +592,54 @@ Create an interconnected narrative where these elements influence each other rea
         
         // Generate and embed images in social media posts
         async function addImagesToSocialPost(content, scenario, timeline) {
-            // Parse the social media content into individual posts
-            const lines = content.split('\n').filter(line => line.trim());
+            // Extract image prompts that the AI embedded in the content
+            const imagePromptRegex = /\[IMAGE_PROMPT:\s*(.+?)\]/g;
+            const matches = [...content.matchAll(imagePromptRegex)];
             
-            // Generate 1-2 image prompts based on the scenario
-            const imagePrompts = generateImagePromptsFromScenario(scenario, timeline);
+            if (matches.length === 0) {
+                // No image prompts found, return content as-is
+                return content;
+            }
             
-            // Limit to 1-2 images max
-            const numImages = Math.min(2, imagePrompts.length);
+            let modifiedContent = content;
             
-            let modifiedLines = [...lines];
-            let imagesAdded = 0;
-            
-            for (let i = 0; i < numImages && imagesAdded < 2; i++) {
+            // Process each image prompt found
+            for (let i = 0; i < matches.length && i < 2; i++) {
+                const match = matches[i];
+                const imagePrompt = match[1].trim();
+                const fullMatch = match[0];
+                
                 try {
-                    // Generate image URL
-                    updateStatus(`Generating image ${i + 1} for social post...`);
-                    const imageUrl = await generateImage(imagePrompts[i]);
+                    // Generate image from AI's contextual prompt
+                    updateStatus(`Generating contextual image ${i + 1}...`);
+                    const imageUrl = await generateImage(imagePrompt);
                     
-                    // Find a post in the middle/latter part of the thread to add image to
-                    // Look for posts that are substantial (not just short reactions)
-                    const startSearchFrom = Math.floor(modifiedLines.length / 3);
-                    let targetPostIndex = -1;
+                    // Replace the [IMAGE_PROMPT: ...] marker with actual image HTML
+                    const imageHtml = `\n<img src="${imageUrl}" alt="User shared image" class="rounded-lg mt-2 mb-3 max-w-full h-auto border border-slate-600 shadow-lg" style="max-height: 400px; object-fit: cover;" onerror="this.style.display='none'" />`;
                     
-                    for (let j = startSearchFrom; j < modifiedLines.length; j++) {
-                        const line = modifiedLines[j];
-                        // Look for posts with username patterns and substantial content (50+ chars)
-                        if ((line.includes('@') || line.includes('—') || line.includes(':')) && 
-                            line.length > 50 && 
-                            !line.includes('<img')) {
-                            targetPostIndex = j;
-                            break;
-                        }
-                    }
-                    
-                    if (targetPostIndex === -1) {
-                        // If no good post found, just add to a random middle post
-                        targetPostIndex = Math.floor(modifiedLines.length / 2) + i * 3;
-                    }
-                    
-                    // Add image right after the post text, like a user would attach it
-                    const imageHtml = `<img src="${imageUrl}" alt="Shared image" class="rounded-lg mt-2 mb-1 max-w-full h-auto border border-slate-600 shadow-lg" style="max-height: 400px; object-fit: cover;" onerror="this.style.display='none'" />`;
-                    modifiedLines[targetPostIndex] = modifiedLines[targetPostIndex] + '\n' + imageHtml;
-                    
-                    imagesAdded++;
-                    
-                    // Add some spacing after this post to prevent next image from being too close
-                    targetPostIndex += 5;
+                    modifiedContent = modifiedContent.replace(fullMatch, imageHtml);
                     
                 } catch (error) {
                     console.error('Failed to generate image:', error);
-                    // Continue without this image
+                    // Remove the image prompt marker if generation fails
+                    modifiedContent = modifiedContent.replace(fullMatch, '');
                 }
             }
             
-            return modifiedLines.join('\n');
+            return modifiedContent;
         }
-        
-        // Generate contextual image prompts based on scenario
-        function generateImagePromptsFromScenario(scenario, timeline) {
-            const scenarioKeywords = `${scenario} ${timeline}`.toLowerCase();
-            const prompts = [];
-            
-            // Create contextual image prompts based on scenario elements
-            if (scenarioKeywords.includes('climate') || scenarioKeywords.includes('warming') || scenarioKeywords.includes('catastrophic')) {
-                prompts.push('photorealistic flooded city street, climate disaster, extreme weather aftermath, news photo style');
-            }
-            if (scenarioKeywords.includes('authoritarian') || scenarioKeywords.includes('police') || scenarioKeywords.includes('theocratic')) {
-                prompts.push('dystopian city with surveillance cameras, futuristic law enforcement, dramatic urban scene, documentary style');
-            }
-            if (scenarioKeywords.includes('biblical') || scenarioKeywords.includes('prophecy') || scenarioKeywords.includes('revelation')) {
-                prompts.push('dramatic apocalyptic sky with dark clouds and light breaking through, biblical atmosphere, cinematic');
-            }
-            if (scenarioKeywords.includes('agi') || scenarioKeywords.includes('technology') || scenarioKeywords.includes('singularity')) {
-                prompts.push('advanced AI technology interface, holographic displays, futuristic tech scene, sci-fi photography');
-            }
-            if (scenarioKeywords.includes('asteroid') || scenarioKeywords.includes('impact')) {
-                prompts.push('asteroid in sky approaching earth, dramatic space scene, news photography style');
-            }
-            if (scenarioKeywords.includes('economic') || scenarioKeywords.includes('collapse') || scenarioKeywords.includes('inequality')) {
-                prompts.push('abandoned urban area, economic depression scene, empty streets, photojournalism style');
-            }
-            if (scenarioKeywords.includes('war') || scenarioKeywords.includes('conflict')) {
-                prompts.push('destroyed urban landscape, conflict aftermath, dramatic scene, war photography style');
-            }
-            
-            // If no specific prompts, use generic dramatic future scene
-            if (prompts.length === 0) {
-                prompts.push('dramatic futuristic cityscape, moody atmosphere, cinematic photography, photorealistic');
-            }
-            
-            // Shuffle and return up to 2 prompts
-            return prompts.sort(() => Math.random() - 0.5).slice(0, 2);
-        }
+
         
         // Generate image using Pollinations API
         async function generateImage(prompt) {
+            // Add timestamp and random seed to ensure unique images every time
+            const timestamp = Date.now();
+            const randomSeed = Math.floor(Math.random() * 1000000);
+            const uniquePrompt = `${prompt}, seed ${randomSeed}`;
+            
             // Encode the prompt for URL
-            const encodedPrompt = encodeURIComponent(prompt);
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=600&model=flux&nologo=true`;
+            const encodedPrompt = encodeURIComponent(uniquePrompt);
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=600&model=flux&nologo=true&seed=${randomSeed}`;
             
             // Test if image loads with longer timeout for slow generation
             return new Promise((resolve, reject) => {
@@ -756,6 +706,12 @@ Make it personal and visceral. NO meta-commentary.`,
 - Hashtags and viral spread
 - Links to news/videos
 - Evolving understanding
+
+CRITICAL: If this thread would realistically include photos/images shared by users, include image descriptions in this special format at the END of specific posts:
+[IMAGE_PROMPT: detailed description of what photo this user would be sharing, e.g. "photo of flooded downtown street taken from apartment window, cars submerged, people on rooftops"]
+
+Include 1-2 image prompts ONLY where it makes narrative sense (someone witnessing events, sharing evidence, etc).
+
 Format as realistic social media posts with timestamps. NO meta-commentary.`,
 
                 official: `Write ONLY an official government/corporate statement. Include:
