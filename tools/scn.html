@@ -514,7 +514,7 @@
                     text: '⚠️ CRITICAL: November SNAP benefits at risk for 42 million Americans'
                 },
                 status: `
-                    <h2>📍 Shutdown Ongoing - Day <span id="dayCounter">23</span></h2>
+                    <h2>📍 Shutdown Ongoing - Day <span class="dayCounter">23</span></h2>
                     
                     <div class="card critical">
                         <h3>Current Crisis</h3>
@@ -589,7 +589,7 @@
                     <div class="card critical">
                         <h3>🔴 ALREADY HAPPENING</h3>
                         <ul>
-                            <li>Government shutdown (Day <span class="dayCounter">23</span>)</li>
+                            <li>Government shutdown (Day <span class="dayCounter"></span>)</li>
                             <li>National Guard in LA, DC, Memphis</li>
                             <li>Multiple states warning November SNAP at risk</li>
                             <li>Courts blocking some deployments</li>
@@ -677,7 +677,7 @@
                     <div class="card positive">
                         <h3>Current Status</h3>
                         <ul>
-                            <li>Government shutdown has ended after <span id="dayCounter">23</span> days</li>
+                            <li>Government shutdown has ended after <span class="dayCounter"></span> days</li>
                             <li>SNAP benefits should resume according to state schedules</li>
                             <li>Federal workers receiving backpay</li>
                             <li>Government services resuming</li>
@@ -826,7 +826,7 @@
                         <h3>Current Situation</h3>
                         <p><strong>This is actually MORE concerning than simple shutdown:</strong></p>
                         <ul>
-                            <li>Government has reopened after <span id="dayCounter">23</span> days</li>
+                            <li>Government has reopened after <span class="dayCounter"></span> days</li>
                             <li>BUT: SNAP benefits not fully restored or cuts made permanent</li>
                             <li>Some states still not issuing full benefits</li>
                             <li>Funding agreement may include permanent reductions</li>
@@ -1230,14 +1230,19 @@
         // ===== UPDATE ALL CONTENT BASED ON STATE =====
         function updateAllContent() {
             const content = stateContent[currentState];
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); // Reset to start of day for accurate counting
-            const shutdownStart = new Date('2025-10-01');
-            shutdownStart.setHours(0, 0, 0, 0);
             
-            // Calculate days - Oct 1 to Oct 23 = 23 days (not 24)
-            const daysSince = Math.floor((today - shutdownStart) / (1000 * 60 * 60 * 24)) + 1;
-            // +1 because Oct 1 itself is Day 1, not Day 0
+            // Use the user's browser date (their local time)
+            const today = new Date();
+            const shutdownStart = new Date('2025-10-01T00:00:00');
+            
+            // Get dates at midnight in user's timezone
+            const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const startMidnight = new Date(shutdownStart.getFullYear(), shutdownStart.getMonth(), shutdownStart.getDate());
+            
+            // Calculate days difference
+            const diffMs = todayMidnight - startMidnight;
+            const daysSince = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+            // Oct 1 = Day 1, Oct 2 = Day 2, etc.
             
             // Update header
             const header = document.getElementById('mainHeader');
