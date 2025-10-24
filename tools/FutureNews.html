@@ -297,6 +297,10 @@ Create an interconnected narrative where these elements influence each other rea
                         model: 'openai-large',
                         messages: [
                             {
+                                role: 'system',
+                                content: 'You are a document generator. Output ONLY the requested document with no commentary, explanations, or meta-text. Begin immediately with the document content itself.'
+                            },
+                            {
                                 role: 'user',
                                 content: prompt
                             }
@@ -321,27 +325,33 @@ Create an interconnected narrative where these elements influence each other rea
         }
 
         function buildDocumentPrompt(scenario, docType, timeline, customEvent) {
-            const basePrompt = `You are generating a document from a possible future timeline. This is NOT a prediction but a plausible exploration of what COULD be.
+            const basePrompt = `CRITICAL INSTRUCTIONS:
+- You are a document generator. Output ONLY the document itself.
+- DO NOT add any commentary, explanations, or meta-text.
+- DO NOT say things like "here's your document" or "alright" or explain what you're doing.
+- Start immediately with the document content.
+- Write as if you ARE the document, not someone describing it.
 
 SCENARIO CONTEXT:
 ${scenario}
 
-YOUR TASK:
-Write a ${docType.label} that exists in this future world. Make it feel authentic and grounded in the scenario parameters. Include specific details, names, dates, and interconnections with other aspects of this future.
+Write a ${docType.label} that exists in this future world. Make it authentic and grounded in the scenario parameters. Include specific details, names, dates, and interconnections.
+
+BEGIN DOCUMENT NOW:
 
 `;
 
             const typeSpecificPrompts = {
-                news: `Write a news article (600-800 words) with:
+                news: `Write ONLY the news article (600-800 words). Include:
 - Compelling headline
 - Byline and date (in ${timeline})
 - Lead paragraph summarizing key facts
 - Multiple sources quoted
 - Context about how situation developed
 - What might happen next
-Format as a professional news article.`,
+Format as a professional news article. NO meta-commentary.`,
 
-                police: `Write a police incident report with:
+                police: `Write ONLY the police incident report. Include:
 - Case number and date (in ${timeline})
 - Location and time of incident
 - Reporting officer name
@@ -349,27 +359,27 @@ Format as a professional news article.`,
 - Witness statements
 - Evidence collected
 - Current status
-Format as an official police report.`,
+Format as an official police report. NO meta-commentary.`,
 
-                eyewitness: `Write a first-person eyewitness account (400-600 words) with:
+                eyewitness: `Write ONLY a first-person eyewitness account (400-600 words). Include:
 - When and where they witnessed events
 - What they saw, heard, felt
 - Their emotional reactions
 - Specific sensory details
 - What happened before and after
 - Their current situation
-Make it personal and visceral.`,
+Make it personal and visceral. NO meta-commentary.`,
 
-                social: `Write a social media thread (8-12 posts) showing:
+                social: `Write ONLY a social media thread (8-12 posts). Show:
 - Real-time reactions to events
 - Multiple users responding
 - Mix of information, speculation, emotion
 - Hashtags and viral spread
 - Links to news/videos
 - Evolving understanding
-Format as realistic social media posts with timestamps.`,
+Format as realistic social media posts with timestamps. NO meta-commentary.`,
 
-                official: `Write an official government/corporate statement with:
+                official: `Write ONLY an official government/corporate statement. Include:
 - Letterhead/header
 - Date (in ${timeline})
 - Title/subject line
@@ -377,9 +387,9 @@ Format as realistic social media posts with timestamps.`,
 - Key facts being announced
 - Actions being taken
 - Contact information
-Format as a formal official document.`,
+Format as a formal official document. NO meta-commentary.`,
 
-                scientific: `Write a scientific report excerpt (500-700 words) with:
+                scientific: `Write ONLY a scientific report excerpt (500-700 words). Include:
 - Title and authors
 - Date (in ${timeline})
 - Abstract/summary
@@ -387,25 +397,25 @@ Format as a formal official document.`,
 - Data/observations
 - Implications
 - Technical language appropriate to topic
-Format as academic/scientific writing.`,
+Format as academic/scientific writing. NO meta-commentary.`,
 
-                diary: `Write a personal diary entry (400-600 words) with:
+                diary: `Write ONLY a personal diary entry (400-600 words). Include:
 - Date (in ${timeline})
 - Personal reflections on events
 - How their life has changed
 - Fears and hopes
 - Observations about society
 - Raw, honest emotions
-Format as intimate personal writing.`,
+Format as intimate personal writing. NO meta-commentary.`,
 
-                memo: `Write an internal memo (300-500 words) with:
+                memo: `Write ONLY an internal memo (300-500 words). Include:
 - To/From/Date (in ${timeline})
 - Subject line
 - Situation overview
 - Concerns or recommendations
 - Confidential information
 - Next steps
-Format as internal corporate/government communication.`
+Format as internal corporate/government communication. NO meta-commentary.`
             };
 
             return basePrompt + typeSpecificPrompts[docType.type];
