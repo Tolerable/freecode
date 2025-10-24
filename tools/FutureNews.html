@@ -157,6 +157,21 @@
                 />
             </div>
 
+            <!-- Image Generation Toggle -->
+            <div class="mt-6 bg-slate-700/30 rounded-lg p-4 border border-slate-600">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input 
+                        type="checkbox" 
+                        id="enableImages"
+                        class="w-5 h-5 rounded bg-slate-600 border-slate-500 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                    />
+                    <div>
+                        <span class="text-sm font-medium text-gray-300">Generate Images for Social Media Posts</span>
+                        <p class="text-xs text-gray-400 mt-1">⚠️ Experimental: May produce low-quality or blank images. Can slow generation.</p>
+                    </div>
+                </label>
+            </div>
+
             <!-- Generate Button -->
             <button 
                 id="generateBtn"
@@ -447,6 +462,7 @@
             const technology = document.getElementById('technology').value;
             const customEvent = document.getElementById('customEvent').value;
             const location = document.getElementById('location').value;
+            const enableImages = document.getElementById('enableImages').checked;
 
             // Clear previous results
             document.getElementById('archiveResults').innerHTML = '';
@@ -471,7 +487,7 @@
             for (let i = 0; i < numDocs; i++) {
                 updateStatus(`Generating document ${i + 1} of ${numDocs}: ${selectedTypes[i].label}...`);
                 
-                const content = await generateDocument(scenario, selectedTypes[i], i, timeline, customEvent);
+                const content = await generateDocument(scenario, selectedTypes[i], i, timeline, customEvent, enableImages);
                 generatedDocuments.push({
                     type: selectedTypes[i],
                     content: content
@@ -493,7 +509,8 @@
                     biblical,
                     technology,
                     customEvent,
-                    location
+                    location,
+                    enableImages
                 },
                 documents: generatedDocuments
             };
@@ -523,7 +540,7 @@ Create an interconnected narrative where these elements influence each other rea
             return shuffled.slice(0, num);
         }
 
-        async function generateDocument(scenario, docType, index, timeline, customEvent) {
+        async function generateDocument(scenario, docType, index, timeline, customEvent, enableImages) {
             const prompt = buildDocumentPrompt(scenario, docType, timeline, customEvent);
 
             try {
@@ -553,7 +570,12 @@ Create an interconnected narrative where these elements influence each other rea
                 }
 
                 const data = await response.json();
-                const content = data.choices[0].message.content;
+                let content = data.choices[0].message.content;
+
+                // Generate images for social media posts if enabled
+                if (enableImages && docType.type === 'social') {
+                    content = await addImagesToSocialPost(content, scenario, timeline);
+                }
 
                 // Add document to page
                 addDocumentToPage(docType, content, index);
@@ -565,6 +587,84 @@ Create an interconnected narrative where these elements influence each other rea
                 addErrorDocument(docType, index);
                 return null;
             }
+        }
+        
+        // Generate and embed images in social media posts
+        async function addImagesToSocialPost(content, scenario, timeline) {
+            // Parse the social media content to find 2-3 good spots for images
+            const lines = content.split('\n');
+            const imagePrompts = [];
+            
+            // Generate 1-2 image prompts based on the scenario
+            const scenarioKeywords = `${scenario} ${timeline}`.toLowerCase();
+            
+            // Create contextual image prompts
+            if (scenarioKeywords.includes('climate') || scenarioKeywords.includes('warming')) {
+                imagePrompts.push('dramatic climate change effects, flooded city, extreme weather');
+            }
+            if (scenarioKeywords.includes('authoritarian') || scenarioKeywords.includes('police')) {
+                imagePrompts.push('dystopian city surveillance, government control, futuristic enforcement');
+            }
+            if (scenarioKeywords.includes('biblical') || scenarioKeywords.includes('prophecy')) {
+                imagePrompts.push('biblical apocalyptic scene, dramatic sky, prophetic imagery');
+            }
+            if (scenarioKeywords.includes('agi') || scenarioKeywords.includes('technology')) {
+                imagePrompts.push('advanced AI technology, futuristic cityscape, digital world');
+            }
+            if (scenarioKeywords.includes('asteroid') || scenarioKeywords.includes('catastrophic')) {
+                imagePrompts.push('asteroid impact scene, disaster aftermath, destruction');
+            }
+            
+            // If no specific prompts, use generic future scene
+            if (imagePrompts.length === 0) {
+                imagePrompts.push('futuristic scene, dramatic atmosphere, photorealistic');
+            }
+            
+            // Limit to 2 images max to avoid too many API calls
+            const numImages = Math.min(2, imagePrompts.length);
+            
+            let modifiedContent = content;
+            let insertedImages = 0;
+            
+            for (let i = 0; i < numImages && insertedImages < 2; i++) {
+                try {
+                    // Generate image URL
+                    const imageUrl = await generateImage(imagePrompts[i]);
+                    
+                    // Find a good place to insert (after every 3-4 posts)
+                    const insertPoint = Math.floor(lines.length / (numImages + 1)) * (i + 1);
+                    
+                    // Create image embed that looks like a social media image post
+                    const imageEmbed = `\n[📸 Image shared in thread]\n<img src="${imageUrl}" alt="Scene from ${timeline}" class="rounded-lg my-4 max-w-full h-auto border border-slate-600" onerror="this.style.display='none'" />\n`;
+                    
+                    // Insert image
+                    lines.splice(insertPoint, 0, imageEmbed);
+                    insertedImages++;
+                } catch (error) {
+                    console.error('Failed to generate image:', error);
+                    // Continue without this image
+                }
+            }
+            
+            return lines.join('\n');
+        }
+        
+        // Generate image using Pollinations API
+        async function generateImage(prompt) {
+            // Encode the prompt for URL
+            const encodedPrompt = encodeURIComponent(prompt);
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=600&model=flux&nologo=true`;
+            
+            // Test if image loads (simple check)
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(imageUrl);
+                img.onerror = () => reject(new Error('Image failed to load'));
+                img.src = imageUrl;
+                
+                // Timeout after 10 seconds
+                setTimeout(() => reject(new Error('Image load timeout')), 10000);
+            });
         }
 
         function buildDocumentPrompt(scenario, docType, timeline, customEvent) {
