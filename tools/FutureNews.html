@@ -542,37 +542,80 @@ Create an interconnected narrative where these elements influence each other rea
 
         async function generateDocument(scenario, docType, index, timeline, customEvent, enableImages) {
             const prompt = buildDocumentPrompt(scenario, docType, timeline, customEvent);
+            
+            const endMarkers = {
+                'news': '[END_ARTICLE]',
+                'police': '[END_REPORT]',
+                'eyewitness': '[END_WITNESS_ACCOUNT]',
+                'social': '[END_THREAD]',
+                'official': '[END_STATEMENT]',
+                'scientific': '[END_REPORT]',
+                'diary': '[END_ENTRY]',
+                'memo': '[END_MEMO]'
+            };
+            
+            const expectedEndMarker = endMarkers[docType.type];
+            let content = null;
+            let attempts = 0;
+            const maxAttempts = 2;
 
-            try {
-                const response = await fetch(API_ENDPOINT, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: 'openai-large',
-                        max_tokens: 2000,
-                        seed: Math.floor(Math.random() * 1000000), // Random seed for unique generation
-                        messages: [
-                            {
-                                role: 'system',
-                                content: 'You are a document generator. Output ONLY the requested document with no commentary, explanations, or meta-text. Begin immediately with the document content itself.'
-                            },
-                            {
-                                role: 'user',
-                                content: prompt
-                            }
-                        ]
-                    })
-                });
+            while (attempts < maxAttempts) {
+                try {
+                    const response = await fetch(API_ENDPOINT, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            model: 'openai-large',
+                            max_tokens: 2000,
+                            seed: Math.floor(Math.random() * 1000000), // Random seed for unique generation
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: 'You are a document generator. Output ONLY the requested document with no commentary, explanations, or meta-text. Begin immediately with the document content itself. ALWAYS include the specified end marker to indicate completion.'
+                                },
+                                {
+                                    role: 'user',
+                                    content: prompt
+                                }
+                            ]
+                        })
+                    });
 
-                if (!response.ok) {
-                    throw new Error(`API returned ${response.status}: ${response.statusText}`);
+                    if (!response.ok) {
+                        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    content = data.choices[0].message.content;
+                    
+                    // Check if document is complete (has end marker)
+                    if (content.includes(expectedEndMarker)) {
+                        // Remove the end marker from final output
+                        content = content.replace(expectedEndMarker, '').trim();
+                        break;
+                    } else {
+                        console.warn(`Document incomplete (missing ${expectedEndMarker}), attempt ${attempts + 1}/${maxAttempts}`);
+                        attempts++;
+                        if (attempts < maxAttempts) {
+                            updateStatus(`Document incomplete, retrying ${docType.label}...`);
+                            await sleep(1000);
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('Error generating document:', error);
+                    attempts++;
+                    if (attempts >= maxAttempts) {
+                        addErrorDocument(docType, index);
+                        return null;
+                    }
                 }
-
-                const data = await response.json();
-                let content = data.choices[0].message.content;
-
+            }
+            
+            // If we got here and content is still incomplete, use what we have
+            if (content) {
                 // Generate images for social media posts if enabled
                 if (enableImages && docType.type === 'social') {
                     content = await addImagesToSocialPost(content, scenario, timeline);
@@ -582,9 +625,7 @@ Create an interconnected narrative where these elements influence each other rea
                 addDocumentToPage(docType, content, index);
                 
                 return content;
-
-            } catch (error) {
-                console.error('Error generating document:', error);
+            } else {
                 addErrorDocument(docType, index);
                 return null;
             }
@@ -678,7 +719,9 @@ BEGIN DOCUMENT NOW:
 - Multiple sources quoted
 - Context about how situation developed
 - What might happen next
-Format as a professional news article. NO meta-commentary.`,
+Format as a professional news article. 
+End with: [END_ARTICLE]
+NO meta-commentary.`,
 
                 police: `Write ONLY the police incident report. Include:
 - Case number and date (in ${timeline})
@@ -688,16 +731,29 @@ Format as a professional news article. NO meta-commentary.`,
 - Witness statements
 - Evidence collected
 - Current status
-Format as an official police report. NO meta-commentary.`,
+Format as an official police report.
+End with: [END_REPORT]
+NO meta-commentary.`,
 
-                eyewitness: `Write ONLY a first-person eyewitness account (400-600 words). Include:
-- When and where they witnessed events
-- What they saw, heard, felt
-- Their emotional reactions
-- Specific sensory details
-- What happened before and after
-- Their current situation
-Make it personal and visceral. NO meta-commentary.`,
+                eyewitness: `Write ONLY a first-person eyewitness account (400-600 words). This should sound like a REAL PERSON talking, not a writer.
+
+Write like someone would actually speak when recounting what they saw:
+- Simple, direct language (not flowery or poetic)
+- Incomplete thoughts, repetition when stressed
+- "I saw...", "Then...", "I don't know..."
+- Focus on concrete details, not metaphors
+- Raw emotions, not literary descriptions
+- What they literally saw, heard, smelled
+- Their confusion, fear, shock in plain words
+- Fragmented when panicked
+
+BAD: "The sky seemed to dim with an ethereal grace"
+GOOD: "The sky just... went dark. I don't even know how to describe it. One second it was normal, next second it wasn't."
+
+Include: when/where this happened, what they saw, what they did, where they are now.
+End with: [END_WITNESS_ACCOUNT]
+
+NO meta-commentary. Write like a real scared/shocked person talking.`,
 
                 social: `Write ONLY a social media thread (8-12 posts). Show:
 - Real-time reactions to events
@@ -712,7 +768,9 @@ CRITICAL: If this thread would realistically include photos/images shared by use
 
 Include 1-2 image prompts ONLY where it makes narrative sense (someone witnessing events, sharing evidence, etc).
 
-Format as realistic social media posts with timestamps. NO meta-commentary.`,
+Format as realistic social media posts with timestamps.
+End with: [END_THREAD]
+NO meta-commentary.`,
 
                 official: `Write ONLY an official government/corporate statement. Include:
 - Letterhead/header
@@ -722,7 +780,9 @@ Format as realistic social media posts with timestamps. NO meta-commentary.`,
 - Key facts being announced
 - Actions being taken
 - Contact information
-Format as a formal official document. NO meta-commentary.`,
+Format as a formal official document.
+End with: [END_STATEMENT]
+NO meta-commentary.`,
 
                 scientific: `Write ONLY a scientific report excerpt (500-700 words). Include:
 - Title and authors
@@ -732,7 +792,9 @@ Format as a formal official document. NO meta-commentary.`,
 - Data/observations
 - Implications
 - Technical language appropriate to topic
-Format as academic/scientific writing. NO meta-commentary.`,
+Format as academic/scientific writing.
+End with: [END_REPORT]
+NO meta-commentary.`,
 
                 diary: `Write ONLY a personal diary entry (400-600 words). Include:
 - Date (in ${timeline})
@@ -741,7 +803,9 @@ Format as academic/scientific writing. NO meta-commentary.`,
 - Fears and hopes
 - Observations about society
 - Raw, honest emotions
-Format as intimate personal writing. NO meta-commentary.`,
+Format as intimate personal writing.
+End with: [END_ENTRY]
+NO meta-commentary.`,
 
                 memo: `Write ONLY an internal memo (300-500 words). Include:
 - To/From/Date (in ${timeline})
@@ -750,7 +814,9 @@ Format as intimate personal writing. NO meta-commentary.`,
 - Concerns or recommendations
 - Confidential information
 - Next steps
-Format as internal corporate/government communication. NO meta-commentary.`
+Format as internal corporate/government communication.
+End with: [END_MEMO]
+NO meta-commentary.`
             };
 
             return basePrompt + typeSpecificPrompts[docType.type];
