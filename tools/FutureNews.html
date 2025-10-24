@@ -6,32 +6,6 @@
     <title>Future News Archive Generator | AI Ministries</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @keyframes typewriter {
-            from { width: 0; }
-            to { width: 100%; }
-        }
-        
-        .typing-effect {
-            overflow: hidden;
-            border-right: 2px solid #4f46e5;
-            white-space: nowrap;
-            animation: typewriter 2s steps(40) 1s forwards, blink 0.75s step-end infinite;
-        }
-        
-        @keyframes blink {
-            from, to { border-color: transparent; }
-            50% { border-color: #4f46e5; }
-        }
-        
-        .document-card {
-            transition: all 0.3s ease;
-        }
-        
-        .document-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-        }
-        
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -47,13 +21,13 @@
             animation: fadeInUp 0.6s ease forwards;
         }
         
-        .generating-pulse {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        .document-card {
+            transition: all 0.3s ease;
         }
         
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
+        .document-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
     </style>
 </head>
@@ -192,6 +166,29 @@
             </button>
         </div>
 
+        <!-- History Panel Toggle -->
+        <div class="mb-8">
+            <button 
+                id="historyToggle"
+                class="bg-slate-700/50 hover:bg-slate-700 text-purple-300 font-semibold py-3 px-6 rounded-lg transition-all flex items-center gap-2"
+            >
+                <span>📚</span>
+                <span>View Query History</span>
+                <span id="historyCount" class="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">0</span>
+            </button>
+        </div>
+
+        <!-- History Panel (hidden by default) -->
+        <div id="historyPanel" class="hidden bg-slate-800/50 backdrop-blur rounded-lg p-6 mb-8 border border-purple-500/30">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-purple-300">Query History</h2>
+                <button id="closeHistory" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div id="historyList" class="space-y-4 max-h-96 overflow-y-auto">
+                <!-- History items will be inserted here -->
+            </div>
+        </div>
+
         <!-- Generation Status -->
         <div id="generationStatus" class="hidden bg-slate-800/50 backdrop-blur rounded-lg p-6 mb-8 border border-blue-500/30">
             <div class="flex items-center gap-4">
@@ -212,6 +209,221 @@
 
     <script>
         const API_ENDPOINT = 'https://text.pollinations.ai/openai';
+        
+        // IndexedDB setup
+        let db;
+        let currentQueryId = null;
+        const DB_NAME = 'FutureNewsArchiveDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'queries';
+        
+        // Initialize IndexedDB
+        async function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+                        objectStore.createIndex('starred', 'starred', { unique: false });
+                    }
+                };
+            });
+        }
+        
+        // Save query to IndexedDB
+        async function saveQuery(queryData) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.add(queryData);
+                
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        // Get all queries (most recent first, with starred queries first)
+        async function getAllQueries() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.getAll();
+                
+                request.onsuccess = () => {
+                    const queries = request.result;
+                    // Sort: starred first, then by timestamp descending
+                    queries.sort((a, b) => {
+                        if (a.starred && !b.starred) return -1;
+                        if (!a.starred && b.starred) return 1;
+                        return b.timestamp - a.timestamp;
+                    });
+                    resolve(queries);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        // Toggle star status
+        async function toggleStar(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const getRequest = objectStore.get(id);
+                
+                getRequest.onsuccess = () => {
+                    const query = getRequest.result;
+                    query.starred = !query.starred;
+                    const updateRequest = objectStore.put(query);
+                    updateRequest.onsuccess = () => resolve(query.starred);
+                    updateRequest.onerror = () => reject(updateRequest.error);
+                };
+                getRequest.onerror = () => reject(getRequest.error);
+            });
+        }
+        
+        // Delete query
+        async function deleteQuery(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.delete(id);
+                
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        // Get query by ID
+        async function getQueryById(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.get(id);
+                
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        // Load and display history panel
+        async function loadHistoryPanel() {
+            const queries = await getAllQueries();
+            const historyList = document.getElementById('historyList');
+            const historyCount = document.getElementById('historyCount');
+            
+            // Limit to last 10 regular + all starred
+            const starred = queries.filter(q => q.starred);
+            const recent = queries.filter(q => !q.starred).slice(0, 10);
+            const displayQueries = [...starred, ...recent];
+            
+            historyCount.textContent = displayQueries.length;
+            
+            if (displayQueries.length === 0) {
+                historyList.innerHTML = '<p class="text-gray-400 text-center py-8">No queries yet. Generate your first future scenario!</p>';
+                return;
+            }
+            
+            historyList.innerHTML = displayQueries.map(query => `
+                <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600 hover:border-purple-500 transition-all">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <button 
+                                    onclick="toggleQueryStar(${query.id})"
+                                    class="text-xl hover:scale-125 transition-transform"
+                                >
+                                    ${query.starred ? '⭐' : '☆'}
+                                </button>
+                                <span class="text-sm text-gray-400">
+                                    ${new Date(query.timestamp).toLocaleString()}
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div><span class="text-gray-400">Timeline:</span> <span class="text-purple-300">${query.params.timeline}</span></div>
+                                <div><span class="text-gray-400">Climate:</span> <span class="text-purple-300">${query.params.geoclimate}</span></div>
+                                <div><span class="text-gray-400">Political:</span> <span class="text-purple-300">${query.params.political}</span></div>
+                                <div><span class="text-gray-400">Tech:</span> <span class="text-purple-300">${query.params.technology}</span></div>
+                            </div>
+                            ${query.params.customEvent ? `<div class="mt-2 text-sm"><span class="text-gray-400">Event:</span> <span class="text-blue-300">${query.params.customEvent}</span></div>` : ''}
+                        </div>
+                        <div class="flex gap-2">
+                            <button 
+                                onclick="loadQuery(${query.id})"
+                                class="bg-purple-600 hover:bg-purple-700 text-white text-sm px-3 py-1 rounded transition-all"
+                            >
+                                Load
+                            </button>
+                            <button 
+                                onclick="deleteQueryFromHistory(${query.id})"
+                                class="bg-red-600/50 hover:bg-red-600 text-white text-sm px-3 py-1 rounded transition-all"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        ${query.documents.length} documents generated
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Toggle star on a query
+        async function toggleQueryStar(id) {
+            await toggleStar(id);
+            await loadHistoryPanel();
+        }
+        
+        // Delete query from history
+        async function deleteQueryFromHistory(id) {
+            if (confirm('Delete this query from history?')) {
+                await deleteQuery(id);
+                await loadHistoryPanel();
+            }
+        }
+        
+        // Load a previous query
+        async function loadQuery(id) {
+            const query = await getQueryById(id);
+            if (!query) return;
+            
+            // Close history panel
+            document.getElementById('historyPanel').classList.add('hidden');
+            
+            // Clear current results
+            document.getElementById('archiveResults').innerHTML = '';
+            
+            // Display the documents
+            query.documents.forEach((doc, index) => {
+                addDocumentToPage(doc.type, doc.content, index);
+            });
+            
+            // Scroll to results
+            document.getElementById('archiveResults').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Initialize DB and load history on page load
+        initDB().then(() => {
+            loadHistoryPanel();
+        });
+        
+        // History panel toggle
+        document.getElementById('historyToggle').addEventListener('click', () => {
+            document.getElementById('historyPanel').classList.toggle('hidden');
+        });
+        
+        document.getElementById('closeHistory').addEventListener('click', () => {
+            document.getElementById('historyPanel').classList.add('hidden');
+        });
         
         const documentTypes = [
             { type: 'news', emoji: '📰', label: 'News Article' },
@@ -251,16 +463,43 @@
             
             // Select random document types
             const selectedTypes = selectRandomDocTypes(numDocs);
+            
+            // Store documents for saving to DB
+            const generatedDocuments = [];
 
             // Generate documents one by one
             for (let i = 0; i < numDocs; i++) {
                 updateStatus(`Generating document ${i + 1} of ${numDocs}: ${selectedTypes[i].label}...`);
                 
-                await generateDocument(scenario, selectedTypes[i], i, timeline, customEvent);
+                const content = await generateDocument(scenario, selectedTypes[i], i, timeline, customEvent);
+                generatedDocuments.push({
+                    type: selectedTypes[i],
+                    content: content
+                });
                 
                 // Small delay between generations
                 await sleep(1000);
             }
+
+            // Save to database
+            const queryData = {
+                timestamp: Date.now(),
+                starred: false,
+                params: {
+                    timeline,
+                    geoclimate,
+                    political,
+                    economic,
+                    biblical,
+                    technology,
+                    customEvent,
+                    location
+                },
+                documents: generatedDocuments
+            };
+            
+            currentQueryId = await saveQuery(queryData);
+            await loadHistoryPanel();
 
             // Hide status
             statusDiv.classList.add('hidden');
@@ -318,10 +557,13 @@ Create an interconnected narrative where these elements influence each other rea
 
                 // Add document to page
                 addDocumentToPage(docType, content, index);
+                
+                return content;
 
             } catch (error) {
                 console.error('Error generating document:', error);
                 addErrorDocument(docType, index);
+                return null;
             }
         }
 
@@ -437,7 +679,7 @@ Format as internal corporate/government communication. NO meta-commentary.`
                         <p class="text-sm text-gray-400">Generated ${new Date().toLocaleString()}</p>
                     </div>
                 </div>
-                <div class="prose prose-invert prose-slate max-w-none">
+                <div class="prose prose-invert prose-slate max-w-none whitespace-pre-wrap">
                     ${formatContent(content)}
                 </div>
             `;
@@ -446,16 +688,12 @@ Format as internal corporate/government communication. NO meta-commentary.`
         }
 
         function formatContent(content) {
-            // Convert markdown-style formatting to HTML
-            let formatted = content
+            // Preserve line breaks and basic formatting
+            return content
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.+?)\*/g, '<em>$1</em>')
                 .replace(/^# (.+)$/gm, '<h2 class="text-2xl font-bold mt-4 mb-2">$1</h2>')
-                .replace(/^## (.+)$/gm, '<h3 class="text-xl font-semibold mt-3 mb-2">$1</h3>')
-                .replace(/\n\n/g, '</p><p class="mb-4">')
-                .replace(/^(.+)$/gm, '<p class="mb-4">$1</p>');
-            
-            return formatted;
+                .replace(/^## (.+)$/gm, '<h3 class="text-xl font-semibold mt-3 mb-2">$1</h3>');
         }
 
         function addErrorDocument(docType, index) {
@@ -485,17 +723,6 @@ Format as internal corporate/government communication. NO meta-commentary.`
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
-
-        // Add subtle parallax effect
-        document.addEventListener('mousemove', (e) => {
-            const cards = document.querySelectorAll('.document-card');
-            cards.forEach(card => {
-                const rect = card.getBoundingClientRect();
-                const x = (e.clientX - rect.left - rect.width / 2) / 50;
-                const y = (e.clientY - rect.top - rect.height / 2) / 50;
-                card.style.transform = `perspective(1000px) rotateY(${x}deg) rotateX(${-y}deg)`;
-            });
-        });
     </script>
 
 </body>
