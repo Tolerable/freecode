@@ -7,19 +7,13 @@
 
 <style>
   :root {
-    --c1:#0a0a0a;
-    --c2:#ffffff;
-    --c3:#1a1a1a;
-    --blue:#1e3a8a;
-    --red:#b91c1c;
-    --green:#14532d;
-    --border:#4b5563;
+    --app-bg:#0f172a;
     --panel:#111827;
     --panelEdge:#1f2937;
-    --bg:#0f172a;
+    --card:#1e293b;
     --text-main:#f8fafc;
     --text-dim:#94a3b8;
-    --card:#1e293b;
+    --border:#4b5563;
     --accent:#38bdf8;
     --radius-xl:1rem;
     --radius-lg:.75rem;
@@ -32,7 +26,7 @@
 
   body {
     margin:0;
-    background:var(--bg);
+    background:var(--app-bg);
     color:var(--text-main);
     font-family:system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,"Helvetica Neue",sans-serif;
     min-height:100vh;
@@ -40,9 +34,13 @@
     flex-direction:column;
   }
 
+  /***** HEADER BAR *****/
   header {
-    background:radial-gradient(circle at 20% 20%,rgba(56,189,248,.25) 0%,rgba(15,23,42,0) 70%);
     border-bottom:1px solid var(--panelEdge);
+    background:
+      radial-gradient(circle at 20% 20%,rgba(56,189,248,.25) 0%,rgba(15,23,42,0) 60%),
+      radial-gradient(circle at 80% 20%,rgba(56,189,248,.12) 0%,rgba(15,23,42,0) 60%),
+      var(--panel);
     padding:1rem 1.5rem;
     display:flex;
     flex-wrap:wrap;
@@ -105,7 +103,7 @@
     font-weight:700;
   }
   button.danger {
-    background:var(--red);
+    background:#b91c1c;
     color:#fff;
   }
 
@@ -115,6 +113,7 @@
     min-width:auto;
   }
 
+  /***** SHELL LAYOUT *****/
   main.app-shell {
     flex:1;
     min-height:0;
@@ -123,7 +122,7 @@
     padding:1rem;
   }
 
-  /* LEFT CONFIG PANEL */
+  /***** LEFT CONFIG PANEL *****/
   .config-panel {
     width:320px;
     max-width:320px;
@@ -156,6 +155,8 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
+    flex-wrap:wrap;
+    gap:.25rem;
   }
 
   .config-section h2 span.label {
@@ -189,6 +190,8 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
+    flex-wrap:wrap;
+    gap:.5rem;
   }
 
   input[type="text"],
@@ -248,6 +251,13 @@
     gap:.5rem;
   }
 
+  .upload-row div.titleline {
+    font-weight:600;
+    color:var(--text-main);
+    font-size:.75rem;
+    line-height:1rem;
+  }
+
   .upload-row input[type="file"] {
     width:100%;
     font-size:.7rem;
@@ -285,7 +295,7 @@
     min-width:0;
   }
 
-  /* RIGHT PREVIEW PANEL (EDIT MODE) */
+  /***** RIGHT PREVIEW PANEL *****/
   .preview-wrapper {
     flex:1;
     min-width:0;
@@ -336,16 +346,11 @@
     display:flex;
     flex-wrap:wrap;
     gap:.5rem;
-  }
-
-  .live-hint {
+    color:var(--text-dim);
     font-size:.7rem;
     line-height:.9rem;
-    color:var(--text-dim);
-    text-align:right;
   }
 
-  /* THE POSTER ITSELF - used in both edit and live mode */
   .poster-area-outer {
     flex:1;
     min-height:0;
@@ -365,171 +370,142 @@
     border-radius:var(--radius-lg);
   }
 
-  /* Poster printable layout (Letter-ish ratio ~1.294) */
+  /***** THE POSTER LAYOUT (PRINT TARGET) *****/
+  /*
+    We design at US Letter size: 8.5in x 11in.
+    On-screen we clamp max-width:100% so it scales down.
+  */
   .poster {
-    width:800px;
+    width:8.5in;
     max-width:100%;
-    background:var(--c2);
-    color:#000;
-    border-radius:var(--radius-md);
+    min-height:11in;
+    background:#ffffff;
+    color:#000000;
     border:4px solid #000;
+    border-radius:.25in;
     box-shadow:0 40px 80px rgba(0,0,0,.8);
     font-family:"Impact","Anton","Arial Black","Inter",system-ui,sans-serif;
-    position:relative;
+    display:flex;
+    flex-direction:column;
     overflow:hidden;
   }
 
-  /* Top stripes header */
-  .poster-topband {
-    position:relative;
-    padding:1rem .75rem .75rem;
-    text-align:center;
-    font-weight:800;
+  /***** POSTER HEADER BAND *****/
+  .poster-header {
+    padding:0.6in 0.4in 0.4in;
+    background:#1e3a8a; /* gets overridden in JS */
     color:#fff;
-    letter-spacing:.05em;
-  }
-
-  .poster-topband .line1 {
-    font-size:1.2rem;
-    line-height:1.2rem;
-  }
-  .poster-topband .line2 {
-    margin-top:.4rem;
-    font-size:2.2rem;
-    line-height:2.2rem;
+    text-align:center;
     text-transform:uppercase;
+    border-bottom:4px solid #000;
   }
 
-  .poster-stripes {
-    position:absolute;
-    inset:0;
-    display:flex;
-    flex-direction:column;
-    z-index:0;
+  .poster-header .line-small {
+    font-size:0.4in;
+    line-height:0.45in;
+    font-weight:800;
+    letter-spacing:.03em;
   }
-  .poster-stripes .stripe {
+
+  .poster-header .line-big {
+    margin-top:0.15in;
+    font-size:0.7in;
+    line-height:0.75in;
+    font-weight:800;
+    letter-spacing:.03em;
+    word-break:break-word;
+  }
+
+  /***** POSTER BODY *****/
+  .poster-body {
     flex:1;
-  }
-
-  /* middle content row: headshot, message, vp */
-  .poster-mid {
     display:flex;
-    flex-wrap:wrap;
-    padding:1rem .75rem;
-    gap:1rem;
-    justify-content:space-between;
-    align-items:flex-start;
+    flex-wrap:nowrap;
+    padding:0.4in;
+    gap:0.4in;
+    background:#fff;
+    color:#000;
   }
 
-  .candidate-block,
-  .vp-block {
-    width:180px;
-    max-width:calc(50% - .5rem);
+  .body-left {
+    width:2.5in;
+    max-width:2.5in;
     flex-shrink:0;
     text-align:center;
   }
 
-  .candidate-pic,
-  .vp-pic {
-    width:180px;
-    height:180px;
+  .candidate-pic {
+    width:2.5in;
+    height:2.5in;
     max-width:100%;
     max-height:100%;
-    background:#ddd;
     border:4px solid #000;
-    border-radius:.5rem;
+    border-radius:.3in;
+    background:#ddd;
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
-    position:relative;
   }
 
-  .candidate-name,
-  .vp-name {
-    font-size:1rem;
+  .candidate-name {
+    margin-top:0.3in;
+    font-size:0.45in;
+    line-height:0.5in;
     font-weight:800;
-    line-height:1.1rem;
     text-transform:uppercase;
-    margin-top:.5rem;
-    color:#000;
+    word-break:break-word;
   }
 
-  .vp-label {
-    font-size:.7rem;
-    font-weight:700;
-    margin-top:.25rem;
-    line-height:.8rem;
-    color:#000;
-    text-transform:uppercase;
-  }
-
-  .message-block {
+  .body-right {
     flex:1;
-    min-width:200px;
-    border:4px solid #000;
-    border-radius:.5rem;
-    background:#fff;
-    color:#000;
-    padding:.75rem;
+    min-width:0;
     display:flex;
     flex-direction:column;
+    border:4px solid #000;
+    border-radius:.3in;
+    background:#fff;
+    padding:0.4in;
     font-family:"Inter",system-ui,sans-serif;
   }
 
-  .message-headline {
-    font-size:1.1rem;
-    line-height:1.2rem;
+  .headline {
+    font-size:0.4in;
+    line-height:0.45in;
     font-weight:800;
-    text-transform:uppercase;
-    margin-bottom:.5rem;
     text-align:center;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-wrap:wrap;
-    gap:.5rem;
-  }
-
-  .little-stars {
-    display:flex;
-    gap:.25rem;
-  }
-  .little-stars svg {
-    width:1rem;
-    height:1rem;
+    text-transform:uppercase;
+    margin-bottom:0.3in;
+    word-break:break-word;
   }
 
   .stances-list {
     display:flex;
     flex-direction:column;
-    gap:.5rem;
-    font-size:.8rem;
-    line-height:1rem;
+    gap:0.25in;
+    font-size:0.18in;
+    line-height:0.22in;
     font-weight:600;
     color:#000;
   }
 
   .stance-item {
     display:flex;
-    gap:.5rem;
     align-items:flex-start;
+    gap:0.2in;
   }
 
   .stance-icon {
     flex-shrink:0;
-    border-radius:.25rem;
-    font-size:.6rem;
-    font-weight:700;
-    line-height:.8rem;
+    min-width:0.5in;
+    height:0.5in;
+    border-radius:0.15in;
+    background:#1e3a8a; /* JS changes */
     color:#fff;
-    min-width:2rem;
+    font-size:0.22in;
+    line-height:0.5in;
+    font-weight:800;
     text-align:center;
-    padding:.4rem .3rem;
-    background:#000;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    height:1.5rem;
+    border:3px solid #000;
   }
 
   .stance-text {
@@ -538,149 +514,156 @@
   }
 
   .stance-title {
-    font-size:.8rem;
-    line-height:1rem;
-    font-weight:700;
+    font-size:0.22in;
+    line-height:0.25in;
+    font-weight:800;
     text-transform:uppercase;
+    word-break:break-word;
   }
 
   .stance-desc {
-    font-family:"Inter",system-ui,sans-serif;
-    font-size:.75rem;
-    line-height:1rem;
+    font-size:0.18in;
+    line-height:0.22in;
     font-weight:500;
-    margin-top:.15rem;
+    margin-top:0.05in;
+    word-break:break-word;
   }
 
-  /* bottom footer: party / slogan */
-  .poster-footer {
-    font-weight:800;
-    color:#fff;
-    text-align:center;
-    text-transform:uppercase;
-    padding:1rem .75rem 1.25rem;
-    border-top:4px solid #000;
-    position:relative;
-  }
-
-  .footer-party {
-    font-size:1.1rem;
-    line-height:1.2rem;
+  .vp-box {
+    margin-top:0.4in;
     display:flex;
-    flex-wrap:wrap;
-    justify-content:center;
-    align-items:center;
-    gap:.5rem;
+    flex-wrap:nowrap;
+    align-items:flex-start;
+    gap:0.3in;
   }
-  .footer-party .party-icon {
-    width:1.5rem;
-    height:1.5rem;
+
+  .vp-pic {
+    width:1.5in;
+    height:1.5in;
+    border:4px solid #000;
+    border-radius:.2in;
+    background:#ddd;
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
     flex-shrink:0;
   }
 
-  .footer-slogan {
-    margin-top:.5rem;
-    font-size:1rem;
-    line-height:1.2rem;
+  .vp-info {
+    flex:1;
+    min-width:0;
+  }
+
+  .vp-role {
+    font-family:"Impact","Anton","Arial Black","Inter",system-ui,sans-serif;
+    font-size:0.22in;
+    line-height:0.25in;
+    font-weight:800;
+    color:#000;
+    text-transform:uppercase;
+  }
+
+  .vp-name {
+    margin-top:0.05in;
+    font-family:"Impact","Anton","Arial Black","Inter",system-ui,sans-serif;
+    font-size:0.3in;
+    line-height:0.35in;
+    font-weight:800;
+    color:#000;
+    text-transform:uppercase;
+    word-break:break-word;
+  }
+
+  /***** POSTER FOOTER BAND *****/
+  .poster-footer {
+    border-top:4px solid #000;
+    background:#b91c1c; /* JS changes */
+    color:#fff;
+    text-align:center;
+    text-transform:uppercase;
+    padding:0.4in;
+    font-weight:800;
+  }
+
+  .footer-partyline {
+    font-size:0.35in;
+    line-height:0.4in;
+    word-break:break-word;
+  }
+
+  .slogan {
+    margin-top:0.2in;
+    font-size:0.32in;
+    line-height:0.36in;
+    word-break:break-word;
   }
 
   .legal-note {
-    margin-top:.75rem;
-    font-size:.6rem;
-    line-height:.8rem;
+    margin-top:0.25in;
+    font-size:0.17in;
+    line-height:0.2in;
     font-weight:600;
-    color:#fff;
     font-family:"Inter",system-ui,sans-serif;
+    color:#fff;
+    text-transform:none;
   }
 
-  /* LIVE MODE OVERLAY */
+  /***** LIVE SCREEN (FULL PAGE POSTER VIEW) *****/
   .live-screen {
     position:fixed;
     inset:0;
-    background:var(--bg);
-    padding:1rem;
+    background:#ffffff;
+    color:#000;
     display:none;
     flex-direction:column;
     z-index:9999;
   }
 
-  .live-topbar {
+  .live-toolbar {
+    background:#000;
+    color:#fff;
+    padding:.75rem 1rem;
+    font-size:.8rem;
+    line-height:1rem;
+    font-weight:600;
     display:flex;
     flex-wrap:wrap;
     align-items:flex-start;
-    justify-content:space-between;
-    margin-bottom:1rem;
-    gap:1rem;
-  }
-
-  .live-topbar-left h2 {
-    margin:0;
-    font-size:.9rem;
-    line-height:1.1rem;
-    font-weight:600;
-    color:var(--text-main);
-    display:flex;
-    align-items:center;
     gap:.5rem;
   }
-  .live-topbar-left p {
-    margin:.25rem 0 0;
-    font-size:.7rem;
-    line-height:.9rem;
-    color:var(--text-dim);
-    max-width:480px;
+
+  .live-toolbar button {
+    box-shadow:none;
+    border-radius:var(--radius-md);
   }
 
-  .live-main {
+  .live-frame {
     flex:1;
     min-height:0;
-    border:1px solid var(--panelEdge);
-    background:var(--panel);
-    border-radius:var(--radius-xl);
-    box-shadow:0 32px 96px rgba(0,0,0,.9);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:1rem;
     overflow:auto;
+    background:#fff;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:1rem;
   }
 
-  .poster.printable {
-    /* same poster class, just reused in live mode */
-  }
-
-  /* PRINT STYLES */
+  /* PRINT CLEANUP */
   @media print {
+    @page {
+      size:Letter portrait;
+      margin:0;
+    }
+
     body {
       background:#fff !important;
       color:#000 !important;
     }
+
     header,
-    .config-panel,
-    .preview-title-bar,
-    .live-topbar,
-    .live-topbar-right,
-    .live-exit-btn,
-    .live-print-hint,
-    .preview-title-right,
-    .live-hint {
+    main.app-shell,
+    .live-toolbar {
       display:none !important;
-    }
-
-    .poster-area-outer,
-    .live-main {
-      border:0 !important;
-      background:#fff !important;
-      padding:0 !important;
-      box-shadow:none !important;
-    }
-
-    .poster {
-      border:4px solid #000 !important;
-      box-shadow:none !important;
-      width:100% !important;
-      max-width:100% !important;
-      border-radius:0 !important;
     }
 
     .live-screen {
@@ -690,9 +673,24 @@
       background:#fff !important;
       display:block !important;
     }
+
+    .live-frame {
+      padding:0 !important;
+      border:0 !important;
+      box-shadow:none !important;
+    }
+
+    .poster {
+      width:8.5in !important;
+      min-height:11in !important;
+      max-width:100% !important;
+      border-radius:0 !important;
+      box-shadow:none !important;
+      border:4px solid #000 !important;
+    }
   }
 
-  /* SMALL SCREENS */
+  /***** SMALL SCREENS *****/
   @media (max-width:900px){
     main.app-shell {
       flex-direction:column;
@@ -716,21 +714,18 @@
     <h1>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
            stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 12l2 0"></path>
-        <path d="M18 12l2 0"></path>
-        <path d="M12 4l0 2"></path>
-        <path d="M12 18l0 2"></path>
-        <path d="M5.6 5.6l1.4 1.4"></path>
-        <path d="M17 17l1.4 1.4"></path>
-        <path d="M5.6 18.4l1.4-1.4"></path>
-        <path d="M17 7l1.4-1.4"></path>
+        <path d="M12 2v4"></path>
+        <path d="M12 18v4"></path>
+        <path d="M4 12h4"></path>
+        <path d="M16 12h4"></path>
         <circle cx="12" cy="12" r="4"></circle>
       </svg>
       YOU for President
     </h1>
     <p>
-      Make your own “FOR PRESIDENT” poster. Pick party, colors, stances, add you and
-      your VP, then hit LIVE and print to PDF. This is for entertainment / parody.
+      Make a full-page campaign poster. Pick colors, party name, stance lines,
+      your face, your VP. Then “GO LIVE”, hit Print → Save as PDF. The final page
+      looks like a real poster (no editor junk).
     </p>
   </div>
 
@@ -743,13 +738,12 @@
 <main class="app-shell">
   <!-- CONFIG PANEL -->
   <aside class="config-panel" id="configPanel">
+
     <!-- BASIC INFO -->
     <section class="config-section">
       <h2>
-        <span class="label">
-          Basic Info
-        </span>
-        <span class="sub">Who are you?</span>
+        <span class="label">Basic Info</span>
+        <span class="sub">Names / Slogan</span>
       </h2>
 
       <div class="field">
@@ -759,63 +753,61 @@
 
       <div class="two-cols">
         <div class="col field">
-          <label for="vpName">Vice President Name<span class="mini-note">(optional)</span></label>
+          <label for="vpName">Vice President Name <span class="mini-note">(optional)</span></label>
           <input id="vpName" type="text" placeholder="e.g. Taylor Friend" />
         </div>
         <div class="col field">
           <label for="slogan">Campaign Slogan</label>
-          <input id="slogan" type="text" placeholder="e.g. A Future For Everyone" />
+          <input id="slogan" type="text" placeholder="A Future For Everyone" />
         </div>
       </div>
 
       <div class="field">
         <label for="headlineMsg">Headline Message / Core Promise</label>
-        <input id="headlineMsg" type="text" placeholder="e.g. Rebuild, Reunite, Rise" />
+        <input id="headlineMsg" type="text" placeholder="Rebuild • Reunite • Rise" />
       </div>
     </section>
 
     <!-- PARTY + COLORS -->
     <section class="config-section">
       <h2>
-        <span class="label">
-          Party & Colors
-        </span>
-        <span class="sub">Style / theme</span>
+        <span class="label">Party & Colors</span>
+        <span class="sub">Header / Accent / Footer</span>
       </h2>
 
       <div class="field">
         <label for="partyPreset">Party Preset</label>
         <select id="partyPreset">
-          <option value="dem">Democratic (blue)</option>
-          <option value="gop">Republican (red)</option>
-          <option value="ind">Independent (green)</option>
+          <option value="dem">Democratic style</option>
+          <option value="gop">Republican style</option>
+          <option value="ind">Independent style</option>
           <option value="custom">Custom</option>
         </select>
       </div>
 
       <div class="field">
         <label for="partyName">Party / Movement Name</label>
-        <input id="partyName" type="text" placeholder="e.g. Unity Party" />
+        <input id="partyName" type="text" placeholder="Unity Party" />
       </div>
 
       <div class="two-cols">
         <div class="col field">
-          <label for="color1">Color 1 (Topband)</label>
+          <label for="color1">Header Color</label>
           <input id="color1" type="color" />
         </div>
         <div class="col field">
-          <label for="color2">Color 2 (Topband)</label>
+          <label for="color2">Accent Color (Issue Badges)</label>
           <input id="color2" type="color" />
         </div>
       </div>
 
       <div class="field">
-        <label for="color3">Color 3 (Bottom Footer)</label>
+        <label for="color3">Footer Color</label>
         <input id="color3" type="color" />
       </div>
 
       <p class="mini-note">
-        Presets auto-fill classic red/white/blue looks. Custom lets you go wild.
+        Presets fill classic red / white / blue / green looks. Custom lets you pick anything.
       </p>
     </section>
 
@@ -827,21 +819,17 @@
       </h2>
 
       <div class="upload-row">
-        <div style="font-weight:600;color:var(--text-main);font-size:.75rem;line-height:1rem;">
-          Candidate Photo
-        </div>
+        <div class="titleline">Candidate Photo</div>
         <div class="mini-note">
-          Square-ish works best. Stored only in your browser.
+          Square-ish looks best. Stored only in your browser/localStorage.
         </div>
         <input id="candidatePhoto" type="file" accept="image/*" />
       </div>
 
       <div class="upload-row">
-        <div style="font-weight:600;color:var(--text-main);font-size:.75rem;line-height:1rem;">
-          Vice President Photo
-        </div>
+        <div class="titleline">Vice President Photo</div>
         <div class="mini-note">
-          Optional. Also stays local.
+          Optional, also local only.
         </div>
         <input id="vpPhoto" type="file" accept="image/*" />
       </div>
@@ -851,7 +839,7 @@
     <section class="config-section">
       <h2>
         <span class="label">Policy Points</span>
-        <span class="sub">Pick or write your stance</span>
+        <span class="sub">Pick or write</span>
       </h2>
 
       <div class="stance-row" data-stance-index="0">
@@ -866,7 +854,7 @@
           <input class="stanceCustomTitle" type="text" placeholder="Custom Topic Title" style="display:none;" />
         </div>
         <textarea class="stanceText"
-          placeholder="Example: I will raise the minimum wage, bring back manufacturing, and fight for working families."></textarea>
+          placeholder="I will raise wages, bring back manufacturing, and fight for working families."></textarea>
       </div>
 
       <div class="stance-row" data-stance-index="1">
@@ -881,7 +869,7 @@
           <input class="stanceCustomTitle" type="text" placeholder="Custom Topic Title" style="display:none;" />
         </div>
         <textarea class="stanceText"
-          placeholder="Example: Quality healthcare is a human right. Lower costs, protect coverage, expand mental health care."></textarea>
+          placeholder="Healthcare is a right. Lower costs, protect coverage, expand mental health care."></textarea>
       </div>
 
       <div class="stance-row" data-stance-index="2">
@@ -896,136 +884,97 @@
           <input class="stanceCustomTitle" type="text" placeholder="Custom Topic Title" style="display:none;" />
         </div>
         <textarea class="stanceText"
-          placeholder="Example: Our kids deserve great schools, real teachers, safe classrooms, and debt relief for students."></textarea>
+          placeholder="Stronger schools, safe classrooms, and real debt relief for students."></textarea>
       </div>
-
     </section>
 
+    <!-- SAVE INFO -->
     <section class="config-section">
       <h2>
         <span class="label">Local Save</span>
-        <span class="sub">Auto-saves every edit</span>
+        <span class="sub">Browser only</span>
       </h2>
       <p class="mini-note" style="margin:0 0 .5rem;">
-        Everything here stays in <strong>your browser only</strong>. Refreshing the page will reload it.
+        Your settings are auto-saved in this browser. Refreshing the site reloads them.
       </p>
       <button class="small" id="btnSaveNow">Save Now</button>
     </section>
 
+    <!-- EXPORT INSTRUCTIONS -->
     <section class="config-section" style="margin-bottom:4rem;">
       <h2>
         <span class="label">How to Export</span>
-        <span class="sub">Make your PDF</span>
+        <span class="sub">Make PDF</span>
       </h2>
       <ol style="margin:0;padding-left:1rem;font-size:.7rem;line-height:1rem;color:var(--text-dim);">
         <li style="margin-bottom:.5rem;">Click <b>GO LIVE / PRINT VIEW</b>.</li>
-        <li style="margin-bottom:.5rem;">Your poster fills the screen.</li>
-        <li style="margin-bottom:.5rem;">Use your browser menu → Print → “Save as PDF”.</li>
-        <li>Done. You’re “official.”</li>
+        <li style="margin-bottom:.5rem;">You’ll see ONLY your poster, full page.</li>
+        <li style="margin-bottom:.5rem;">Use browser menu → Print → “Save as PDF”.</li>
+        <li>You’re done. You’re “running”.</li>
       </ol>
     </section>
 
   </aside>
 
-  <!-- PREVIEW PANEL (EDIT MODE) -->
+  <!-- PREVIEW PANEL -->
   <section class="preview-wrapper">
     <div class="preview-title-bar">
       <div class="preview-title-left">
-        <h2>
-          Poster Preview
-        </h2>
-        <p>Updates live as you edit on the left.</p>
+        <h2>Poster Preview</h2>
+        <p>Live preview of the printed poster. (Scroll inside if it’s zoomed.)</p>
       </div>
 
       <div class="preview-title-right">
         <button class="primary small" id="btnPrintHint">Print Help</button>
-        <div class="live-hint">
-          Want full-screen / clean layout for saving as PDF?<br />
-          Hit <b>GO LIVE / PRINT VIEW</b> up top.
+        <div>
+          Final print mode = white background, full Letter page, no editor.
         </div>
       </div>
     </div>
 
     <div class="poster-area-outer">
       <div class="poster" id="posterEdit">
-        <!-- stripes header -->
-        <div class="poster-topband" id="posterTopBand">
-          <div class="poster-stripes" id="posterStripes">
-            <!-- 3 stripes, will color with JS -->
-            <div class="stripe" style="background:#1e3a8a;"></div>
-            <div class="stripe" style="background:#ffffff;"></div>
-            <div class="stripe" style="background:#b91c1c;"></div>
-          </div>
-          <div style="position:relative;z-index:2;">
-            <div class="line1" id="topLine1">VOTE FOR</div>
-            <div class="line2"><span id="candidateNameDisplay">YOUR NAME</span> FOR PRESIDENT</div>
+        <!-- HEADER BAND -->
+        <div class="poster-header" id="posterHeader">
+          <div class="line-small">VOTE</div>
+          <div class="line-big">
+            <span id="candidateNameDisplay">YOUR NAME</span>
+            &nbsp;FOR&nbsp;PRESIDENT
           </div>
         </div>
 
-        <!-- middle row -->
-        <div class="poster-mid">
-          <!-- candidate block -->
-          <div class="candidate-block">
+        <!-- BODY -->
+        <div class="poster-body">
+          <!-- LEFT: CANDIDATE -->
+          <div class="body-left">
             <div class="candidate-pic" id="candidatePic"></div>
             <div class="candidate-name" id="candidateNameLower">YOUR NAME</div>
           </div>
 
-          <!-- message block -->
-          <div class="message-block">
-            <div class="message-headline" id="headlineDisplay">
-              <div class="little-stars">
-                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                  <path d="M12 2l2.9 6.2 6.8.6-5.2 4.5 1.6 6.6L12 16.9 5.9 20l1.6-6.6L2.3 8.8l6.8-.6L12 2z"/>
-                </svg>
-                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                  <path d="M12 2l2.9 6.2 6.8.6-5.2 4.5 1.6 6.6L12 16.9 5.9 20l1.6-6.6L2.3 8.8l6.8-.6L12 2z"/>
-                </svg>
-              </div>
-              <span id="headlineMsgDisplay" style="text-align:center;">REBUILD • REUNITE • RISE</span>
-              <div class="little-stars">
-                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                  <path d="M12 2l2.9 6.2 6.8.6-5.2 4.5 1.6 6.6L12 16.9 5.9 20l1.6-6.6L2.3 8.8l6.8-.6L12 2z"/>
-                </svg>
-                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                  <path d="M12 2l2.9 6.2 6.8.6-5.2 4.5 1.6 6.6L12 16.9 5.9 20l1.6-6.6L2.3 8.8l6.8-.6L12 2z"/>
-                </svg>
-              </div>
-            </div>
+          <!-- RIGHT: MESSAGE / STANCES / VP -->
+          <div class="body-right">
+            <div class="headline" id="headlineMsgDisplay">REBUILD • REUNITE • RISE</div>
 
             <div class="stances-list" id="stancesList">
-              <!-- Filled by JS -->
+              <!-- filled by JS -->
             </div>
-          </div>
 
-          <!-- vp block -->
-          <div class="vp-block">
-            <div class="vp-pic" id="vpPic"></div>
-            <div class="vp-name" id="vpNameDisplay">VICE NAME</div>
-            <div class="vp-label">VICE PRESIDENT</div>
+            <div class="vp-box">
+              <div class="vp-pic" id="vpPic"></div>
+              <div class="vp-info">
+                <div class="vp-role">VICE PRESIDENT</div>
+                <div class="vp-name" id="vpNameDisplay">VICE NAME</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- footer -->
+        <!-- FOOTER BAND -->
         <div class="poster-footer" id="posterFooter">
-          <div class="footer-party">
-            <div class="party-icon" id="partyIcon">
-              <!-- simple patriotic badge SVG -->
-              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                <circle cx="12" cy="12" r="10" fill="#1e3a8a"></circle>
-                <circle cx="12" cy="12" r="6" fill="#fff"></circle>
-                <circle cx="12" cy="12" r="3" fill="#b91c1c"></circle>
-              </svg>
-            </div>
-            <span id="partyNameDisplay">UNITY PARTY</span>
-          </div>
-
-          <div class="footer-slogan" id="sloganDisplay">
-            A FUTURE FOR EVERYONE
-          </div>
-
+          <div class="footer-partyline" id="partyNameDisplay">UNITY PARTY</div>
+          <div class="slogan" id="sloganDisplay">A FUTURE FOR EVERYONE</div>
           <div class="legal-note">
-            Paid for by Citizens for <span id="legalNameDisplay">YOUR NAME</span> (not really).
-            This is parody / personal expression.
+            Paid for by Citizens for <span id="legalNameDisplay">YOUR NAME</span>.
           </div>
         </div>
       </div>
@@ -1033,43 +982,26 @@
   </section>
 </main>
 
-<!-- LIVE MODE FULLSCREEN -->
+<!-- LIVE FULL PAGE POSTER (PRINT VIEW) -->
 <div class="live-screen" id="liveScreen">
-  <div class="live-topbar">
-    <div class="live-topbar-left">
-      <h2>
-        LIVE / PRINT VIEW
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             style="width:1rem;height:1rem;">
-          <rect x="3" y="4" width="18" height="14" rx="2" ry="2"></rect>
-          <path d="M8 20h8"></path>
-          <path d="M12 16v4"></path>
-        </svg>
-      </h2>
-      <p>
-        This is how it prints / saves to PDF. Use your browser Print now.<br/>
-        (After you're done, click EXIT LIVE.)
-      </p>
-    </div>
-    <div class="live-topbar-right" style="display:flex;flex-wrap:wrap;gap:.5rem;">
-      <button class="primary small" id="btnBrowserPrint">Browser Print</button>
-      <button class="danger small" id="btnExitLive">Exit Live</button>
+  <div class="live-toolbar">
+    <button class="primary small" id="btnBrowserPrint">Print / Save PDF</button>
+    <button class="danger small" id="btnExitLive">Exit Live</button>
+    <div style="font-size:.7rem;line-height:.9rem;color:#fff;font-weight:400;max-width:400px;">
+      Use “Print / Save PDF”. The black bar up here will NOT show on the PDF.
     </div>
   </div>
 
-  <div class="live-main">
-    <div class="poster printable" id="posterLive">
-      <!-- we will clone poster content here dynamically so it's identical -->
-    </div>
+  <div class="live-frame">
+    <!-- we clone posterEdit into posterLive so it’s 100% identical -->
+    <div class="poster" id="posterLive"></div>
   </div>
 </div>
 
 <script>
 /*
-STATE + CONSTANTS
-Everything is stored in localStorage under "youForPresidentConfig".
-We sync config -> poster on each change.
+  LOCAL SAVE STRUCTURE
+  Stored in localStorage key "youForPresidentConfig"
 */
 
 const DEFAULT_STATE = {
@@ -1079,33 +1011,36 @@ const DEFAULT_STATE = {
   headlineMsg: "REBUILD • REUNITE • RISE",
   partyPreset: "dem",
   partyName: "Unity Party",
-  color1: "#1e3a8a", // deep blue
-  color2: "#ffffff",
-  color3: "#b91c1c", // deep red
+  // color1 = header band
+  // color2 = stance icon badges
+  // color3 = footer band
+  color1: "#1e3a8a", // blue
+  color2: "#1e3a8a", // blue
+  color3: "#b91c1c", // red footer
   candidatePhotoData: "",
   vpPhotoData: "",
   stances: [
     {
       topicPreset:"jobs",
       customTitle:"",
-      text:"I will raise the minimum wage, bring back manufacturing, and fight for working families."
+      text:"I will raise wages, bring back manufacturing, and fight for working families."
     },
     {
       topicPreset:"healthcare",
       customTitle:"",
-      text:"Quality healthcare is a human right. Lower costs, protect coverage, expand mental health care."
+      text:"Healthcare is a right. Lower costs, protect coverage, expand mental health care."
     },
     {
       topicPreset:"education",
       customTitle:"",
-      text:"Our kids deserve great schools, safe classrooms, and real debt relief for students."
+      text:"Stronger schools, safe classrooms, and real debt relief for students."
     }
   ]
 };
 
 let appState = loadState();
 
-/* DOM HOOKS */
+/*** DOM HOOKS ***/
 const candidateNameInput   = document.getElementById("candidateName");
 const vpNameInput          = document.getElementById("vpName");
 const sloganInput          = document.getElementById("slogan");
@@ -1134,8 +1069,7 @@ const stancesList          = document.getElementById("stancesList");
 const posterEdit           = document.getElementById("posterEdit");
 const posterLive           = document.getElementById("posterLive");
 
-const posterTopBand        = document.getElementById("posterTopBand");
-const posterStripes        = document.getElementById("posterStripes");
+const posterHeader         = document.getElementById("posterHeader");
 const posterFooter         = document.getElementById("posterFooter");
 const candidatePic         = document.getElementById("candidatePic");
 const vpPic                = document.getElementById("vpPic");
@@ -1148,27 +1082,24 @@ const btnPrintHint         = document.getElementById("btnPrintHint");
 const btnSaveNow           = document.getElementById("btnSaveNow");
 const btnClear             = document.getElementById("btnClear");
 
-/* HELPERS */
-function saveState() {
-  localStorage.setItem("youForPresidentConfig", JSON.stringify(appState));
-}
-
+/*** STORAGE HELPERS ***/
 function loadState() {
   try {
     const txt = localStorage.getItem("youForPresidentConfig");
     if (!txt) return structuredClone(DEFAULT_STATE);
     const parsed = JSON.parse(txt);
-    // merge with defaults in case we add new keys later
     return deepMerge(structuredClone(DEFAULT_STATE), parsed);
   } catch(e){
     return structuredClone(DEFAULT_STATE);
   }
 }
 
-// shallow merge objects, recurse if both sides are objects/arrays
+function saveState() {
+  localStorage.setItem("youForPresidentConfig", JSON.stringify(appState));
+}
+
 function deepMerge(base, override){
   if (Array.isArray(base) && Array.isArray(override)){
-    // merge arrays by index
     const out = base.map((v,i)=> {
       if (i < override.length){
         return deepMerge(v, override[i]);
@@ -1176,7 +1107,6 @@ function deepMerge(base, override){
         return structuredClone(v);
       }
     });
-    // if override is longer
     for (let j=base.length;j<override.length;j++){
       out.push(structuredClone(override[j]));
     }
@@ -1202,90 +1132,79 @@ function isObj(v){
   return v && typeof v==="object" && !Array.isArray(v);
 }
 
-/* UPDATE UI FROM STATE */
+/*** RENDER POSTER FROM STATE ***/
 function renderPoster(){
-  // candidate + vp names
+  // names / text
   candidateNameDisplay.textContent = appState.candidateName || "YOUR NAME";
   candidateNameLower.textContent   = appState.candidateName || "YOUR NAME";
   vpNameDisplay.textContent        = appState.vpName || "VICE NAME";
+  headlineMsgDisplay.textContent   = appState.headlineMsg || "REBUILD • REUNITE • RISE";
+  sloganDisplay.textContent        = appState.slogan || "A FUTURE FOR EVERYONE";
+  partyNameDisplay.textContent     = appState.partyName || "Unity Party";
+  legalNameDisplay.textContent     = appState.candidateName || "YOUR NAME";
 
-  // headline + slogan
-  headlineMsgDisplay.textContent = appState.headlineMsg || "REBUILD • REUNITE • RISE";
-  sloganDisplay.textContent      = appState.slogan || "A FUTURE FOR EVERYONE";
+  // header / footer color
+  posterHeader.style.background = appState.color1 || "#1e3a8a";
+  posterHeader.style.color      = pickGoodTextColor(appState.color1 || "#1e3a8a");
 
-  // party name + legal footer name
-  partyNameDisplay.textContent   = appState.partyName || "Unity Party";
-  legalNameDisplay.textContent   = appState.candidateName || "YOUR NAME";
+  posterFooter.style.background = appState.color3 || "#b91c1c";
+  posterFooter.style.color      = pickGoodTextColor(appState.color3 || "#b91c1c");
 
-  // stripes / colors
-  // We'll paint 3 stripes in top band: color1, white/ color2, color3
-  // Actually we respect color1, color2, color3 in order:
-  // stripe0=color1, stripe1=color2, stripe2=color3
-  const stripes = posterStripes.querySelectorAll(".stripe");
-  if (stripes[0]) stripes[0].style.background = appState.color1;
-  if (stripes[1]) stripes[1].style.background = appState.color2;
-  if (stripes[2]) stripes[2].style.background = appState.color3;
-
-  // topband text color: pick white unless very light
-  const textColor = pickGoodTextColor(appState.color1);
-  posterTopBand.style.color = textColor;
-
-  // footer bg uses color3 and text forced white/black by contrast
-  posterFooter.style.background = appState.color3;
-  posterFooter.style.color      = pickGoodTextColor(appState.color3);
-
-  // candidate pic
+  // candidate photo
   if (appState.candidatePhotoData) {
     candidatePic.style.backgroundImage = `url(${appState.candidatePhotoData})`;
+    candidatePic.style.backgroundColor = "transparent";
   } else {
     candidatePic.style.backgroundImage = "none";
     candidatePic.style.backgroundColor = "#ddd";
   }
 
-  // vp pic
+  // vp photo
   if (appState.vpPhotoData) {
     vpPic.style.backgroundImage = `url(${appState.vpPhotoData})`;
+    vpPic.style.backgroundColor = "transparent";
   } else {
     vpPic.style.backgroundImage = "none";
     vpPic.style.backgroundColor = "#ddd";
   }
 
-  // stances list
+  // stances
   stancesList.innerHTML = "";
   appState.stances.forEach((stance, idx)=>{
     const topicName = stanceTopicName(stance);
-    const div = document.createElement("div");
-    div.className="stance-item";
+
+    const item = document.createElement("div");
+    item.className = "stance-item";
 
     const icon = document.createElement("div");
-    icon.className="stance-icon";
-    icon.style.background = appState.color1 || "#000";
-    icon.textContent = (idx+1).toString();
+    icon.className = "stance-icon";
+    icon.style.background = appState.color2 || "#1e3a8a";
+    icon.style.color      = pickGoodTextColor(appState.color2 || "#1e3a8a");
+    icon.textContent      = (idx+1).toString();
 
     const txtWrap = document.createElement("div");
-    txtWrap.className="stance-text";
+    txtWrap.className = "stance-text";
 
     const titleEl = document.createElement("div");
-    titleEl.className="stance-title";
+    titleEl.className = "stance-title";
     titleEl.textContent = topicName.toUpperCase();
 
     const descEl = document.createElement("div");
-    descEl.className="stance-desc";
+    descEl.className = "stance-desc";
     descEl.textContent = stance.text || "";
 
     txtWrap.appendChild(titleEl);
     txtWrap.appendChild(descEl);
 
-    div.appendChild(icon);
-    div.appendChild(txtWrap);
-    stancesList.appendChild(div);
+    item.appendChild(icon);
+    item.appendChild(txtWrap);
+    stancesList.appendChild(item);
   });
 }
 
-// helper for contrast
-function pickGoodTextColor(bgColor){
-  // bgColor like #RRGGBB
-  const c = hexToRgb(bgColor || "#000000");
+/*** CONTRAST HELPER ***/
+function pickGoodTextColor(bgHex){
+  const c = hexToRgb(bgHex || "#000000");
   const luminance = (0.299*c.r + 0.587*c.g + 0.114*c.b)/255;
   return (luminance > 0.5) ? "#000" : "#fff";
 }
@@ -1300,7 +1219,7 @@ function hexToRgb(hex){
   return {r,g,b};
 }
 
-// figure topic name to show
+/*** STANCE TOPIC NAME ***/
 function stanceTopicName(stance){
   if (stance.topicPreset==="custom" && stance.customTitle.trim()!==""){
     return stance.customTitle.trim();
@@ -1314,7 +1233,7 @@ function stanceTopicName(stance){
   }
 }
 
-/* UPDATE STATE FROM FORM FIELDS */
+/*** SYNC STATE FROM INPUTS ***/
 function syncFromInputs(){
   appState.candidateName = candidateNameInput.value.trim() || "";
   appState.vpName        = vpNameInput.value.trim()        || "";
@@ -1326,7 +1245,6 @@ function syncFromInputs(){
   appState.color2        = color2Input.value;
   appState.color3        = color3Input.value;
 
-  // stances
   stanceRows.forEach((row, idx)=>{
     const presetSel = row.querySelector(".stancePresetSelect");
     const customIn  = row.querySelector(".stanceCustomTitle");
@@ -1348,38 +1266,38 @@ function syncFromInputs(){
   clonePosterToLive();
 }
 
+/*** PRESET COLORS ***/
 function applyPresetColors(preset){
   if (preset==="dem"){
-    // Deep blue / white / red
-    appState.color1 = "#1e3a8a"; // blue
-    appState.color2 = "#ffffff"; // white
-    appState.color3 = "#1e3a8a"; // reuse blue footer (blue theme)
+    // blue header / blue accents / red footer
+    appState.color1 = "#1e3a8a"; // header
+    appState.color2 = "#1e3a8a"; // badges
+    appState.color3 = "#b91c1c"; // footer
     appState.partyName = "Democratic Party";
   } else if (preset==="gop"){
-    // Red / white / red
-    appState.color1 = "#b91c1c"; // red
-    appState.color2 = "#ffffff"; // white
-    appState.color3 = "#b91c1c"; // red footer
+    // red header / red badges / blue footer
+    appState.color1 = "#b91c1c";
+    appState.color2 = "#b91c1c";
+    appState.color3 = "#1e3a8a";
     appState.partyName = "Republican Party";
   } else if (preset==="ind"){
-    // Green / white / green
-    appState.color1 = "#14532d"; // green
-    appState.color2 = "#ffffff"; // white
-    appState.color3 = "#14532d"; // green footer
+    // green header / green badges / green footer
+    appState.color1 = "#14532d";
+    appState.color2 = "#14532d";
+    appState.color3 = "#14532d";
     appState.partyName = "Independent";
   } else {
-    // custom: keep current chosen values, don't override colors or name
+    // custom -> don't auto override user picks
     return;
   }
 
-  // also update inputs to match
-  color1Input.value  = appState.color1;
-  color2Input.value  = appState.color2;
-  color3Input.value  = appState.color3;
+  color1Input.value = appState.color1;
+  color2Input.value = appState.color2;
+  color3Input.value = appState.color3;
   partyNameInput.value = appState.partyName;
 }
 
-/* HANDLE FILE UPLOAD -> BASE64 */
+/*** IMAGE UPLOAD TO BASE64 ***/
 function handleImageUpload(fileInputEl, targetKey){
   const file = fileInputEl.files && fileInputEl.files[0];
   if (!file) return;
@@ -1393,66 +1311,69 @@ function handleImageUpload(fileInputEl, targetKey){
   reader.readAsDataURL(file);
 }
 
-/* CLONE POSTER TO LIVE MODE */
+/*** CLONE POSTER INTO LIVE VIEW ***/
 function clonePosterToLive(){
-  // copy innerHTML of posterEdit into posterLive
   posterLive.innerHTML = posterEdit.innerHTML;
-  // also re-run dynamic styles in live poster
-  // We have to sync colors/images for live poster manually because clone won't copy computed style changes we applied via JS style, BUT we already applied inline styles like 'backgroundImage' etc directly on elements INSIDE posterEdit, not posterLive.
-  // So after cloning, we now need to re-find those elements in posterLive and apply same inline.
-  const editCandidatePic = posterEdit.querySelector("#candidatePic");
-  const liveCandidatePic = posterLive.querySelector("#candidatePic");
-  if (editCandidatePic && liveCandidatePic){
-    liveCandidatePic.style.backgroundImage = editCandidatePic.style.backgroundImage;
-    liveCandidatePic.style.backgroundColor = editCandidatePic.style.backgroundColor;
-  }
-  const editVpPic = posterEdit.querySelector("#vpPic");
-  const liveVpPic = posterLive.querySelector("#vpPic");
-  if (editVpPic && liveVpPic){
-    liveVpPic.style.backgroundImage = editVpPic.style.backgroundImage;
-    liveVpPic.style.backgroundColor = editVpPic.style.backgroundColor;
+
+  // sync inline backgrounds for candidate/vp pics in cloned poster
+  const editCand = posterEdit.querySelector("#candidatePic");
+  const liveCand = posterLive.querySelector("#candidatePic");
+  if (editCand && liveCand){
+    liveCand.style.backgroundImage = editCand.style.backgroundImage;
+    liveCand.style.backgroundColor = editCand.style.backgroundColor;
   }
 
-  // Colors for stripes/footer are inline on posterEdit nodes, so clone brought them already.
-  // We should also update candidate/vp names etc but that's in innerHTML already set by renderPoster().
+  const editVp = posterEdit.querySelector("#vpPic");
+  const liveVp = posterLive.querySelector("#vpPic");
+  if (editVp && liveVp){
+    liveVp.style.backgroundImage = editVp.style.backgroundImage;
+    liveVp.style.backgroundColor = editVp.style.backgroundColor;
+  }
+
+  // sync header/footer bg + text colors
+  const editHeader = posterEdit.querySelector("#posterHeader");
+  const liveHeader = posterLive.querySelector("#posterHeader");
+  if (editHeader && liveHeader){
+    liveHeader.style.background = editHeader.style.background;
+    liveHeader.style.color      = editHeader.style.color;
+  }
+
+  const editFooter = posterEdit.querySelector("#posterFooter");
+  const liveFooter = posterLive.querySelector("#posterFooter");
+  if (editFooter && liveFooter){
+    liveFooter.style.background = editFooter.style.background;
+    liveFooter.style.color      = editFooter.style.color;
+  }
+
+  // also stance-icons colors
+  const editIcons = posterEdit.querySelectorAll(".stance-icon");
+  const liveIcons = posterLive.querySelectorAll(".stance-icon");
+  liveIcons.forEach((icon, i)=>{
+    if (editIcons[i]){
+      icon.style.background = editIcons[i].style.background;
+      icon.style.color      = editIcons[i].style.color;
+    }
+  });
 }
 
-/* EVENT LISTENERS */
-candidateNameInput.addEventListener("input", ()=>{
-  syncFromInputs();
-});
-vpNameInput.addEventListener("input", ()=>{
-  syncFromInputs();
-});
-sloganInput.addEventListener("input", ()=>{
-  syncFromInputs();
-});
-headlineMsgInput.addEventListener("input", ()=>{
-  syncFromInputs();
-});
+/*** INPUT EVENT WIRING ***/
+candidateNameInput.addEventListener("input", syncFromInputs);
+vpNameInput.addEventListener("input", syncFromInputs);
+sloganInput.addEventListener("input", syncFromInputs);
+headlineMsgInput.addEventListener("input", syncFromInputs);
 
 partyPresetSelect.addEventListener("change", ()=>{
   appState.partyPreset = partyPresetSelect.value;
-  // apply preset if not custom
   if (appState.partyPreset!=="custom"){
     applyPresetColors(appState.partyPreset);
   }
-  // reflect changed inputs into appState again
   syncFromInputs();
 });
 
-partyNameInput.addEventListener("input", ()=>{
-  syncFromInputs();
-});
-color1Input.addEventListener("input", ()=>{
-  syncFromInputs();
-});
-color2Input.addEventListener("input", ()=>{
-  syncFromInputs();
-});
-color3Input.addEventListener("input", ()=>{
-  syncFromInputs();
-});
+partyNameInput.addEventListener("input", syncFromInputs);
+color1Input.addEventListener("input", syncFromInputs);
+color2Input.addEventListener("input", syncFromInputs);
+color3Input.addEventListener("input", syncFromInputs);
 
 candidatePhotoInput.addEventListener("change", ()=>{
   handleImageUpload(candidatePhotoInput,"candidatePhotoData");
@@ -1461,7 +1382,6 @@ vpPhotoInput.addEventListener("change", ()=>{
   handleImageUpload(vpPhotoInput,"vpPhotoData");
 });
 
-// stance rows:
 stanceRows.forEach((row)=>{
   const presetSel = row.querySelector(".stancePresetSelect");
   const customIn  = row.querySelector(".stanceCustomTitle");
@@ -1475,15 +1395,12 @@ stanceRows.forEach((row)=>{
     }
     syncFromInputs();
   });
-  customIn.addEventListener("input", ()=>{
-    syncFromInputs();
-  });
-  txtArea.addEventListener("input", ()=>{
-    syncFromInputs();
-  });
+
+  customIn.addEventListener("input", syncFromInputs);
+  txtArea.addEventListener("input", syncFromInputs);
 });
 
-/* GO LIVE / EXIT LIVE */
+/*** LIVE MODE TOGGLE ***/
 btnGoLive.addEventListener("click", ()=>{
   clonePosterToLive();
   liveScreen.style.display="flex";
@@ -1503,22 +1420,20 @@ btnPrintHint.addEventListener("click", ()=>{
 `How to export:
 
 1. Click "GO LIVE / PRINT VIEW".
-2. Your poster fills the page.
-3. Use browser menu → Print.
+2. You'll see ONLY your poster on a white page.
+3. Click "Print / Save PDF".
 4. Pick "Save as PDF".
-5. Save it.
-
-That's your custom campaign poster.`
+5. Done.`
   );
 });
 
-/* SAVE NOW BUTTON */
+/*** SAVE NOW BUTTON ***/
 btnSaveNow.addEventListener("click", ()=>{
   saveState();
-  alert("Saved in your browser. If you refresh, it will reload.");
+  alert("Saved in your browser. Reload will restore.");
 });
 
-/* CLEAR / RESET BUTTON */
+/*** CLEAR EVERYTHING BUTTON ***/
 btnClear.addEventListener("click", ()=>{
   if (!confirm("This will wipe everything and reload defaults.\nAre you sure?")) return;
   appState = structuredClone(DEFAULT_STATE);
@@ -1528,14 +1443,16 @@ btnClear.addEventListener("click", ()=>{
   clonePosterToLive();
 });
 
-/* SYNC UI INPUTS FROM STATE (ON LOAD) */
+/*** PUSH STATE INTO FORM FIELDS (ON LOAD) ***/
 function applyStateToInputs(){
   candidateNameInput.value = appState.candidateName;
   vpNameInput.value        = appState.vpName;
   sloganInput.value        = appState.slogan;
   headlineMsgInput.value   = appState.headlineMsg;
+
   partyPresetSelect.value  = appState.partyPreset;
   partyNameInput.value     = appState.partyName;
+
   color1Input.value        = appState.color1;
   color2Input.value        = appState.color2;
   color3Input.value        = appState.color3;
@@ -1562,7 +1479,7 @@ function applyStateToInputs(){
   });
 }
 
-/* FIRST LOAD */
+/*** INIT ***/
 applyStateToInputs();
 renderPoster();
 clonePosterToLive();
