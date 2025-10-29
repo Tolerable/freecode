@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>ASYLUM FILES: Methods of Control</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #050607;
+  --panel: #0f1418;
+  --panel-light: #171e24;
+  --accent: #6bfff2;
+  --text: #e9f9ff;
+  --muted: #6e8b90;
+  --line: #233238;
+  --glow: 0 0 12px rgba(107,255,242,0.7);
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #0d1a1c 0%, #020404 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  line-height: 1.45;
+  padding-top: 58px;
+}
+
+/* TOP NAV BAR */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(3,8,10,0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, #0c2a28 0%, #050707 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.8);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(to right, rgba(107,255,242,0.18) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: 0 0 6px rgba(107,255,242,0.7);
+}
+
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(107,255,242,0.25);
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(107,255,242,0.6), inset 0 0 10px rgba(107,255,242,0.35);
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+  pointer-events: none;
+}
+
+/* METHOD LIST IN SIDEBAR */
+.method-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+.method-list::-webkit-scrollbar {
+  width: 6px;
+}
+.method-list::-webkit-scrollbar-track {
+  background: #000;
+}
+.method-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(107,255,242,0.9);
+}
+
+.method-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+.method-item:hover {
+  background: rgba(107,255,242,0.07);
+}
+.method-item.active {
+  background: rgba(107,255,242,0.15);
+  box-shadow: inset 0 0 12px rgba(107,255,242,0.6);
+}
+
+/* stack name + tag */
+.method-line1 {
+  display: block;
+}
+
+.method-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+  display: block;
+  margin-bottom: 6px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.method-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(107,255,242,0.8);
+  margin-bottom: 6px;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.method-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(107,255,242,0.08) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 10% 90%, rgba(0,120,255,0.08) 0%, rgba(0,0,0,0) 70%),
+    #050607;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+#main::-webkit-scrollbar {
+  width: 8px;
+}
+#main::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(107,255,242,0.9);
+}
+
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER CARD */
+#methodHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(107,255,242,0.3);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+
+.method-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#methodName {
+  font-family: var(--font-head);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(107,255,242,0.8);
+  margin: 0;
+  line-height: 1.2;
+}
+
+#methodTagline {
+  font-size: 0.75rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  line-height: 1.3;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(107,255,242,0.6);
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+#methodEra {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+#methodProfile {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ACCORDION SECTIONS */
+.section-card {
+  margin-top: 20px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.8),
+    0 0 40px rgba(0,120,255,0.15);
+}
+
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(107,255,242,0.15) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  padding: 14px 16px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-shadow: 0 0 8px rgba(107,255,242,0.7);
+}
+.section-header .label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.section-header .title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.section-header .section-title {
+  color: var(--text);
+}
+.section-header .hint {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  text-shadow: none;
+}
+.section-header .chevron {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  transition: transform 0.15s;
+}
+.section-card.open .section-header .chevron {
+  transform: rotate(90deg);
+}
+
+.section-body {
+  display: none;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.section-card.open .section-body {
+  display: block;
+  background: radial-gradient(circle at 10% 0%, rgba(107,255,242,0.08) 0%, transparent 70%);
+}
+.section-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.section-body li {
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+  text-shadow: var(--glow);
+}
+
+/* FOOTER NOTE */
+.footer-note {
+  margin-top: 32px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 60px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 20px;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 750px) {
+  #sidebar {
+    width: 220px;
+  }
+  #methodName {
+    font-size: 1.1rem;
+  }
+  #methodTagline {
+    font-size: 0.7rem;
+  }
+}
+@media (max-width: 600px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  #main {
+    flex: 1;
+  }
+  .method-list {
+    max-height: calc(40vh - 110px);
+  }
+  .method-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  #methodTagline {
+    white-space: normal;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV: this page is METHODS, so THIS link is active -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">ASYLUM FILES</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Overview / History</a>
+      <a class="nav-link active" href="methods.html">Methods of Control</a>
+      <a class="nav-link" href="ward.html">Inside The Ward</a>
+      <a class="nav-link" href="staff.html">Who Holds The Keys</a>
+      <a class="nav-link" href="discharge.html">Release & “Voluntary”</a>
+      <a class="nav-link" href="legacy.html">Myth vs Reality</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>METHODS OF CONTROL</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:500;text-shadow:0 0 8px rgba(107,255,242,0.8);">
+        RESTRAINT • DAMAGE • COMPLIANCE
+      </span>
+    </div>
+    <div class="app-sub">
+      Not “treatments.” Tools. Designed to quiet you, shape you, or break you so the system calls you stable.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search methods..." />
+    </div>
+  </div>
+
+  <div id="methodList" class="method-list">
+    <!-- filled by JS -->
+  </div>
+</aside>
+
+<!-- MAIN PANEL -->
+<main id="main">
+  <div class="main-inner">
+    <section id="methodHeader">
+      <div class="method-title-row">
+        <h1 id="methodName">Loading...</h1>
+        <div id="methodTagline"></div>
+      </div>
+      <div id="methodEra"></div>
+      <div id="methodProfile"></div>
+    </section>
+
+    <div id="methodSections">
+      <!-- built by JS -->
+    </div>
+
+    <div class="footer-note">
+      If you call it mercy and write it in a chart, you can get away with almost anything.
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+Method object model:
+{
+  id: 'icebath',
+  name: 'Ice Bath Restraint',
+  tagline: 'Freeze Them Quiet',
+  era: 'Late 1800s – Early 1900s',
+  shortDesc: 'Patients wrapped or submerged in cold water until compliant.',
+  profile: 'Narrative block...',
+  purpose: [...],
+  how: [...],
+  who: [...],
+  experience: [...],
+  fallout: [...]
+}
+*/
+
+let openCards = [];
+let currentMethodId = null;
+
+const methods = [
+  {
+    id: 'icebath',
+    name: 'Ice Bath Restraint',
+    tagline: 'Freeze Them Quiet',
+    era: 'Late 1800s – Early 1900s',
+    shortDesc: 'Wrap them in soaked freezing sheets or strap them in tubs until they “calm down.”',
+    profile:
+      'Hydrotherapy was marketed as soothing. In reality it let staff immobilize “difficult” patients for hours without calling it punishment. Cold shock, shaking, teeth chattering, begging to get out — all documented as “patient became compliant.”',
+    purpose: [
+      'Calm Agitation: “We’re preventing harm.”',
+      'Discipline Without Bruises: Restraint you could claim was therapeutic.',
+      'Staff Safety: Fewer fights if the patient can’t move.'
+    ],
+    how: [
+      'They soaked sheets in icy water, wrapped you mummy-tight, and pinned you down.',
+      'Or they strapped you into a tub of cold water with your body mostly under and your head barely supported.',
+      'You stayed there not for minutes, but sometimes hours.'
+    ],
+    who: [
+      'People labeled “hysterical,” especially women.',
+      'Teens having rage or panic spikes.',
+      'Patients yelling, crying, or refusing orders.'
+    ],
+    experience: [
+      'Full-body panic. Muscles locking from cold. Hyperventilating while someone tells you “relax.”',
+      'No choice. “Voluntary” didn’t exist once you were in.',
+      'You learn fast: make less noise or they’ll do it again.'
+    ],
+    fallout: [
+      'Institution learns: if we call force “therapy,” outsiders nod along.',
+      'Modern version: seclusion rooms and “cool-downs,” still sold as safety, still function as punishment.',
+      'The script “this is to help you, stop resisting” starts here and never dies.'
+    ]
+  },
+
+  {
+    id: 'shock',
+    name: 'Electroconvulsive Shock',
+    tagline: 'Obey Or Get Wired',
+    era: '1930s – Present (changed form)',
+    shortDesc: 'Send current through the brain to trigger a seizure.',
+    profile:
+      'ECT today, done correctly under anesthesia, can pull someone back from suicidal collapse when nothing else works. The early decades weren’t that. Wards used shock wide-open: no anesthesia, high voltage, screaming, memory wiped, and a message: you will behave.',
+    purpose: [
+      '“Reset the brain,” especially for severe depression and psychosis.',
+      'Force compliance. People who fought staff became “cooperative” real fast.',
+      'Show families and courts: “Look, we’re doing something medical.”'
+    ],
+    how: [
+      'Old way: tie you down, bite block, hit you with current until full-body seizure.',
+      'Modern hospital way: anesthesia + controlled dose + monitoring. Much safer. Still intense and still scary.',
+      'Chart note after: “Patient calmer.”'
+    ],
+    who: [
+      'People in brutal depressive collapse.',
+      'People raging or fighting on the unit.',
+      'People staff labeled “dangerous.”'
+    ],
+    experience: [
+      'Old way: terror. You go under electricity awake and you know they can do it again.',
+      'New way: you wake up confused, sometimes with memory gaps, sometimes with relief like surfacing from deep water.',
+      'Either way, you understand your body is officially not yours alone anymore.'
+    ],
+    fallout: [
+      'Survivors of abusive-era shock carry trauma and distrust of psych forever.',
+      'People helped by modern ECT will tell you “it saved my life,” and they mean it.',
+      'The system got used to the idea that pain wrapped in medical language = acceptable.'
+    ]
+  },
+
+  {
+    id: 'lobotomy',
+    name: 'Transorbital Lobotomy',
+    tagline: 'Quiet At Any Price',
+    era: '1940s – 1950s boom',
+    shortDesc: 'Ice pick through the eye socket to sever frontal lobe connections.',
+    profile:
+      'Doctors bragged about miracle cures. Families were promised peace. Consent was basically theater. A few hammer taps and a metal pick up behind your eye could erase anger, trauma, and “difficult behavior.” It also erased parts of you.',
+    purpose: [
+      'End violence or “unmanageable behavior” in overcrowded wards.',
+      'Make the patient docile so staff could handle more bodies with fewer people.',
+      'Sell the hospital as cutting-edge and humane.'
+    ],
+    how: [
+      'Instrument under the eyelid, past the socket, into the frontal lobe.',
+      'Wiggle or cut connections. Repeat on the other side.',
+      'Minimal prep. Assembly-line speed in some hospitals.'
+    ],
+    who: [
+      'People with psychosis.',
+      'Women called “too emotional,” “too sexual,” “too loud.”',
+      'Kids/teens labeled “out of control.”',
+      'War vets with trauma nobody wanted to hear about.'
+    ],
+    experience: [
+      'You go in scared and angry. You come out slow, flat, easier to manage.',
+      'If your family preferred you like that, you were considered “helped.”',
+      'If you hated what you’d become, you didn’t exactly have the tools left to fight back.'
+    ],
+    fallout: [
+      '“We cured them” really meant “we disabled them and now we can cope.”',
+      'We don’t do ice-pick lobotomies now, but we still praise treatments because they make patients quieter, not because patients actually feel whole.',
+      'The line “better sedated than difficult” never left mental health culture.'
+    ]
+  },
+
+  {
+    id: 'chemical',
+    name: 'Chemical Straitjacket',
+    tagline: 'Sleep Instead Of Struggle',
+    era: '1950s – now',
+    shortDesc: 'Heavy meds to keep you slow, compliant, and low-risk.',
+    profile:
+      'First-gen antipsychotics like Thorazine were called miracles. They did help some people being torn apart by hallucinations and paranoia. They were also dumped into patients as sedation: less yelling, less fighting, less cost. Side effects were savage and often permanent.',
+    purpose: [
+      '“Stabilize psychosis.”',
+      'Stop outbursts so the unit looks under control.',
+      'Prove to outsiders (courts, families) that treatment is happening.'
+    ],
+    how: [
+      'High-dose tranquilizers or antipsychotics, often without real informed choice.',
+      'If you refused, that refusal itself was charted as part of your illness.',
+      'Long-term use could lock in tremors, stiffness, drooling, flat affect.'
+    ],
+    who: [
+      'Patients labeled dangerous or unpredictable.',
+      'Poor patients, patients without advocates.',
+      'Anyone staff needed quiet right now.'
+    ],
+    experience: [
+      'Awake but underwater. Your thoughts slow down like wading through syrup.',
+      'Mouth like cotton, limbs heavy, everything lagging.',
+      'You lose the ability to argue for yourself because you literally can’t keep up with the conversation.'
+    ],
+    fallout: [
+      'People outside see “wow, they’re calm now” and assume healing.',
+      'People inside feel like furniture.',
+      'Modern meds can be life-changing and real help when chosen with you. The abuse is when they’re used on you.'
+    ]
+  },
+
+  {
+    id: 'seclusion',
+    name: 'Seclusion & “Quiet Rooms”',
+    tagline: 'Time Out For Grown Bodies',
+    era: 'Then and now',
+    shortDesc: 'Isolation in a stripped room under watch, sold as “cool down.”',
+    profile:
+      'A person escalates — panicking, yelling, self-harm risk, threatening, whatever. Staff answers with seclusion: remove all belongings, lock them alone in a bare room, sometimes restrained, sometimes lights always on, sometimes observation window. On paper: safety. In the body: punishment.',
+    purpose: [
+      'Immediate containment of someone seen as unsafe.',
+      'Protect staff from injury and liability.',
+      'Demonstrate “we took control of the situation” for the chart.'
+    ],
+    how: [
+      'You’re grabbed, escorted or dragged, and the door shuts behind you.',
+      'Sometimes you’re physically restrained first (wrists/ankles).',
+      'You stay until they say you’ve calmed. Not until you say you’ve calmed.'
+    ],
+    who: [
+      'People mid-self-harm crisis.',
+      'People raging from panic or trauma flashbacks.',
+      'Neurodivergent or autistic patients melting down under sensory overload.'
+    ],
+    experience: [
+      'Heart hammering, no sense of time, someone watching you through glass or camera.',
+      'You beg to get out and begging gets documented as “still unstable.”',
+      'You learn fast that showing emotion = more time in the box.'
+    ],
+    fallout: [
+      'Patients leave more scared and less trusting, which means less honest communication later.',
+      'Staff leave more convinced force is “necessary.”',
+      'We renamed “punishment cell” to “quiet room,” then called it therapy.'
+    ]
+  },
+
+  {
+    id: 'checks',
+    name: 'Constant Observation',
+    tagline: 'We Watch You Breathe',
+    era: 'Modern locked wards',
+    shortDesc: 'Q15 checks, eyes on you, no privacy, your timeline no longer yours.',
+    profile:
+      'On suicide watch, staff documents you every few minutes: where you are, what you’re doing, are you alive. Lights in your doorway at 2am. Bathroom supervised. No strings, no sharp edges, no exit. This absolutely keeps some people alive. It also feels like jail with motivational posters.',
+    purpose: [
+      'Stop an on-the-spot suicide attempt.',
+      'Protect the hospital from “you let them out of sight and they died.”',
+      'Create a paper trail showing nonstop vigilance.'
+    ],
+    how: [
+      'Door opens, clipboard, “you awake?” every 10–15 minutes overnight.',
+      'You might not be allowed to shut the bathroom door fully.',
+      'You ask to leave, and “wanting to leave” goes in the notes as proof you’re not ready.'
+    ],
+    who: [
+      'Teens with suicide notes.',
+      'Adults who admitted intent.',
+      'Anyone a clinician thinks is one bad hour away from dying.'
+    ],
+    experience: [
+      'Exhaustion. You can’t actually rest because you’re never unobserved.',
+      'Humiliation. Needing permission for basic privacy.',
+      'Powerlessness. Your body is officially under someone else’s custody.'
+    ],
+    fallout: [
+      'Some people will tell you straight up: that level of lockdown is the only reason they’re still alive.',
+      'Other people will tell you it was trauma by itself.',
+      'Either way, you don’t own your freedom in that space. The institution does.'
+    ]
+  }
+]; // end methods[]
+
+
+/* DOM refs */
+const methodListEl = document.getElementById('methodList');
+const searchInputEl = document.getElementById('searchInput');
+
+const methodNameEl = document.getElementById('methodName');
+const methodTaglineEl = document.getElementById('methodTagline');
+const methodEraEl = document.getElementById('methodEra');
+const methodProfileEl = document.getElementById('methodProfile');
+const methodSectionsEl = document.getElementById('methodSections');
+
+/* open card limiter (max 2 open) */
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+/* build accordion section */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'title-line';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+/* render method list in sidebar */
+function renderMethodList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  methodListEl.innerHTML = '';
+
+  methods
+    .filter(m => {
+      if (!f) return true;
+      const haystack = [
+        m.name,
+        m.shortDesc,
+        m.tagline,
+        m.era
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(m => {
+      const item = document.createElement('div');
+      item.className = 'method-item';
+      item.setAttribute('data-id', m.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'method-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'method-name';
+      nameSpan.textContent = m.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'method-tag';
+      tagSpan.textContent = m.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'method-desc';
+      descDiv.textContent = m.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showMethod(m.id);
+      });
+
+      methodListEl.appendChild(item);
+    });
+
+  highlightActive(currentMethodId);
+}
+
+/* show method details in main panel */
+function showMethod(id) {
+  const m = methods.find(x => x.id === id);
+  if (!m) return;
+
+  currentMethodId = id;
+
+  methodNameEl.textContent = m.name;
+  methodTaglineEl.textContent = m.tagline;
+  methodEraEl.textContent = m.era;
+  methodProfileEl.textContent = m.profile;
+
+  methodSectionsEl.innerHTML = '';
+  openCards = [];
+
+  const sectionsData = [
+    {title: 'Why They Said It Was Needed', hint: 'Official purpose / PR line', arr: m.purpose || []},
+    {title: 'How It Worked', hint: 'Step-by-step reality', arr: m.how || []},
+    {title: 'Who Got It', hint: 'Targets and victims', arr: m.who || []},
+    {title: 'What It Felt Like Inside', hint: 'First-person body reality', arr: m.experience || []},
+    {title: 'What That Left Behind', hint: 'Long-term damage + policy DNA', arr: m.fallout || []},
+  ];
+
+  sectionsData.forEach((sectionObj, idx) => {
+    if (!sectionObj.arr || sectionObj.arr.length === 0) return;
+    const card = buildSectionCard(
+      sectionObj.title,
+      sectionObj.hint,
+      sectionObj.arr,
+      (idx === 0 || idx === 1)
+    );
+    methodSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+/* highlight active in sidebar */
+function highlightActive(id) {
+  const items = methodListEl.querySelectorAll('.method-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+/* search hook */
+searchInputEl.addEventListener('input', (e) => {
+  renderMethodList(e.target.value);
+});
+
+/* init */
+renderMethodList('');
+if (methods.length > 0) {
+  showMethod(methods[0].id);
+}
+</script>
+
+</body>
+</html>
