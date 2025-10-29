@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>ASYLUM FILES: Who Holds The Keys</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #050607;
+  --panel: #0f1418;
+  --panel-light: #171e24;
+  --accent: #6bfff2;
+  --text: #e9f9ff;
+  --muted: #6e8b90;
+  --line: #233238;
+  --glow: 0 0 12px rgba(107,255,242,0.7);
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #0d1a1c 0%, #020404 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  line-height: 1.45;
+  padding-top: 58px;
+}
+
+/* TOP NAV BAR */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(3,8,10,0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, #0c2a28 0%, #050707 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.8);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(to right, rgba(107,255,242,0.18) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: 0 0 6px rgba(107,255,242,0.7);
+}
+
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(107,255,242,0.25);
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(107,255,242,0.6), inset 0 0 10px rgba(107,255,242,0.35);
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+  pointer-events: none;
+}
+
+/* ROLE LIST IN SIDEBAR */
+.role-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+.role-list::-webkit-scrollbar {
+  width: 6px;
+}
+.role-list::-webkit-scrollbar-track {
+  background: #000;
+}
+.role-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(107,255,242,0.9);
+}
+
+.role-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+.role-item:hover {
+  background: rgba(107,255,242,0.07);
+}
+.role-item.active {
+  background: rgba(107,255,242,0.15);
+  box-shadow: inset 0 0 12px rgba(107,255,242,0.6);
+}
+
+/* stack name + tag */
+.role-line1 {
+  display: block;
+}
+
+.role-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+  display: block;
+  margin-bottom: 6px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.role-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(107,255,242,0.8);
+  margin-bottom: 6px;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.role-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(107,255,242,0.08) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 10% 90%, rgba(0,120,255,0.08) 0%, rgba(0,0,0,0) 70%),
+    #050607;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+#main::-webkit-scrollbar {
+  width: 8px;
+}
+#main::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(107,255,242,0.9);
+}
+
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER CARD */
+#roleHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(107,255,242,0.3);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+
+.role-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#roleName {
+  font-family: var(--font-head);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(107,255,242,0.8);
+  margin: 0;
+  line-height: 1.2;
+}
+
+#roleTagline {
+  font-size: 0.75rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  line-height: 1.3;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(107,255,242,0.6);
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+#rolePower {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+#roleProfile {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ACCORDION SECTIONS */
+.section-card {
+  margin-top: 20px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.8),
+    0 0 40px rgba(0,120,255,0.15);
+}
+
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(107,255,242,0.15) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  padding: 14px 16px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-shadow: 0 0 8px rgba(107,255,242,0.7);
+}
+.section-header .label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.section-header .title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.section-header .section-title {
+  color: var(--text);
+}
+.section-header .hint {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  text-shadow: none;
+}
+.section-header .chevron {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  transition: transform 0.15s;
+}
+.section-card.open .section-header .chevron {
+  transform: rotate(90deg);
+}
+
+.section-body {
+  display: none;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.section-card.open .section-body {
+  display: block;
+  background: radial-gradient(circle at 10% 0%, rgba(107,255,242,0.08) 0%, transparent 70%);
+}
+.section-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.section-body li {
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+  text-shadow: var(--glow);
+}
+
+/* FOOTER NOTE */
+.footer-note {
+  margin-top: 32px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 60px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 20px;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 750px) {
+  #sidebar {
+    width: 220px;
+  }
+  #roleName {
+    font-size: 1.1rem;
+  }
+  #roleTagline {
+    font-size: 0.7rem;
+  }
+}
+@media (max-width: 600px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  #main {
+    flex: 1;
+  }
+  .role-list {
+    max-height: calc(40vh - 110px);
+  }
+  .role-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  #roleTagline {
+    white-space: normal;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV: this page is STAFF / KEYS, so THIS link is active -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">ASYLUM FILES</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Overview / History</a>
+      <a class="nav-link" href="methods.html">Methods of Control</a>
+      <a class="nav-link" href="ward.html">Inside The Ward</a>
+      <a class="nav-link active" href="staff.html">Who Holds The Keys</a>
+      <a class="nav-link" href="discharge.html">Release & “Voluntary”</a>
+      <a class="nav-link" href="legacy.html">Myth vs Reality</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>WHO HOLDS THE KEYS</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:500;text-shadow:0 0 8px rgba(107,255,242,0.8);">
+        AUTHORITY • LIABILITY • FORCE
+      </span>
+    </div>
+    <div class="app-sub">
+      Everyone smiles and calls you “hon.” Some of them can medicate you against your will. Some can drag you. Some can keep you. Some can let you out.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search roles..." />
+    </div>
+  </div>
+
+  <div id="roleList" class="role-list">
+    <!-- filled by JS -->
+  </div>
+</aside>
+
+<!-- MAIN PANEL -->
+<main id="main">
+  <div class="main-inner">
+    <section id="roleHeader">
+      <div class="role-title-row">
+        <h1 id="roleName">Loading...</h1>
+        <div id="roleTagline"></div>
+      </div>
+      <div id="rolePower"></div>
+      <div id="roleProfile"></div>
+    </section>
+
+    <div id="roleSections">
+      <!-- built by JS -->
+    </div>
+
+    <div class="footer-note">
+      The most dangerous sentence on a locked unit is “this is for your safety.” The second most dangerous is “doctor’s orders.”
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+Role object model:
+{
+  id: 'psychiatrist',
+  name: 'Psychiatrist',
+  tagline: 'Writes The Orders',
+  power: 'Medication authority • Hold authority • Disposition power',
+  shortDesc: 'The medical god on the unit. They decide the story in your chart.',
+  profile: 'Narrative block...',
+  leverage: [...],
+  good: [...],
+  bad: [...],
+  whatTheyWrite: [...],
+  howToSurvive: [...]
+}
+*/
+
+let openCards = [];
+let currentRoleId = null;
+
+const roles = [
+  {
+    id: 'psychiatrist',
+    name: 'Psychiatrist',
+    tagline: 'Writes The Orders',
+    power: 'Medication orders • Watch level • “Safe to discharge?”',
+    shortDesc:
+      'MD or DO with prescribing power. On paper: healer. In practice: final say on what goes in your bloodstream and when you’re allowed to leave.',
+    profile:
+      'The psychiatrist is the apex predator of the clinical hierarchy. They can order meds you don’t want. They can sign off on extending your stay. Their wording becomes legal truth in the file. If they say “patient is unsafe to discharge,” you are not walking out the door no matter how calm you act. If they say “patient stable for outpatient,” you’re out by dinner.',
+    leverage: [
+      'They control your diagnosis label. That label follows you for years.',
+      'They decide if what you’re doing is “noncompliant” (stubborn) or “symptomatic” (sick). Either way, you lose the argument.',
+      'They choose meds. Refuse meds and that refusal itself becomes evidence you’re “not ready.”',
+      'They talk to family and insurance. That means they control the narrative other people hear about you.'
+    ],
+    good: [
+      'A good psychiatrist can literally pull you back from the edge, fast, especially if you’re in active psychosis or in lethal spiral depression.',
+      'A good one will explain meds and side effects respect-style and actually listen.',
+      'A good one will protect you from staff who are just trying to sedate the problem instead of help you.'
+    ],
+    bad: [
+      'A bad one treats you like a problem to neutralize, not a person to help.',
+      'A bad one will not hear you when you say “this drug makes me feel like a ghost.”',
+      'A bad one will chart you as manipulative, attention-seeking, oppositional — and that poison in the record will haunt every future ER psych eval.'
+    ],
+    whatTheyWrite: [
+      '“Patient denies active SI/HI. Affect brighter. Insight improving.”',
+      '“Patient continues to exhibit borderline traits.”',
+      '“Patient remains high risk for decompensation if discharged at this time.”',
+      'Translation: they are building justification for hold or for release, whichever fits their plan.'
+    ],
+    howToSurvive: [
+      'Be clear, short, concrete. They respect data, not novels.',
+      'Describe symptoms in terms of safety: “I can stay safe outside because X, Y, Z.”',
+      'Ask directly: “What needs to happen for you to be comfortable discharging me?” Make them say the win condition out loud.',
+      'If they lie on you in the chart, you can’t fix it today — but you can remember it for when you file complaints later.'
+    ]
+  },
+
+  {
+    id: 'nurse',
+    name: 'Charge Nurse / RN',
+    tagline: 'Gatekeeper Of Access',
+    power: 'Meds in your hand • Pager to call the code',
+    shortDesc:
+      'You see them the most. They can calm a situation, escalate it, or flip a switch and bring five bodies running.',
+    profile:
+      'The nurse is rhythm control. They pass meds. They monitor vitals. They sign off that you’re “stable.” They’re also often the one deciding if you get to call your family right now, if you can shower with the door fully shut, if you get that extra blanket, if you can keep your hoodie string, if you can keep your journal.',
+    leverage: [
+      'They document everything you say in little casual conversations like “how are you feeling?”',
+      'They decide if they bring in support or security when you start crying.',
+      'They can choose to describe you as “cooperative” or “escalating” and both can be true depending on what they write.',
+      'If they decide you’re unsafe, they can lock down your privileges instantly.'
+    ],
+    good: [
+      'A good nurse is the difference between you having a terrifying night and you surviving it.',
+      'Good nurses will quietly bend rules for human dignity — like watching the door instead of standing inside the bathroom so you can pee in peace.',
+      'Good nurses advocate up the chain: “They’re not being difficult, they’re scared. We don’t need to medicate them right now.”'
+    ],
+    bad: [
+      'A bad nurse will talk to you like a toddler and then write “patient became verbally aggressive for no reason.”',
+      'A bad nurse will act sweet but call the code team the second you object to anything.',
+      'A bad nurse will use “for your safety” like a club.'
+    ],
+    whatTheyWrite: [
+      '“Patient tearful, required redirection.”',
+      '“Patient refused evening meds, MD notified.”',
+      '“Patient perseverating on discharge, continues to request to leave despite education re: safety hold.”',
+      'That note is what the psychiatrist reads before deciding your fate in morning rounds.'
+    ],
+    howToSurvive: [
+      'Do not threaten staff. Ever. Threats = restraint + seclusion + chemical sedation. Fast.',
+      'If you’re overwhelmed, say “I am overwhelmed and trying not to escalate. I need space.” That sentence sometimes buys you mercy.',
+      'Ask their name and use it. People act more human when you treat them like human.',
+      'If you trust one nurse, tell them what you actually feel. They can be the only one who writes the truth.'
+    ]
+  },
+
+  {
+    id: 'tech',
+    name: 'Mental Health Tech / Orderly',
+    tagline: 'Eyes On You, All Shift',
+    power: 'Observation notes • Physical intervention first wave',
+    shortDesc:
+      'No badge that says “doctor,” no stethoscope — and they might be the one actually grabbing you when things go bad.',
+    profile:
+      'Techs (sometimes called behavioral health techs, mental health workers, psychiatric aides) are on the floor with you nonstop. They run groups. They watch day room behavior. They do Q15 checks while you’re sleeping. They’re also often first physical contact in a restraint.',
+    leverage: [
+      'They write the rawest notes because they’re the ones actually watching you panic, cry, sleep, laugh, pace.',
+      'Their note “patient threw a chair” becomes “patient violent” forever.',
+      'They can suggest to the nurse “we need to put her on 1:1,” and suddenly you have zero privacy.',
+      'If they don’t like you, life on the unit becomes very small very fast.'
+    ],
+    good: [
+      'A good tech will talk to you like a regular person, not a diagnosis.',
+      'They’ll warn you when staff higher up is having a “no nonsense mood,” which can literally save you from getting restrained.',
+      'They’ll sit in silence with you so you don’t do something desperate.'
+    ],
+    bad: [
+      'A bad tech will mock you to other staff right in front of you like you’re furniture.',
+      'A bad tech will bait you — poke, needle, push buttons — then yell “CODE” when you react.',
+      'A bad tech will call you manipulative for needing attention and then write “attention-seeking.”'
+    ],
+    whatTheyWrite: [
+      '“Patient pacing, agitated, repeatedly demanding discharge.”',
+      '“Patient socializing appropriately with peers, no acute distress noted.” <- can get used to argue you’re fine to discharge.',
+      '“Patient continues to escalate despite staff support, MD notified for PRN.” <- translation: we want to sedate them.'
+    ],
+    howToSurvive: [
+      'Never forget: they are always watching. Don’t say “I’m going to hurt myself” as a vent unless you actually mean it, because once it’s charted you’re on watch.',
+      'If you feel like you’re about to snap, say “I need a break, please. I’m trying to stay calm.” Make it clear you’re asking for help, not starting a fight.',
+      'If one tech treats you like a human, protect that connection. That’s your translator.'
+    ]
+  },
+
+  {
+    id: 'admin',
+    name: 'Unit Administrator / Director',
+    tagline: 'The Money And The Rules',
+    power: 'Policy, staffing, what’s allowed on the floor',
+    shortDesc:
+      'You barely see them. They shape everything.',
+    profile:
+      'Administrators worry about lawsuits, inspections, state regs, insurance billing, PR, ratio of staff to patients, and whether the hospital looks “humane” enough to keep funding. They decide how many techs are on shift. They decide how quickly restraints must be reported. They decide what gets called “best practice” and what gets buried.',
+    leverage: [
+      'They can quietly push “no visible bruises” policy — which doesn’t stop force, it just changes how force happens.',
+      'They choose if the unit is chronically understaffed. Understaffed units restrain faster because talking takes time.',
+      'They write “patient rights” posters and also write the loopholes.',
+      'They decide if families hear “we’re at capacity” or “we can take them in.”'
+    ],
+    good: [
+      'A good admin will staff the unit with enough actual humans that people don’t get hurt as much.',
+      'A good admin will ban certain staff who escalate too fast.',
+      'A good admin will fight insurance so you’re not thrown out mid-crisis.'
+    ],
+    bad: [
+      'A bad admin will say “we value trauma-informed care” while cutting the budget for staff training.',
+      'A bad admin will call seclusion “sensory reduction environment” to dodge reporting requirements.',
+      'A bad admin will side with whoever keeps liability low, not whoever keeps you whole.'
+    ],
+    whatTheyWrite: [
+      '“All interventions utilized in accordance with policy and regulatory guidance.”',
+      '“No deviations from least-restrictive standard of care noted.”',
+      'That’s legal armor. Translation: if you complain later, this protects them.'
+    ],
+    howToSurvive: [
+      'You can’t “survive” admin in the moment. You survive them long-term by documenting. Write down dates, times, names, what happened. Memory is the only weapon you leave with.',
+      'If a friend/family member on the outside can raise hell — calls, emails, complaints — do it. Admin listens more to legal threat than to pain.'
+    ]
+  },
+
+  {
+    id: 'social',
+    name: 'Social Worker / Case Manager',
+    tagline: 'Your Exit Paperwork',
+    power: 'Aftercare plan • Discharge justification',
+    shortDesc:
+      'They act like your friend. Sometimes they are. Sometimes they’re just the voice of the system, smiling.',
+    profile:
+      'The social worker / case manager is the bridge between “in here” and “out there.” They ask about where you’ll stay, who you’ll live with, if anyone can keep an eye on you, whether you’ll go to therapy, if you can afford meds. On a good day, they save you. On a bad day, they’re just checking boxes.',
+    leverage: [
+      'They can say you have “no safe discharge plan,” which keeps you longer.',
+      'They can say you “refused outpatient resources,” which brands you as “noncompliant” in your file.',
+      'They talk to your family. If your family lies about you, they might believe the family.',
+      'They can make you sound stable to the team — or like a walking lawsuit.'
+    ],
+    good: [
+      'A good one will fight like a pitbull to get you beds, meds, outpatient therapy, transport, follow-up.',
+      'A good one will warn you exactly what language to use in your discharge meeting so you don’t get stuck.',
+      'A good one will keep your secrets when your family is part of the damage.'
+    ],
+    bad: [
+      'A bad one will smile and nod while feeding the team “patient has adequate support at home,” even if home is a war zone.',
+      'A bad one will treat you like a puzzle to be placed somewhere, not a person who has to go live in that placement.',
+      'A bad one will decide you’re “dramatic” and report that tone, not your danger.'
+    ],
+    whatTheyWrite: [
+      '“Patient verbalizes safety plan including crisis hotline and coping strategies.”',
+      '“Patient will follow up with outpatient psychiatry on [date/time].”',
+      '“Patient denies access to lethal means at home as reported.” <- sometimes a lie, sometimes a guess.',
+      'Their note becomes the proof you were “safe to release.”'
+    ],
+    howToSurvive: [
+      'Tell them what you actually have and don’t have: couch? meds? food? safe person? If you lie and say “it’s fine,” you’re out with nothing.',
+      'Ask: “What EXACTLY do I have to say in discharge so they let me go?” They will often tell you.',
+      'Get copies of any phone numbers they promise you, in writing, before you leave.'
+    ]
+  },
+
+  {
+    id: 'security',
+    name: 'Security / Code Team',
+    tagline: 'Hands First, Questions Later',
+    power: 'Immediate physical control',
+    shortDesc:
+      'When it goes loud, these are the bodies on you. They end the argument by ending movement.',
+    profile:
+      'Some hospitals have in-house security. Some have contracted guards. Some just yank techs and big RNs and call it “the team.” They’re the ones who show up when someone yells CODE or presses the panic button. They are not there to talk. They are there to pin.',
+    leverage: [
+      'They decide how hard the takedown is, and how long you stay pinned.',
+      'They can tell the nurse “they were swinging” and that will live forever in your chart whether you swung or not.',
+      'They can frame what happened before anyone calmer shows up.',
+      'They often get believed automatically because “safety.”'
+    ],
+    good: [
+      'A good team goes in controlled, talks low, and gets you contained without extra damage.',
+      'A good team understands trauma and doesn’t treat you like a bar fight.',
+      'A good team knows when to back off instead of piling on.'
+    ],
+    bad: [
+      'A bad team will rough you up and then say “they were resisting.”',
+      'A bad team treats the ward like a jail tier.',
+      'A bad team enjoys the hit of power and you WILL feel that.'
+    ],
+    whatTheyWrite: [
+      '“Patient attempted to strike staff, placed in physical hold for safety.”',
+      '“Patient escorted to seclusion without incident.” <- “without incident” can cover bruises.',
+      '“Patient continued to escalate, MD notified for medication.”',
+      'All of that sounds procedural and neutral. None of that sounds like terror.'
+    ],
+    howToSurvive: [
+      'When they’re already on you, the only play left is minimizing damage. Do not give them “assaulted staff.” That label will nuke your credibility forever.',
+      'After, write down every detail you remember. Names, phrases, time. You’ll need it.'
+    ]
+  },
+
+  {
+    id: 'court',
+    name: 'Judge / Commitment Hearing',
+    tagline: 'The Outside Hammer',
+    power: 'You stay or you walk',
+    shortDesc:
+      'This is the part where “medical” becomes “legal.” Now it’s not just about help. It’s about custody.',
+    profile:
+      'If you’re on an involuntary hold or they’re trying to extend it, the system can pull in the court. You might get a tiny rushed hearing. A judge or magistrate listens to a clinician’s version of you and decides whether the hospital keeps you against your will. Sometimes you get a lawyer. Sometimes it’s a formality and you’re basically scenery.',
+    leverage: [
+      'The clinician tells the story first. You are already starting at a disadvantage.',
+      'If you’ve ever yelled on the unit, they will bring that up.',
+      'If you’ve ever said “I wish I were dead,” they will bring that up.',
+      'If you talk angry or sarcastic in front of the judge, congratulations, you just proved you’re “unstable.”'
+    ],
+    good: [
+      'Sometimes, the judge actually listens and calls BS on the hospital holding people just because they’re annoying, not dangerous.',
+      'Sometimes, you DO get out sooner because a judge says “no, you can’t keep them.”'
+    ],
+    bad: [
+      'Sometimes it’s rubber stamp theater. Hospital says “unsafe,” judge nods, done.',
+      'Sometimes nobody in that room actually knows you except through paperwork written by people who barely listened.',
+      'Sometimes the hearing lasts less than five minutes and controls your next two weeks of life.'
+    ],
+    whatTheyWrite: [
+      '“Patient remains danger to self/others without inpatient stabilization.”',
+      '“Continued hospitalization deemed medically necessary.”',
+      'Those words in that order keep you inside.'
+    ],
+    howToSurvive: [
+      'In front of court, you have one job: prove safe. Calm voice. No threats. No sarcasm.',
+      'Use boring sentences like “I can keep myself safe at home with supervision from [stable adult] and I will follow up with [clinic].” Boring is freedom.',
+      'Do not rant about how the ward is hell, even if it is. Rant = “not ready.”',
+      'Get names, dates, copies afterward if possible. Paper trail is future power.'
+    ]
+  }
+]; // end roles[]
+
+
+/* DOM refs */
+const roleListEl = document.getElementById('roleList');
+const searchInputEl = document.getElementById('searchInput');
+
+const roleNameEl = document.getElementById('roleName');
+const roleTaglineEl = document.getElementById('roleTagline');
+const rolePowerEl = document.getElementById('rolePower');
+const roleProfileEl = document.getElementById('roleProfile');
+const roleSectionsEl = document.getElementById('roleSections');
+
+/* open card limiter (max 2 open) */
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+/* build accordion section */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'title-line';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+/* render role list in sidebar */
+function renderRoleList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  roleListEl.innerHTML = '';
+
+  roles
+    .filter(r => {
+      if (!f) return true;
+      const haystack = [
+        r.name,
+        r.shortDesc,
+        r.tagline,
+        r.power
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'role-item';
+      item.setAttribute('data-id', r.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'role-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'role-name';
+      nameSpan.textContent = r.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'role-tag';
+      tagSpan.textContent = r.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'role-desc';
+      descDiv.textContent = r.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showRole(r.id);
+      });
+
+      roleListEl.appendChild(item);
+    });
+
+  highlightActive(currentRoleId);
+}
+
+/* show selected role in main panel */
+function showRole(id) {
+  const r = roles.find(x => x.id === id);
+  if (!r) return;
+
+  currentRoleId = id;
+
+  roleNameEl.textContent = r.name;
+  roleTaglineEl.textContent = r.tagline;
+  rolePowerEl.textContent = r.power;
+  roleProfileEl.textContent = r.profile;
+
+  roleSectionsEl.innerHTML = '';
+  openCards = [];
+
+  const sectionsData = [
+    {title: 'How They Control You', hint: 'Leverage and pressure points', arr: r.leverage || []},
+    {title: 'When They’re Good', hint: 'Best-case version', arr: r.good || []},
+    {title: 'When They’re Bad', hint: 'Worst-case version', arr: r.bad || []},
+    {title: 'Their Official Story', hint: 'How they chart you on paper', arr: r.whatTheyWrite || []},
+    {title: 'How You Survive Them', hint: 'Practical playbook', arr: r.howToSurvive || []},
+  ];
+
+  sectionsData.forEach((sectionObj, idx) => {
+    if (!sectionObj.arr || sectionObj.arr.length === 0) return;
+    const card = buildSectionCard(
+      sectionObj.title,
+      sectionObj.hint,
+      sectionObj.arr,
+      (idx === 0 || idx === 1)
+    );
+    roleSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+/* highlight active in sidebar */
+function highlightActive(id) {
+  const items = roleListEl.querySelectorAll('.role-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+/* search hook */
+searchInputEl.addEventListener('input', (e) => {
+  renderRoleList(e.target.value);
+});
+
+/* init */
+renderRoleList('');
+if (roles.length > 0) {
+  showRole(roles[0].id);
+}
+</script>
+
+</body>
+</html>
