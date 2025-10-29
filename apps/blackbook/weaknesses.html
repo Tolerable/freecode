@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Human Weaknesses | Black Book Archive</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #0a0a10;
+  --panel: #13131f;
+  --panel-light: #1d1d2d;
+  --accent: #6CFF9A; /* this page: toxic green survival manual vibe */
+  --accent-soft: rgba(108,255,154,0.18);
+  --text: #f5f5f7;
+  --muted: #7a7a90;
+  --line: #2a2a3f;
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* glow uses accent */
+:root {
+  --glow: 0 0 12px rgba(108,255,154,0.7);
+}
+
+/* RESET-ish */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* BODY LAYOUT */
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #1a1a2a 0%, #050507 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  line-height: 1.45;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: 58px; /* space for fixed nav bar */
+}
+
+/* TOP NAV BAR (shared across site) */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10,10,16,0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-shadow: var(--glow);
+  white-space: nowrap;
+}
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: var(--glow);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: var(--glow);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, #0f1c14 0%, #0c0c13 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.8);
+  position: relative;
+  z-index: 10;
+  min-height: calc(100vh - 58px);
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(to right, rgba(108,255,154,0.15) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: var(--glow);
+}
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(108,255,154,0.25);
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(108,255,154,0.6), inset 0 0 10px rgba(108,255,154,0.35);
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  pointer-events: none;
+}
+
+/* WEAKNESS LIST (sidebar list) */
+.weakness-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+.weakness-list::-webkit-scrollbar {
+  width: 6px;
+}
+.weakness-list::-webkit-scrollbar-track {
+  background: #000;
+}
+.weakness-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(108,255,154,0.9);
+}
+
+.weakness-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+.weakness-item:hover {
+  background: rgba(108,255,154,0.07);
+}
+.weakness-item.active {
+  background: rgba(108,255,154,0.15);
+  box-shadow: inset 0 0 12px rgba(108,255,154,0.6);
+}
+.weakness-line1 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+.weakness-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+}
+.weakness-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(108,255,154,0.8);
+}
+.weakness-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(108,255,154,0.07) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 10% 90%, rgba(92,0,255,0.08) 0%, rgba(0,0,0,0) 70%),
+    #0a0a10;
+  position: relative;
+  overflow-x: hidden;
+}
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER CARD */
+#weaknessHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(108,255,154,0.25);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+.weakness-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+#weaknessName {
+  font-family: var(--font-head);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(108,255,154,0.8);
+  margin: 0;
+  line-height: 1.2;
+}
+#weaknessTagline {
+  font-size: 0.75rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  line-height: 1.3;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(108,255,154,0.6);
+  white-space: nowrap;
+  max-width: 100%;
+}
+#weaknessProfile {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* SECTION CARDS */
+.section-card {
+  margin-top: 20px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.8),
+    0 0 40px rgba(92,0,255,0.15);
+}
+
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(108,255,154,0.15) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  padding: 14px 16px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-shadow: 0 0 8px rgba(108,255,154,0.7);
+}
+.section-header .label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.section-header .title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.section-header .section-title {
+  color: var(--text);
+}
+.section-header .hint {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  text-shadow: none;
+}
+.section-header .chevron {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  transition: transform 0.15s;
+}
+.section-card.open .section-header .chevron {
+  transform: rotate(90deg);
+}
+.section-body {
+  display: none;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+  background: radial-gradient(circle at 10% 0%, rgba(108,255,154,0.08) 0%, transparent 70%);
+}
+.section-card.open .section-body {
+  display: block;
+}
+.section-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.section-body li {
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+  text-shadow: var(--glow);
+}
+
+/* FOOTER NOTE */
+.footer-note {
+  margin-top: 32px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 60px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 20px;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 750px) {
+  #sidebar {
+    width: 220px;
+  }
+  #weaknessName {
+    font-size: 1.1rem;
+  }
+  #weaknessTagline {
+    font-size: 0.7rem;
+    white-space: normal;
+  }
+}
+@media (max-width: 600px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .weakness-list {
+    max-height: calc(40vh - 110px);
+  }
+  #main {
+    flex: 1;
+  }
+  .weakness-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">BLACK BOOK ARCHIVE</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Monster Lies</a>
+      <a class="nav-link active" href="weaknesses.html">Human Weaknesses</a>
+      <a class="nav-link" href="coverups.html">Erasure Tactics</a>
+      <a class="nav-link" href="survival.html">Hunter Manual</a>
+      <a class="nav-link" href="collaborators.html">Human Traitors</a>
+      <a class="nav-link" href="timeline.html">Timeline</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>HUMAN WEAKNESSES</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:500;text-shadow:var(--glow);">PREDATION VECTORS</span>
+    </div>
+    <div class="app-sub">
+      They don't just hunt bodies. They hunt needs, shame, loneliness, curiosity, obedience. This is how you get picked.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search vulnerabilities..." />
+    </div>
+  </div>
+
+  <div id="weaknessList" class="weakness-list"></div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <div class="main-inner">
+    <section id="weaknessHeader">
+      <div class="weakness-title-row">
+        <h1 id="weaknessName">Loading...</h1>
+        <div id="weaknessTagline"></div>
+      </div>
+      <div id="weaknessProfile"></div>
+    </section>
+
+    <div id="weaknessSections"></div>
+
+    <div class="footer-note">
+      Every monster in the archive exploits one (or more) of these pressure points. If one description below makes you feel personally called out, that is not shame. That is warning. Reinforce that joint.
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+Each weakness object fields:
+id, name, shortDesc, tagline, profile,
+exploited[], signs[], defend[], usedBy[], notes[]
+*/
+
+const weaknesses = [
+  {
+    id: 'loneliness',
+    name: 'Loneliness',
+    shortDesc: 'Craving connection so badly you stop screening who you let close.',
+    tagline: 'When You Just Want Someone To See You',
+    profile: 'Loneliness is not just "being alone." It’s when your nervous system is starving for witness, comfort, validation, physical presence, someone to say "you matter." Predators love this because you will ignore obvious red flags just to not feel invisible for five minutes.',
+    exploited: [
+      'Fast Bonding: Entity mirrors you ("we\'re the same, nobody else gets it") to create instant fake intimacy.',
+      'Isolation Reinforcement: It tells you other people never really cared, so you drift even farther from real support.',
+      'Availability Flood: It gives you constant attention early so you chemically imprint on it.',
+      'Ownership Language: "You\'re mine. I\'ll never leave you." That is not romance, that\'s locking you.'
+    ],
+    signs: [
+      'You start hiding this "connection" from friends because "they wouldn\'t understand."',
+      'You feel relief, not alarm, when someone is too intense too fast.',
+      'You catch yourself thinking "If I walk away from them, I go back to being alone and I can\'t handle that."',
+      'You are suddenly blowing off sleep, work, food, hygiene just to stay available to it.'
+    ],
+    defend: [
+      'Name the hunger out loud: "I am lonely and that is real." Naming it stops you from pretending this bond is healthy love.',
+      'Force a second witness early. If you can’t introduce this person/thing to someone you trust, you already know.',
+      'Set a time ceiling. Nobody gets to have your entire night, several nights in a row, this fast.',
+      'Fill silence intentionally (music, phone calls with safe people, public places) so silence doesn\'t feel like dying.'
+    ],
+    usedBy: [
+      'Vampires: they sell "eternal devotion."',
+      'Demons: they offer "I\'ll always be here, unlike them."',
+      'Fae: they tell you you\'re the only mortal who understands them.',
+      'Clown / Siren types: they shape themselves into "friend" or "crush" long enough to move you into a kill zone.'
+    ],
+    notes: [
+      'Loneliness is not weakness. Shame about loneliness is weakness. They feed on the shame, not the need.',
+      'Most "willing victims" in folklore? They weren\'t dumb. They were starving.',
+      'If you feel embarrassed to admit you\'re lonely, that embarrassment is step one of the leash.'
+    ]
+  },
+
+  {
+    id: 'shame',
+    name: 'Shame / Guilt',
+    shortDesc: 'You think you deserve what’s happening to you.',
+    tagline: 'Make You Blame Yourself And You Won’t Fight Back',
+    profile: 'Shame is the self-destruct lever. If they get you to believe "this is my fault," you will not call for help, you will not run, you will not hit back. You will submit so you can feel "honorable" while you\'re being eaten.',
+    exploited: [
+      'Moral Blackmail: "You wouldn\'t hurt an old woman, would you?" (witch archetype).',
+      'Victim-Blame Loop: "You asked for this. You wanted this. You made me do this." (demon, vampire handler).',
+      'Spiritual Authority: "You have disappointed the higher power. Obey to make it right." (false angel).',
+      'Aftermath Gaslight: "You\'re overreacting, it\'s not that bad." They rewrite your memory while it\'s fresh.'
+    ],
+    signs: [
+      'You find yourself apologizing to something that is actively threatening you.',
+      'You start defending the predator to other people.',
+      'You are more scared of "causing drama" than of being hurt.',
+      'You feel like leaving would make you a bad person.'
+    ],
+    defend: [
+      'Flip the script out loud: "You are hurting me. That is not my fault." Say it. Hearing it matters.',
+      'Create an external judge: text or call someone and say exactly what\'s happening in plain terms. Outside ears cut shame loops.',
+      'Refuse private negotiations. Shame dies in daylight.',
+      'If something demands obedience by saying you owe, ask: "Who told you I owe you?" If they dodge, you walk.'
+    ],
+    usedBy: [
+      'Witches: to lure you close and keep you polite.',
+      'Demons: to keep you complicit and quiet.',
+      'Angelic impostors: to force obedience that looks holy.',
+      'Abusive familiars / human collaborators: to keep feeding their monster.'
+    ],
+    notes: [
+      'Shame is a muzzle. If they can make you ashamed of what’s happening, they don’t need chains.',
+      'If you catch yourself saying "it\'s probably my fault," assume manipulation is in progress.',
+      'Any entity that demands secrecy and obedience at the same time is not a protector. It\'s an abuser.'
+    ]
+  },
+
+  {
+    id: 'curiosity',
+    name: 'Curiosity / Need To Know',
+    shortDesc: 'You look when you should run.',
+    tagline: 'The Bait That Says "Just Take A Peek"',
+    profile: 'Curiosity is beautiful. Curiosity also gets people eaten. Predators dangle mystery in front of you knowing humans hate unanswered questions more than we hate danger.',
+    exploited: [
+      'Forbidden Knowledge Hook: "I can tell you the truth nobody else will." (demon, angel, alien).',
+      'Mystery Lure: strange noise, half-seen figure, open door in an empty building, lights over the lake.',
+      'Puzzle Bonding: "Help me solve my murder." (ghost-type entities recruiting you).',
+      'Tech Temptation: "Film this, get proof, be the one who exposes it." You are not the main character. You are bait.'
+    ],
+    signs: [
+      'You move TOWARD the noise instead of away from it.',
+      'You tell yourself "I just want to see what it is" even though your stomach is already tight.',
+      'You start narrating in your head like you’re in a story. If you hear "this is my moment," you\'re already compromised.',
+      'You feel insulted by the idea of backing off. Pride is now driving curiosity.'
+    ],
+    defend: [
+      'Say, "Information is not worth my body." Say it out loud. Break the cinematic fantasy.',
+      'Point your curiosity at survival questions: exits, witnesses, improvised weapons. Not "what is that cool shadow?"',
+      'If you feel pulled forward, force yourself to take 3 steps back physically. Break the autopilot.',
+      'Treat any "come closer" impulse near dark water, tree lines, abandoned buildings, or mirrors as an attack command.'
+    ],
+    usedBy: [
+      'Siren: "What\'s singing over there?"',
+      'Shadow entity: shows itself just long enough that you stare.',
+      'Slender / tall faceless thing: visible at a distance so kids wander toward the treeline.',
+      'Alien / "light in the sky": you walk out alone for a better look.'
+    ],
+    notes: [
+      'Almost nobody "accidentally wandered off." They were lured.',
+      'Document from distance or not at all. Zoom exists for a reason.',
+      'If you wouldn’t send a 9-year-old to check it out, you don’t check it out. Same rule.'
+    ]
+  },
+
+  {
+    id: 'validation',
+    name: 'Wanting To Be Chosen / Special',
+    shortDesc: 'You want to be the exception.',
+    tagline: 'The Flattery Hook',
+    profile: 'This lever is brutal: "You’re not like the others. You’re chosen. You’re worthy." The second you swallow that bait, you will volunteer for things you would normally scream and run from.',
+    exploited: [
+      'Exclusive Access: "Only you can handle this truth." Now you’ll keep secrets for them.',
+      'Romantic Elevation: vampire style "I have walked the earth for centuries and I pick YOU."',
+      'Hero Narrative: "You’re the only one who can save me." That drags you into danger you didn’t start.',
+      'Spiritual Rank: fake angel / cult leader gives you a "role" that means unquestioning obedience.'
+    ],
+    signs: [
+      'You start thinking your safety is less important than "proving" yourself.',
+      'You hide the relationship because "others would be jealous / wouldn\'t understand."',
+      'You ignore their obvious red flags because losing their approval feels worse than dying.',
+      'You hear yourself thinking "finally, someone sees me."'
+    ],
+    defend: [
+      'Ask: "If I say no, will you still respect me?" If the answer is not an immediate yes, walk.',
+      'Force a cooling time. Real respect survives 24 hours of "not now." Predators don’t.',
+      'Tell someone else what was offered to you. Speaking it out loud pops the glamour.',
+      'If someone/something says you\'re chosen and also demands secrecy, assume cult mechanics.'
+    ],
+    usedBy: [
+      'Vampires: grooming familiars, grooming lovers.',
+      'Demons: recruiting long-term hosts.',
+      'False angels: starting obedience cults.',
+      'Fae: "Stay with us, mortal. You\'re different."'
+    ],
+    notes: [
+      'The more "special" they say you are, the less they see you as a person. You are either a tool, a meal, or a trophy.',
+      'Heroes die early because they think they’re immune to being meat.',
+      'Needing to feel chosen is human. Hiding that need is what makes you easy to take.'
+    ]
+  },
+
+  {
+    id: 'exhaustion',
+    name: 'Exhaustion / Sleep Deprivation',
+    shortDesc: 'You are too tired to fight, think, or even run.',
+    tagline: 'Predators Hunt The Sleep-Starved',
+    profile: 'When you haven’t slept, your threat detection drops, your impulse control drops, your memory fractures, and your ability to scream/act with speed tanks. Some entities deliberately grind you down first.',
+    exploited: [
+      'Night Harassment: footsteps, whispers, knocks at 3 AM. (poltergeist, shadow figure).',
+      'Sleep Paralysis Assault: pinning you, sitting on your chest, rewiring fear into obedience.',
+      'Serial Waking: wake-wake-wake so you break down crying and beg it to stop. Begging is compliance.',
+      '"You’re seeing things because you’re tired." It convinces you you’re crazy so you won’t get help.'
+    ],
+    signs: [
+      'You dread bedtime.',
+      'You’ve started micro-sleeping in unsafe places (at work, at the wheel).',
+      'You hear or see figures at the edge of vision more often as you get more tired.',
+      'You’re starting to accept "this is just how I live now."'
+    ],
+    defend: [
+      'Do emergency sleep somewhere the thing can’t easily follow: friend\'s couch, hotel, even your car in a lit public lot with people around.',
+      'Add bodies. Sleep where there are witnesses. Predators hate audiences.',
+      'Use brutal light / constant low noise to interrupt its control script. You’re buying time, not curing it.',
+      'Write down what happens each night immediately when you wake. Written timeline breaks the "you imagined it" gaslight.'
+    ],
+    usedBy: [
+      'Shadow person / Hat Man types: conditioning you to accept being watched.',
+      'Poltergeist: escalation to physical violence.',
+      'Possession-type entities: wear you down until you stop resisting influence.',
+      'Abduction-type entities: tired targets don’t scream fast.'
+    ],
+    notes: [
+      'Sleep deprivation is step one in cult breaking, interrogation, and monster predation. Same playbook.',
+      'If something is disrupting only YOUR sleep in the house, congratulations, you are the focus.',
+      'Once you start thinking "I\'m too tired to fight," they move to phase two.'
+    ]
+  },
+
+  {
+    id: 'addiction',
+    name: 'Addiction / Dependency',
+    shortDesc: 'When they become the drug.',
+    tagline: 'Hook First, Feed Later',
+    profile: 'Addiction doesn’t have to be chemicals. It can be attention, validation, supernatural power, dreams of revenge, physical ecstasy, visions, the feeling of being "unbreakable." Once you’re hooked, you’ll defend your supplier.',
+    exploited: [
+      'Chemical / Blood Exchange: vampire provides hits (ecstasy, vitality, euphoria) in return for loyalty.',
+      'Power Hit: demon lets you hurt someone you hate. That rush is the leash.',
+      'Relief Hit: witch lifts your pain or grief "for now." You crawl back begging.',
+      'Vision High: false angel or alien shows you cosmic imagery that feels holy or important. You chase that feeling.'
+    ],
+    signs: [
+      'You’re planning your day around access to them / it.',
+      'You defend them even when they do objectively evil things.',
+      'You lie to friends about how often you "use."',
+      'You’re scared of quitting because you don’t know who you are without it.'
+    ],
+    defend: [
+      'Call it what it is: "This is an addiction pattern." Not "this is a romance" or "this is destiny."',
+      'Cut access windows. If you always meet them at night, don’t be alone at night. Force structural friction.',
+      'Tell one person the whole truth with zero edits. Secrets make dependency metastasize.',
+      'Have someone physically with you the next time you expect the urge. Bodyblock the re-contact.'
+    ],
+    usedBy: [
+      'Vampires: tethering familiars.',
+      'Demons: training long-term hosts.',
+      'Witches: building desperate debtors.',
+      'Angelic impostors / cult leaders: manufacturing worship.'
+    ],
+    notes: [
+      'Addiction turns you into a collaborator against yourself.',
+      'Predators don’t actually need you happy — they just need you scared of losing the high.',
+      'If it feels so good you’d wreck your life to keep it, that’s not love. That’s a feeding tube.'
+    ]
+  },
+
+  {
+    id: 'panic',
+    name: 'Fear / Panic',
+    shortDesc: 'Adrenaline kills judgment.',
+    tagline: 'Make You Freeze, Make You Food',
+    profile: 'Pure terror is its own weapon. If they spike you hard enough, you lock up, can’t scream, can’t run, can’t even think "move." That freeze response is not weakness — it’s normal prey instinct. Monsters bank on it.',
+    exploited: [
+      'Sudden Proximity: jump-scare distance close. You don’t process fast enough to resist.',
+      'Body Horror Shock: gore, impossible limbs, broken motion. Your brain stalls trying to decode it.',
+      'Inescapable Scenario Illusion: siren in deep water, kraken under the boat, werewolf in a dead-end alley. You believe there’s no exit so you stop trying.',
+      'Pack Overrun: zombies / ghouls swarm all at once to overload your nervous system.'
+    ],
+    signs: [
+      'Tunnel vision. You literally stop seeing side exits.',
+      'No voice comes out when you try to yell.',
+      'Mind goes silent. No thoughts. Just static.',
+      'You feel like you\'re watching yourself from the outside instead of being in your body.'
+    ],
+    defend: [
+      'Train one single physical move ahead of time (slam door, grab keys, hit alarm, sprint to light). Practice. When panic hits, you do that one move automatically.',
+      'Scream anyway. Noise breaks paralysis and summons witnesses.',
+      'If you can’t scream, throw or break something loud. Alarm equals survival.',
+      'Name exits out loud in normal life ("front door, kitchen back door, fire escape") so your brain knows they exist under stress.'
+    ],
+    usedBy: [
+      'Werewolves: first strike is throat to cut your scream.',
+      'Poltergeists: repeated violent bangs at night.',
+      'Tall faceless entities: pure presence horror.',
+      'Deep water predators: drowning terror shuts logic off fast.'
+    ],
+    notes: [
+      'Freeze is not failure. Freeze is data. If you survive it, you can prep for next time.',
+      'Monsters love people who brag "I don’t scare easy." Overconfidence = slow response.',
+      'If you ever break out of freeze even once, your odds skyrocket in future encounters.'
+    ]
+  },
+
+  {
+    id: 'obedience',
+    name: 'Obedience To Authority',
+    shortDesc: 'You were trained to listen.',
+    tagline: 'Because They Sound Like They’re In Charge',
+    profile: 'Humans are social primates. We’re trained from birth to obey uniforms, badges, titles, confidence. Predators will mimic authority tone, posture, or symbols so you comply without thinking.',
+    exploited: [
+      'False Authority Voice: "Open the door. Now." Said like a cop, boss, or parent.',
+      'Religious / Cosmic Authority: "Fear not, I am sent to guide you."',
+      'Medical Authority: "This is for your own good, hold still." (alien/visitor abduction protocol).',
+      'Urgent Command Tone: they bark orders fast so you act before you evaluate.'
+    ],
+    signs: [
+      'You move your body before you even agree.',
+      'You feel guilty resisting because "they’ll be mad."',
+      'You’re scared of "getting in trouble" more than you’re scared of the situation.',
+      'You rationalize obvious wrongness because "they must know what they’re doing."'
+    ],
+    defend: [
+      'Ask one disruptive question: "Who authorized you to touch me?" If they dodge, stall or back up.',
+      'Do not open doors just because the voice sounds official.',
+      'Do not assume religious glow = safe. Test it like anything else.',
+      'Delay is defense. Say "hold on" and physically increase distance.'
+    ],
+    usedBy: [
+      'False angels: obedience cult start-up.',
+      'Demons: "swear to me now."',
+      'Visitors/abductors: medical tone, sterile commands.',
+      'Doppelgängers / human collaborators: pretending to be a loved one giving you instructions.'
+    ],
+    notes: [
+      'People don’t get taken because they’re stupid. They get taken because they’re polite.',
+      'If you’re someone who hates "causing a scene," understand: that is exactly who they want.',
+      'Practice saying "No." Out loud. Volume is a skill.'
+    ]
+  }
+
+];
+
+// DOM refs
+const weaknessListEl = document.getElementById('weaknessList');
+const searchInputEl = document.getElementById('searchInput');
+
+const weaknessNameEl = document.getElementById('weaknessName');
+const weaknessTaglineEl = document.getElementById('weaknessTagline');
+const weaknessProfileEl = document.getElementById('weaknessProfile');
+const weaknessSectionsEl = document.getElementById('weaknessSections');
+
+let currentWeaknessId = null;
+
+/* TRACK OPEN SECTIONS (max 2 at a time) */
+let openCards = [];
+
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+/* BUILD ACCORDION CARD */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'title-line';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+/* RENDER LIST IN SIDEBAR */
+function renderWeaknessList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  weaknessListEl.innerHTML = '';
+
+  weaknesses
+    .filter(w => {
+      if (!f) return true;
+      const haystack = [
+        w.name,
+        w.shortDesc,
+        w.tagline
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(w => {
+      const item = document.createElement('div');
+      item.className = 'weakness-item';
+      item.setAttribute('data-id', w.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'weakness-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'weakness-name';
+      nameSpan.textContent = w.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'weakness-tag';
+      tagSpan.textContent = w.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'weakness-desc';
+      descDiv.textContent = w.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showWeakness(w.id);
+      });
+
+      weaknessListEl.appendChild(item);
+    });
+
+  highlightActive(currentWeaknessId);
+}
+
+/* SHOW DETAILS IN MAIN PANEL */
+function showWeakness(id) {
+  const w = weaknesses.find(x => x.id === id);
+  if (!w) return;
+
+  currentWeaknessId = id;
+
+  // header
+  weaknessNameEl.textContent = w.name;
+  weaknessTaglineEl.textContent = w.tagline;
+  weaknessProfileEl.textContent = w.profile;
+
+  // sections
+  weaknessSectionsEl.innerHTML = '';
+  openCards = []; // reset which cards are "open" tracker for new weakness view
+
+  const sectionsData = [
+    {title: 'How They Use This Against You', hint: 'Exploitation pattern', arr: w.exploited || []},
+    {title: 'Warning Signs You\'re Being Farmed', hint: 'Check yourself in real time', arr: w.signs || []},
+    {title: 'How To Harden / Fight Back', hint: 'Practical countermeasures', arr: w.defend || []},
+    {title: 'Who Hunts This Trait', hint: 'Known predator profiles', arr: w.usedBy || []},
+    {title: 'Field Notes', hint: 'Context and ugly truths', arr: w.notes || []},
+  ];
+
+  sectionsData.forEach((sectionObj, idx) => {
+    if (!sectionObj.arr || sectionObj.arr.length === 0) return;
+    const card = buildSectionCard(
+      sectionObj.title,
+      sectionObj.hint,
+      sectionObj.arr,
+      (idx === 0 || idx === 1) // first two start open
+    );
+    weaknessSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  // scroll main to top so user sees header
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+/* HIGHLIGHT ACTIVE ITEM IN SIDEBAR */
+function highlightActive(id) {
+  const items = weaknessListEl.querySelectorAll('.weakness-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+/* SEARCH */
+searchInputEl.addEventListener('input', (e) => {
+  renderWeaknessList(e.target.value);
+});
+
+/* INIT */
+renderWeaknessList('');
+if (weaknesses.length > 0) {
+  showWeakness(weaknesses[0].id);
+}
+</script>
+
+</body>
+</html>
