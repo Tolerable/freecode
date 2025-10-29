@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>ASYLUM FILES: Release & “Voluntary”</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #050607;
+  --panel: #0f1418;
+  --panel-light: #171e24;
+  --accent: #6bfff2;
+  --text: #e9f9ff;
+  --muted: #6e8b90;
+  --line: #233238;
+  --glow: 0 0 12px rgba(107,255,242,0.7);
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #0d1a1c 0%, #020404 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  line-height: 1.45;
+  padding-top: 58px;
+}
+
+/* TOP NAV BAR */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(3,8,10,0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, #0c2a28 0%, #050707 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.8);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(to right, rgba(107,255,242,0.18) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: 0 0 6px rgba(107,255,242,0.7);
+}
+
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(107,255,242,0.25);
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(107,255,242,0.6), inset 0 0 10px rgba(107,255,242,0.35);
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+  pointer-events: none;
+}
+
+/* STAGE LIST IN SIDEBAR */
+.unit-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+.unit-list::-webkit-scrollbar {
+  width: 6px;
+}
+.unit-list::-webkit-scrollbar-track {
+  background: #000;
+}
+.unit-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(107,255,242,0.9);
+}
+
+.unit-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+.unit-item:hover {
+  background: rgba(107,255,242,0.07);
+}
+.unit-item.active {
+  background: rgba(107,255,242,0.15);
+  box-shadow: inset 0 0 12px rgba(107,255,242,0.6);
+}
+
+/* stacked name+tag */
+.unit-line1 {
+  display: block;
+}
+
+.unit-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+  display: block;
+  margin-bottom: 6px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.unit-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(107,255,242,0.8);
+  margin-bottom: 6px;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.unit-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(107,255,242,0.08) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 10% 90%, rgba(0,120,255,0.08) 0%, rgba(0,0,0,0) 70%),
+    #050607;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+#main::-webkit-scrollbar {
+  width: 8px;
+}
+#main::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(107,255,242,0.9);
+}
+
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER CARD */
+#unitHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(107,255,242,0.3);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+
+.unit-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#unitName {
+  font-family: var(--font-head);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(107,255,242,0.8);
+  margin: 0;
+  line-height: 1.2;
+}
+
+#unitTagline {
+  font-size: 0.75rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  line-height: 1.3;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(107,255,242,0.6);
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+#unitPhase {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+#unitProfile {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ACCORDION SECTIONS */
+.section-card {
+  margin-top: 20px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.8),
+    0 0 40px rgba(0,120,255,0.15);
+}
+
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(107,255,242,0.15) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  padding: 14px 16px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-shadow: 0 0 8px rgba(107,255,242,0.7);
+}
+.section-header .label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.section-header .title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.section-header .section-title {
+  color: var(--text);
+}
+.section-header .hint {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  text-shadow: none;
+}
+.section-header .chevron {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  transition: transform 0.15s;
+}
+.section-card.open .section-header .chevron {
+  transform: rotate(90deg);
+}
+
+.section-body {
+  display: none;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.section-card.open .section-body {
+  display: block;
+  background: radial-gradient(circle at 10% 0%, rgba(107,255,242,0.08) 0%, transparent 70%);
+}
+.section-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.section-body li {
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+  text-shadow: var(--glow);
+}
+
+/* FOOTER NOTE */
+.footer-note {
+  margin-top: 32px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 60px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 20px;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 750px) {
+  #sidebar {
+    width: 220px;
+  }
+  #unitName {
+    font-size: 1.1rem;
+  }
+  #unitTagline {
+    font-size: 0.7rem;
+  }
+}
+@media (max-width: 600px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  #main {
+    flex: 1;
+  }
+  .unit-list {
+    max-height: calc(40vh - 110px);
+  }
+  .unit-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  #unitTagline {
+    white-space: normal;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV: this page is DISCHARGE, so THIS link is active -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">ASYLUM FILES</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Overview / History</a>
+      <a class="nav-link" href="methods.html">Methods of Control</a>
+      <a class="nav-link" href="ward.html">Inside The Ward</a>
+      <a class="nav-link" href="staff.html">Who Holds The Keys</a>
+      <a class="nav-link active" href="discharge.html">Release & “Voluntary”</a>
+      <a class="nav-link" href="legacy.html">Myth vs Reality</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>RELEASE & “VOLUNTARY”</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:500;text-shadow:0 0 8px rgba(107,255,242,0.8);">
+        SCRIPT • SAFETY PLAN • OUT THE DOOR
+      </span>
+    </div>
+    <div class="app-sub">
+      You think you can just say “I’m good now” and walk. Cute. Leaving is its own ritual, and if you blow the ritual, the door does not open.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search steps..." />
+    </div>
+  </div>
+
+  <div id="unitList" class="unit-list">
+    <!-- filled by JS -->
+  </div>
+</aside>
+
+<!-- MAIN PANEL -->
+<main id="main">
+  <div class="main-inner">
+    <section id="unitHeader">
+      <div class="unit-title-row">
+        <h1 id="unitName">Loading...</h1>
+        <div id="unitTagline"></div>
+      </div>
+      <div id="unitPhase"></div>
+      <div id="unitProfile"></div>
+    </section>
+
+    <div id="unitSections">
+      <!-- built by JS -->
+    </div>
+
+    <div class="footer-note">
+      You don’t get discharged because you’re fine. You get discharged because you’ve convinced the system it won’t get sued if you walk.
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+Stage object model:
+{
+  id: 'script',
+  name: 'The Discharge Script',
+  tagline: 'Say The Right Words Or Stay',
+  phase: 'The sit-down with staff',
+  shortDesc: 'You are not free. You are auditioning for freedom.',
+  profile: 'Narrative block...',
+  steps: [...],
+  control: [...],
+  feel: [...],
+  chart: [...],
+  after: [...]
+}
+*/
+
+let openCards = [];
+let currentStageId = null;
+
+const stages = [
+  {
+    id: 'script',
+    name: 'The Discharge Script',
+    tagline: 'Say The Right Words Or Stay',
+    phase: 'Final evaluation meeting',
+    shortDesc:
+      'You think “I feel better” matters. What matters is whether you can say, calmly, that you are safe, future-proofed, and compliant.',
+    profile:
+      'The last real hurdle before they’ll let you out is the “how are you doing now?” talk. Usually psych + case manager (sometimes charge nurse) sit with you and run a checklist: suicidal thoughts, self-harm urges, plan, intent, hallucinations, aggression, meds, coping supports at home. There is a right answer to each. You either already know this by instinct or someone on the unit warned you.',
+    steps: [
+      'They ask “Do you still feel like hurting yourself or anyone else?” You are supposed to say “No.”',
+      'They ask “Do you have a plan to keep yourself safe?” You are supposed to say “Yes.”',
+      'They ask “Will you take the meds we’re sending you home with?” You are supposed to say “Yes.”',
+      'They ask “Do you understand how to use coping skills instead of hurting yourself?” You are supposed to say “Yes.”'
+    ],
+    control: [
+      'This is liability math, not friendship.',
+      'If you answer honestly (“I still feel awful and I don’t trust myself alone”), that honesty can keep you locked.',
+      'If you roll your eyes, get sarcastic, or shut down, they can chart “minimizing risk / lacking insight,” which can stall discharge.',
+      'They’re not grading your pain. They’re grading how predictable you will look on paper.'
+    ],
+    feel: [
+      'You are desperate to get out, so you act steady even if you’re shaking inside.',
+      'You’re terrified of saying the “wrong” thing.',
+      'You feel like a hostage negotiating your own release.',
+      'You learn fast that safety is something you perform, not necessarily something you have.'
+    ],
+    chart: [
+      '“Patient denies active SI/HI at this time.” (SI = suicidal ideation, HI = homicidal ideation)',
+      '“Patient verbalizes insight into triggers and coping skills.”',
+      '“Patient agreeable to medication and outpatient follow-up.”',
+      'Those lines become proof that letting you go was “appropriate clinical judgment.”'
+    ],
+    after: [
+      'If you come back to the ER later in crisis, that same note can be used against you: “Patient claimed safety plan adequate.”',
+      'So yes, the script gets you out — but it also becomes part of your permanent story.'
+    ]
+  },
+
+  {
+    id: 'plan',
+    name: 'The Safety Plan Packet',
+    tagline: 'Promise You Won’t Die',
+    phase: 'Right before the door unlocks',
+    shortDesc:
+      'Paper full of “if I feel bad I will ______ instead of ______.” Looks like help. Functions like legal armor.',
+    profile:
+      'The safety plan is a worksheet where you write your “triggers,” “warning signs,” “coping skills,” “safe people I can call,” and “reasons to live.” Sometimes it helps, actually. Sometimes it’s just theater so everyone can say they “safety planned” you before you left.',
+    steps: [
+      'You fill out blanks like “When I feel like hurting myself I will ____ instead.”',
+      'You list “people I can reach out to,” even if you barely trust them.',
+      'You sign it. Staff signs it. Now it’s “official.”',
+      'Your parent / partner / ride might get a copy.'
+    ],
+    control: [
+      'This plan covers them if you spiral after discharge.',
+      'If you say later “I told them I wasn’t ok,” they can say “Patient was discharged with a comprehensive safety plan.”',
+      'If your home situation is actually toxic, but you list home as “support,” the system calls that resolved.'
+    ],
+    feel: [
+      'You’re exhausted, emotional, and just want to go. You’ll sign anything.',
+      'Writing “reasons to stay alive” while still feeling wrecked can feel fake and cruel.',
+      'Sometimes you feel weirdly guilty if your “support” list is short, so you list people you don’t even like.',
+      'It can feel like you’re swearing you won’t struggle again — which is not how humans work.'
+    ],
+    chart: [
+      '“Patient completed individualized safety plan. Patient identified coping skills and support system.”',
+      '“Patient verbalized understanding of crisis hotline resources.”',
+      'Those lines become evidence you were “empowered with tools.”'
+    ],
+    after: [
+      'If you actually use the plan, sometimes it helps in a bad night. Sometimes just reading your own handwriting is enough to slow you down.',
+      'If you don’t or can’t, nobody will see that part. Paper still says you were good to go.'
+    ]
+  },
+
+  {
+    id: 'aftercare',
+    name: 'Aftercare & Compliance',
+    tagline: 'We Still Own You Off-Site',
+    phase: 'The “follow-up plan” talk',
+    shortDesc:
+      'They set your future appointments, your meds, and sometimes your curfew — and then they call that “freedom.”',
+    profile:
+      'Before you leave, social work / case management maps where you’re supposed to go next: outpatient therapy, med management, group programs, check-ins. This is sold as “support.” Sometimes it is. Sometimes it’s just surveillance with nice fonts.',
+    steps: [
+      'They hand you appointment dates and expect you to show.',
+      'They give you prescriptions or a small starter supply and say “take exactly as directed.”',
+      'They tell you “if you feel unsafe call 988 / crisis / come back to the ER.”',
+      'They ask you to verbally agree you’ll do all that.'
+    ],
+    control: [
+      'If you skip follow-up, you get marked “noncompliant” in your chart. That label wrecks future credibility.',
+      'If you stop meds without doctor blessing, you get marked “refused treatment.”',
+      'If you stop going to group, they can say “patient unwilling to engage in care,” which plays badly if you ever face a judge for another hold.'
+    ],
+    feel: [
+      'You’re not “done.” You’re on probation.',
+      'It’s like parole for your brain: screw up and back you go.',
+      'You feel watched even after you’re technically “free.”',
+      'There’s pressure to act grateful for this surveillance.'
+    ],
+    chart: [
+      '“Patient agrees to med compliance and outpatient psychiatric follow-up.”',
+      '“Patient verbalizes understanding of emergency resources.”',
+      '“Patient denies current SI/HI; appropriate for step-down level of care.”',
+      '“Step-down level of care” = you’re not their problem unless you become their problem again.'
+    ],
+    after: [
+      'If you actually get a good outpatient therapist or prescriber, this can be the first time you feel seen as a person again.',
+      'If not, you just traded one set of strangers in scrubs for a rotating door of overbooked clinics.'
+    ]
+  },
+
+  {
+    id: 'family',
+    name: 'Family / Handler Briefing',
+    tagline: 'They Deputize Your People',
+    phase: 'The handoff moment',
+    shortDesc:
+      'Staff talks to whoever’s picking you up and turns them into unofficial ward staff at home.',
+    profile:
+      'Before you walk, they often pull in your parent / partner / whoever’s driving you. They explain “warning signs,” meds, what to lock up, and when to bring you back. Congratulations: that person is now part-safety net, part-guard.',
+    steps: [
+      'They say “Watch them closely the next 48 hours.”',
+      'They tell them to secure meds, sharps, cords, weapons — anything the hospital considers a “means.”',
+      'They advise “If you see X or Y behavior, return them to the ER immediately.”',
+      'They hint, sometimes, that you might lie to get freedom.'
+    ],
+    control: [
+      'Your parent/partner is now scared of you slipping, and scared of being blamed if you do.',
+      'That fear turns your home into a post-release observation zone.',
+      'You try to act calm so they don’t freak and drag you back in.',
+      'Your bedroom becomes “the watch post.”'
+    ],
+    feel: [
+      'You’re relieved to see someone who isn’t in scrubs.',
+      'You’re also suddenly aware that THEY’RE nervous to be alone with you.',
+      'You feel like luggage being checked out of a facility with care instructions.',
+      'You can tell the dynamic at home won’t be normal for a while.'
+    ],
+    chart: [
+      '“Discharge instructions reviewed with caregiver, caregiver verbalized understanding.”',
+      '“Caregiver denies safety concerns regarding taking patient home at this time.”',
+      'That line protects the unit: “Caregiver said it was fine when they left here.”'
+    ],
+    after: [
+      'Your people might overcorrect and hover so hard you can’t breathe.',
+      'Your people might under-correct and pretend nothing happened at all.',
+      'Either way, the hospital now thinks it handed you off to “support.” Whether it’s true or not no longer matters.'
+    ]
+  },
+
+  {
+    id: 'exit',
+    name: 'The Walk-Out',
+    tagline: 'You’re Free (On Paper)',
+    phase: 'Door opens, you step into air',
+    shortDesc:
+      'Fastest emotional whiplash you’ll ever feel: light, noise, air, keys, phone, freedom — and total adrenaline crash.',
+    profile:
+      'Someone unlocks a door you couldn’t open five minutes ago. You step out with a plastic bag of your stuff. Sometimes you’re still wearing hospital-safe clothes. Sometimes you haven’t slept. Sometimes you haven’t really eaten. But yes, technically, you’re “better.” The file says so.',
+    steps: [
+      'They hand you your phone, ID, wallet, shoelaces, strings, jewelry.',
+      'They might inventory your stuff back out loud: “Phone returned. Wallet returned. Earrings returned.”',
+      'They say “Call us if you need anything,” and you know that means “only if it’s the kind of need we can bill for.”',
+      'You walk. Just like that. No slow reintegration. One second: locked psych. Next second: parking lot.'
+    ],
+    control: [
+      'They keep the chart. You keep the stigma.',
+      'Your discharge summary will follow you anywhere medical from now on.',
+      'If cops or EMS ever see your file again, “psych history” becomes part of how they treat you in literally every future emergency.'
+    ],
+    feel: [
+      'Relief so strong it hurts.',
+      'Paranoia that they’ll call you back and say “actually wait, we changed our mind.”',
+      'Sensory overload: sound, sun, open space, cars, people who don’t know you were just locked up.',
+      'Then the crash: “I’m out, but I’m not fixed.”'
+    ],
+    chart: [
+      '“Patient discharged in stable condition.”',
+      '“No acute distress noted.”',
+      '“Patient ambulatory, escorted off unit with personal belongings.”',
+      'That’s how your story ends, officially.'
+    ],
+    after: [
+      'Night 1 out can be the hardest. You’re alone with the quiet again.',
+      'The urge to do something reckless — drink, run, disappear, self-destruct — can spike because all that pressure finally lets go.',
+      'If you get through the first 24-48 hours, the odds get a little better. Not fixed. Just better than inside.'
+    ]
+  }
+]; // end stages[]
+
+
+/* DOM refs */
+const unitListEl = document.getElementById('unitList');
+const searchInputEl = document.getElementById('searchInput');
+
+const unitNameEl = document.getElementById('unitName');
+const unitTaglineEl = document.getElementById('unitTagline');
+const unitPhaseEl = document.getElementById('unitPhase');
+const unitProfileEl = document.getElementById('unitProfile');
+const unitSectionsEl = document.getElementById('unitSections');
+
+/* open card limiter (max 2 open) */
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+/* build accordion section */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'title-line';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+/* render stage list in sidebar */
+function renderStageList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  unitListEl.innerHTML = '';
+
+  stages
+    .filter(s => {
+      if (!f) return true;
+      const haystack = [
+        s.name,
+        s.shortDesc,
+        s.tagline,
+        s.phase
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'unit-item';
+      item.setAttribute('data-id', s.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'unit-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'unit-name';
+      nameSpan.textContent = s.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'unit-tag';
+      tagSpan.textContent = s.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'unit-desc';
+      descDiv.textContent = s.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showStage(s.id);
+      });
+
+      unitListEl.appendChild(item);
+    });
+
+  highlightActive(currentStageId);
+}
+
+/* show selected stage in main panel */
+function showStage(id) {
+  const st = stages.find(x => x.id === id);
+  if (!st) return;
+
+  currentStageId = id;
+
+  unitNameEl.textContent = st.name;
+  unitTaglineEl.textContent = st.tagline;
+  unitPhaseEl.textContent = st.phase;
+  unitProfileEl.textContent = st.profile;
+
+  unitSectionsEl.innerHTML = '';
+  openCards = [];
+
+  const sectionsData = [
+    {title: 'What Happens', hint: 'Procedure / how this part works', arr: st.steps || []},
+    {title: 'Why They Do It', hint: 'Control, liability, leverage', arr: st.control || []},
+    {title: 'How It Feels', hint: 'Inside your body / head', arr: st.feel || []},
+    {title: 'The Official Story', hint: 'How they write it down', arr: st.chart || []},
+    {title: 'After You Walk', hint: 'What follows you home', arr: st.after || []},
+  ];
+
+  sectionsData.forEach((sectionObj, idx) => {
+    if (!sectionObj.arr || sectionObj.arr.length === 0) return;
+    const card = buildSectionCard(
+      sectionObj.title,
+      sectionObj.hint,
+      sectionObj.arr,
+      (idx === 0 || idx === 1)
+    );
+    unitSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+/* highlight active in sidebar */
+function highlightActive(id) {
+  const items = unitListEl.querySelectorAll('.unit-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+/* search hook */
+searchInputEl.addEventListener('input', (e) => {
+  renderStageList(e.target.value);
+});
+
+/* init */
+renderStageList('');
+if (stages.length > 0) {
+  showStage(stages[0].id);
+}
+</script>
+
+</body>
+</html>
