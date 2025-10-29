@@ -1336,6 +1336,15 @@ function renderMonsterList(filterText = '') {
   highlightActive(currentMonsterId);
 }
 
+function closeAllSections(exceptCard) {
+  const cards = monsterSectionsEl.querySelectorAll('.section-card');
+  cards.forEach(c => {
+    if (c !== exceptCard) {
+      c.classList.remove('open');
+    }
+  });
+}
+
 // BUILD SECTION CARD (ACCORDION)
 function buildSectionCard(title, hint, bullets, open=false) {
   const card = document.createElement('div');
@@ -1376,14 +1385,22 @@ function buildSectionCard(title, hint, bullets, open=false) {
   const ul = document.createElement('ul');
   bullets.forEach(b => {
     const li = document.createElement('li');
-    li.innerHTML = b
-      .replace(/^([^:]+):/,'<strong>$1:</strong>'); // bold first phrase before colon if present
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
     ul.appendChild(li);
   });
   bodyDiv.appendChild(ul);
 
   headerBtn.addEventListener('click', () => {
-    card.classList.toggle('open');
+    const willOpen = !card.classList.contains('open');
+
+    if (willOpen) {
+      // close all others, then open this one
+      closeAllSections(card);
+      card.classList.add('open');
+    } else {
+      // clicking an already-open card closes it
+      card.classList.remove('open');
+    }
   });
 
   card.appendChild(headerBtn);
@@ -1391,6 +1408,7 @@ function buildSectionCard(title, hint, bullets, open=false) {
 
   return card;
 }
+
 
 let currentMonsterId = null;
 
