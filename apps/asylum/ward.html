@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>ASYLUM FILES: Inside The Ward</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #050607;
+  --panel: #0f1418;
+  --panel-light: #171e24;
+  --accent: #6bfff2;
+  --text: #e9f9ff;
+  --muted: #6e8b90;
+  --line: #233238;
+  --glow: 0 0 12px rgba(107,255,242,0.7);
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #0d1a1c 0%, #020404 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  line-height: 1.45;
+  padding-top: 58px;
+}
+
+/* TOP NAV BAR */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(3,8,10,0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, #0c2a28 0%, #050707 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.8);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(to right, rgba(107,255,242,0.18) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: 0 0 6px rgba(107,255,242,0.7);
+}
+
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(107,255,242,0.25);
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(107,255,242,0.6), inset 0 0 10px rgba(107,255,242,0.35);
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(107,255,242,0.7);
+  pointer-events: none;
+}
+
+/* UNIT LIST IN SIDEBAR */
+.unit-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+.unit-list::-webkit-scrollbar {
+  width: 6px;
+}
+.unit-list::-webkit-scrollbar-track {
+  background: #000;
+}
+.unit-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(107,255,242,0.9);
+}
+
+.unit-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+.unit-item:hover {
+  background: rgba(107,255,242,0.07);
+}
+.unit-item.active {
+  background: rgba(107,255,242,0.15);
+  box-shadow: inset 0 0 12px rgba(107,255,242,0.6);
+}
+
+/* stack name + tag */
+.unit-line1 {
+  display: block;
+}
+
+.unit-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+  display: block;
+  margin-bottom: 6px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.unit-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(107,255,242,0.8);
+  margin-bottom: 6px;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.unit-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(107,255,242,0.08) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 10% 90%, rgba(0,120,255,0.08) 0%, rgba(0,0,0,0) 70%),
+    #050607;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+#main::-webkit-scrollbar {
+  width: 8px;
+}
+#main::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(107,255,242,0.9);
+}
+
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER CARD */
+#unitHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(107,255,242,0.3);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+
+.unit-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#unitName {
+  font-family: var(--font-head);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(107,255,242,0.8);
+  margin: 0;
+  line-height: 1.2;
+}
+
+#unitTagline {
+  font-size: 0.75rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  line-height: 1.3;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(107,255,242,0.6);
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+#unitPhase {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+#unitProfile {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ACCORDION SECTIONS */
+.section-card {
+  margin-top: 20px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.8),
+    0 0 40px rgba(0,120,255,0.15);
+}
+
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(107,255,242,0.15) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  padding: 14px 16px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-shadow: 0 0 8px rgba(107,255,242,0.7);
+}
+.section-header .label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.section-header .title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.section-header .section-title {
+  color: var(--text);
+}
+.section-header .hint {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  text-shadow: none;
+}
+.section-header .chevron {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  transition: transform 0.15s;
+}
+.section-card.open .section-header .chevron {
+  transform: rotate(90deg);
+}
+
+.section-body {
+  display: none;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.section-card.open .section-body {
+  display: block;
+  background: radial-gradient(circle at 10% 0%, rgba(107,255,242,0.08) 0%, transparent 70%);
+}
+.section-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.section-body li {
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+  text-shadow: var(--glow);
+}
+
+/* FOOTER NOTE */
+.footer-note {
+  margin-top: 32px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 60px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 20px;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 750px) {
+  #sidebar {
+    width: 220px;
+  }
+  #unitName {
+    font-size: 1.1rem;
+  }
+  #unitTagline {
+    font-size: 0.7rem;
+  }
+}
+@media (max-width: 600px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  #main {
+    flex: 1;
+  }
+  .unit-list {
+    max-height: calc(40vh - 110px);
+  }
+  .unit-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  #unitTagline {
+    white-space: normal;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV: this page is WARD, so THIS link is active -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">ASYLUM FILES</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Overview / History</a>
+      <a class="nav-link" href="methods.html">Methods of Control</a>
+      <a class="nav-link active" href="ward.html">Inside The Ward</a>
+      <a class="nav-link" href="staff.html">Who Holds The Keys</a>
+      <a class="nav-link" href="discharge.html">Release & “Voluntary”</a>
+      <a class="nav-link" href="legacy.html">Myth vs Reality</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>INSIDE THE WARD</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:500;text-shadow:0 0 8px rgba(107,255,242,0.8);">
+        INTAKE • WATCH • CONTROL • OUT
+      </span>
+    </div>
+    <div class="app-sub">
+      This is what “we’re just keeping you safe” really looks like, step by step, from the second the door locks to the moment they say you’re allowed to leave.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search phases..." />
+    </div>
+  </div>
+
+  <div id="unitList" class="unit-list">
+    <!-- filled by JS -->
+  </div>
+</aside>
+
+<!-- MAIN PANEL -->
+<main id="main">
+  <div class="main-inner">
+    <section id="unitHeader">
+      <div class="unit-title-row">
+        <h1 id="unitName">Loading...</h1>
+        <div id="unitTagline"></div>
+      </div>
+      <div id="unitPhase"></div>
+      <div id="unitProfile"></div>
+    </section>
+
+    <div id="unitSections">
+      <!-- built by JS -->
+    </div>
+
+    <div class="footer-note">
+      Everyone swears it’s “not like the movies.” They’re right. It’s calmer, brighter, cleaner — and somehow that makes the control feel even colder.
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+Unit phase object model:
+{
+  id: 'intake',
+  name: 'Intake & Search',
+  tagline: 'You Belong To Us Now',
+  phase: 'Arrival at the locked unit',
+  shortDesc: 'Paperwork turns into custody. “Voluntary” turns into “you can’t just leave.”',
+  profile: 'Narrative block...',
+  steps: [...],
+  control: [...],
+  feel: [...],
+  chart: [...],
+  after: [...]
+}
+*/
+
+let openCards = [];
+let currentUnitId = null;
+
+const phases = [
+  {
+    id: 'intake',
+    name: 'Intake & Search',
+    tagline: 'You Belong To Us Now',
+    phase: 'The first 30-90 minutes',
+    shortDesc: 'They say “we’re going to get you safe.” What actually happens is they take everything that makes you feel like a person and log it.',
+    profile:
+      'When you arrive on a psych/adolescent/behavioral health unit, the tone flips fast. You walk in as you. You become “the patient.” Shoes off. Belongings bagged. Pockets emptied. You answer questions while you’re scared and exhausted, and all of it goes in a chart that decides how much freedom you get.',
+    steps: [
+      'You sign papers you’re too wrecked to read. Those papers can be used to justify holding you.',
+      'You get searched. Clothes, pockets, bra, socks, waistbands. They call it “checking for sharps or ligatures.”',
+      'They take your phone, your bag, anything with strings, anything glass, metal, or pointy.',
+      'They assign you risk level before they know you. That label decides how watched you’ll be.'
+    ],
+    control: [
+      'Language is gentle: “For safety, sweetie.” The effect is custody.',
+      'If you ask “can I leave,” staff will often not answer directly. That’s on purpose.',
+      'They start using clinical words about you, in front of you, like you are not really there.',
+      'If you act angry about any of this, that anger becomes proof you need tighter control.'
+    ],
+    feel: [
+      'You realize you’re not in normal space anymore. Doors lock behind you instead of in front of you.',
+      'You are suddenly dependent on strangers for bathroom breaks, phone calls, even basic privacy.',
+      'You feel embarrassed, exposed, handled.',
+      'It hits: I don’t get to just walk away from this.'
+    ],
+    chart: [
+      '“Patient admits suicidal ideation.”',
+      '“Patient anxious, tearful, guarded.”',
+      '“Patient verbally oppositional to intake process.”',
+      'Every word is evidence now. The chart is their version of you.'
+    ],
+    after: [
+      'Once intake is done, you are officially inside their system. Every next step — meds, watch level, sleep checks — flows from that first impression.',
+      'From this point on, “how you are doing” is partly about how you behave under their structure, not just how you actually feel.',
+      'They consider this medical. You often experience it as processed.'
+    ]
+  },
+
+  {
+    id: 'confiscation',
+    name: 'Belongings Lock-Up',
+    tagline: 'No Strings, No Glass, No Privacy',
+    phase: 'Immediately after intake',
+    shortDesc: 'Your stuff gets sealed away and you live on unit-approved items only.',
+    profile:
+      'Everything that could be “a risk” goes into a labeled bin. Sometimes you get a few personal items back after a safety review, sometimes not. You don’t hold your ID, your wallet, or your phone. They do.',
+    steps: [
+      'They inventory every item, down to hair ties.',
+      'Anything “not allowed” goes in a locker you can’t access without staff.',
+      'You change into “safe” clothes if what you wore in doesn’t pass.',
+      'Shoelaces, hood strings, jewelry chains, metal underwires — gone.'
+    ],
+    control: [
+      'They call this “ligature safety.”',
+      'But it also breaks your sense of identity fast. You stop looking like you.',
+      'Your ability to communicate with the outside world is now controlled.',
+      'You are literally less equipped to run.'
+    ],
+    feel: [
+      'Like getting booked into jail, except everyone smiles and says “hun” and “sweetheart.”',
+      'Like being downgraded from person to case file with a body attached.',
+      'Like you’re being turned into something compliant, soft-edged, low-threat.'
+    ],
+    chart: [
+      '“All contraband removed.”',
+      '“Patient oriented to unit rules.”',
+      '“Patient verbalized understanding of safety protocols.”',
+      'If you said, “I don’t like this,” they don’t chart “hates this.” They chart “anxious.”'
+    ],
+    after: [
+      'From now until discharge, every comfort (phone call, hoodie, lotion, even a pencil) is a privilege.',
+      'And privileges can be removed “for safety” anytime.',
+      'That power imbalance is not an accident. It’s the core design.'
+    ]
+  },
+
+  {
+    id: 'q15',
+    name: 'Q15 / Constant Watch',
+    tagline: 'We See You Sleep',
+    phase: 'All night, every night, until they downgrade you',
+    shortDesc: 'Someone documents you every few minutes: alive, location, behavior. You are never unobserved.',
+    profile:
+      '“Q15” (or Q5, or even 1-to-1 watch) means staff checks you on a schedule and logs it. They shine light in your doorway at 2am. They count breaths. Sometimes you can’t shut the bathroom door without permission. This is absolutely used to keep people alive. It also feels like you lost the right to exist unrecorded.',
+    steps: [
+      'Door opens. Flashlight/door light. Clipboard note.',
+      'You get asked, “Are you okay?” and you know it’s not actually a question.',
+      'Bathroom trips can require someone standing outside listening. Sometimes watching.',
+      'If you cry or panic, it’s charted. If you say “I want out,” it’s charted.'
+    ],
+    control: [
+      'The line is “We’re keeping you safe.”',
+      'The reality is “We’re making sure you don’t make us legally responsible for a body.”',
+      'You don’t get to say “please stop watching me while I pee.”',
+      'If you protest, you’re labeled “escalating.”'
+    ],
+    feel: [
+      'You do not sleep. You drift and jolt because every few minutes you’re checked.',
+      'You feel like livestock on observation.',
+      'You stop relaxing even when you’re technically “safe.”',
+      'You start performing being okay just to get some privacy back.'
+    ],
+    chart: [
+      '“Patient sleeping, respirations even.”',
+      '“Patient awake, tearful, verbalizes desire to leave; reinforced safety plan.”',
+      '“Patient attempted to close bathroom door beyond policy; redirected.”',
+      'The chart becomes the official reality and the official reality is what decides if you’re released.'
+    ],
+    after: [
+      'They will reduce watch level only when they believe you are “stabilized.”',
+      '“Stabilized” here very often means “no longer loudly distressing,” not “no longer in pain.”',
+      'You learn to shut up faster so you can breathe alone for five minutes. They call that progress.'
+    ]
+  },
+
+  {
+    id: 'schedule',
+    name: 'The Unit Schedule',
+    tagline: 'Group, Group, Group',
+    phase: 'Morning to night, daily',
+    shortDesc: 'You move when the sheet says move. You talk when the sheet says talk. You heal on their clock.',
+    profile:
+      'Locked psych units run on schedules because staff needs structure more than you need comfort. Wake-up time, vitals check, meds line, breakfast, group therapy, craft therapy, coping skills circle, lunch, more group, “free time,” wrap-up group, lights down. You don’t get to decide if you’re “in the mood.” Refusal = “not engaging in treatment.”',
+    steps: [
+      'A tech or nurse wakes you for vitals. Doesn’t matter if you slept.',
+      'You line up for meds whether you want them or not.',
+      'You’re expected in group. “I don’t want to share in a circle” is not really an accepted answer.',
+      'If you stay in your room too long, you get a check and a note.'
+    ],
+    control: [
+      'Your day is no longer about your needs. It’s about demonstrating participation.',
+      'If you smile and nod in coping skills group, you’re “responding to treatment.”',
+      'If you say “this is fake and I hate it,” you’re “resistant.”',
+      'The chart will back the staff version, not yours.'
+    ],
+    feel: [
+      'You’re exhausted and emotional in front of total strangers.',
+      'Other patients may be in meltdown right in the middle of group.',
+      'You might bond with someone who’s shaking, or screaming, or doped and slurring, and that will stay with you.',
+      'You feel like a file walking through stations.'
+    ],
+    chart: [
+      '“Attended morning group. Affect constricted but appropriate.”',
+      '“Denied active SI at this time.” (SI = suicidal ideation)',
+      '“Accepted PRN medication for anxiety.” (PRN = as-needed, often means “we gave something to quiet them.”)',
+      '“Cooperative with milieu expectations.” <- Staff loves this phrase.'
+    ],
+    after: [
+      'Participation gets used to argue you’re better.',
+      'Refusal gets used to argue you still need to be held.',
+      'Either way, the schedule is leverage. You learn fast: play along or stay longer.'
+    ]
+  },
+
+  {
+    id: 'restraint',
+    name: 'Restraint / Seclusion Events',
+    tagline: '“For Everyone’s Safety”',
+    phase: 'When someone escalates',
+    shortDesc: 'Hands on you. Drag to a bare room. Sometimes straps. Then everyone writes reports.',
+    profile:
+      'They call it a “code.” Staff rushes in, bodies on you, arms pinned, legs pinned, you’re lifted or dragged to a seclusion room. Door shuts. Maybe lights always on. Maybe eyes on you through plexiglass. They’ll say you were a danger. You might’ve just been done being ignored.',
+    steps: [
+      'Shouting, crying, throwing, self-harm attempt, refusal to hand over contraband, “aggressive posture,” anything like that can trigger it.',
+      'Five bodies minimum. Wrists and ankles controlled.',
+      'You’re moved fast, heart hammering, usually crying or raging.',
+      'Once you’re in the room, time means nothing.'
+    ],
+    control: [
+      'Every phrase is legal armor: “Least restrictive measure used,” “Verbal de-escalation attempted,” “Applied only to ensure safety.”',
+      'If you say they hurt you, it’s “patient alleges discomfort during escort.”',
+      'If you fought, that gets used later to justify meds or tighter watch.'
+    ],
+    feel: [
+      'Terror and humiliation and fury, all at once.',
+      'Adrenaline shakes. You can’t stop shaking and they write “continues to escalate.”',
+      'You feel less than human because they are literally holding you like an object.',
+      'You are fully aware that no one outside can see this.'
+    ],
+    chart: [
+      '“Patient attempted to harm self/others.”',
+      '“Patient unresponsive to redirection.”',
+      '“Patient placed in seclusion for 30 minutes for safety.” (The 30 is often a lie, it can be longer.)',
+      '“MD notified.” <- this line protects the unit.'
+    ],
+    after: [
+      'On paper, restraint is “rare, last resort.” In reality it’s a pressure valve for staff.',
+      'Afterward you’re often more compliant — partly because you’re traumatized, partly because you’re scared they’ll do it again.',
+      'From their POV, that looks like proof it “worked.”'
+    ]
+  },
+
+  {
+    id: 'discharge',
+    name: 'The Release Conversation',
+    tagline: 'Say The Right Words',
+    phase: 'End of stay',
+    shortDesc: 'You do not walk out because you’re “over it.” You walk out when you can speak the script.',
+    profile:
+      'People outside think “if you’re in a psych ward you just sign yourself out.” Cute. The exit is paperwork and liability math. They want to hear you say you’re not going to kill yourself, you understand coping skills, you’ll follow up outpatient, and you’ll stay on whatever plan they wrote.',
+    steps: [
+      'You meet with a doctor / social worker / case manager.',
+      'They ask about suicidal thoughts. There is only one safe answer and everyone in the room knows it.',
+      'They line up “aftercare”: meds, therapy appointments, maybe outpatient groups.',
+      'They hand your family a safety plan and a packet of rules.'
+    ],
+    control: [
+      'This part decides if you’re “cleared.”',
+      'If you say “I still feel like dying,” they are not letting you out.',
+      'If you say “I’m fine, leave me alone,” they might chart “minimizing risk.” That can also delay you.',
+      'You are trained to say exactly what will get them to sign the paper.'
+    ],
+    feel: [
+      'You’re desperate to get out, so you act stable even if you’re shredded inside.',
+      'You’re afraid if you tell the truth, you’re trapped longer.',
+      'You’re afraid if you lie too obviously, they’ll know and keep you.',
+      'It’s a hostage negotiation where you’re both the hostage and the suspect.'
+    ],
+    chart: [
+      '“Patient denies active SI/HI at this time.” (HI = homicidal ideation)',
+      '“Patient verbalizes coping plan including [journaling / support person / crisis line].”',
+      '“Patient agrees to medication adherence.”',
+      '“Patient considered stable for discharge with outpatient follow-up.”'
+    ],
+    after: [
+      'You leave physically outside the unit but mentally still carrying it.',
+      'Your family thinks “it’s fixed.” It’s not fixed. It’s just documented.',
+      'If you come back again, you are not a mystery anymore. You are a “repeat.” That label follows you.'
+    ]
+  }
+]; // end phases[]
+
+
+/* DOM refs */
+const unitListEl = document.getElementById('unitList');
+const searchInputEl = document.getElementById('searchInput');
+
+const unitNameEl = document.getElementById('unitName');
+const unitTaglineEl = document.getElementById('unitTagline');
+const unitPhaseEl = document.getElementById('unitPhase');
+const unitProfileEl = document.getElementById('unitProfile');
+const unitSectionsEl = document.getElementById('unitSections');
+
+/* open card limiter (max 2 open) */
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+/* build accordion section */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'title-line';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+/* render unit phase list in sidebar */
+function renderUnitList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  unitListEl.innerHTML = '';
+
+  phases
+    .filter(p => {
+      if (!f) return true;
+      const haystack = [
+        p.name,
+        p.shortDesc,
+        p.tagline,
+        p.phase
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(p => {
+      const item = document.createElement('div');
+      item.className = 'unit-item';
+      item.setAttribute('data-id', p.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'unit-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'unit-name';
+      nameSpan.textContent = p.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'unit-tag';
+      tagSpan.textContent = p.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'unit-desc';
+      descDiv.textContent = p.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showPhase(p.id);
+      });
+
+      unitListEl.appendChild(item);
+    });
+
+  highlightActive(currentUnitId);
+}
+
+/* show a phase's details in main panel */
+function showPhase(id) {
+  const ph = phases.find(x => x.id === id);
+  if (!ph) return;
+
+  currentUnitId = id;
+
+  unitNameEl.textContent = ph.name;
+  unitTaglineEl.textContent = ph.tagline;
+  unitPhaseEl.textContent = ph.phase;
+  unitProfileEl.textContent = ph.profile;
+
+  unitSectionsEl.innerHTML = '';
+  openCards = [];
+
+  const sectionsData = [
+    {title: 'What Happens', hint: 'Procedure / what they physically do', arr: ph.steps || []},
+    {title: 'What It Really Means', hint: 'Control and leverage', arr: ph.control || []},
+    {title: 'How It Feels', hint: 'Inside your body / head', arr: ph.feel || []},
+    {title: 'What They Write Down', hint: 'The chart version of you', arr: ph.chart || []},
+    {title: 'What Sticks After', hint: 'How this phase follows you', arr: ph.after || []},
+  ];
+
+  sectionsData.forEach((sectionObj, idx) => {
+    if (!sectionObj.arr || sectionObj.arr.length === 0) return;
+    const card = buildSectionCard(
+      sectionObj.title,
+      sectionObj.hint,
+      sectionObj.arr,
+      (idx === 0 || idx === 1)
+    );
+    unitSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+/* highlight active in sidebar */
+function highlightActive(id) {
+  const items = unitListEl.querySelectorAll('.unit-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+/* search hook */
+searchInputEl.addEventListener('input', (e) => {
+  renderUnitList(e.target.value);
+});
+
+/* init */
+renderUnitList('');
+if (phases.length > 0) {
+  showPhase(phases[0].id);
+}
+</script>
+
+</body>
+</html>
