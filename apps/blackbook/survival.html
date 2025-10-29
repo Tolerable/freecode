@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Hunter Manual | Black Book Archive</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #0a0a10;
+  --panel: #13131f;
+  --panel-light: #1d1d2d;
+  --accent: #5dd9ff; /* tactical / field guide blue */
+  --accent-soft: rgba(93,217,255,0.18);
+  --text: #f5f5f7;
+  --muted: #7a7a90;
+  --line: #2a2a3f;
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --glow: 0 0 12px rgba(93,217,255,0.7);
+}
+
+/* RESET-ish */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* BODY LAYOUT */
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #1a1a2a 0%, #050507 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  line-height: 1.45;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: 58px; /* space for fixed nav bar */
+}
+
+/* TOP NAV BAR (shared across site) */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10,10,16,0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-shadow: var(--glow);
+  white-space: nowrap;
+}
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: var(--glow);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: var(--glow);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, #0a1b22 0%, #0c0c13 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.8);
+  position: relative;
+  z-index: 10;
+  min-height: calc(100vh - 58px);
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(to right, rgba(93,217,255,0.15) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: var(--glow);
+}
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(93,217,255,0.25);
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(93,217,255,0.6), inset 0 0 10px rgba(93,217,255,0.35);
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  pointer-events: none;
+}
+
+/* THREAT LIST (sidebar list) */
+.threat-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+.threat-list::-webkit-scrollbar {
+  width: 6px;
+}
+.threat-list::-webkit-scrollbar-track {
+  background: #000;
+}
+.threat-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(93,217,255,0.9);
+}
+
+.threat-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+.threat-item:hover {
+  background: rgba(93,217,255,0.07);
+}
+.threat-item.active {
+  background: rgba(93,217,255,0.15);
+  box-shadow: inset 0 0 12px rgba(93,217,255,0.6);
+}
+.threat-line1 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+.threat-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+}
+.threat-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(93,217,255,0.8);
+}
+.threat-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(93,217,255,0.07) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 10% 90%, rgba(92,0,255,0.07) 0%, rgba(0,0,0,0) 70%),
+    #0a0a10;
+  position: relative;
+  overflow-x: hidden;
+}
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER CARD */
+#threatHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(93,217,255,0.25);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+.threat-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+#threatName {
+  font-family: var(--font-head);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(93,217,255,0.8);
+  margin: 0;
+  line-height: 1.2;
+}
+#threatTagline {
+  font-size: 0.75rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  line-height: 1.3;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(93,217,255,0.6);
+  white-space: nowrap;
+  max-width: 100%;
+}
+#threatProfile {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* SECTION CARDS */
+.section-card {
+  margin-top: 20px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.8),
+    0 0 40px rgba(92,0,255,0.15);
+}
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(93,217,255,0.15) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  padding: 14px 16px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-shadow: 0 0 8px rgba(93,217,255,0.7);
+}
+.section-header .label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.section-header .title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.section-header .section-title {
+  color: var(--text);
+}
+.section-header .hint {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  text-shadow: none;
+}
+.section-header .chevron {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  transition: transform 0.15s;
+}
+.section-card.open .section-header .chevron {
+  transform: rotate(90deg);
+}
+.section-body {
+  display: none;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+  background: radial-gradient(circle at 10% 0%, rgba(93,217,255,0.07) 0%, transparent 70%);
+}
+.section-card.open .section-body {
+  display: block;
+}
+.section-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.section-body li {
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+  text-shadow: var(--glow);
+}
+
+/* FOOTER NOTE */
+.footer-note {
+  margin-top: 32px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 60px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 20px;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 750px) {
+  #sidebar {
+    width: 220px;
+  }
+  #threatName {
+    font-size: 1.1rem;
+  }
+  #threatTagline {
+    font-size: 0.7rem;
+    white-space: normal;
+  }
+}
+@media (max-width: 600px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .threat-list {
+    max-height: calc(40vh - 110px);
+  }
+  #main {
+    flex: 1;
+  }
+  .threat-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">BLACK BOOK ARCHIVE</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Monster Lies</a>
+      <a class="nav-link" href="weaknesses.html">Human Weaknesses</a>
+      <a class="nav-link" href="coverups.html">Erasure Tactics</a>
+      <a class="nav-link active" href="survival.html">Hunter Manual</a>
+      <a class="nav-link" href="collaborators.html">Human Traitors</a>
+      <a class="nav-link" href="timeline.html">Timeline</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>HUNTER MANUAL</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:500;text-shadow:var(--glow);">CIVILIAN SURVIVAL GUIDE</span>
+    </div>
+    <div class="app-sub">
+      You are not a chosen hero. You are meat that wants to stay breathing. These are tactics that actually work for untrained humans without gear.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search threats..." />
+    </div>
+  </div>
+
+  <div id="threatList" class="threat-list"></div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <div class="main-inner">
+    <section id="threatHeader">
+      <div class="threat-title-row">
+        <h1 id="threatName">Loading...</h1>
+        <div id="threatTagline"></div>
+      </div>
+      <div id="threatProfile"></div>
+    </section>
+
+    <div id="threatSections"></div>
+
+    <div class="footer-note">
+      Rules: (1) You are allowed to scream. (2) You are allowed to run. (3) You are allowed to survive instead of looking brave. Glory kills you. Embarrassment keeps you alive.
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+Each threat object fields:
+id, name, shortDesc, tagline, profile,
+prep[], avoid[], engage[], escape[], neverDo[], notes[]
+"prep" = what to do BEFORE contact
+"avoid" = how not to get targeted in first place / early warning
+"engage" = if you're already in it and can't run
+"escape" = how to break away alive
+"neverDo" = myths and fatal mistakes
+"notes" = gritty truths
+*/
+
+const threats = [
+  {
+    id: 'vampire',
+    name: 'Vampire',
+    shortDesc: 'Predator that feeds on blood, control, and silence.',
+    tagline: 'Social Predator / Narrative Assassin',
+    profile: 'A vampire doesn’t just kill you. It stages you. It edits what happened. Its main weapon is not fangs — it’s how good it is at making everybody believe it’s harmless, tragic, romantic, elite, untouchable. You survive not by staking like a movie, but by forcing it into public view where it loses leverage.',
+    prep: [
+      'Keep proof tools on you: charged phone with instant-share to multiple contacts. Vampires fear exposure way more than wood.',
+      'Have two “panic contacts” in your phone you can blast location/audio to with one tap. Paranoia is a seatbelt.',
+      'Practice saying, out loud, "Back off. You are making me uncomfortable." Vampires expect politeness. Rudeness is a weapon.',
+      'Understand grooming: if someone way above your league/status fixates on you instantly, that is not a compliment. That is targeting.'
+    ],
+    avoid: [
+      'Do not go anywhere private with someone who is way too charming too fast.',
+      'Never let them reframe the situation as “intimate” when you barely know them. Intimacy = isolation.',
+      'Watch for sudden waves of relaxation or adoration when you should be scared. That’s glamour. Treat it like pepper spray in your brain.',
+      'If you feel like a small, adored pet instead of like an equal human, leave.'
+    ],
+    engage: [
+      'Volume is a weapon. Vampires thrive on secrecy. Loud public confrontation spikes their risk.',
+      'Shove, don’t grapple. You’re not winning a strength contest. You’re buying a step of distance and eyes on you.',
+      'Break line-of-sight. Get behind cars, furniture, people, anything. Glamour often relies on eye contact.',
+      'If you can: record their face while shouting things like "THIS PERSON IS ATTACKING ME." You just turned it into evidence, witness recruitment, and ego wound all in one.'
+    ],
+    escape: [
+      'Get to populated, well-lit areas. They hate improvisation under witnesses.',
+      'Force third parties in: “CALL THE POLICE RIGHT NOW.” You want sirens. Sirens ruin clean kills.',
+      'If they latch physically, target eyes and throat like you mean it. Pretty isn’t fragile, but it is still tissue.',
+      'Once you break free, do NOT go home right away. They can follow. Go somewhere chaotic and public first.'
+    ],
+    neverDo: [
+      'Do not assume daylight = safe. Some weaken, sure, but they can still move, grab, manipulate, threaten.',
+      'Do not think "they love me, they would never really hurt me." You are food and leverage.',
+      'Do not let them walk you through “just talk to me, calm down.” That’s hypnosis disguised as de-escalation.',
+      'Do not apologize for making a scene. Embarrassing them is survival.'
+    ],
+    notes: [
+      'Stakes work. So does fire. So does decapitation. The issue is access, not theory.',
+      'They build human teams (familiars) specifically so they don’t have to get messy themselves. Sometimes the human is the one you’ll actually fight.',
+      'Your goal is not to slay the ancient immortal horror. Your goal is to get out, loud, fast, documented.'
+    ]
+  },
+
+  {
+    id: 'werewolf',
+    name: 'Werewolf',
+    shortDesc: 'High-mass ambush attacker with a human brain.',
+    tagline: 'Rage Predator / Close-Quarters Kill',
+    profile: 'It is not “tragically out of control.” It remembers every second. It targets on purpose. A werewolf goes for throat first so you can’t scream and bleeds you fast. It wants you isolated. Your number one defense is: do not get isolated.',
+    prep: [
+      'Do not walk alone with the “angry guy who just needs to cool off” behind buildings, into alleys, out to the parking lot. If they insist private, assume predator.',
+      'Keep your keys in your dominant hand when walking at night. Keys are not a weapon; the car is a weapon. Your plan is to get inside metal and engine.',
+      'Know where the nearest car alarm or building alarm button is when you’re out. Loud equals survival.',
+      'Condition yourself to run TOWARD people, not away, when scared. Pack beats lone wolf.'
+    ],
+    avoid: [
+      'If someone who gave you a bad vibe earlier suddenly “wants to talk alone,” that is a hunting pattern.',
+      'Pay attention to drunk fights or angry exes escalating in dark corners. Those are pretext isolates.',
+      'If you hear low growl / deep chest breathing behind you and it’s not a dog you know, do not turn and freeze. MOVE. NOW.',
+      'If you are in a rural town where the sheriff keeps saying "coyotes" and everyone else seems tense at night: do not wander at night.'
+    ],
+    engage: [
+      'If they’re mid-shift or shifted, do NOT wrestle. You will lose.',
+      'Your job is to blind, stagger, and break contact. Eyes, nose, anything sensitive on the face. Go ugly immediately.',
+      'Use improvised barriers. Trash can lids, chairs, bar stools, doors slammed between you. You just need 2–3 seconds head start.',
+      'If you have a car door between you and it, slam the door edge into its muzzle / face. Pain buys distance.'
+    ],
+    escape: [
+      'Get inside a vehicle and LOCK. Metal beats fur.',
+      'Lay on the horn. Continuous alarm draws witnesses and spooks the thing back into “don’t get caught” mode.',
+      'Drive. Do not try to film. Drive.',
+      'If you’re on foot: lights, crowds, noise. Werewolves don’t like panicked crowds where someone might have a gun or camera.'
+    ],
+    neverDo: [
+      'Do not assume “full moon only.” They can partial-shift on adrenaline.',
+      'Do not try to emotionally talk them down in monster form. That’s movie logic.',
+      'Do not try to be “the hero” and stand your ground for someone else unless you have an actual escape plan for both of you.',
+      'Do not follow blood trails to “check if they’re okay.” That’s bait.'
+    ],
+    notes: [
+      'Silver hurts, but the point of silver is irritation and infection — not magic insta-kill. You’re not forging bullets in a parking lot. Focus on not being alone.',
+      'A werewolf kill ALWAYS looks personal. Remember that. It’s not random nature. It’s a message.',
+      'If someone in town is way too eager to say “animal attack, tragic,” assume they’re covering for it.'
+    ]
+  },
+
+  {
+    id: 'siren',
+    name: 'Siren / Lure-Caller / Drowning Voice',
+    shortDesc: 'Sound that wants you in the water.',
+    tagline: 'Acoustic Ambush / Body Retrieval Is Optional',
+    profile: 'The siren is built on one rule: you come to it. It rarely comes to you first. It gets you to voluntarily step into its kill zone (shoreline, dock edge, storm drain, flooded tunnel, pool at night) so it barely has to fight.',
+    prep: [
+      'Rule: never approach a body of water alone at night because you “heard something weird.”',
+      'Tell someone where you are every time you go near water after dark. Literally text “I’m by the dock” first.',
+      'If you are emotionally raw (lonely, grieving, ashamed), assume anything calling your name from water is hunting you.',
+      'Carry a high-lumen light at night. Sirens like darkness and distance.'
+    ],
+    avoid: [
+      'If you hear your own name coming from water, and nobody you trust is physically next to you saying “that’s me,” you leave.',
+      'If you hear a baby crying or someone begging for help from the water: stop. Predators use “rescue instinct” against empathetic people.',
+      'Do not lean over the water’s edge to “get a better look.” That’s grab range.',
+      'Never turn your back on open water at night if you’re within arm’s reach of the edge.'
+    ],
+    engage: [
+      'Blind it. High-lumen flash directly at the source of movement/splash if it surfaces. Light breaks a lot of ambush predators.',
+      'Back away, don’t turn and sprint. Turning = slip = splash = done.',
+      'Shout for witnesses. “SOMETHING IS IN THE WATER RIGHT HERE.” You want other eyes NOW.',
+      'If it breaches and grabs you: aim for eyes/face/gills with anything sharp. Thrash violently AWAY from deeper water, not randomly.'
+    ],
+    escape: [
+      'If you get free, get distance from the water immediately and STAY OUT OF REACH. Do not go back to “check.”',
+      'Keep yelling. Public noise destroys its hunting conditions.',
+      'Get indoors (vehicle, building) with other humans. Regroup there.',
+      'Expect shock. Cold + adrenaline crash is real. Sit down somewhere safe before you fall down somewhere unsafe.'
+    ],
+    neverDo: [
+      'Do not say “who’s there?” and walk closer. That’s literally the trap.',
+      'Do not let embarrassment pull you back (“omg I overreacted, I should go look, it was probably nothing”). Embarrassment kills.',
+      'Do not assume it only hunts beaches. Storm drains, canals, reservoirs, even hotel pools at 3am can be feeding grounds.',
+      'Do not jump in to play hero unless you’ve got backup and flotation. Dead heroes feed the same as scared victims.'
+    ],
+    notes: [
+      'Sirens don’t just kill. Some take you alive.',
+      'A LOT of “accidental drownings” are actually successful pulls.',
+      'If your town has “one dangerous spot” where people keep vanishing, and everyone shrugs like “that place is cursed,” that’s not a curse. That’s a buffet.'
+    ]
+  },
+
+  {
+    id: 'shadow',
+    name: 'Shadow Figure / Sleep-Paralysis Entity',
+    shortDesc: 'It sits on you and trains you to obey.',
+    tagline: 'No Witness / Night Control',
+    profile: 'This thing’s job is to condition you. First it scares you. Then it normalizes itself. Then it starts giving you urges, instructions, compulsions. The goal is long-term access, not one-night terror.',
+    prep: [
+      'Document immediately. Timestamp, what it did, what it said, what it felt like. Write, not just think.',
+      'Tell someone you trust. Secrecy is how it keeps growing.',
+      'Change sleep environment for a night or two (friend’s place, couch, hotel). Break its routine. Force it to follow you in public if it wants you.',
+      'Add light/noise while you sleep: TV at low volume, lamp on. You’re not curing it, you’re making its job harder until you regroup.'
+    ],
+    avoid: [
+      'Do not sleep alone in total darkness if you’re already being targeted.',
+      'Do not let yourself get chronically sleep-deprived. Exhaustion makes you easier to sit on.',
+      'If you feel watched in one corner of your room every night, stop sleeping in that line-of-sight. Move furniture, move your bed, break its pattern.',
+      'Don’t joke “haha I’m haunted.” That’s you training yourself to underreact.'
+    ],
+    engage: [
+      'If you wake and can’t move: focus on one tiny motion (wiggle a finger, flex a toe, click your tongue). Your goal is to break the full-freeze first.',
+      'Once you can move anything: make noise. Any noise. Knock, grunt, knock the headboard. Sound = proof = threat to it.',
+      'Tell it “NO. YOU DON’T GET ME.” Out loud if you can move. Entities rely on compliance language.',
+      'Turn on a light as soon as you can move. Bright light spikes a lot of them off you.'
+    ],
+    escape: [
+      'Sleep somewhere else for 1-2 nights with witnesses. Force it into shared space if it wants access.',
+      'If you live with someone, do paired sleep (same room) for a bit. Be honest why.',
+      'Rebuild your sleep so you’re not constantly wrecked. Tired targets stop fighting.',
+      'If it follows you and escalates physically (scratches, bruises), you are past “annoying haunting” and into “active harm.” Treat it as violence.'
+    ],
+    neverDo: [
+      'Do not accept its version of events when you’re awake (“you wanted this,” “you let me in,” “you called me”). That’s scripted guilt.',
+      'Do not isolate out of embarrassment. Isolation is step two of possession playbooks.',
+      'Do not assume doctors will believe you. Get medical support for sleep, yes, but also keep your own record of the attacks.',
+      'Do not beg it for mercy. That’s consent in some systems.'
+    ],
+    notes: [
+      'Lots of people think sleep paralysis means you imagined it. That is exactly the cover story it wants.',
+      'When it starts giving you urges to hurt yourself or someone else, that’s escalation. Loop in help now, not later.',
+      'Laughing at it actually hurts it. Mockery breaks fear trance.'
+    ]
+  },
+
+  {
+    id: 'demon',
+    name: 'Demon / Binding Entity',
+    shortDesc: 'Intelligence that wants contracts, leverage, and long-term access.',
+    tagline: 'Deal-Maker / Psychological Breaker',
+    profile: 'A demon does not usually kick the door in and throw you around. It would rather have you sign yourself over in anger, pain, desperation, or revenge. It wants you to agree. If you don’t agree, its job is harder.',
+    prep: [
+      'Decide in advance: “I will not agree to any bargain made under panic, rage, or grief.” Make that a rule like seatbelts.',
+      'Practice saying “No deal.” Short. Final. Out loud.',
+      'Tell someone in your life what you’re angry enough to sell your soul for. Secrets make you easy.',
+      'Do not play with summoning rituals for fun. You are not their first idiot. You will not be their last idiot.'
+    ],
+    avoid: [
+      'Be alert for voices/ideas in your head that feel external and flattering: “You deserve better. I can fix this for you. Just say yes.”',
+      'Watch for promises of revenge that sound way too easy.',
+      'Watch for anything that frames obedience as love or loyalty.',
+      'If you start cutting off healthy people in your life because something told you “they’ll betray you,” you are being isolated on purpose.'
+    ],
+    engage: [
+      'When it talks, don’t debate theology. Just deny permission. “You don’t get me.”',
+      'Do not accept any oaths, marks, blessings, gifts. Binding often hides behind “gifts.”',
+      'If it’s manifesting physically: eyes, throat, noise, light. Treat it like any other attacker. You are still allowed to fight back physically.',
+      'Call witnesses NOW. “Get in here. Something is in this room.” Demons hate multiple observers because it breaks their “this is private between us” control trick.'
+    ],
+    escape: [
+      'Get out of the charged environment (the ritual circle, the basement, the closed bedroom) and into neutral space with people.',
+      'Reinforce your own will out loud: “I choose me. You don’t own me.” Corny, yes. Effective, also yes.',
+      'Sleep, eat, hydrate. Weak bodies fold faster. Survival is incredibly physical.',
+      'If it’s specifically tied to an object (gifted jewelry, old book, weird carving), get that object out of your immediate environment, preferably sealed, and not in your bedroom.'
+    ],
+    neverDo: [
+      'Do not say “Fine, whatever, take me then” in anger. That counts.',
+      'Do not ask it for power “just this once.” There is no “just once.”',
+      'Do not let it frame itself as your only safe friend. That is textbook domestic abuser script.',
+      'Do not keep secrets “to protect others from the truth.” Secrets are how you get owned.'
+    ],
+    notes: [
+      'Demons rarely look like movie demons. They look like help.',
+      'You cannot out-clever a being that’s done this to humans for centuries. You can, however, refuse to play.',
+      'They hate being mocked almost as much as they hate being ignored.'
+    ]
+  },
+
+  {
+    id: 'poltergeist',
+    name: 'Poltergeist / Violent Haunting',
+    shortDesc: 'Escalates from nuisance to injury to destruction.',
+    tagline: 'Environmental Weaponization',
+    profile: 'A poltergeist is basically “the house is trying to kill you.” It ramps: knocks → thrown objects → shattered glass → fire. It wants panic. Panic makes you predictable. Predictable makes you targetable.',
+    prep: [
+      'At first sign of actual thrown objects (not just knocks), start documenting. Video, timestamps, witnesses.',
+      'Check exits and clear paths ahead of time. You might have to evacuate fast in the dark.',
+      'Know where fire extinguishers are. Fire is a favorite mid-stage weapon.',
+      'Stash essentials (keys, ID, phone, meds) somewhere grab-and-go so you can bail fast.'
+    ],
+    avoid: [
+      'Do not taunt it “for fun.” Escalation is the point.',
+      'Do not stay alone in a visibly escalating site if you have somewhere else you can safely sleep.',
+      'Do not ignore small scorch marks, broken plates, or cutlery ending up embedded point-first in walls. That’s not “quirky.” That’s a warning shot.',
+      'Do not assume it’s harmless because nobody is dead yet.'
+    ],
+    engage: [
+      'If objects start flying: get low, cover head/neck with your arms, and MOVE OUT. Do not stand there filming for clout.',
+      'If it tries to herd you into one room (doors slam behind you), FIGHT THE DOORS. Do not go deeper. Do not go upstairs or into basements if you can avoid it. Basements = choke points.',
+      'If flames start: extinguish ONLY if safe, otherwise evacuate and call for help. You can’t overpower a house.',
+      'Keep talking out loud to other living humans if they’re with you. Staying verbally connected helps keep panic under control.'
+    ],
+    escape: [
+      'Leave. I mean physically leave the property.',
+      'Stay gone until someone qualified can clear it or until it cools off (some calm when the target is gone).',
+      'Do not immediately return alone “to grab one more thing.” That’s when doors lock.',
+      'If you MUST re-enter, bring at least one other person, bright light, and tell someone else where you are.'
+    ],
+    neverDo: [
+      'Do not assume “it’s my fault, I’m making it happen.” That shame script keeps you in place.',
+      'Do not sleep in the most active room once it escalates.',
+      'Do not believe “it only throws small stuff.” That is stage one.',
+      'Do not stay because you’re worried people will think you’re dramatic. Dramatic is alive.'
+    ],
+    notes: [
+      'Insurance and cops will call it “gas leak,” “faulty wiring,” “kids messing around.” That’s normal. Don’t waste time arguing. Get safe first.',
+      'These things LOVE emotionally volatile households, because chaos = fuel.',
+      'If it fixates on one person, that person needs distance NOW. Sometimes when they leave, activity plummets.'
+    ]
+  },
+
+  {
+    id: 'fae',
+    name: 'Fae / Glamour-Taker / Other Court',
+    shortDesc: 'They don’t eat you. They take you.',
+    tagline: 'Abduction By Invitation',
+    profile: 'Fae-style predators don’t maul. They invite. They seduce. They coax you to “step just a little further,” and you wake up somewhere that isn’t ours anymore — or you don’t wake up at all. The weapon is enchantment + flattery + rules you don’t know you’re breaking.',
+    prep: [
+      'Learn to say “No, I’m going home now” without softening it.',
+      'Do not give your full name to strangers who make you feel dreamy or floaty.',
+      'Set a “buddy check” rule at parties, raves, festivals, outdoor night hangs. People vanish from crowds, not just alleys.',
+      'Carry cheap noise — whistle, alarm keychain. Fae hate sudden ugly reality cutting through their nice little trance.'
+    ],
+    avoid: [
+      'If someone impossibly beautiful focuses SOLELY on you out of nowhere, assume lure.',
+      'If the world suddenly feels “too pretty,” colors too saturated, music too perfect, air too sweet — assume glamour.',
+      'If they talk like you’re special/saved/chosen/understood instantly, treat it as a red alert.',
+      'Never follow anyone into trees / fields / tents / back rooms “just for a minute.”'
+    ],
+    engage: [
+      'Break eye contact. Look at the ground, your hands, your phone screen — anything reflective of normal reality.',
+      'Create ugliness. Loud noise, crude language, physical clumsiness. The spell hates ugly interruption.',
+      'Say “NO.” You don’t bargain. You refuse.',
+      'Call out to a friend by name at full volume. “JESSICA GET OVER HERE NOW.” Drag mortal witnesses into the moment.'
+    ],
+    escape: [
+      'Get into consecratedly normal space: fluorescent lighting, gas station bathroom, grocery store, hospital ER waiting room. Mundane zones cut enchantment.',
+      'Eat or drink something plain, something clearly yours (your own sealed bottle of water, your own snack). Shared food in their presence can bind you.',
+      'If you feel “pulled back,” grab a physical anchor — car door, metal railing, anything heavy and real — and focus on texture, temperature, edges.',
+      'Stay with people for a while after. Do not walk home alone “to clear your head.” That’s when they re-approach.'
+    ],
+    neverDo: [
+      'Do not say “I promise.” Binding words are contracts.',
+      'Do not accept gifts you can’t pay back immediately, fairly, in a way YOU define.',
+      'Do not eat their food. That is folklore 101 because it is literally true in structure: taking their offering makes you theirs.',
+      'Do not apologize for “being rude.” Rude is your lifeline.'
+    ],
+    notes: [
+      'Most modern fae hits get rebranded “they ran away.” If you hear that about someone who vanished from a music festival, you know what probably happened.',
+      'Once they mark you as “the interesting one,” they may try for repeat contact on different nights wearing different faces.',
+      'You are not obligated to be polite to something that wants to keep you.'
+    ]
+  },
+
+  {
+    id: 'tall',
+    name: 'Tall Faceless Thing / Slender-Type Stalker',
+    shortDesc: 'Lurks at tree line, windows, playground edges, bedroom doors.',
+    tagline: 'Distance Terror / Child Harvest Pattern',
+    profile: 'This thing doesn’t sprint at you. It’s not a werewolf. It stands where you can see it. It lets fear do the heavy lifting. It conditions kids to walk to it. It conditions adults to freeze while the kid walks.',
+    prep: [
+      'Teach kids and honestly yourself: “If you see someone without a face / too tall / wrong, you do NOT go closer. You get an adult and you ALL leave.”',
+      'Establish family code phrases for “come NOW, no questions.”',
+      'Keep curtains/blinds closed at night on ground-floor windows. Don’t feed it audience.',
+      'If you live near woods, set a hard boundary line kids do not cross after dark, ever.'
+    ],
+    avoid: [
+      'Do not treat repeated sightings as jokes. “Haha we saw him again behind the shed” is how it normalizes itself.',
+      'Do not let kids play just inside the tree line “because they like being in the woods, it’s fine.” That’s the hunting zone.',
+      'Do not investigate alone to “prove it’s nothing.” You are walking into its comfort zone.',
+      'Do not assume it only targets children. Adults get taken too, especially exhausted caregivers.'
+    ],
+    engage: [
+      'Your priority is extraction, not confrontation. Get the kid/person away from the line of sight immediately.',
+      'Keep physical contact with whoever it’s targeting. Touch grounds people, snaps trance.',
+      'Do not stare at it longer than you need to confirm it’s real. Break visual lock. Looking too long deepens the freeze.',
+      'Say out loud: “We are leaving now.” Give your nervous system a command.'
+    ],
+    escape: [
+      'Get inside. Lock doors. Turn on inside lights, turn OFF outside porch light if it just makes you backlit.',
+      'Group up in one room, not scattered. Predators hate herding multiple alert targets.',
+      'Document that it happened. Date, time, who saw it. You’re building pattern evidence.',
+      'Sleep somewhere else if it started looking into windows. A watcher at your window is phase escalation.'
+    ],
+    neverDo: [
+      'Do not send a single person back out to “check.”',
+      'Do not assume “it didn’t chase, so it’s fine.” Its weapon is patience.',
+      'Do not shame a kid for seeing it. Shame forces silence next time.',
+      'Do not call it by cute names. Cute = familiar. Familiar = safe. Safe = dinner bell.'
+    ],
+    notes: [
+      'Communities with repeat sightings often also have “kids keep going missing” rumors that get blamed on runaways.',
+      'If you saw it once, you might see it again. It learns who can see it.',
+      'Treat any tall faceless watcher like an active abductor, not a ghost story.'
+    ]
+  },
+
+  {
+    id: 'witch',
+    name: 'Witch (Ageless Predator Type)',
+    shortDesc: 'Not a modern practitioner. The thing that bargains your life away.',
+    tagline: 'Debt Binder / Deal Matriarch',
+    profile: 'This is the swamp/forest/abandoned-apartment crone who offers favors, healing, curse-breaking, revenge, miracles. Its contracts are traps. You walk in desperate, you walk out owned. Or you don’t walk out.',
+    prep: [
+      'Make a rule for yourself: “I will not bargain for miracles when I’m panicking.”',
+      'List three humans you can call when you’re desperate so you don’t go to something inhuman instead.',
+      'Practice saying “No, I don’t owe you anything” out loud.',
+      'Never speak your full name in a place that feels wrong, abandoned, or too quiet.'
+    ],
+    avoid: [
+      'If a stranger in a liminal spot (edge of woods, last apartment on a dead hallway, trailer at the very end of a dirt road) says “come in, I can fix it,” turn around.',
+      'If they play helpless or pitiful and you feel GUILTY not helping, that’s a hook.',
+      'If they say “just a tiny favor later,” that’s a contract forming.',
+      'If you smell rot + herbs + sweetness at once, leave. That’s lair scent.'
+    ],
+    engage: [
+      'If you’re already inside: do not eat or drink anything.',
+      'Do not accept physical contact framed as “healing touch.” Touch can bind.',
+      'Keep conversation literal. Do not say “I promise,” “I owe you,” “I’ll do anything.” Those are legal words to it.',
+      'If you feel yourself getting drowsy / floaty, STAND UP and head toward the exit immediately. That’s sedation.'
+    ],
+    escape: [
+      'Walk. Don’t run unless it physically grabs you. Running can trigger chase.',
+      'Do not look back if it calls your name on the way out. Old rule, still real.',
+      'Once you’re out of line-of-sight of the lair, CALL SOMEONE and tell them exactly where you were. Mark the map.',
+      'If you feel “marked,” do not sleep alone the first night. It likes return visits.'
+    ],
+    neverDo: [
+      'Do not bargain for revenge. Revenge is the fastest leash.',
+      'Do not come back “to say thank you.” That’s re-opening the door.',
+      'Do not bring it gifts unless you want the relationship formalized.',
+      'Do not pity it. Pity is how it gets you to sit down.'
+    ],
+    notes: [
+      'This kind of witch keeps trophies: hair, teeth, photos, ID cards, voice recordings. If you saw your stuff there, you are already on file.',
+      'The “sweet grandma” act is theater. It has outlived towns.',
+      'Most missing-person legends that start “they went to ask the old woman for help” end as bones.'
+    ]
+  },
+
+  {
+    id: 'swarm',
+    name: 'Horde / Infection / Pack-Style Undead',
+    shortDesc: 'Too many, too fast, too hungry.',
+    tagline: 'Do Not Get Surrounded',
+    profile: 'Zombies, ghouls, infected rage mobs, whatever you want to label it — the threat model is the same: numbers. Your plan is not to fight the mob. Your plan is not to cure the mob. Your plan is to not become part of the mob.',
+    prep: [
+      'Know your exits in every crowded space (club, stadium, subway platform). Clock them casually every time you enter.',
+      'Keep shoes you can actually run in. Fashion kills.',
+      'Carry something that makes noise (alarm, whistle). Panic freezes crowds. Noise wakes crowds up.',
+      'If you’re with friends, have a “grab and go” rule: link wrists/hoodies and MOVE AS ONE if anything feels wrong.'
+    ],
+    avoid: [
+      'If a group suddenly goes quiet-still or suddenly goes loud-feral, do not stand there analyzing. You move.',
+      'If you see biting, tearing, or feeding, you do not “check if they’re okay.” You LEAVE.',
+      'Do not get funneled into narrow hallways, stairwells, or dead ends.',
+      'Do not trip. Sounds obvious, but your survival is 90% “don’t fall down in the middle of the stampede.”'
+    ],
+    engage: [
+      'If one lunges: GO FOR JOINTS. Knees, ankles. You’re not trying to kill it; you’re trying to make it fall and become an obstacle for the ones behind it.',
+      'Use doors, furniture, carts, anything on wheels to create barricades between you and the bulk.',
+      'Commit to strikes. Half-hits waste time. Full hits stagger.',
+      'Stay off the ground. If you hit the floor in a swarm, you are done.'
+    ],
+    escape: [
+      'MOVE WITH A GROUP, NOT ALONE. A panicked but mobile group is harder to fully overrun than one panicked individual.',
+      'Get to locked, solid barrier with visibility out (car with windows, store with metal gate).',
+      'Once you are behind a barrier, DO NOT OPEN IT FOR BITTEN PEOPLE. This sounds cruel. It is survival math.',
+      'Stay quiet once safe. Sound can re-aggro a swarm.'
+    ],
+    neverDo: [
+      'Do not “just film it for proof.” You’re not a documentarian. You’re a meal holding a camera.',
+      'Do not assume they’re slow. Some swarms sprint.',
+      'Do not try to “talk them down” if they’re already gone. Humanity switch is off.',
+      'Do not separate from your group to play hero. Lone heroes trip and get eaten first.'
+    ],
+    notes: [
+      'Swarms are why exits matter. You don’t win a swarm fight. You escape early or you don’t escape.',
+      'If you DID get bit/scratched and infection is a risk: you tell the group immediately. You don’t hide it. Hidden infection kills everybody.',
+      'Any area that’s had one swarm event can have another. Predators remember good feeding grounds.'
+    ]
+  }
+
+]; // end threats array
+
+
+/* DOM refs */
+const threatListEl = document.getElementById('threatList');
+const searchInputEl = document.getElementById('searchInput');
+
+const threatNameEl = document.getElementById('threatName');
+const threatTaglineEl = document.getElementById('threatTagline');
+const threatProfileEl = document.getElementById('threatProfile');
+const threatSectionsEl = document.getElementById('threatSections');
+
+let currentThreatId = null;
+
+/* TRACK OPEN SECTIONS (max 2 at a time) */
+let openCards = [];
+
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+/* BUILD ACCORDION CARD */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'title-line';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+/* RENDER LIST IN SIDEBAR */
+function renderThreatList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  threatListEl.innerHTML = '';
+
+  threats
+    .filter(t => {
+      if (!f) return true;
+      const haystack = [
+        t.name,
+        t.shortDesc,
+        t.tagline
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(t => {
+      const item = document.createElement('div');
+      item.className = 'threat-item';
+      item.setAttribute('data-id', t.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'threat-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'threat-name';
+      nameSpan.textContent = t.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'threat-tag';
+      tagSpan.textContent = t.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'threat-desc';
+      descDiv.textContent = t.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showThreat(t.id);
+      });
+
+      threatListEl.appendChild(item);
+    });
+
+  highlightActive(currentThreatId);
+}
+
+/* SHOW DETAILS IN MAIN PANEL */
+function showThreat(id) {
+  const t = threats.find(x => x.id === id);
+  if (!t) return;
+
+  currentThreatId = id;
+
+  // header
+  threatNameEl.textContent = t.name;
+  threatTaglineEl.textContent = t.tagline;
+  threatProfileEl.textContent = t.profile;
+
+  // sections
+  threatSectionsEl.innerHTML = '';
+  openCards = []; // reset which cards are "open" for new threat
+
+  const sectionsData = [
+    {title: 'Before Contact', hint: 'Prep that stacks the odds your way', arr: t.prep || []},
+    {title: 'Avoid Getting Picked', hint: 'How to not be the easy target', arr: t.avoid || []},
+    {title: 'If You’re Already In It', hint: 'Immediate tactics during contact', arr: t.engage || []},
+    {title: 'Break Away Alive', hint: 'Escape and post-contact steps', arr: t.escape || []},
+    {title: 'Fatal Mistakes', hint: 'Hollywood rules that get you killed', arr: t.neverDo || []},
+    {title: 'Field Notes', hint: 'Ugly truths we’ve learned the hard way', arr: t.notes || []},
+  ];
+
+  sectionsData.forEach((sectionObj, idx) => {
+    if (!sectionObj.arr || sectionObj.arr.length === 0) return;
+    const card = buildSectionCard(
+      sectionObj.title,
+      sectionObj.hint,
+      sectionObj.arr,
+      (idx === 0 || idx === 1) // first two open by default
+    );
+    threatSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  // scroll main to top so user sees header
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+/* HIGHLIGHT ACTIVE ITEM IN SIDEBAR */
+function highlightActive(id) {
+  const items = threatListEl.querySelectorAll('.threat-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+/* SEARCH */
+searchInputEl.addEventListener('input', (e) => {
+  renderThreatList(e.target.value);
+});
+
+/* INIT */
+renderThreatList('');
+if (threats.length > 0) {
+  showThreat(threats[0].id);
+}
+</script>
+
+</body>
+</html>
