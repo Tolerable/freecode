@@ -471,6 +471,7 @@ STRUCTURE OF EACH MONSTER OBJECT:
   lore: ['bullet',...]
 }
 */
+let openCards = [];
 
 const monsters = [
   {
@@ -1336,14 +1337,26 @@ function renderMonsterList(filterText = '') {
   highlightActive(currentMonsterId);
 }
 
-function closeAllSections(exceptCard) {
-  const cards = monsterSectionsEl.querySelectorAll('.section-card');
-  cards.forEach(c => {
-    if (c !== exceptCard) {
-      c.classList.remove('open');
+function registerOpen(card) {
+  // Add this card to the tracking list if it's not already there
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+
+  // If more than 2 are open, close the oldest one
+  if (openCards.length > 2) {
+    const toClose = openCards.shift(); // remove first opened
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
     }
-  });
+  }
 }
+
+function unregister(card) {
+  // Remove this card from the tracking list when it's manually closed
+  openCards = openCards.filter(c => c !== card);
+}
+
 
 // BUILD SECTION CARD (ACCORDION)
 function buildSectionCard(title, hint, bullets, open=false) {
@@ -1390,21 +1403,29 @@ function buildSectionCard(title, hint, bullets, open=false) {
   });
   bodyDiv.appendChild(ul);
 
+  // click behavior
   headerBtn.addEventListener('click', () => {
-    const willOpen = !card.classList.contains('open');
+    const isOpen = card.classList.contains('open');
 
-    if (willOpen) {
-      // close all others, then open this one
-      closeAllSections(card);
-      card.classList.add('open');
-    } else {
-      // clicking an already-open card closes it
+    if (isOpen) {
+      // user is closing this section
       card.classList.remove('open');
+      unregister(card);
+    } else {
+      // user is opening this section
+      card.classList.add('open');
+      registerOpen(card);
     }
   });
 
   card.appendChild(headerBtn);
   card.appendChild(bodyDiv);
+
+  // if this section starts already open on first render,
+  // make sure tracking knows it
+  if (open) {
+    registerOpen(card);
+  }
 
   return card;
 }
