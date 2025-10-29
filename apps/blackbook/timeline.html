@@ -428,4 +428,568 @@ body {
 </style>
 </head>
 <body>
-</html>
+
+<!-- NAV -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">BLACK BOOK ARCHIVE</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Monster Lies</a>
+      <a class="nav-link" href="weaknesses.html">Human Weaknesses</a>
+      <a class="nav-link" href="coverups.html">Erasure Tactics</a>
+      <a class="nav-link" href="survival.html">Hunter Manual</a>
+      <a class="nav-link" href="collaborators.html">Human Traitors</a>
+      <a class="nav-link active" href="timeline.html">Timeline</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>INCIDENT TIMELINE</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:600;text-shadow:var(--glow);">ERAS • PATTERNS • OFFICIAL LIES</span>
+    </div>
+    <div class="app-sub">
+      When you zoom out, the monsters aren’t random. They adapt, rebrand, and reuse the same tricks under new names. Humans help them forget the last version.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search eras, cover stories..." />
+    </div>
+  </div>
+
+  <div id="eraList" class="era-list"></div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <div class="main-inner">
+    <section id="eraHeader">
+      <div class="era-title-row">
+        <h1 id="eraName">Loading...</h1>
+        <div id="eraTagline"></div>
+      </div>
+      <div id="eraProfile"></div>
+    </section>
+
+    <div id="eraSections"></div>
+
+    <div class="footer-note">
+      The timeline is not “ancient → modern = safer.” It’s “ancient → modern = deniability got better.” Assume escalation, not progress.
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+NOTE:
+This script expects the following CSS variables / layout already defined in <head> for timeline.html:
+
+We assume in <head> you set:
+  --accent: #6bff8a; (radiation-sick green / contamination vibe)
+  --accent-soft: rgba(107,255,138,0.18);
+  and the same base structure as other pages (fonts, nav, cards, etc.)
+  plus the timeline-specific classes below:
+
+- Sidebar list class is 'era-list'
+- era-item structure mirrors others (role-item / threat-item pattern),
+  but fields are era name + tag + summary line.
+
+Behavior:
+Left column lists eras.
+Clicking one loads details:
+  keyMoments[] = big milestone events in that era
+  coverStory[] = what excuses were invented / popularized then
+  escalation[] = how monsters evolved tactics
+  whatChanged[] = what humans started doing that helped (or made it worse)
+  notes[] = extra
+We open first two accordions by default like other pages.
+We also limit max 2 open section-cards at once, like other pages.
+*/
+
+const eras = [
+  {
+    id: 'prehistory',
+    name: 'Prehistory – First Arrangements',
+    tagline: '“Do Not Speak Their Names After Dark”',
+    summary: 'Before records. Before paper. Monsters fed openly. Humans survived by ritual, tribute, and not asking questions they couldn’t survive knowing.',
+    profile:
+      'There was no “cover story.” There was agreement. Villages traded safety for silence. Monsters did not hide; humans did. The rule was appeasement: leave an offering, don’t wander, and pretend the screams are thunder.',
+    keyMoments: [
+      'Boundary laws: early groups drew invisible lines (sacred groves, cursed marsh, bone piles). Crossing those lines after dark was considered suicide, not adventure.',
+      'Seasonal tribute: people, livestock, blood. Families claimed it was “honor” so they didn’t have to face that it was loss.',
+      'Naming taboos: not speaking the entity’s true name was survival, not superstition. Saying its name was like ringing a dinner bell.',
+      'Bone markers: skull stacks, rune-carved stones, ash circles — warnings to outsiders, “keep walking.”'
+    ],
+    coverStory: [
+      'No story. No spin. Everyone knew.',
+      'Disappearances chalked up to “the woods took them,” “the water wanted them,” “they angered the night.” The killer was nature-as-god, not a specific creature.',
+      'Parents trained children with fear, not fiction. “You step off the path after moonrise, we will not come get you.” Brutal, but honest.'
+    ],
+    escalation: [
+      'Some entities started preferring clever prey (humans who could talk, trade, conspire) over dumb prey (animals).',
+      'Predators learned bargaining. They realized humans could be tricked instead of chased.',
+      'First “promises”: “Serve me, and I won’t eat you.” Familiar dynamic was born here.'
+    ],
+    whatChanged: [
+      'Humans learned patterns — moon cycles, water levels, weather pressure — and could predict attacks.',
+      'We invented watch rotations and communal alarms (bells, horns, drums). Collective response became a defense.',
+      'Earliest hunter groups formed, not to kill, but to negotiate and relocate people before feeding nights.'
+    ],
+    notes: [
+      'Important: monsters did not disappear. We built towns around their territories and pretended that meant we were in charge.',
+      'A lot of “ancient ruins” are just abandoned feeding grounds where people decided “we live literally anywhere else.”',
+      '“Do not go there after dark” is one of the oldest true warnings in human history, and it’s still good advice.'
+    ]
+  },
+
+  {
+    id: 'middle_ages',
+    name: 'The Middle Ages – Oaths, Churches, Courts',
+    tagline: '“It Was A Demon. We Handled It.”',
+    summary: 'Religious authority, superstition, organized violence. Monsters learned to hide inside belief systems instead of outside walls.',
+    profile:
+      'The Church, royal courts, warlords, covens — everyone wanted to control fear. A werewolf kill could be rebranded “the Devil punished a sinner.” Vampires got called “curses from God.” The cover story became morality. If you died, it was your fault.',
+    keyMoments: [
+      'Plague years: mass unexplained deaths gave cover for EVERYTHING. Vampires fed freely. Whole villages vanished and were written off as disease.',
+      'Trial spectacles: possessions, hauntings, unexplained attacks were turned into staged exorcisms and witch trials. Sometimes the entity was real. Sometimes it wasn’t. Either way: public theater.',
+      'Night watch orders in cities: “Close the gates after dusk, kill anything trying to enter.” Those guards weren’t just for bandits.',
+      'Border bargains: local nobles quietly cut deals with “forest things,” trading criminals, refugees, or rival families for “peace on our lands.”'
+    ],
+    coverStory: [
+      '“It was the Devil testing us.” (Translation: a demon/parasite/witch-entity fed on a town and the Church called it sin, not predation.)',
+      '“God took her, she was impure.” Used to hide abduction by inhuman suitors / fae courts.',
+      '“Witchcraft.” A perfect trash bin. Anything too weird? Blame a woman and burn her.',
+      '“Fair folk tithe.” Villages openly admitted giving up one child a year to the woods. It was normalized as “ancestral duty.”'
+    ],
+    escalation: [
+      'Vampires embedded in noble lines. Legal immunity by bloodline.',
+      'Fae entanglement with traveling performers, minstrels, caravans. Moving targets = less suspicion.',
+      'Werewolves drafted as shock troops in border wars. Humans weaponized them against other humans.',
+      'Demons started playing lawyer: oaths, sigils, contracts instead of simple terror.'
+    ],
+    whatChanged: [
+      'Community fear became centralized control. Now you needed permission from the Church or lord to “handle” a monster problem.',
+      'Monsters discovered human institutions are shields. If a baron says “leave him alone,” peasants leave him alone — even if “him” doesn’t breathe right.',
+      'Killing the creature became less possible, because reporting it became less possible.'
+    ],
+    notes: [
+      'This era birthed the idea that monsters are part of “God’s plan.” That lie still protects them.',
+      'This is also where “the chosen bride” myth explodes — girls vanished and the official story was “heaven wanted her.”',
+      'If you think medieval people were dumb and fearful, understand: they had more OPEN talk about monsters than we do now.'
+    ]
+  },
+
+  {
+    id: 'industrial_age',
+    name: 'Industrial Age – Smoke, Gears, Missing Workers',
+    tagline: '“Factory Accident.”',
+    summary: 'Cities got bigger, louder, dirtier. Perfect hunting grounds. Monsters loved crowds and shadows. Human systems invented paperwork to bury the bodies.',
+    profile:
+      'As factories, mines, shipyards, and rail tunnels exploded across the 1800s and early 1900s, the kill zones moved indoors. When someone vanished in a mine shaft or got torn apart in a gear press, you could just stamp it “workplace tragedy.”',
+    keyMoments: [
+      'Deep tunnels and sewer expansion let things nest under cities. People heard clawing and voices for months before collapses, then boom: “structural failure.”',
+      'Ship crews disappearing at sea were written down as “lost in storm,” even during calm waters.',
+      'Morgues and medical schools quietly buying “unclaimed” bodies — some of which had bite marks and missing organs the textbooks don’t mention.',
+      'Traveling freak shows and spiritualist circles acting as cover for feeding, recruitment, and specimen trafficking.'
+    ],
+    coverStory: [
+      '“Industrial accident.” Fast, legal, closed. No supernatural allowed in the sentence.',
+      '“Drunk worker fell into the machinery.” That phrase covered a TON of claw damage and body tearing.',
+      '“He deserted his post.” Translation: he ran because he saw something inhuman, and the company would rather call him a coward than admit a threat on-site.',
+      '“Her hysteria killed her.” That catchall erased possession, stalking entities, and slow psychic predation.'
+    ],
+    escalation: [
+      'Vampires outsourced. They built human logistics: fixers, cleaners, procurers.',
+      'Entities learned to break/kill lights, comms, and lifts to isolate groups underground.',
+      'Corrupt foremen and owners realized: if you work with the monster, your site stops getting “mysterious accidents.” Cooperation culture began.',
+      'Early coverup journalism was born. Newspapers would run “tragic incident” copy without details in exchange for access.'
+    ],
+    whatChanged: [
+      'Bodies now had chains of custody. Monsters had to deal with coroner reports and union reps.',
+      'Unions, when honest, sometimes hunted threats because mauling half the crew cut profit for everyone.',
+      'Ordinary people started whisper networks: “Don’t take night shift in Bay 3. Something lives in Bay 3.”',
+      'For the first time, people talked about shutting whole sites down over “bad air” that wasn’t air.'
+    ],
+    notes: [
+      'This is where “the company town” and “the feeding ground” became the same phrase.',
+      'We start seeing monsters learning corporate language: liability, plausible deniability, controlled access.',
+      'If you wonder why industrial horror feels so real in fiction — it’s because it barely counts as fiction.'
+    ]
+  },
+
+  {
+    id: 'postwar_cover',
+    name: 'Post-War Containment Era',
+    tagline: '“Weather Balloon. Swamp Gas. Static.”',
+    summary: 'Mid-20th century and on: governments, militaries, and private labs decide the public cannot know. Monsters become “classified incidents.”',
+    profile:
+      'After major wars, we had radar, cameras, radio chatter, black sites, intelligence budgets. The response to anything weird became official denial plus quiet recovery ops. Bodies got tagged. Objects got warehoused. Witnesses got discredited.',
+    keyMoments: [
+      '“Weather balloon”: aerial encounters and non-human crash recoveries brushed off with one rehearsed line.',
+      '“Secret test aircraft”: massive, silent shapes over neighborhoods explained away as prototypes. No further questions.',
+      'Rural towns with cattle mutilations were told “it’s kids with knives,” even when precision cuts looked surgical.',
+      'Whole neighborhoods evacuated at 2AM for “gas leak,” then trucks rolled in that didn’t belong to any utility company.'
+    ],
+    coverStory: [
+      '“Experimental military exercise.”',
+      '“Radiation concern, please stay inside.”',
+      '“Do not photograph this area under penalty of law.”',
+      '“You didn’t see that.” Said while a man with no name holds your ID and smiles.'
+    ],
+    escalation: [
+      'Monsters learned to ride inside national security. If the government will shoot witnesses for you, why hunt anywhere else?',
+      'Some entities were captured, studied, or bargained with, not killed.',
+      'Demons and fae adapted to bureaucratic language: “agreements,” “treaties,” “containment parameters.”',
+      'Shadow entities learned to jam film/video, birthing the modern tech suppressor role.'
+    ],
+    whatChanged: [
+      '“Mass hysteria” becomes the default label when multiple people report the same impossible thing.',
+      'Press access to scenes started dying. If you weren’t already there, you were never getting in.',
+      'Local cops sometimes got shut out of their own towns by “federal partners.”',
+      'The idea that asking questions makes you crazy became mainstream, on purpose.'
+    ],
+    notes: [
+      'This is when eyeball witnesses stopped being “primary sources” and became “unreliable civilians.”',
+      'The coverups got cleaner, colder, and less moral. Not “we have faith it’s God’s will,” but “sign this NDA or disappear.”',
+      'From here on, public truth stops being accidental. If we know something, it’s because someone leaked it and lived.'
+    ]
+  },
+
+  {
+    id: 'serial_killer_boom',
+    name: 'The Serial Killer Boom (1970s–1990s)',
+    tagline: '“One Lone Maniac Did All Of It.”',
+    summary: 'A surge in reported serial killings gave society a convenient, cinematic villain: the human monster. Perfect timing. Perfect distraction.',
+    profile:
+      'Every weird kill pattern, every ritual-looking scene, every mutilation cluster could now be blamed on A Sick Individual. Law enforcement loved it. Media loved it. Monsters loved it most.',
+    keyMoments: [
+      'Bodies staged ritual-style got labeled “signature behavior.” Investigators stopped asking if the wounds even COULD be made by normal human strength.',
+      'Vampire feeding deaths, bled nearly dry, folded into “sex crime” narratives.',
+      'Werewolf-style shreddings in rural corridors became “we believe we are looking for a drifter.”',
+      'Disappearances of teens and young adults were just “runaways,” even when whole friend groups went silent within days.'
+    ],
+    coverStory: [
+      '“We are looking for a single suspect.” Whether or not evidence said “single.”',
+      '“The killer is escalating.” Translation: multiple entities or copy-feeders working in one region.',
+      '“Satanic ritual element.” Used to sensationalize, then discredit at the same time.',
+      '“Drug-related.” Used anywhere with missing blood or carved symbols.'
+    ],
+    escalation: [
+      'Monsters began mimicking human horror tropes to hide in plain sight.',
+      'Cults and demon-bonded groups staged human-looking crime scenes as camouflage.',
+      'Human collaborators learned how to stage bites, bindings, and trophies to match FBI profile language instead of supernatural signature.',
+      'Fae/abductors started grooming victims with “forbidden romance” scripts because pop culture normalized fatal obsession.'
+    ],
+    whatChanged: [
+      '“If it bleeds, it leads” media trained the public to watch the killer, not the coverup.',
+      'Investigators who brought up “this wound is not humanly possible” got sidelined as embarrassing.',
+      'Communities stopped talking about monsters openly because “you sound like a crazy person who watches too many movies.”',
+      'Victims got blamed: “Why did she go with him?” “Why was he out that late?” Shame is cheap suppression.'
+    ],
+    notes: [
+      'This is where the idea “evil is just a bad human” really locked in. That story still protects non-humans.',
+      'It also quietly erased collaborative hunting. You’re told there’s always one killer. That is almost never true.',
+      'When you hear “lone wolf,” translate to “don’t look for the pack.”'
+    ]
+  },
+
+  {
+    id: 'digital_age',
+    name: 'The Digital Age (2000s–2010s)',
+    tagline: '“Oops, The Footage Corrupted.”',
+    summary: 'Everyone has cameras. Monsters adapt. Now the lie isn’t “nothing happened.” The lie is “the evidence glitched.”',
+    profile:
+      'By the 2000s, any random bystander had recording gear. So suppression shifted from “deny event” to “deny proof.” We entered the era of tech suppressors, data jamming, and “camera malfunction.”',
+    keyMoments: [
+      'Multiple-witness events were labeled “viral hoaxes,” even when raw clips showed injuries that later went missing.',
+      'Bodycams and security cams went dead at the exact wrong minute, then magically rebooted.',
+      'Online whistleblowers got mass brigaded, doxxed, discredited as “seeking clout.” Same script in thousands of cases.',
+      'Glitch aesthetics in horror media accidentally trained the public to accept “static then blood then blackout” as normal.'
+    ],
+    coverStory: [
+      '“Deepfake.”',
+      '“Edited for attention.”',
+      '“Filter artifact.”',
+      '“Arg.” (The “alternate reality game” excuse: claim any leak is “marketing for an indie project.”)'
+    ],
+    escalation: [
+      'Shadow entities, tall faceless things, and other stalkers learned to break electronics FIRST.',
+      'Vampire networks leaned into influencer culture: glamor as lifestyle branding.',
+      'Sirens adapted to modern loneliness — they don’t just sing from the water, they DM you all night.',
+      'Witches and demons started offering “manifestation coaching,” “healing rituals,” “curse removal packages.”'
+    ],
+    whatChanged: [
+      'Proof stopped being proof. People learned to doubt eyes, doubt audio, doubt timestamps.',
+      'Collaboration between monsters and human tech suppressors tightened — now it’s organized.',
+      'The coverups went decentralized. You don’t need the feds to shut someone up if a thousand strangers will do it for free.',
+      'Civilians built private survival networks, group chats, encrypted circles. Some of those are now hunter cells.'
+    ],
+    notes: [
+      'We reached a bad equilibrium: everyone films, nobody believes.',
+      'This era made “attention-seeker” into a weaponized insult. That insult is still doing cleanup today.',
+      'Important: this is where you start seeing normal people trying to fight back in organized ways again.'
+    ]
+  },
+
+  {
+    id: 'now',
+    name: 'Current State – Open Door Quietly Closed',
+    tagline: '“Everything Is Fine. Stop Filming.”',
+    summary: 'Monsters are not myth. They are infrastructure. They have payrolls, lawyers, PR, logistics, feeders, feeders-of-feeders, and established scripts. The only thing they still fear: witnesses who don’t shut up.',
+    profile:
+      'Right now: vampires run networks, not castles. Werewolves act as controlled aggression tools, not random beasts. Fae hunt festivals and online isolation, not fairy rings. Demons sell self-help. Sirens farm grief. Shadow entities farm exhaustion. Cleaners, fixers, medical gatekeepers, and tech suppressors make sure nothing sticks.',
+    keyMoments: [
+      'Victims reported, loudly, and instead of being believed they were instantly labeled unstable, clout-chasing, or self-harming.',
+      'Whole apartment floors quietly emptied, new tenants moved in overnight, and nobody “remembers” the in-between.',
+      '“Gas leak” and “overdose” and “mental health crisis” became the new holy trinity of instant case closure.',
+      'Police bodycams “malfunctioned,” private CCTV “lost power,” smart doorbells “failed to upload,” all at the same minute across devices.'
+    ],
+    coverStory: [
+      '“Overdose.” Used to erase exsanguination and enthrallment kills.',
+      '“Mental health episode.” Used to explain why someone supposedly harmed themself in a way that required multiple attackers.',
+      '“No foul play suspected.” Used while the wallpaper is still drying over the claw marks.',
+      '“Online conspiracy theory.” Used on any survivor who dares post while still shaking.'
+    ],
+    escalation: [
+      'Collaborators (familiars, fixers, landlords, cleaners, medical gatekeepers, etc.) now form a proper ecosystem.',
+      'The cover stories have become pre-loaded. Press releases template themselves before the body cools.',
+      'Monsters lean on shame instead of force: you won’t talk, because you don’t want to be called crazy.',
+      'Some entities don’t even hide anymore. They just dare you to get someone to believe you.'
+    ],
+    whatChanged: [
+      'Survival knowledge is leaking sideways — group chats, zines, pages like this.',
+      'People started comparing “official story” scripts across cases and noticing they’re identical.',
+      'More humans are refusing polite death. Loud exit is becoming normalized.',
+      'Victims are turning into witnesses instead of evidence, and witnesses are linking up.'
+    ],
+    notes: [
+      'The lie right now is not “monsters don’t exist.” The lie is “monsters exist but they’re rare, special, elite, romantic, tragic, and you will never meet one.” You already have.',
+      'We are back to village rules: warn each other, make noise, move in groups, document everything off-site.',
+      'This is not the age of safety. This is the age of exposure.'
+    ]
+  }
+
+]; // end eras array
+
+
+/* DOM references */
+const eraListEl = document.getElementById('eraList');
+const searchInputEl = document.getElementById('searchInput');
+
+const eraNameEl = document.getElementById('eraName');
+const eraTaglineEl = document.getElementById('eraTagline');
+const eraProfileEl = document.getElementById('eraProfile');
+const eraSectionsEl = document.getElementById('eraSections');
+
+let currentEraId = null;
+
+/* We limit 2 open section-cards at once */
+let openCards = [];
+
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+/* Build accordion card block */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'title-line';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+/* Render sidebar list of eras */
+function renderEraList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  eraListEl.innerHTML = '';
+
+  eras
+    .filter(e => {
+      if (!f) return true;
+      const haystack = [
+        e.name,
+        e.tagline,
+        e.summary
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(e => {
+      const item = document.createElement('div');
+      item.className = 'era-item';
+      item.setAttribute('data-id', e.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'era-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'era-name';
+      nameSpan.textContent = e.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'era-tag';
+      tagSpan.textContent = e.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'era-desc';
+      descDiv.textContent = e.summary;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showEra(e.id);
+      });
+
+      eraListEl.appendChild(item);
+    });
+
+  highlightActive(currentEraId);
+}
+
+/* Load one era into main panel */
+function showEra(id) {
+  const era = eras.find(x => x.id === id);
+  if (!era) return;
+
+  currentEraId = id;
+
+  // header info
+  eraNameEl.textContent = era.name;
+  eraTaglineEl.textContent = era.tagline;
+  eraProfileEl.textContent = era.profile;
+
+  // body sections
+  eraSectionsEl.innerHTML = '';
+  openCards = [];
+
+  const sectionsData = [
+    {title: 'Key Moments', hint: 'Flashpoints that define the era', arr: era.keyMoments || []},
+    {title: 'Official Story At The Time', hint: 'How they explained it to everyone else', arr: era.coverStory || []},
+    {title: 'Predator Evolution', hint: 'How the monsters adapted', arr: era.escalation || []},
+    {title: 'Human Shift', hint: 'What we did in response', arr: era.whatChanged || []},
+    {title: 'Field Notes', hint: 'Useful patterns to remember today', arr: era.notes || []},
+  ];
+
+  sectionsData.forEach((sectionObj, idx) => {
+    if (!sectionObj.arr || sectionObj.arr.length === 0) return;
+    const card = buildSectionCard(
+      sectionObj.title,
+      sectionObj.hint,
+      sectionObj.arr,
+      (idx === 0 || idx === 1) // first two open by default
+    );
+    eraSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  // scroll top of main so new era header is visible
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+/* Highlight active in sidebar */
+function highlightActive(id) {
+  const items = eraListEl.querySelectorAll('.era-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+/* Search input listener */
+searchInputEl.addEventListener('input', (e) => {
+  renderEraList(e.target.value);
+});
+
+/* INIT */
+renderEraList('');
+if (eras.length > 0) {
+  showEra(eras[0].id);
+}
+</script>
+
+</body>
+
+
