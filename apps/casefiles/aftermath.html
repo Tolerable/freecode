@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>CASE FILES: Aftermath</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #080808;
+  --panel: #111315;
+  --panel-light: #1a1d20;
+  --accent: #f5d46a;          /* crime tape yellow */
+  --accent-dark: #6a5a1a;
+  --text: #f8f8f3;
+  --muted: #8a8a78;
+  --line: #2a2a2a;
+  --glow: 0 0 12px rgba(245,212,106,0.5);
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* RESET / BASE */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 15% 15%, #242013 0%, #000000 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  line-height: 1.45;
+  padding-top: 58px;
+}
+
+/* TOP NAV BAR */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(8,8,8,0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 12px rgba(245,212,106,0.5);
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 12px rgba(245,212,106,0.5);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(245,212,106,0.5);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, #2a240e 0%, #090909 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.9);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: linear-gradient(to right, rgba(245,212,106,0.12) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: 0 0 6px rgba(245,212,106,0.5);
+}
+
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(245,212,106,0.25);
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(245,212,106,0.6), inset 0 0 10px rgba(245,212,106,0.3);
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  pointer-events: none;
+}
+
+/* AFTERMATH LIST */
+.after-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+.after-list::-webkit-scrollbar {
+  width: 6px;
+}
+.after-list::-webkit-scrollbar-track {
+  background: #000;
+}
+.after-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(245,212,106,0.7);
+}
+
+.after-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+.after-item:hover {
+  background: rgba(245,212,106,0.08);
+}
+.after-item.active {
+  background: rgba(245,212,106,0.16);
+  box-shadow: inset 0 0 12px rgba(245,212,106,0.6);
+}
+
+/* stacked title+tag */
+.after-line1 {
+  display: block;
+}
+
+.after-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+  display: block;
+  margin-bottom: 6px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.after-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(245,212,106,0.6);
+  margin-bottom: 6px;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.after-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(245,212,106,0.07) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 10% 90%, rgba(255,90,0,0.08) 0%, rgba(0,0,0,0) 70%),
+    #080808;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+#main::-webkit-scrollbar {
+  width: 8px;
+}
+#main::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(245,212,106,0.7);
+}
+
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER CARD */
+#afterHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(245,212,106,0.25);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+
+.after-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#afterName {
+  font-family: var(--font-head);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(245,212,106,0.6);
+  margin: 0;
+  line-height: 1.2;
+}
+
+#afterTagline {
+  font-size: 0.7rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  line-height: 1.3;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(245,212,106,0.5);
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+#afterAngle {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+#afterProfile {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ACCORDION SECTIONS */
+.section-card {
+  margin-top: 20px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.85),
+    0 0 40px rgba(255,90,0,0.15);
+}
+
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(245,212,106,0.12) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  padding: 14px 16px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-shadow: 0 0 8px rgba(245,212,106,0.5);
+}
+.section-header .label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.section-header .title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.section-header .section-title {
+  color: var(--text);
+}
+.section-header .hint {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  text-shadow: none;
+}
+.section-header .chevron {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  transition: transform 0.15s;
+}
+.section-card.open .section-header .chevron {
+  transform: rotate(90deg);
+}
+
+.section-body {
+  display: none;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.section-card.open .section-body {
+  display: block;
+  background: radial-gradient(circle at 10% 0%, rgba(245,212,106,0.07) 0%, transparent 70%);
+}
+.section-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.section-body li {
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(245,212,106,0.5);
+}
+
+/* FOOTER NOTE */
+.footer-note {
+  margin-top: 32px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 60px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 20px;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 750px) {
+  #sidebar {
+    width: 220px;
+  }
+  #afterName {
+    font-size: 1.1rem;
+  }
+  #afterTagline {
+    font-size: 0.7rem;
+  }
+}
+@media (max-width: 600px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  #main {
+    flex: 1;
+  }
+  .after-list {
+    max-height: calc(40vh - 110px);
+  }
+  .after-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  #afterTagline {
+    white-space: normal;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV (THIS PAGE ACTIVE) -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">CASE FILES</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Human Predators</a>
+      <a class="nav-link" href="victims.html">Target Profiles</a>
+      <a class="nav-link" href="cover.html">Institutional Cover</a>
+      <a class="nav-link" href="myths.html">Comforting Lies</a>
+      <a class="nav-link active" href="aftermath.html">Fallout</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>FALLOUT</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:500;text-shadow:0 0 8px rgba(245,212,106,0.5);">
+        WHAT’S LEFT AFTER THE MONSTER
+      </span>
+    </div>
+    <div class="app-sub">
+      The story doesn’t end when someone is caught, dead, or “dismissed.” The blast radius keeps burning for years.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search fallout types..." />
+    </div>
+  </div>
+
+  <div id="afterList" class="after-list">
+    <!-- filled by JS -->
+  </div>
+</aside>
+
+<!-- MAIN PANEL -->
+<main id="main">
+  <div class="main-inner">
+    <section id="afterHeader">
+      <div class="after-title-row">
+        <h1 id="afterName">Loading...</h1>
+        <div id="afterTagline"></div>
+      </div>
+      <div id="afterAngle"></div>
+      <div id="afterProfile"></div>
+    </section>
+
+    <div id="afterSections">
+      <!-- JS builds accordion -->
+    </div>
+
+    <div class="footer-note">
+      “Closure” is a TV word. In real life there’s paperwork, medical bills, insomnia, anniversaries, and a chair at the table that’s never just a chair again.
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+Aftermath Object Model:
+{
+  id: 'survivor',
+  name: 'Survivor Fallout',
+  tagline: 'You Don’t Go Back To Baseline',
+  angle: 'Survival isn’t the end. It’s the new job.',
+  shortDesc: 'What the person who lived through it gets stuck carrying afterward.',
+  profile: 'Block text...',
+  bodyCost: [...],
+  mindCost: [...],
+  socialCost: [...],
+  systemResponse: [...],
+  coping: [...],
+  warning: [...]
+}
+*/
+
+let openCards = [];
+let currentAfterId = null;
+
+const aftermaths = [
+  {
+    id: 'survivor',
+    name: 'Survivor Fallout',
+    tagline: 'You Don’t Go Back To Baseline',
+    angle: 'Survival isn’t the end. Survival is the new job you didn’t apply for.',
+    shortDesc:
+      'Everyone says “you’re so strong.” Nobody says “here’s rent while you can’t sleep, can’t work, and can’t be around people.”',
+    profile:
+      'When you survive a predator — attack, grooming, long-term control, institutional abuse — the world expects you to either “heal” on a schedule or perform permanent brokenness. Either way, it’s about their comfort. The real aftermath is messier and way less cinematic.',
+    bodyCost: [
+      'Chronic stress chemistry wrecks sleep, digestion, heart rate, hormones, appetite.',
+      'Bruises heal. Nerve patterns don’t always.',
+      'You jump at sounds you never noticed before. That’s not “paranoid,” that’s training burned into you.',
+      'Touch — even hugs — can suddenly feel like threat alarms getting slapped awake.'
+    ],
+    mindCost: [
+      'Your memory replays wrong, out of order, on loop, especially in quiet rooms.',
+      'You second-guess yourself, because everyone around you tried to make you doubt your own story.',
+      'You carry rage you’re not “allowed” to show because then people call you unstable.',
+      'Survivor guilt: “Why me alive and not them?” / “Why didn’t I stop it sooner?”'
+    ],
+    socialCost: [
+      'People distance because you make them feel unsafe just by existing. Not because you are dangerous, but because now danger feels real to them.',
+      'Some friends pick a side, and it’s not yours, because picking you means picking a fight with an institution, a family, a church, a boss.',
+      'Dating after trauma is like interviewing strangers for “will you activate my worst memories, yes/no.”'
+    ],
+    systemResponse: [
+      'Cops, HR, admin, whoever — they all want one clean statement from you. Real memory is not clean, so they decide you’re “inconsistent.”',
+      'Insurance fights you about therapy like it’s a luxury. Trauma becomes a bill.',
+      'If your case gets media interest, strangers think they own your story and ask for gore details.',
+      'If your case doesn’t get media interest, people act like it was “not that bad.”'
+    ],
+    coping: [
+      'Lock in one or two humans who believe you without making you perform pain on command.',
+      'Routines: sleep ritual, light-on rituals, check-the-room rituals. These are not “crazy.” They’re guardrails.',
+      'Write it down. Memory mutates under pressure. Notes are proof you aren’t “making it bigger later.”',
+      'Refuse to feel guilty for being angry. Anger is an immune response.'
+    ],
+    warning: [
+      'The world will try to fast-forward you to “closure.” You are allowed to say no.',
+      'You do not owe forgiveness to keep other people comfortable.',
+      'Your worth is not reduced to “the victim.” You’re still you, with a scar. Not a prop in someone else’s redemption arc.'
+    ]
+  },
+
+  {
+    id: 'family',
+    name: 'Family Fallout',
+    tagline: 'The House Becomes Evidence',
+    angle: 'The blast radius hits whoever loves the target.',
+    shortDesc:
+      'Families expect support. What they get is suspicion, blame, and a job they didn’t know they signed up for: permanent archive and PR defense.',
+    profile:
+      'After a predator is exposed (or after a loved one is hurt or goes missing), a family stops being “a family” and starts being “that family.” Everything becomes forensic. Every conversation becomes strategy.',
+    bodyCost: [
+      'Sleep? Gone. You’re up late rereading texts and timelines trying to make sense of what happened.',
+      'Stress illnesses in parents and partners are extremely common: migraines, gut stuff, blood pressure spikes.',
+      'Your actual home can feel contaminated because it was where someone planned, hid, or returned from the harm.'
+    ],
+    mindCost: [
+      'Loop thinking: “What did I miss?” “Why didn’t I see it?” “Did I help the predator without realizing?”',
+      'You picture alternate timelines where you stopped it. Those fake timelines can haunt harder than the truth.',
+      'Grief mutates into obsession because obsession feels like you’re still doing something.'
+    ],
+    socialCost: [
+      'People gossip about you like you’re fictional characters, not humans still breathing.',
+      'Some relatives turn on each other instead of turning on the predator, because it’s easier to fight someone you can still scream at.',
+      'You lose “normal talk.” The room always circles back to Them.'
+    ],
+    systemResponse: [
+      'Report takers may treat you like suspects instead of allies.',
+      'Report takers may warn you not to “damage the case” by talking publicly. Translation: “Be quiet so we control the narrative.”',
+      'If the predator was inside the family, outsiders assume you “must have known.”'
+    ],
+    coping: [
+      'Assign roles on purpose: Who deals with cops? Who tracks media? Who protects the younger kids from details? Chaos kills you faster than grief.',
+      'Keep copies of everything. Screenshots. Dates. Prints. Not because you owe drama to the internet — because memory erodes and systems “lose” things.',
+      'Give yourself permission to have an hour where you don’t talk about it. An hour of normal is not betrayal.'
+    ],
+    warning: [
+      'Well-meaning people will ask horrible questions. You are allowed to say “we’re not discussing details.”',
+      'You will feel pressure to forgive the system that failed you because “they’re trying.” You don’t have to.',
+      'Some friends will vanish. That’s not proof you’re toxic. That’s proof they were lightweight.'
+    ]
+  },
+
+  {
+    id: 'community',
+    name: 'Community Fallout',
+    tagline: '“Nothing like that ever happens here” — until it does',
+    angle: 'Predators don’t just hunt people. They hunt trust.',
+    shortDesc:
+      'When a predator is exposed in a school, church, team, unit, ward, small town, etc., the whole place fractures. Sides form. Narratives battle. Gossip becomes a weapon.',
+    profile:
+      'A single bad actor can nuke decades of “we’re safe, we’re different, we take care of each other.” After that, every rule, every leader, every “tradition” looks infected. Some people demand reform. Some demand silence. Some move away. Some double down in denial.',
+    bodyCost: [
+      'People literally move houses, quit teams, pull kids from programs, change churches overnight.',
+      'You don’t go to certain buildings anymore because walking in there feels like you’re stepping into a crime scene.',
+      'Local businesses feel the shock if the scandal is public — donations dry, attendance drops.'
+    ],
+    mindCost: [
+      'Paranoia rises. “Who else knew?” “How long?” “Who else is dirty?”',
+      'A chunk of people will rewrite reality so they don’t have to update their self-image. “It’s lies, she’s exaggerating, they’re jealous, outsiders are stirring trouble.”',
+      'Another chunk will spiral into “everything is corrupt, burn it all,” and lose anything good that WAS there.'
+    ],
+    socialCost: [
+      'Friend groups split over who “believes the story.”',
+      'Victims get accused of “trying to destroy us.”',
+      'The predator will still have fans. Sometimes loud fans.'
+    ],
+    systemResponse: [
+      'Leadership will beg unity: “We need to heal AS A COMMUNITY.” That usually means “stop talking about how we let this happen.”',
+      'Someone will stage a candlelight vigil with speeches about healing and zero actual policy changes.',
+      'Lawyers start showing up at meetings.'
+    ],
+    coping: [
+      'Document what failed, while it’s fresh. Memory gets sanitized fast.',
+      'Refuse fake unity. Unity without accountability is camouflage.',
+      'If you stay, build parallel safety inside the same space: buddy systems, boundary rules, eyes open.',
+      'If you leave, that is survival, not betrayal. You don’t owe loyalty to a place that left you unprotected.'
+    ],
+    warning: [
+      'Watch for “outsider blame” — “the media is attacking us,” “haters are jealous,” etc. That’s how groups avoid fixing anything.',
+      'Watch for hero worship of leadership that didn’t actually protect anyone.',
+      'Watch for pressure to forgive on a timetable.'
+    ]
+  },
+
+  {
+    id: 'institution',
+    name: 'Institution Fallout',
+    tagline: 'They Patch the Optics, Not the Hole',
+    angle: 'The machine survives. That’s the point.',
+    shortDesc:
+      'After a scandal, the institution does “review,” “task force,” “policy refresh,” “new training.” Looks good. Question: does anything that would have actually stopped this become mandatory, funded, enforced?',
+    profile:
+      'Real fixes cost money, power, and access. Fake fixes cost graphic design and an email. Guess which one they pick first.',
+    bodyCost: [
+      'They might quietly fire low-level people as sacrifice, while senior decision-makers keep their titles.',
+      'Frontline staff get slammed with new checklists and blame.',
+      'Actual predators sometimes resign with pension intact.'
+    ],
+    mindCost: [
+      'Good staff who tried to warn people burn out or quit, which leaves the institution even less ethical.',
+      'Remaining staff learn the real lesson: shut up or you’re next.',
+      'The story becomes “see, we handled it,” and anybody who says “no you didn’t” sounds like a bitter crank.'
+    ],
+    socialCost: [
+      'Public statements lean heavy on “this is not who we are,” instead of “this IS who we have been letting ourselves be.”',
+      'Victims get thanked publicly and iced privately.',
+      'Critics get painted as extremists who “hate the organization.”'
+    ],
+    systemResponse: [
+      'They create an Internal Review Committee loaded with insiders.',
+      'They publish a PDF of “recommendations” with no enforcement teeth.',
+      'They rebrand instead of reform. New logo. New slogan. Same leadership.'
+    ],
+    coping: [
+      'If you are inside this system and you want it better: document everything off-site, with timestamps.',
+      'Know your mandated reporting laws. Sometimes you *are* required to go outside the chain.',
+      'Build informal coalitions of people who won’t let stuff slide. Quiet solidarity is power.',
+      'If you can’t fix it and it’s killing you, leaving is not failure. It’s survival.'
+    ],
+    warning: [
+      'Mandatory “morale meetings” with zero specifics.',
+      'Training that tells you how to speak about abuse, not how to stop abuse.',
+      'Leadership saying “mistakes were made,” not “I failed and here’s what I’m surrendering to fix it.”'
+    ]
+  },
+
+  {
+    id: 'cycle',
+    name: 'The Next Predator Learns',
+    tagline: 'Monsters Watch How We Respond',
+    angle: 'Somebody is always studying the last mess.',
+    shortDesc:
+      'Predators are not original. They recycle. They adapt. They watch what worked for the last guy and copy it.',
+    profile:
+      'After exposure, cover-ups, PR, and “closure,” the next predator in line is taking notes: Which victims don’t get believed? Which department buries reports? Which neighborhoods never make the news? Which phrases calm people down?',
+    bodyCost: [
+      'Target groups get hunted again and again because the playbook stays unchanged.',
+      'Whole zones (wards, dorm halls, clubs, teams) become long-term feeding grounds.',
+      'People who already lived through one predator sometimes get hit by the next because predators smell vulnerable silence.'
+    ],
+    mindCost: [
+      'Hopelessness spreads: “It never ends, there’s no point fighting.”',
+      'Cynicism replaces community trust, which makes everyone easier to isolate.',
+      'Some folks flip sides and become enablers because they’d rather be standing with power than standing alone.'
+    ],
+    socialCost: [
+      'The story turns into folklore. “Yeah, that’s the building where that thing happened.” People joke about it instead of fixing it.',
+      'Victims become warnings, not people.',
+      'The institution becomes haunted, but not actually repaired.'
+    ],
+    systemResponse: [
+      'Leadership talks about “moving forward.” The future predator hears “nobody here wants to look backward too hard.”',
+      'Minimal oversight. Minimal accountability. Maximum PR.',
+      'The pattern keeps incubating quietly until the next explosion.'
+    ],
+    coping: [
+      'Teach pattern recognition, not just stranger-danger fairytales.',
+      'Share information laterally. Predators thrive when each victim thinks they’re alone.',
+      'Believe people early, even if the story is messy.',
+      'Treat “isolated incident” like a red alarm, not a lullaby.'
+    ],
+    warning: [
+      'If everyone is being told “stop living in the past,” you’re being set up to be prey in the future.',
+      'When a space has a “dark joke” about abuse instead of a prevention plan — that’s not humor. That’s a confession.',
+      'When someone gets access to vulnerable people with no pushback “because we’re shorthanded,” you’re already in the prequel.'
+    ]
+  }
+
+]; // end aftermaths[]
+
+
+/* DOM REFS */
+const afterListEl = document.getElementById('afterList');
+const searchInputEl = document.getElementById('searchInput');
+
+const afterNameEl = document.getElementById('afterName');
+const afterTaglineEl = document.getElementById('afterTagline');
+const afterAngleEl = document.getElementById('afterAngle');
+const afterProfileEl = document.getElementById('afterProfile');
+const afterSectionsEl = document.getElementById('afterSections');
+
+/* accordion tracking */
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+/* build accordion card */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'title-line';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+/* render sidebar list */
+function renderAfterList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  afterListEl.innerHTML = '';
+
+  aftermaths
+    .filter(a => {
+      if (!f) return true;
+      const haystack = [
+        a.name,
+        a.shortDesc,
+        a.tagline,
+        a.angle
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(a => {
+      const item = document.createElement('div');
+      item.className = 'after-item';
+      item.setAttribute('data-id', a.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'after-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'after-name';
+      nameSpan.textContent = a.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'after-tag';
+      tagSpan.textContent = a.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'after-desc';
+      descDiv.textContent = a.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showAfter(a.id);
+      });
+
+      afterListEl.appendChild(item);
+    });
+
+  highlightActive(currentAfterId);
+}
+
+/* show selected aftermath in main panel */
+function showAfter(id) {
+  const a = aftermaths.find(x => x.id === id);
+  if (!a) return;
+
+  currentAfterId = id;
+
+  afterNameEl.textContent = a.name;
+  afterTaglineEl.textContent = a.tagline;
+  afterAngleEl.textContent = a.angle;
+  afterProfileEl.textContent = a.profile;
+
+  afterSectionsEl.innerHTML = '';
+  openCards = [];
+
+  const sectionsData = [
+    {title: 'Body Cost', hint: 'What it does to your physical self', arr: a.bodyCost || []},
+    {title: 'Headspace Damage', hint: 'What it does to memory / identity', arr: a.mindCost || []},
+    {title: 'Social Fallout', hint: 'What happens to relationships', arr: a.socialCost || []},
+    {title: 'System Behavior', hint: 'How cops / HR / admin handle you now', arr: a.systemResponse || []},
+    {title: 'How People Cope', hint: 'Survival playbook, not cure', arr: a.coping || []},
+    {title: 'What To Remember', hint: 'Promises for yourself going forward', arr: a.warning || []},
+  ];
+
+  sectionsData.forEach((block, idx) => {
+    if (!block.arr || block.arr.length === 0) return;
+    const card = buildSectionCard(
+      block.title,
+      block.hint,
+      block.arr,
+      (idx === 0 || idx === 1)
+    );
+    afterSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+/* highlight selected in sidebar */
+function highlightActive(id) {
+  const items = afterListEl.querySelectorAll('.after-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+/* search hook */
+searchInputEl.addEventListener('input', (e) => {
+  renderAfterList(e.target.value);
+});
+
+/* init */
+renderAfterList('');
+if (aftermaths.length > 0) {
+  showAfter(aftermaths[0].id);
+}
+</script>
+
+</body>
+</html>

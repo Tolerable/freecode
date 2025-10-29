@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>CASE FILES: Comforting Lies</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #080808;
+  --panel: #111315;
+  --panel-light: #1a1d20;
+  --accent: #f5d46a;          /* crime tape yellow */
+  --accent-dark: #6a5a1a;
+  --text: #f8f8f3;
+  --muted: #8a8a78;
+  --line: #2a2a2a;
+  --glow: 0 0 12px rgba(245,212,106,0.5);
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* RESET / BASE */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 15% 15%, #242013 0%, #000000 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  line-height: 1.45;
+  padding-top: 58px;
+}
+
+/* TOP NAV BAR */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(8,8,8,0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 12px rgba(245,212,106,0.5);
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 12px rgba(245,212,106,0.5);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(245,212,106,0.5);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, #2a240e 0%, #090909 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.9);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: linear-gradient(to right, rgba(245,212,106,0.12) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: 0 0 6px rgba(245,212,106,0.5);
+}
+
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(245,212,106,0.25);
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(245,212,106,0.6), inset 0 0 10px rgba(245,212,106,0.3);
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  pointer-events: none;
+}
+
+/* MYTH LIST */
+.myth-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+.myth-list::-webkit-scrollbar {
+  width: 6px;
+}
+.myth-list::-webkit-scrollbar-track {
+  background: #000;
+}
+.myth-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(245,212,106,0.7);
+}
+
+.myth-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+.myth-item:hover {
+  background: rgba(245,212,106,0.08);
+}
+.myth-item.active {
+  background: rgba(245,212,106,0.16);
+  box-shadow: inset 0 0 12px rgba(245,212,106,0.6);
+}
+
+/* stacked title+tag */
+.myth-line1 {
+  display: block;
+}
+
+.myth-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+  display: block;
+  margin-bottom: 6px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.myth-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(245,212,106,0.6);
+  margin-bottom: 6px;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.myth-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(245,212,106,0.07) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 10% 90%, rgba(255,90,0,0.08) 0%, rgba(0,0,0,0) 70%),
+    #080808;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+#main::-webkit-scrollbar {
+  width: 8px;
+}
+#main::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(245,212,106,0.7);
+}
+
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER CARD */
+#mythHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(245,212,106,0.25);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+
+.myth-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#mythName {
+  font-family: var(--font-head);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(245,212,106,0.6);
+  margin: 0;
+  line-height: 1.2;
+}
+
+#mythTagline {
+  font-size: 0.7rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  line-height: 1.3;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(245,212,106,0.5);
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+#mythAngle {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+#mythProfile {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ACCORDION SECTIONS */
+.section-card {
+  margin-top: 20px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.85),
+    0 0 40px rgba(255,90,0,0.15);
+}
+
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(245,212,106,0.12) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  padding: 14px 16px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-shadow: 0 0 8px rgba(245,212,106,0.5);
+}
+.section-header .label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.section-header .title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.section-header .section-title {
+  color: var(--text);
+}
+.section-header .hint {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  text-shadow: none;
+}
+.section-header .chevron {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  transition: transform 0.15s;
+}
+.section-card.open .section-header .chevron {
+  transform: rotate(90deg);
+}
+
+.section-body {
+  display: none;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.section-card.open .section-body {
+  display: block;
+  background: radial-gradient(circle at 10% 0%, rgba(245,212,106,0.07) 0%, transparent 70%);
+}
+.section-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.section-body li {
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(245,212,106,0.5);
+}
+
+/* FOOTER NOTE */
+.footer-note {
+  margin-top: 32px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 60px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 20px;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 750px) {
+  #sidebar {
+    width: 220px;
+  }
+  #mythName {
+    font-size: 1.1rem;
+  }
+  #mythTagline {
+    font-size: 0.7rem;
+  }
+}
+@media (max-width: 600px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  #main {
+    flex: 1;
+  }
+  .myth-list {
+    max-height: calc(40vh - 110px);
+  }
+  .myth-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  #mythTagline {
+    white-space: normal;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV (THIS PAGE ACTIVE) -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">CASE FILES</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Human Predators</a>
+      <a class="nav-link" href="victims.html">Target Profiles</a>
+      <a class="nav-link" href="cover.html">Institutional Cover</a>
+      <a class="nav-link active" href="myths.html">Comforting Lies</a>
+      <a class="nav-link" href="aftermath.html">Fallout</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>COMFORTING LIES</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:500;text-shadow:0 0 8px rgba(245,212,106,0.5);">
+        STORIES WE TELL SO WE CAN SLEEP
+      </span>
+    </div>
+    <div class="app-sub">
+      These myths make us feel safe. They also make predators’ jobs easier. That’s not a coincidence.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search myths..." />
+    </div>
+  </div>
+
+  <div id="mythList" class="myth-list">
+    <!-- filled by JS -->
+  </div>
+</aside>
+
+<!-- MAIN PANEL -->
+<main id="main">
+  <div class="main-inner">
+    <section id="mythHeader">
+      <div class="myth-title-row">
+        <h1 id="mythName">Loading...</h1>
+        <div id="mythTagline"></div>
+      </div>
+      <div id="mythAngle"></div>
+      <div id="mythProfile"></div>
+    </section>
+
+    <div id="mythSections">
+      <!-- JS builds accordion -->
+    </div>
+
+    <div class="footer-note">
+      Horror movies lie for comfort. News lies for ratings. Institutions lie for survival. The overlap is where people disappear.
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+Myth Object Model:
+{
+  id: 'stranger-danger',
+  name: 'Predators Look Like Creeps',
+  tagline: '“You can spot evil”',
+  angle: 'Reality: you can’t.',
+  shortDesc: 'We tell kids that scary strangers in vans are the danger. We don’t tell them about coaches, step-parents, youth pastors, supervisors.',
+  profile: 'Block text...',
+  sold: [...],
+  reality: [...],
+  whyBelieve: [...],
+  whoBenefits: [...],
+  harm: [...],
+  redflags: [...]
+}
+*/
+
+let openCards = [];
+let currentMythId = null;
+
+const myths = [
+  {
+    id: 'stranger-danger',
+    name: 'Monsters Look Like Monsters',
+    tagline: '“You can spot evil”',
+    angle: 'Reality: you can’t.',
+    shortDesc:
+      'The official bedtime story is that danger = obvious creep in a van. The real pattern is boring, polite, patient, helpful.',
+    profile:
+      'Parents warn kids about strangers in alleys, but most abuse, coercion, trafficking, long-term control, and repeat violence comes from people the victim already knows. Babysitters. Family friends. Bosses. Partners. Teachers. Care staff. Cops. Pastors. Counselors. The myth that “danger looks scary” helps predators who look normal.',
+    sold: [
+      '“Bad guys look dirty, twitchy, mean, obvious.”',
+      '“If something was wrong you would FEEL it.”',
+      '“Just avoid dark alleys and you’ll be fine.”',
+      '“He’s well-respected, he’d never.”'
+    ],
+    reality: [
+      'Predators rehearse being charming. That’s the skill.',
+      'Grooming = slow permission-taking. “Can I sit closer?” “Can I text you?” “Can I keep this secret?”',
+      'Victims often get told “you’re so mature,” “you’re special,” “you’re different from other kids.” That is bait.',
+      'Public face and private face can be two different species. The public face is armor.'
+    ],
+    whyBelieve: [
+      'It’s comforting. If evil is obvious, then we believe we’re safe because we don’t SEE obvious evil right now.',
+      'Parents like thinking they can eyeball-threat-check all adults around their kid.',
+      'Nobody wants to believe danger might be sitting at their own dinner table.'
+    ],
+    whoBenefits: [
+      'Predators who blend in.',
+      'Institutions who vouched for those predators.',
+      'Families who do not want scandal.',
+      'Anyone who wants silence instead of police.'
+    ],
+    harm: [
+      'Victims who speak up about “nice” predators get ignored.',
+      'Kids are not taught to report boundary violations from trusted adults, because “trusted adults” were never framed as dangerous.',
+      'Communities defend the predator instead of the victim because “he’s such a good guy, there’s no way.”'
+    ],
+    redflags: [
+      'An adult who wants alone-time with a specific kid/teen and gets irritated by witnesses.',
+      '“We have a special bond, other people wouldn’t understand us.”',
+      'Gifts, rides, money, alcohol, drugs, secrets, all framed as “our little thing.”',
+      'A person who gets angry when you put up boundaries — anger at boundaries is the tell, not tattoos or vibes.'
+    ]
+  },
+
+  {
+    id: 'snap',
+    name: 'He Just Snapped',
+    tagline: '“Nobody could have predicted this”',
+    angle: 'Yes they could.',
+    shortDesc:
+      'After violence, you hear “he snapped.” Like it was sudden. Like lightning. Like nobody had any way to know.',
+    profile:
+      'The “snap” story is PR for everyone who ignored the lead-up. Most serious interpersonal violence has escalation signs: threats, intimidation, stalking, animal harm, obsessive control, prior assaults, boundary testing, jealous rages, rehearsed fantasies of hurting someone. People around them saw it. They just didn’t act, or they weren’t believed.',
+    sold: [
+      '“He was quiet.”',
+      '“He kept to himself.”',
+      '“He just lost it this one time.”',
+      '“Stress from work made him do it.”'
+    ],
+    reality: [
+      'Targets usually get warned privately before the “snap.”',
+      'Friends hear violent talk and go “he’s just venting.”',
+      'Partners see holes punched in walls, weapons flashed “as a joke,” threats like “if you ever leave me I’ll—”.',
+      'Police have often already been called to that person before.'
+    ],
+    whyBelieve: [
+      'If we call it random, nobody is to blame for missing it.',
+      '“Random” means society doesn’t have to self-correct.',
+      'It protects employers, schools, cops, families: “There was nothing we could’ve done.”'
+    ],
+    whoBenefits: [
+      'Abusers who were absolutely broadcasting red flags beforehand.',
+      'Institutions who ignored those red flags.',
+      'Media that likes the shock headline more than a slow, boring pattern of escalating danger.'
+    ],
+    harm: [
+      'Survivors who warned people get erased.',
+      'Future victims think warning signs don’t matter, because the story says danger arrives out of nowhere.',
+      'The abuser gets framed as “tragic,” “stressed,” “mentally unwell,” and the victim gets framed as “the trigger.”'
+    ],
+    redflags: [
+      'Threats that start sounding rehearsed.',
+      '“If I can’t have you no one will.”',
+      'Bragging about hurting others, especially partners or pets.',
+      'Obsessive tracking / showing up uninvited / demanding total access to someone’s phone, location, money.'
+    ]
+  },
+
+  {
+    id: 'genius',
+    name: 'Serial Killers Are Geniuses',
+    tagline: '“Criminal mastermind”',
+    angle: 'No. A lot of it is apathy and luck.',
+    shortDesc:
+      'TV tells you these guys are brilliant shadow gods playing chess with the FBI. Reality is uglier: they pick targets cops don’t chase hard.',
+    profile:
+      'Some repeat offenders are smart, organized, methodical. A lot are sloppy, impulsive, obvious, and would have been caught early if anyone with authority cared as much about “those” victims as they do about “nice” victims. The myth of the unstoppable mastermind covers for institutional indifference.',
+    sold: [
+      '“He taunted police for years and they couldn’t catch him.”',
+      '“He was always ten steps ahead.”',
+      '“He left no evidence.”',
+      '“It was like hunting a ghost.”'
+    ],
+    reality: [
+      'He left evidence. The evidence just sat in a box.',
+      'He hurt people labeled “high-risk,” so urgency stayed low.',
+      'Jurisdiction fights and data silos let him keep moving.',
+      'Sometimes police literally did interview him and ruled him out because he seemed normal.'
+    ],
+    whyBelieve: [
+      'The “evil genius” story is cinematic and sells.',
+      'It lets departments say “nobody could’ve caught him sooner.”',
+      'It keeps public faith in the system: you weren’t failed, it was just an inhuman mastermind.'
+    ],
+    whoBenefits: [
+      'Police PR.',
+      'City leadership.',
+      'The killer’s own mythology. Some of them WANT to be remembered as myth, not as pathetic violent trash who picked on vulnerable people.'
+    ],
+    harm: [
+      'Families feel like their loved one died to a supervillain instead of to preventable negligence.',
+      'Communities don’t demand reforms, because “even Batman couldn’t have solved this, right?”',
+      'Other predators copy the pattern: target the “unimportant” and you get time.'
+    ],
+    redflags: [
+      'Multiple unsolved disappearances in one area being treated as “unrelated.”',
+      'Victims all described as “transient,” “runaway,” “sex worker,” “addict,” “unstable.”',
+      'Law enforcement getting defensive instead of collaborative when outside help offers pattern analysis.'
+    ]
+  },
+
+  {
+    id: 'trust-authority',
+    name: 'If It Were Real, Authorities Would Warn Us',
+    tagline: '“We’d have heard something”',
+    angle: 'You probably wouldn’t.',
+    shortDesc:
+      'People assume that if there’s a real threat, someone official will tell them. The truth: image control beats warning the public, a lot.',
+    profile:
+      'Cities bury crime spikes around tourist zones. Campuses downplay assaults during recruitment season. Hospitals smother staff abuse because donors dislike scandal. Companies kill internal emails about “problem employees” because liability. A quiet population is easier (and cheaper) than an informed population.',
+    sold: [
+      '“There is no ongoing danger to the public.”',
+      '“This appears to be an isolated event.”',
+      '“We have the situation under control.”',
+      '“We’re handling this internally.”'
+    ],
+    reality: [
+      'Sometimes they literally do NOT want panic because panic hurts fundraising, turnout, revenue, or reelection odds.',
+      'Sometimes they don’t warn you because warning you means admitting they missed something huge.',
+      'Sometimes they just don’t believe certain victims count as “the public.”'
+    ],
+    whyBelieve: [
+      'It’s comforting to pretend someone competent is on watch.',
+      'Nobody wants to live in constant alert mode, so we outsource alertness to “they’ll tell us if it’s bad.”',
+      'Admitting “they might hide it” is admitting we’re on our own more than we want to be.'
+    ],
+    whoBenefits: [
+      'Mayors, chiefs, boards, deans, CEOs, wardens, pastors — anyone whose job depends on the vibe staying calm.',
+      'Predators who keep working in silence while PR cools the public.'
+    ],
+    harm: [
+      'People walk right into patterns of danger they were never warned about.',
+      'Communities get picked apart because nobody realized “Hey, a lot of us are going missing.”',
+      'Whistleblowers who tell the truth get painted as liars, disloyal, “out to cause drama.”'
+    ],
+    redflags: [
+      'Multiple “isolated incidents” with matching details.',
+      'A sudden push from leadership to “focus on the positive.”',
+      'Police statements that tell you nothing concrete, just mood-management.',
+      'Victims or families saying “no one told us anything” while press briefings act like everything was transparent.'
+    ]
+  },
+
+  {
+    id: 'good-neighborhood',
+    name: 'That Doesn’t Happen Here',
+    tagline: '“Safe area, good schools”',
+    angle: 'Safe for who, though?',
+    shortDesc:
+      '“Nice area” is treated like armor. People think crime is a problem that lives in “bad places.” That fantasy stops them from seeing danger in their own house.',
+    profile:
+      '“We live in a good neighborhood” usually means “we have money, cops respond fast, and people like us get believed.” It does not mean predators don’t live there. It does not mean kids there aren’t being abused. It just means people there have the ability to bury scandal.',
+    sold: [
+      '“Stuff like that doesn’t happen in this community.”',
+      '“Everyone here looks out for each other.”',
+      '“We’re blessed to live somewhere safe.”',
+      '“He’s from a good family.”'
+    ],
+    reality: [
+      'Predators in wealthy areas often have lawyers on speed dial and reputations to hide behind.',
+      'Cops sometimes treat affluent suspects like embarrassing friends, not threats.',
+      'Private schools / clubs / churches are VERY good at keeping it “in-house.”',
+      'Money buys silence agreements, relocations, sealed records.'
+    ],
+    whyBelieve: [
+      'Nobody wants to admit their comfort sits on top of someone else’s gag order.',
+      'It’s soothing to believe harm is imported from “outside,” not grown inside your HOA.',
+      'Shame. “If I admit it can happen here, I have to admit it can happen to us.”'
+    ],
+    whoBenefits: [
+      'Predators with money.',
+      'Families who care more about legacy than victims.',
+      'Institutions that sell prestige and “safety” as a product.'
+    ],
+    harm: [
+      'Victims get told not to “ruin his future over one mistake.”',
+      'Cases get reframed as “misunderstanding” instead of “crime.”',
+      'Predators learn the script: cry, apologize privately, keep your reputation publicly, repeat.'
+    ],
+    redflags: [
+      '“We don’t want to involve the police, we can handle this ourselves.”',
+      '“Let’s not blow this out of proportion.”',
+      'Parents pressuring a victim to stay quiet so everyone keeps scholarships, status, access.',
+      'People defending the suspect with “but he’s such a good kid,” not “did you hurt her?”'
+    ]
+  },
+
+  {
+    id: 'blame-victim',
+    name: 'They Were Asking For It',
+    tagline: '“High-risk lifestyle”',
+    angle: 'Translation: don’t waste sympathy.',
+    shortDesc:
+      'When a victim doesn’t fit “perfect innocent,” the world flips the frame: not “someone hurt them,” but “they lived messy, so whatever happened, happened.”',
+    profile:
+      'This is the myth that lets people sleep when street workers vanish. When queer kids disappear. When undocumented laborers get abused. When Indigenous women go missing. When psych patients die in custody. “They lived rough.” End of thought.',
+    sold: [
+      '“They hung out with bad people.”',
+      '“They were into drugs.”',
+      '“They did sex work.”',
+      '“They were mentally unstable.”'
+    ],
+    reality: [
+      'Calling someone “troubled” is a trick to downgrade the crime.',
+      '“Lifestyle risk” doesn’t turn murder into not-murder.',
+      'Predators deliberately choose people who society won’t defend loudly. That is strategy, not coincidence.',
+      'If your disappearance won’t spark outrage, you are prime hunting material.'
+    ],
+    whyBelieve: [
+      'It’s easier to believe victims “chose risk” than to face how random vulnerability really is.',
+      'People want to think, “That could never be me,” so they invent a difference (“I don’t live like that”).',
+      'It absolves the city / cops / program / family from responsibility.'
+    ],
+    whoBenefits: [
+      'Predators, obviously.',
+      'Any system that failed to protect that person, because now it’s “not our type of victim.”',
+      'Media outlets that don’t want to spend airtime on someone the audience won’t cry over.'
+    ],
+    harm: [
+      'Some entire groups basically become pre-approved targets.',
+      'Families are shamed into silence instead of screaming for justice.',
+      'Survivors learn: if you’re not perfect, no one will fight for you later.'
+    ],
+    redflags: [
+      'Coverage that spends more time on the victim’s “bad choices” than on the person who hurt them.',
+      'Police statements that open with “the victim is known to us.”',
+      'Friends / family being told “be quiet, don’t embarrass us.”',
+      'People using the past to excuse what happened in the present.'
+    ]
+  }
+
+]; // end myths[]
+
+
+/* DOM REFS */
+const mythListEl = document.getElementById('mythList');
+const searchInputEl = document.getElementById('searchInput');
+
+const mythNameEl = document.getElementById('mythName');
+const mythTaglineEl = document.getElementById('mythTagline');
+const mythAngleEl = document.getElementById('mythAngle');
+const mythProfileEl = document.getElementById('mythProfile');
+const mythSectionsEl = document.getElementById('mythSections');
+
+/* accordion tracking */
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+/* build accordion card */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'title-line';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+/* render sidebar list */
+function renderMythList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  mythListEl.innerHTML = '';
+
+  myths
+    .filter(m => {
+      if (!f) return true;
+      const haystack = [
+        m.name,
+        m.shortDesc,
+        m.tagline,
+        m.angle
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(m => {
+      const item = document.createElement('div');
+      item.className = 'myth-item';
+      item.setAttribute('data-id', m.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'myth-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'myth-name';
+      nameSpan.textContent = m.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'myth-tag';
+      tagSpan.textContent = m.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'myth-desc';
+      descDiv.textContent = m.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showMyth(m.id);
+      });
+
+      mythListEl.appendChild(item);
+    });
+
+  highlightActive(currentMythId);
+}
+
+/* show selected myth in main panel */
+function showMyth(id) {
+  const m = myths.find(x => x.id === id);
+  if (!m) return;
+
+  currentMythId = id;
+
+  mythNameEl.textContent = m.name;
+  mythTaglineEl.textContent = m.tagline;
+  mythAngleEl.textContent = m.angle;
+  mythProfileEl.textContent = m.profile;
+
+  mythSectionsEl.innerHTML = '';
+  openCards = [];
+
+  const sectionsData = [
+    {title: 'What We’re Told', hint: 'The bedtime version', arr: m.sold || []},
+    {title: 'What Actually Happens', hint: 'Field notes, not TV notes', arr: m.reality || []},
+    {title: 'Why We Swallow It', hint: 'Emotional payoff', arr: m.whyBelieve || []},
+    {title: 'Who Gets Protected', hint: 'Follow the shield', arr: m.whoBenefits || []},
+    {title: 'Who Gets Hurt', hint: 'Real cost in bodies', arr: m.harm || []},
+    {title: 'Watch For This', hint: 'Red flags in the wild', arr: m.redflags || []},
+  ];
+
+  sectionsData.forEach((block, idx) => {
+    if (!block.arr || block.arr.length === 0) return;
+    const card = buildSectionCard(
+      block.title,
+      block.hint,
+      block.arr,
+      (idx === 0 || idx === 1)
+    );
+    mythSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+/* highlight selected in sidebar */
+function highlightActive(id) {
+  const items = mythListEl.querySelectorAll('.myth-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+/* search hook */
+searchInputEl.addEventListener('input', (e) => {
+  renderMythList(e.target.value);
+});
+
+/* init */
+renderMythList('');
+if (myths.length > 0) {
+  showMyth(myths[0].id);
+}
+</script>
+
+</body>
+</html>

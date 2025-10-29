@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>CASE FILES: Target Profiles</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #080808;
+  --panel: #111315;
+  --panel-light: #1a1d20;
+  --accent: #f5d46a;          /* crime tape yellow */
+  --accent-dark: #6a5a1a;
+  --text: #f8f8f3;
+  --muted: #8a8a78;
+  --line: #2a2a2a;
+  --glow: 0 0 12px rgba(245,212,106,0.5);
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* RESET / BASE */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 15% 15%, #242013 0%, #000000 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  line-height: 1.45;
+  padding-top: 58px;
+}
+
+/* TOP NAV BAR */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(8,8,8,0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 12px rgba(245,212,106,0.5);
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 12px rgba(245,212,106,0.5);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(245,212,106,0.5);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, #2a240e 0%, #090909 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.9);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: linear-gradient(to right, rgba(245,212,106,0.12) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: 0 0 6px rgba(245,212,106,0.5);
+}
+
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(245,212,106,0.25);
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(245,212,106,0.6), inset 0 0 10px rgba(245,212,106,0.3);
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  pointer-events: none;
+}
+
+/* VICTIM TYPE LIST */
+.vic-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+.vic-list::-webkit-scrollbar {
+  width: 6px;
+}
+.vic-list::-webkit-scrollbar-track {
+  background: #000;
+}
+.vic-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(245,212,106,0.7);
+}
+
+.vic-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+.vic-item:hover {
+  background: rgba(245,212,106,0.08);
+}
+.vic-item.active {
+  background: rgba(245,212,106,0.16);
+  box-shadow: inset 0 0 12px rgba(245,212,106,0.6);
+}
+
+/* stacked title+tag */
+.vic-line1 {
+  display: block;
+}
+
+.vic-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+  display: block;
+  margin-bottom: 6px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.vic-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(245,212,106,0.6);
+  margin-bottom: 6px;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.vic-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(245,212,106,0.07) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 10% 90%, rgba(255,90,0,0.08) 0%, rgba(0,0,0,0) 70%),
+    #080808;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+#main::-webkit-scrollbar {
+  width: 8px;
+}
+#main::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(245,212,106,0.7);
+}
+
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER CARD */
+#vicHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(245,212,106,0.25);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+
+.vic-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#vicName {
+  font-family: var(--font-head);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(245,212,106,0.6);
+  margin: 0;
+  line-height: 1.2;
+}
+
+#vicTagline {
+  font-size: 0.7rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  line-height: 1.3;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(245,212,106,0.5);
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+#vicAngle {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+#vicProfile {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ACCORDION SECTIONS */
+.section-card {
+  margin-top: 20px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.85),
+    0 0 40px rgba(255,90,0,0.15);
+}
+
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(245,212,106,0.12) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  padding: 14px 16px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-shadow: 0 0 8px rgba(245,212,106,0.5);
+}
+.section-header .label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.section-header .title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.section-header .section-title {
+  color: var(--text);
+}
+.section-header .hint {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  text-shadow: none;
+}
+.section-header .chevron {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  transition: transform 0.15s;
+}
+.section-card.open .section-header .chevron {
+  transform: rotate(90deg);
+}
+
+.section-body {
+  display: none;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.section-card.open .section-body {
+  display: block;
+  background: radial-gradient(circle at 10% 0%, rgba(245,212,106,0.07) 0%, transparent 70%);
+}
+.section-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.section-body li {
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+  text-shadow: var(--glow);
+}
+
+/* FOOTER NOTE */
+.footer-note {
+  margin-top: 32px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 60px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 20px;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 750px) {
+  #sidebar {
+    width: 220px;
+  }
+  #vicName {
+    font-size: 1.1rem;
+  }
+  #vicTagline {
+    font-size: 0.7rem;
+  }
+}
+@media (max-width: 600px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  #main {
+    flex: 1;
+  }
+  .vic-list {
+    max-height: calc(40vh - 110px);
+  }
+  .vic-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  #vicTagline {
+    white-space: normal;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV (THIS PAGE ACTIVE) -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">CASE FILES</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Human Predators</a>
+      <a class="nav-link active" href="victims.html">Target Profiles</a>
+      <a class="nav-link" href="cover.html">Institutional Cover</a>
+      <a class="nav-link" href="myths.html">Comforting Lies</a>
+      <a class="nav-link" href="aftermath.html">Fallout</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>TARGET PROFILES</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:500;text-shadow:0 0 8px rgba(245,212,106,0.5);">
+        WHO THEY PICK • WHY THEY GET AWAY WITH IT
+      </span>
+    </div>
+    <div class="app-sub">
+      Predators don’t hunt the strongest target. They hunt the least believed.
+      This is not “random.” It’s design.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search victim types..." />
+    </div>
+  </div>
+
+  <div id="vicList" class="vic-list">
+    <!-- filled by JS -->
+  </div>
+</aside>
+
+<!-- MAIN PANEL -->
+<main id="main">
+  <div class="main-inner">
+    <section id="vicHeader">
+      <div class="vic-title-row">
+        <h1 id="vicName">Loading...</h1>
+        <div id="vicTagline"></div>
+      </div>
+      <div id="vicAngle"></div>
+      <div id="vicProfile"></div>
+    </section>
+
+    <div id="vicSections">
+      <!-- JS builds accordion -->
+    </div>
+
+    <div class="footer-note">
+      When a case goes public, the news finally calls them “beloved.” Before that, they were “unstable,” “high-risk,” “a runaway,” “a problem.”
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+Victim / Target Archetype Model:
+{
+  id: 'runaway',
+  name: 'Runaway / Thrown Away Youth',
+  tagline: '“Probably just took off”',
+  angle: 'If you vanish and no adult claims you hard, you’re considered gone by choice.',
+  shortDesc: 'Kids who leave home or get pushed out and are now surviving alone.',
+  profile: 'Block text...',
+  why: [...],
+  howLabeled: [...],
+  dismissal: [...],
+  truth: [...],
+  cost: [...]
+}
+*/
+
+let openCards = [];
+let currentVicId = null;
+
+const victims = [
+  {
+    id: 'runaway',
+    name: 'Runaway / Thrown Away Youth',
+    tagline: '“Probably just took off”',
+    angle: 'No stable adult to raise hell = no urgency.',
+    shortDesc:
+      'These are kids and teens who left, were kicked out, or bounced between couches. Everyone tells themselves “they’re just being dramatic.” That lie gets them killed.',
+    profile:
+      'Predators know something society won’t admit: a young person without backup is considered “voluntary missing.” That means slow response, slow reporting, and almost zero media. That means time. The kid might be terrified, drugged, injured, trapped, actively being moved. The file, on paper, says “ran away again.”',
+    why: [
+      'No one is looking immediately. Delay = safety window for the predator.',
+      'Easy to isolate: “Need a ride? Need food? Need a place?”',
+      'They’re already used to unsafe adults. Their radar is burned.',
+      'If something happens to them, blame is easy: “Well, what were they even doing out there at that hour?”'
+    ],
+    howLabeled: [
+      '“Runaway.”',
+      '“At-risk youth with behavioral issues.”',
+      '“Unstable home situation.”',
+      'Those phrases downgrade them from “kid in danger right now” to “kid being dramatic.”'
+    ],
+    dismissal: [
+      'Police sometimes tell parents/guardians “they’ll come back on their own.”',
+      'Shelters / schools sometimes don’t elevate it because they see so many kids in crisis that it all blurs.',
+      'Media doesn’t pick it up because “teen ran away” doesn’t sell like “honor student vanished.”',
+      'So nobody sounds the alarm loud. Predator keeps moving.'
+    ],
+    truth: [
+      'A lot of so-called “runaways” are literally abducted, trafficked, or coerced right after they leave home.',
+      '“She met someone older online and left voluntarily” ignores power imbalance, manipulation, survival bargaining.',
+      'The kid is not “rebellious.” The kid is in open-season territory.'
+    ],
+    cost: [
+      'By the time the city admits foul play, the kid is already gone or dead.',
+      'Surviving kids learn: if you’re not picture-perfect and suburban, nobody will mobilize for you.',
+      'Predators learn: this hunting method works and nobody cares fast.'
+    ]
+  },
+
+  {
+    id: 'street',
+    name: 'Street Workers / Survival Sex Workers',
+    tagline: '“High-risk lifestyle”',
+    angle: 'If you’re selling your body to stay alive, you’re considered disposable.',
+    shortDesc:
+      'Predators target people working the street or online for money, drugs, shelter, safety debt, anything. These targets are chosen because they’re visible, alone at odd hours, and law enforcement already treats them as criminals.',
+    profile:
+      'When a predator offers money, a room, a date, a “regular,” or “I’ll take care of you,” that isn’t charm. That’s the setup. Street workers know this. Most are hyper-alert. But exhaustion + addiction + cold + desperation means sometimes you roll the dice. Predators know that too.',
+    why: [
+      'Most encounters happen out of camera range, by design.',
+      'If they go missing, cops and press call it “lifestyle,” not “attack.”',
+      'Predator assumes the victim won’t be believed if they survive and report.',
+      'If the victim fights back, predator can claim robbery / attack on him.'
+    ],
+    howLabeled: [
+      '“Prostitute.”',
+      '“Drug-addicted transient.”',
+      '“Known to police.”',
+      'Those phrases tell the audience: do not empathize.'
+    ],
+    dismissal: [
+      '“If you play with fire…”',
+      '“She put herself in that position.”',
+      '“This is just part of that world.”',
+      'The idea is: violence is part of the job, so it’s not really news.'
+    ],
+    truth: [
+      'Violence isn’t “part of the job.” Violence is the predator’s business model.',
+      'The worker isn’t “asking for it.” The worker is supporting herself in the only lane still open.',
+      'When cops mock or ignore them, predators treat that silence as a green light.'
+    ],
+    cost: [
+      'Serial offenders stay active for YEARS in some cities mostly hitting street workers.',
+      'When bodies finally stack high enough to grab headlines, the narrative flips to “monster on the loose,” like this just started last week.',
+      'Whole groups of people hear that and say: “We tried to tell you five years ago.”'
+    ]
+  },
+
+  {
+    id: 'indigenous',
+    name: 'Missing Indigenous Women & Girls',
+    tagline: '“We don’t have enough info at this time”',
+    angle: 'Jurisdiction games = no accountability.',
+    shortDesc:
+      'There’s a known, documented crisis of Indigenous women, girls, and two-spirit people disappearing or being murdered at rates way above national averages, and not getting equal investigative push.',
+    profile:
+      'Part of this is geography (remote roads, highways, rural edge-towns), part is racism, part is legal loopholes. Predators use those gaps. They know which victims fall between tribal police, county police, state police, federal response. They know “who’s responsible?” can become “no one fast enough.”',
+    why: [
+      'Remote pickup points, poor lighting, no cameras, nobody else around.',
+      'Victims may rely on hitchhiking, rides from strangers, couch stays.',
+      'Past trauma, poverty, or addiction issues get weaponized against them: “she wanders,” “she parties,” “she’ll turn up.”',
+      'Predators count on the idea that outsiders won’t care.'
+    ],
+    howLabeled: [
+      '“No foul play suspected at this time.” (while there very much should be)',
+      '“Last seen leaving willingly with an unknown male.”',
+      '“Transient lifestyle.”',
+      'Everything is phrased like: she chose this.'
+    ],
+    dismissal: [
+      'Cases stall because agencies argue over who has authority to investigate.',
+      'Families are told to “check hospitals and jails” themselves.',
+      'Some disappearances aren’t even entered into national databases quickly, or at all.',
+      'Press coverage is tiny unless bodies are found in a way that can’t be ignored.'
+    ],
+    truth: [
+      'The danger is not cultural myth. It’s logistics and indifference.',
+      'When a group of people is known to vanish and not get full response, that becomes a hunting ground.',
+      'Predators don’t need genius. They just need a highway and a blind jurisdictional corner.'
+    ],
+    cost: [
+      'Communities living in constant fear every time someone doesn’t check in.',
+      'Generation-level trauma where going missing is normalized talk.',
+      'Predators who should have been stopped after one victim instead getting multiple.'
+    ]
+  },
+
+  {
+    id: 'psych',
+    name: 'Locked Unit / Psych Patient',
+    tagline: '“Unreliable narrator”',
+    angle: 'If staff can call you unstable, they can erase whatever you say was done to you.',
+    shortDesc:
+      'Psych wards, detox holds, involuntary stays, “stabilization units” — these are supposed to be safe. They’re also sealed, heavily controlled, and full of people no one will believe over staff.',
+    profile:
+      'Inside, you can be medicated, restrained, strip-searched, observed in showers, and touched “for safety checks.” Sometimes this is necessary and done right. Sometimes it’s abuse dressed in policy language. If you complain? Staff can chart you as agitated, paranoid, delusional.',
+    why: [
+      'Your access to outside witnesses is cut.',
+      'You often can’t keep your phone.',
+      'You’re already labeled “crisis.”',
+      'Staff outranks you automatically in credibility.'
+    ],
+    howLabeled: [
+      '“Patient is confused.”',
+      '“Patient is attention-seeking.”',
+      '“Patient is fabricating trauma narrative.”',
+      'Your report becomes a symptom.'
+    ],
+    dismissal: [
+      'Family calls in and gets told, “They’re exaggerating — you know how they get.”',
+      'Other patients are also traumatized, so testimony from them is easy to discredit.',
+      'Administration frames everything as “necessary for safety.”',
+      'Police responding to a complaint tend to side with hospital security before they even hear you.'
+    ],
+    truth: [
+      'Predators absolutely exist inside “care.” Staff, other patients with leverage, outside visitors with access, whoever can get in a blind spot.',
+      'If something happens in seclusion or restraint, evidence is basically whatever the staff writes.',
+      'You can walk out with new trauma and zero record it ever happened.'
+    ],
+    cost: [
+      'People leave treatment more damaged than they went in.',
+      'Future patients don’t report abuse because they saw what happened to the last one who tried.',
+      'The whole system keeps pretending this is healing.'
+    ]
+  },
+
+  {
+    id: 'undocumented',
+    name: 'Undocumented / Off-the-Books Labor',
+    tagline: '“We have questions about their identity”',
+    angle: 'If your existence is “illegal,” calling for help can get you deported.',
+    shortDesc:
+      'Predators target migrant workers, undocumented people doing cash labor, trafficked workers in restaurants, farms, factories, domestic work, etc. These targets are often isolated, language-blocked, scared of law enforcement, and dependent on the abuser for housing and food.',
+    profile:
+      'This is exploitation plus threat. “If you talk, I’ll call ICE.” “If you run, you’ll be homeless tonight.” “If you say anything, nobody will believe you over me, citizen.” That is not a bluff. That works.',
+    why: [
+      'They can be moved, hidden, and worked overnight.',
+      'They are often far from family/community witnesses.',
+      'They may fear police more than they fear the predator.',
+      'Predator presents himself as “protector” and “boss,” the only source of income.'
+    ],
+    howLabeled: [
+      '“Dispute between workers.”',
+      '“Alleged assault, unclear details.”',
+      '“Possible trafficking concerns,” with no immediate rescue.',
+      'Vague phrasing instead of “kidnapping,” “rape,” “slavery.”'
+    ],
+    dismissal: [
+      'Police sometimes treat the victim like a suspect first.',
+      'Language barriers get used as “inconsistency in story.”',
+      '“We can’t verify identity” becomes “we can’t act yet.”',
+      'Predator knows delay = intimidation time.'
+    ],
+    truth: [
+      'This is not “gray area labor.” This is captivity with HR paperwork taped over it.',
+      'A lot of “went missing from job site” cases are not people “fleeing back home.” They’re people who were disappeared.',
+      'Nobody puts their head down and works 18 hours a day for fun.'
+    ],
+    cost: [
+      'Communities living next to literal slavery and calling it “a sketchy warehouse.”',
+      'Victims who make it out but can’t testify because speaking in court risks deportation.',
+      'Predators who keep staffing new sites because nothing ever hit daylight.'
+    ]
+  },
+
+  {
+    id: 'elder',
+    name: 'Elderly / Dependent Adult',
+    tagline: '“Natural causes”',
+    angle: 'If you die in care, people assume you were “at the end anyway.”',
+    shortDesc:
+      'This covers seniors, dementia patients, disabled adults in assisted living, people who need help bathing/eating/meds. These targets can’t fight, can’t run, can’t always explain.',
+    profile:
+      'Most caregivers are underpaid saints doing impossible work. Some are not. Some are cruel. Some are opportunists. Some are straight-up predatory. Abuse happens where nobody visits, nobody checks bruises, nobody audits meds — and where death isn’t shocking.',
+    why: [
+      'No physical defense.',
+      'Often isolated from outside eyes.',
+      'May not be believed if they report (“she’s confused”).',
+      'Visible injury can be shrugged off as “fragile skin,” “fall risk,” “old age.”'
+    ],
+    howLabeled: [
+      '“Patient became unresponsive overnight.”',
+      '“Agitation required sedation.”',
+      '“Accidental fall.” (over and over and over)',
+      '“Decline consistent with age.”'
+    ],
+    dismissal: [
+      'Family is told “this is just part of the process.”',
+      'Staff who witness something may not speak because retaliation and blacklisting in care work is real.',
+      'Facilities quietly fire a problem aide instead of involving police.',
+      'Reports die in HR instead of getting treated like assault or homicide.'
+    ],
+    truth: [
+      'There are cases where residents were beaten, chemically restrained for convenience, robbed, sexually assaulted, or outright murdered — and it got called “complications.”',
+      'Predators in elder care are protected by the fact that their victims are assumed to be moments from death anyway.',
+      '“They died peacefully” can be a script, not a fact.'
+    ],
+    cost: [
+      'Generations of families walking around with softened stories instead of the truth.',
+      'Good aides crying in their cars because they can’t stop what they’re seeing and can’t afford to quit.',
+      'Predators moving facility to facility with glowing references.'
+    ]
+  },
+
+  {
+    id: 'queer',
+    name: 'Closeted / Queer / Trans Youth',
+    tagline: '“Confused teen drama”',
+    angle: 'If adults think your identity is “a phase,” they will treat your danger like a phase too.',
+    shortDesc:
+      'Queer kids, trans kids, kids kicked out for being queer, kids meeting strangers online because home isn’t safe — predators know exactly how that works.',
+    profile:
+      'The predator plays “the only one who understands you.” They offer validation, rides, a couch, clothes, hormones, money, “a safe place.” Then they flip it sexual, violent, controlling. Reporting is hard because it means outing yourself to cops, to parents, to whoever answers the phone. Some kids decide staying with the predator is less dangerous than being exposed. That is how sick the math gets.',
+    why: [
+      'Isolation from family, or hostile family.',
+      'Strong hunger for acceptance = huge leverage point.',
+      'Fear of being outed = built-in gag.',
+      'Adults assume queer kids are “dramatic,” “lying,” “attention-seeking.”'
+    ],
+    howLabeled: [
+      '“Teen experimenting with relationships.”',
+      '“Voluntary meetup.”',
+      '“This was a lovers’ quarrel.”',
+      'All of that language frames abuse as romance.'
+    ],
+    dismissal: [
+      '“You led them on.”',
+      '“You’re just mad they broke up with you.”',
+      '“You’re making this up to get attention / to make us look bad.”',
+      'Police sometimes treat it as “just an internet hookup gone wrong,” not exploitation.'
+    ],
+    truth: [
+      'There are adults actively hunting queer / trans teens because they know those teens are scared to go to authority.',
+      'That isn’t “messy dating.” That is targeted predation with blackmail built-in.',
+      'When the kid goes missing, some families don’t even call right away because they’re angry about identity first.'
+    ],
+    cost: [
+      'Victims who survive carry layers: trauma from the predator + trauma from how everyone reacted.',
+      'Other queer kids see that and learn “if I ask for help, I’ll be blamed.”',
+      'Predators keep circling online, in DMs, in forums, in shelters, and everybody treats it like teen drama instead of hunting.'
+    ]
+  }
+
+]; // end victims[]
+
+
+/* DOM REFS */
+const vicListEl = document.getElementById('vicList');
+const searchInputEl = document.getElementById('searchInput');
+
+const vicNameEl = document.getElementById('vicName');
+const vicTaglineEl = document.getElementById('vicTagline');
+const vicAngleEl = document.getElementById('vicAngle');
+const vicProfileEl = document.getElementById('vicProfile');
+const vicSectionsEl = document.getElementById('vicSections');
+
+/* accordion tracking */
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+/* build accordion card */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'title-line';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+/* render sidebar list */
+function renderVicList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  vicListEl.innerHTML = '';
+
+  victims
+    .filter(v => {
+      if (!f) return true;
+      const haystack = [
+        v.name,
+        v.shortDesc,
+        v.tagline,
+        v.angle
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(v => {
+      const item = document.createElement('div');
+      item.className = 'vic-item';
+      item.setAttribute('data-id', v.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'vic-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'vic-name';
+      nameSpan.textContent = v.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'vic-tag';
+      tagSpan.textContent = v.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'vic-desc';
+      descDiv.textContent = v.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showVic(v.id);
+      });
+
+      vicListEl.appendChild(item);
+    });
+
+  highlightActive(currentVicId);
+}
+
+/* show selected victim type in main panel */
+function showVic(id) {
+  const v = victims.find(x => x.id === id);
+  if (!v) return;
+
+  currentVicId = id;
+
+  vicNameEl.textContent = v.name;
+  vicTaglineEl.textContent = v.tagline;
+  vicAngleEl.textContent = v.angle;
+  vicProfileEl.textContent = v.profile;
+
+  vicSectionsEl.innerHTML = '';
+  openCards = [];
+
+  const sectionsData = [
+    {title: 'Why They’re Targeted', hint: 'Predator math', arr: v.why || []},
+    {title: 'How They’re Described Publicly', hint: 'Language that erases them', arr: v.howLabeled || []},
+    {title: 'How The System Waves It Off', hint: 'Delay = damage', arr: v.dismissal || []},
+    {title: 'The Actual Situation', hint: 'What’s really happening', arr: v.truth || []},
+    {title: 'The Cost', hint: 'What never gets put on TV', arr: v.cost || []},
+  ];
+
+  sectionsData.forEach((block, idx) => {
+    if (!block.arr || block.arr.length === 0) return;
+    const card = buildSectionCard(
+      block.title,
+      block.hint,
+      block.arr,
+      (idx === 0 || idx === 1)
+    );
+    vicSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+/* highlight selected in sidebar */
+function highlightActive(id) {
+  const items = vicListEl.querySelectorAll('.vic-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+/* search hook */
+searchInputEl.addEventListener('input', (e) => {
+  renderVicList(e.target.value);
+});
+
+/* init */
+renderVicList('');
+if (victims.length > 0) {
+  showVic(victims[0].id);
+}
+</script>
+
+</body>
+</html>
