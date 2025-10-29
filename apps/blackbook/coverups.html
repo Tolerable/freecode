@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Erasure Tactics | Black Book Archive</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #0a0a10;
+  --panel: #13131f;
+  --panel-light: #1d1d2d;
+  --accent: #ffbe4d; /* forensic / crime scene tape yellow for this page */
+  --accent-soft: rgba(255,190,77,0.18);
+  --text: #f5f5f7;
+  --muted: #7a7a90;
+  --line: #2a2a3f;
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --glow: 0 0 12px rgba(255,190,77,0.7);
+}
+
+/* RESET-ish */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* BODY LAYOUT */
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #1a1a2a 0%, #050507 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  line-height: 1.45;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: 58px; /* space for fixed nav bar */
+}
+
+/* TOP NAV BAR (shared across site) */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10,10,16,0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-shadow: var(--glow);
+  white-space: nowrap;
+}
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: var(--glow);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: var(--glow);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, #1f170a 0%, #0c0c13 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.8);
+  position: relative;
+  z-index: 10;
+  min-height: calc(100vh - 58px);
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(to right, rgba(255,190,77,0.15) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: var(--glow);
+}
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(255,190,77,0.25);
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(255,190,77,0.6), inset 0 0 10px rgba(255,190,77,0.35);
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  pointer-events: none;
+}
+
+/* COVERUP LIST (sidebar list) */
+.coverup-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+.coverup-list::-webkit-scrollbar {
+  width: 6px;
+}
+.coverup-list::-webkit-scrollbar-track {
+  background: #000;
+}
+.coverup-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(255,190,77,0.9);
+}
+
+.coverup-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+.coverup-item:hover {
+  background: rgba(255,190,77,0.07);
+}
+.coverup-item.active {
+  background: rgba(255,190,77,0.15);
+  box-shadow: inset 0 0 12px rgba(255,190,77,0.6);
+}
+.coverup-line1 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+.coverup-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+}
+.coverup-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(255,190,77,0.8);
+}
+.coverup-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(255,190,77,0.07) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 10% 90%, rgba(92,0,255,0.07) 0%, rgba(0,0,0,0) 70%),
+    #0a0a10;
+  position: relative;
+  overflow-x: hidden;
+}
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER CARD */
+#coverupHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(255,190,77,0.25);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+.coverup-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+#coverupName {
+  font-family: var(--font-head);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(255,190,77,0.8);
+  margin: 0;
+  line-height: 1.2;
+}
+#coverupTagline {
+  font-size: 0.75rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  line-height: 1.3;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(255,190,77,0.6);
+  white-space: nowrap;
+  max-width: 100%;
+}
+#coverupProfile {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* SECTION CARDS */
+.section-card {
+  margin-top: 20px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.8),
+    0 0 40px rgba(92,0,255,0.15);
+}
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(255,190,77,0.15) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  padding: 14px 16px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-shadow: 0 0 8px rgba(255,190,77,0.7);
+}
+.section-header .label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.section-header .title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.section-header .section-title {
+  color: var(--text);
+}
+.section-header .hint {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  text-shadow: none;
+}
+.section-header .chevron {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  transition: transform 0.15s;
+}
+.section-card.open .section-header .chevron {
+  transform: rotate(90deg);
+}
+.section-body {
+  display: none;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+  background: radial-gradient(circle at 10% 0%, rgba(255,190,77,0.07) 0%, transparent 70%);
+}
+.section-card.open .section-body {
+  display: block;
+}
+.section-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.section-body li {
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+  text-shadow: var(--glow);
+}
+
+/* FOOTER NOTE */
+.footer-note {
+  margin-top: 32px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 60px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 20px;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 750px) {
+  #sidebar {
+    width: 220px;
+  }
+  #coverupName {
+    font-size: 1.1rem;
+  }
+  #coverupTagline {
+    font-size: 0.7rem;
+    white-space: normal;
+  }
+}
+@media (max-width: 600px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .coverup-list {
+    max-height: calc(40vh - 110px);
+  }
+  #main {
+    flex: 1;
+  }
+  .coverup-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">BLACK BOOK ARCHIVE</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Monster Lies</a>
+      <a class="nav-link" href="weaknesses.html">Human Weaknesses</a>
+      <a class="nav-link active" href="coverups.html">Erasure Tactics</a>
+      <a class="nav-link" href="survival.html">Hunter Manual</a>
+      <a class="nav-link" href="collaborators.html">Human Traitors</a>
+      <a class="nav-link" href="timeline.html">Timeline</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>ERASURE TACTICS</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:500;text-shadow:var(--glow);">OFFICIAL LIES / PUBLIC STORY</span>
+    </div>
+    <div class="app-sub">
+      When something impossible happens, humans still file paperwork. These are the stories they use to seal the file and make everyone stop asking questions.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search cover stories..." />
+    </div>
+  </div>
+
+  <div id="coverupList" class="coverup-list"></div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <div class="main-inner">
+    <section id="coverupHeader">
+      <div class="coverup-title-row">
+        <h1 id="coverupName">Loading...</h1>
+        <div id="coverupTagline"></div>
+      </div>
+      <div id="coverupProfile"></div>
+    </section>
+
+    <div id="coverupSections"></div>
+
+    <div class="footer-note">
+      Rule of thumb: if the "official story" wraps up a violent, bizarre, or impossible event in under 24 hours with a single neat line, assume someone — human or not — wanted that file closed fast.
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+Each coverup object fields:
+id, name, shortDesc, tagline, profile,
+pattern[], redFlags[], whoBenefits[], investigate[], notes[]
+*/
+
+const coverups = [
+  {
+    id: 'animal_attack',
+    name: 'Wild Animal Attack',
+    shortDesc: 'All claw marks, no witnesses, case closed.',
+    tagline: '“It Was Probably A Bear”',
+    profile: 'Used when: a body is found shredded, partially eaten, or brutalized in a way normal humans don’t do to each other. The report says “large predator.” The report never says “the large predator then opened the back door, dragged the victim down the hall, and staged the scene to look random.”',
+    pattern: [
+      'Authorities blame a bear, wolf, mountain lion, feral dog pack, etc. even when the scene is suburban and fenced.',
+      'They say, "The animal must have gotten aggressive," then immediately announce "there is no ongoing danger to the public." That is a contradiction.',
+      'Injuries are described as "consistent with animal predation" even if bones are crushed in a way that suggests upright, two-handed leverage.',
+      'When it’s a werewolf-style kill, throat is usually ruined first. That conveniently destroys the victim’s ability to scream — and also erases bite detail.'
+    ],
+    redFlags: [
+      'No tracks, no fur, no scat, no trail of blood leading away. Real large animals leave chaos.',
+      'Too clean. Limbs removed with almost surgical precision, then tossed like trash.',
+      'Neighbors didn’t hear animal noises. They heard talking, arguing, or a door slam.',
+      'PD says "we’re looking into coyotes" in a zip code where the only wildlife is raccoons and depressed squirrels.'
+    ],
+    whoBenefits: [
+      'Werewolves, obviously: labeling a planned personal hit as "random wildlife" makes it uninvestigated.',
+      'Vampires: if feeding damage was messy, "animal" prevents questions about missing blood.',
+      'Local law enforcement: gets to shut down panic and avoid multi-agency escalation.',
+      'Any human collaborator who needs the death written off as “tragic accident,” not “targeted silencing.”'
+    ],
+    investigate: [
+      'Ask: did anyone actually see an animal, or did they just see “shadows”? Most times, nobody saw anything with fur.',
+      'Look for entry/exit that an actual animal could not work (latch opened, deadbolt undone, sliding glass door lifted).',
+      'Check if the victim had recent drama: breakup, whistleblowing, blackmail, debt, cult exit, land dispute. Wild animals do not care about motive. Assassins do.',
+      'If officials say "there is no danger to the public," ask yourself: how would they know that, unless they knew exactly what happened?'
+    ],
+    notes: [
+      'The “bear” explanation has covered murders, werewolf hits, vampire cleanup, and at least one occult-ritual dismemberment.',
+      'Sometimes if it really was an animal, they kill the animal, parade it on the news, and go “See? Problem solved.” If you see a wrapped tarp and instant closure, that’s theater.',
+      'You’ll notice "animal attack" happens a lot in small towns where everyone knows everyone. That’s not ecology. That’s politics.'
+    ]
+  },
+
+  {
+    id: 'gas_leak',
+    name: 'Gas Leak / Electrical Fault',
+    shortDesc: 'House explodes, burns, or fills with poison air. Oops.',
+    tagline: '“Faulty Wiring, Tragic Accident”',
+    profile: 'Used when: something non-human wrecks a home from the inside, aggressively. Poltergeist escalation. Demon eviction gone wrong. Unstable entity manifestation. Rather than call it supernatural violence, it becomes “combustion event.”',
+    pattern: [
+      'Fire crews arrive fast, scene is locked down even faster.',
+      'Officials say "possible gas leak" before any lab results exist.',
+      'Neighbors heard screaming and furniture slamming for days before the “accident,” but the report excludes those statements.',
+      'Survivor is sometimes described as hallucinating or "in shock and not making sense." Translation: they told the truth and the truth didn’t test well.'
+    ],
+    redFlags: [
+      'Repeated small incidents first: bangs, shattered glass, lights blowing out, scorch marks in weird places, scratches on drywall at shoulder height.',
+      'Kitchen or breaker box blamed — even when fire obviously started in a bedroom or hallway.',
+      'Burn pattern not consistent with normal flame spread. (Flash patterns up walls, one room charred to bone and next room untouched.)',
+      'Household was talking about "haunting" or "things moving on their own" days/weeks before.'
+    ],
+    whoBenefits: [
+      'Poltergeists: Fire erases fingerprints of escalating harassment.',
+      'Whatever was attached: If the target dies or flees, attachment sometimes hops. Blaming a gas leak masks the presence of the hitchhiker.',
+      'Insurance adjusters / property owners: "accident" means payout without messy liability.',
+      'Any group doing private exorcism / banishment work: Avoids public eyes.'
+    ],
+    investigate: [
+      'Ask survivors what started first: the noise or the smell. Paranormal usually does noise first. Actual gas leak hits smell first.',
+      'Look at scorch/soot around door frames. Poltergeist burn marks often look vertical, like claws of heat.',
+      'Did electronics fry randomly in the days before? Phones dying at 80%, TVs power cycling at 3AM, alarms glitching?',
+      'Did anyone recently challenge or mock “the spirit”? Poltergeists love being mocked because it justifies escalation.'
+    ],
+    notes: [
+      '“Faulty wiring” has covered at least a dozen attempted murders by unseen force in locked rooms.',
+      'People think poltergeists are just noisy teenagers. Cute. Some of them absolutely try to cook people alive.',
+      'After one of these, anyone who claims, "The fire talked," will get labeled unstable in the final write-up.'
+    ]
+  },
+
+  {
+    id: 'sleep_paralysis',
+    name: 'Sleep Paralysis / Night Terror',
+    shortDesc: 'No, you weren’t “just dreaming.”',
+    tagline: '“It Was All In Your Head”',
+    profile: 'Used when: a shadow presence sits on your chest and tries to train you to accept being watched, touched, fed on. Medical language is used to discredit you, even if you present bruising, red marks on your throat, or fingerprints.',
+    pattern: [
+      'Victim reports waking up pinned, unable to move, something in the room.',
+      'Official response: "That’s common, it’s called sleep paralysis. Perfectly normal."',
+      'If there are physical marks, they get blamed on "self-scratching while half asleep" or on pets.',
+      'If sound was heard ("it was breathing in my ear"), report assumes auditory hallucination.'
+    ],
+    redFlags: [
+      'Recurring visitations with increasing boldness (corner → bedside → on chest). Real sleep paralysis is usually episodic / stress-tied, not escalating with personality.',
+      'Multiple people in the same house report same figure / hat / outline independently.',
+      'Electronics in the room glitch at time of event (clock resets, camera corrupts, baby monitor hisses).',
+      'The victim starts acting paranoid about closets / doorways / mirrors when they never did before.'
+    ],
+    whoBenefits: [
+      'Shadow entities: They get free feeding time while you’re neurologically muted.',
+      'Possession-type intelligences: Weak, sleep-starved people are easier to influence.',
+      'Anyone who wants you dismissed: If your partner, landlord, caregiver, etc. is compromised, labeling you "delusional" gives them control over you.',
+      'The entity itself: It wants you believing you’re crazy, because crazy people don’t get backup.'
+    ],
+    investigate: [
+      'Check timestamps. If multiple people in the same house wake up panicking within minutes of each other, that’s not random REM behavior.',
+      'Photograph any bruising/marks right away, before you shower. (Entities hate documentation.)',
+      'Ask: do you feel watched while awake now? True neurological sleep paralysis usually doesn’t leak into waking life paranoia. Stalking entities do.',
+      'If a kid reports "a man in my room," DO NOT brush it off. Kids aren’t parroting psychiatric terminology.'
+    ],
+    notes: [
+      '“Night terror” gets used as a polite way to say “shut up, stop scaring the neighbors.”',
+      'Plenty of cultures have names for this entity — old hag, night witch, pressing demon, etc. That many cultures do not all hallucinate the exact same silhouette by coincidence.',
+      'Long-term targets sometimes go from "I felt something watching me" to "It told me what to do today." That’s stage two.'
+    ]
+  },
+
+  {
+    id: 'ran_away',
+    name: 'They Ran Away / Voluntary Disappearance',
+    shortDesc: 'They didn’t vanish. They “left.”',
+    tagline: '“They Just Took Off, Happens All The Time”',
+    profile: 'Used when: someone is taken by fae, siren, cult recruiter, abductor, or tall faceless thing. Instead of calling it an abduction, the narrative becomes “they chose to leave” so that police resources don’t mobilize.',
+    pattern: [
+      'Last seen near woods / water / an edge space (train tracks, abandoned building, storm drain).',
+      'No real prep to leave — wallet, meds, keys, pet, car, job all still there.',
+      'Family/friends say "they wouldn’t just leave" and are told "you don’t know them like we do, lots of people walk out."',
+      'Social media / phone stops cold instead of ramping up "I’m done with you people" drama. Real runaways usually announce rage. Silent vanish is different.'
+    ],
+    redFlags: [
+      'The person was last described as "staring at something nobody else saw."',
+      'Reports of singing / voices near a lake or river before they went missing.',
+      'Child says "the tall man wanted me to come play" shortly before disappearance of teen or younger sibling.',
+      'Small towns / tourist towns dismiss multiple missing people in the same area over the same summer as "kids being kids."'
+    ],
+    whoBenefits: [
+      'Fae courts: They keep human trophies and don’t like human cops swarming their edges.',
+      'Sirens / water predators: Fear shuts down beaches and patrols; "ran away" keeps beaches open.',
+      'Slender / tall watchers: They feed better in communities where parents second-guess their own kids.',
+      'Local economy / tourism boards: Missing person panic is bad for business, so "ran off with a boyfriend" is the line.'
+    ],
+    investigate: [
+      'Ask if there were shoes. Humans almost never decide to “start a new life” barefoot.',
+      'Check if they left tech behind. Walking away without your phone is not modern human behavior unless someone or something took you fast.',
+      'Look for wrong-time sightings: Did someone see them hours later in a place they couldn’t physically reach in time, staring blankly?',
+      'Map other vanishings within 20-30 miles over the last 2-3 years. Repeat geography = feeding ground.'
+    ],
+    notes: [
+      'Parents get told "teenagers just run sometimes." Meanwhile whole clusters of teens vanish from the same trail system.',
+      'If witnesses say the missing person looked "dazed, like hypnotized," pay attention. That’s a glamour / lure signature.',
+      'In a lot of old fairy stories, mortals never "ran away." They were taken. We changed the phrasing to keep from admitting we can’t stop it.'
+    ]
+  },
+
+  {
+    id: 'suicide',
+    name: 'Suicide / Self-Harm',
+    shortDesc: 'Case shut, no further questions.',
+    tagline: '“It’s Tragic, Respect The Family’s Privacy”',
+    profile: 'Used when: a death is deeply suspicious, tied to forbidden knowledge, cult exit, monster witness, or cleanup. Labeling it suicide instantly shames anyone who keeps asking. You become “heartless” for not letting the deceased "rest in peace."',
+    pattern: [
+      'Victim recently said "if something happens to me it wasn’t me," and then something "happened to them."',
+      'The physical logistics don’t make sense for a one-person act (angle, knots, reach, weapon placement).',
+      'The note, if there is one, sounds nothing like the person’s voice.',
+      'People near the scene had motive to silence them (they were going to talk, quit, expose, leave).'
+    ],
+    redFlags: [
+      'The first official statement includes mental health speculation within hours. Fast narrative = rehearsed narrative.',
+      'Friends/family say "they were scared, not depressed," and get painted as "in denial."',
+      'Evidence disappears fast — phone wiped, journals gone, laptop "malfunctioned."',
+      'Witness timelines conflict, and that’s brushed off as "grief memory distortion."'
+    ],
+    whoBenefits: [
+      'Vampire power structures: Whistleblowers are a liability.',
+      'Cults / False angels / Demon-handlers: Leaving or exposing them is not allowed.',
+      'Human collaborators: It’s easier to frame a loose end as unstable than as murdered.',
+      'Any entity that got seen and cannot afford law enforcement poking around.'
+    ],
+    investigate: [
+      'Check for previous threats: "If you tell anyone about us, you’ll never talk again." That is not depression talk.',
+      'Ask if the body position was physically achievable by that person. A lot of staged scenes ignore basic biomechanics.',
+      'Ask if there are defensive wounds. "Suicide" with defense wounds = lie.',
+      'Ask if valuables were left untouched — money, weapons, blackmail material. Real suicides don’t neatly erase evidence against predators.'
+    ],
+    notes: [
+      'This cover story weaponizes compassion. It dares you to keep digging and tries to make you feel evil for digging.',
+      'Not all suicides are murders. But all "don’t you dare question it" cases deserve questioning.',
+      'If a whole group of people is instantly coordinated on the exact same talking points, someone rehearsed them.'
+    ]
+  },
+
+  {
+    id: 'mass_hysteria',
+    name: 'Mass Hysteria / Shared Delusion',
+    shortDesc: 'Everyone saw it, therefore nobody saw it.',
+    tagline: '“They Worked Each Other Up”',
+    profile: 'Used when: multiple witnesses report the same impossible thing at the same time — lights in the sky, creature in the woods, angelic manifestation, miracle at a church, shadow figure crawling on the ceiling in a hospital ward — and the response is "they panicked and infected each other with ideas."',
+    pattern: [
+      'Witnesses are described with minimizing language: panicky teens, unstable women, conspiracy nuts, religious fanatics.',
+      'Authorities claim "there is no evidence" even when video/audio exists. If all the video/audio is "malfunctioning," that’s the evidence.',
+      'Story quickly reframes event as rumor, not an incident.',
+      'Afterward: official calm, but locally, people move away, businesses close early, cops quietly increase patrols. Watch behavior, not statements.'
+    ],
+    redFlags: [
+      'People from totally different backgrounds telling matching details without cross-talking.',
+      'Injuries or burns that match ("all of us have the same handprint mark").',
+      'Gear failure across unrelated devices (phones, dash cams, CCTV).',
+      'Outsider agencies show up fast (federal, corporate security, private cleanup vans) even though "nothing happened."'
+    ],
+    whoBenefits: [
+      'Aliens / visitors: They get to keep their sampling missions going without mass scrutiny.',
+      'Angelic impostors: "Miracle" becomes "group hallucination" so nobody listens to the content of the message.',
+      'Slender / tall entities: Fear of being ridiculed stops parents from reporting.',
+      'Local government: Tourism and "safety reputation" stay intact.'
+    ],
+    investigate: [
+      'Talk to witnesses separately and write down overlap points. Overlap is usually real; contradictions are usually stress.',
+      'Track physical symptoms (headaches, nausea, nosebleeds, burns). You can’t hallucinate matching radiation-style sickness.',
+      'Watch for sudden outside authority presence that has no jurisdiction. Who called them in? Why?',
+      'If gear died, check if it all died in the same second. That’s suppression, not panic.'
+    ],
+    notes: [
+      '"Mass hysteria" is how you erase an event without erasing the people. You just erase their credibility.',
+      'Police reports sometimes literally copy-paste language from old “hysteria” cases. They’re reading from a playbook.',
+      'When a town has a "mass hysteria incident," watch the real estate listings in the next 3 months. People who saw the truth tend to move.'
+    ]
+  },
+
+  {
+    id: 'storm',
+    name: 'Freak Weather Event',
+    shortDesc: 'The sky did it.',
+    tagline: '“Sudden Microburst / Rogue Wave / Downburst”',
+    profile: 'Used when: something large and inhuman physically strikes property, boats, aircraft, or infrastructure — and the easiest way to explain massive force from nowhere is "weather anomaly."',
+    pattern: [
+      'A boat vanishes in calm water. Official line: "rogue wave."',
+      'A body is found broken like from a fall, nowhere near a drop. Line: "freak wind threw debris."',
+      'A roof is peeled off like a sardine can but only on one house. Explanation: "localized microburst."',
+      'Phone / radio comms fail right before impact, then come back afterward.'
+    ],
+    redFlags: [
+      'No corresponding radar anomaly.',
+      'Objects dragged downward, not scattered. ("Everything went straight under.")',
+      'Witnesses report seeing shapes or shadows in the water/sky right before the hit.',
+      'The "storm" was apparently polite enough to target only one person/vehicle.'
+    ],
+    whoBenefits: [
+      'Kraken / deep water predators: "Rogue wave" is a great way to say "something pulled them under on purpose."',
+      'Large flying entities / dragons: Structural failure = "wind shear," not "talons."',
+      'Visitors/abductors: "Lightning strike" covers their grab and disables cameras.',
+      'Insurance / shipping companies: Acts of God are cheaper to settle than negligence or attack.'
+    ],
+    investigate: [
+      'Was weather actually reported by multiple witnesses, or just in the press release?',
+      'Were nearby boats/vehicles hit the same way? Real freak weather doesn’t surgically pick just one target.',
+      'Was communication jammed? Weather doesn’t usually EMP your radio.',
+      'Is there circular crush damage (wrap-around grip) being labeled “twisted metal from wind”? Metal doesn’t twist neatly from random gusts.'
+    ],
+    notes: [
+      '"Rogue wave" has been used to replace "something huge and thinking dragged the hull down from beneath us and we never even saw its full body."',
+      '"Wind shear" has been used to mask mid-air encounters pilots are absolutely not allowed to talk about on record.',
+      'Weather is the perfect scapegoat. You cannot arrest weather.'
+    ]
+  },
+
+  {
+    id: 'cult_panic',
+    name: 'Cult Panic / Satanic Ritual Rumor',
+    shortDesc: 'Make it sound cartoon evil so no one believes it.',
+    tagline: '“Just Satanic Panic Stuff, Ignore It”',
+    profile: 'Used when: something ritualistic happens (symbols, circles, bone piles, candle patterns, missing organs, arranged bodies), and instead of investigating seriously, authorities roll their eyes and say, "Teenagers doing edgy devil stuff."',
+    pattern: [
+      'Animal or human remains arranged with intent.',
+      'Weird markings burned or carved into walls or floors.',
+      'Witnesses heard chanting / singing / multiple voices.',
+      'Response from authorities: "Kids, or maybe some weird online cult. Nothing organized."'
+    ],
+    redFlags: [
+      'Precision. Teen edgelords don’t harvest organs with surgical exactness.',
+      'No phones out. Teenagers record everything for clout. If nobody filmed it, assume it wasn’t teens.',
+      'Same symbols showing up across state lines / years apart.',
+      'Participants describe "the light" or "the voice" or "the shape in the circle" like it was there physically, not pretend.'
+    ],
+    whoBenefits: [
+      'Demons and summoning cults: If cops chalk it up to "panic," no serious task force forms.',
+      'Witch-type predators: They need debt-bound followers, not SWAT attention.',
+      'Angelic impostors: Sometimes they demand worship. Nobody wants "rogue angel cult" in the local paper.',
+      'Human collaborators who are recruiting victims. The less serious you take ritual signs, the easier it is to recruit the next round.'
+    ],
+    investigate: [
+      'Catalog symbols. Recurring marks = doctrine, not "lol edgy teens."',
+      'Document everyone who was at the scene alive and who’s now missing.',
+      'Track who shut down questions: if someone in authority instantly says "Satanic panic" and steers eyes away, ask why they’re so fast to control the narrative.',
+      'Ask if anyone there felt compelled to participate, like "I didn’t want to but my body moved." That’s not cosplay.'
+    ],
+    notes: [
+      '“Satanic panic” in the 80s/90s made people allergic to investigating real ritual abuse or summoning attempts. That stigma is still protecting active groups.',
+      'Sometimes the circle is not about worship. Sometimes it’s a cage. If the cage broke, whatever was inside is loose now.',
+      'Anytime you see candles + symbols + missing tongue/eyes/heart, you are not dealing with bored teenagers. Stop letting them sell you that.'
+    ]
+  },
+
+  {
+    id: 'industrial',
+    name: 'Industrial Accident / Workplace Incident',
+    shortDesc: 'Tragic malfunction, please sign this NDA.',
+    tagline: '“Equipment Failure, Nothing Suspicious”',
+    profile: 'Used when: somebody gets absolutely obliterated in a facility that should have had multiple safety interlocks, cameras, and alarms… and somehow none of them worked. Common at labs, warehouses, research parks, offshore rigs, black-budget contractors.',
+    pattern: [
+      'Official line includes "OSHA has been notified." That’s there to make you think a grown-up is handling it.',
+      'Coworkers say "we were told not to talk to media."',
+      'Security footage is "lost," "corrupted," or "with corporate legal."',
+      'The dead person had access to something sensitive — samples, data, evidence, recordings, or proprietary tech.'
+    ],
+    redFlags: [
+      'Body damage doesn’t match any machine on site. (Crushing in a place with no press. Burns in a place with no open flame. Vacuum trauma in a room that should never have been depressurized.)',
+      'Witnesses describe a shape in the room nobody can identify (“like a person but not a person”).',
+      'Company instantly deploys crisis PR not just for liability, but to aggressively kill rumors.',
+      'Any mention of "biohazard protocol breach" followed by "but there’s no risk to the public." That sentence is nonsense.'
+    ],
+    whoBenefits: [
+      'Visitors / non-human researchers: They get access to human infrastructure then erase evidence by calling it a one-off mishap.',
+      'Contained entities that got loose: The lab can claim "equipment failure" instead of "containment breach."',
+      'Corporate handlers: Settling an NDA and NDA’ing the witnesses is easier than "we had an inhuman thing in our R&D wing."',
+      'Government contractors: Liability goes away if you convince everyone this was just forklift oops.'
+    ],
+    investigate: [
+      'Ask workers off-site, not on-site. On-site they’re being recorded and threatened with firing.',
+      'Ask if doors locked automatically before or after the incident. Smart predators lock doors.',
+      'Ask about smell. Ozone, ammonia, hot copper, "burnt meat," sickly-sweet floral — those smells repeat.',
+      'If the company offers paid counseling immediately, that’s partly damage control and partly witness steering.'
+    ],
+    notes: [
+      'The phrase "tragic workplace accident" has covered cross-dimensional leaks, contained-entity escapes, and full-body removal events where there wasn’t even blood left.',
+      'The NDA is the monster’s best friend. Silence is safety, but not for you.',
+      'Whenever you hear "proprietary process," translate to "we don’t want questions."'
+    ]
+  },
+
+  {
+    id: 'overdose',
+    name: 'Overdose / Substance-Related Death',
+    shortDesc: 'They’re gone because of “drugs.” End of story.',
+    tagline: '“Toxicology Pending, Foul Play Not Suspected”',
+    profile: 'Used when: someone dies after contact with a vampire (blood exchange), demon (influence rush), witch (potion/brew), or other entity that delivers euphoric or paralyzing states. Listing cause of death as "overdose" makes everyone stop listening, because addiction stigma is a silencer.',
+    pattern: [
+      'Victim found collapsed with no struggle marks, like they just went limp.',
+      'Friends say "they weren’t using like that," and get dismissed as naïve.',
+      'Medical examiner leaks early: "We’re treating this as possible overdose," before full tox screens.',
+      'Any strange wounds at the neck, inner arm, inner thigh, or chest are either photographed and sealed or not mentioned at all.'
+    ],
+    redFlags: [
+      'No paraphernalia, or paraphernalia staged way too neatly (needle capped, lines perfectly arranged). Real junk scenes are messy.',
+      'Bliss-smile or peaceful expression frozen on face → signature of enthrallment feeding.',
+      'The victim had recently started acting "obsessed with" someone/something and calling it "the only thing that makes me feel alive."',
+      'Timeline gap: nobody can account for where they were the last 1–3 hours.'
+    ],
+    whoBenefits: [
+      'Vampires: Hide feeding deaths. Also shames the victim so nobody avenges them.',
+      'Demons: Hide kills that happened after a "deal."',
+      'Handlers / Familiars: Keeps attention off the monster and onto "poor reckless addict."',
+      'Police workload: Overdose is paperwork. Homicide is budget.'
+    ],
+    investigate: [
+      'Ask if the body temp felt wrong when found (too cold too fast, or fever-hot).',
+      'Ask about puncture marks that don’t line up with normal IV/needle use.',
+      'Check their messages. Did they talk like they were in a cult-drenched romance, not like they were chasing a drug?',
+      'Identify the last person who saw them conscious. That person is critical. That person never thinks they’re critical.'
+    ],
+    notes: [
+      'Calling a kill "overdose" is a double erasure: it erases the predator and it erases the victim’s dignity in one move.',
+      'Even when tox shows nothing conclusive, "probable substance event" still gets written. That phrasing is a coffin lid.',
+      'Vampires adore this cover, because society already decided drug users "did it to themselves."'
+    ]
+  },
+
+  {
+    id: 'equipment_malfunction',
+    name: 'Equipment Malfunction / Camera Error / Data Loss',
+    shortDesc: 'All the proof broke itself.',
+    tagline: '“Unfortunately The Recording Failed”',
+    profile: 'Used when: footage, audio, telemetry, or any kind of recorded proof dies or corrupts right when something non-human shows up. This is the digital version of "you must have imagined it."',
+    pattern: [
+      'Security cam glitches for exactly the 4 minutes of the incident and nowhere else in the night.',
+      'Dash cam drops to static right before "the thing in the road" would’ve been in frame.',
+      'Hard drives wiped, files unreadable, metadata scrambled.',
+      'Explained as "firmware bug," "voltage irregularity," "solar flare," or "network outage."'
+    ],
+    redFlags: [
+      'Multiple different devices, running on different power, all fail in sync.',
+      'You get physical symptoms (ringing ears, metallic taste, nausea) at the same second your electronics die.',
+      'The excuse is too technical and too fast, like PR copy, not an investigation result.',
+      'Someone from IT/security collects the gear before you can make your own copy.'
+    ],
+    whoBenefits: [
+      'Aliens / visitors: They HATE being recorded clean.',
+      'Shadow entities: Visibility ruins intimidation. Fear thrives in "did I really see that?"',
+      'Tall faceless entities: Their hunting pattern collapses if parents get clear video.',
+      'Any high-level collaborator group that cannot risk footage leaking online.'
+    ],
+    investigate: [
+      'Immediately duplicate anything you still have on a separate device not connected to their network.',
+      'Write down exact timestamps, including seconds, while you still remember. Time sync across witnesses is evidence.',
+      'Note physical effects in your body during the glitch. Bio-symptoms + gear fail = strong indicator it wasn’t "just a loose cable."',
+      'Ask if this location has "had weird outages before." If they say yes, that site is actively hunted.'
+    ],
+    notes: [
+      '"The camera didn’t catch it" is the new "pics or it didn’t happen." And they know that.',
+      'Multiple law enforcement bodycams have gone "dead battery" mid-encounter with things that officially "did not exist." That is not coincidence.',
+      'If it keeps happening to the same person, congratulations: you are being tracked, not the device.'
+    ]
+  }
+
+]; // end coverups array
+
+
+/* DOM refs */
+const coverupListEl = document.getElementById('coverupList');
+const searchInputEl = document.getElementById('searchInput');
+
+const coverupNameEl = document.getElementById('coverupName');
+const coverupTaglineEl = document.getElementById('coverupTagline');
+const coverupProfileEl = document.getElementById('coverupProfile');
+const coverupSectionsEl = document.getElementById('coverupSections');
+
+let currentCoverupId = null;
+
+/* TRACK OPEN SECTIONS (max 2 at a time) */
+let openCards = [];
+
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+/* BUILD ACCORDION CARD */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'title-line';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+/* RENDER LIST IN SIDEBAR */
+function renderCoverupList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  coverupListEl.innerHTML = '';
+
+  coverups
+    .filter(cu => {
+      if (!f) return true;
+      const haystack = [
+        cu.name,
+        cu.shortDesc,
+        cu.tagline
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(cu => {
+      const item = document.createElement('div');
+      item.className = 'coverup-item';
+      item.setAttribute('data-id', cu.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'coverup-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'coverup-name';
+      nameSpan.textContent = cu.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'coverup-tag';
+      tagSpan.textContent = cu.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'coverup-desc';
+      descDiv.textContent = cu.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showCoverup(cu.id);
+      });
+
+      coverupListEl.appendChild(item);
+    });
+
+  highlightActive(currentCoverupId);
+}
+
+/* SHOW DETAILS IN MAIN PANEL */
+function showCoverup(id) {
+  const cu = coverups.find(x => x.id === id);
+  if (!cu) return;
+
+  currentCoverupId = id;
+
+  // header
+  coverupNameEl.textContent = cu.name;
+  coverupTaglineEl.textContent = cu.tagline;
+  coverupProfileEl.textContent = cu.profile;
+
+  // sections
+  coverupSectionsEl.innerHTML = '';
+  openCards = []; // reset which cards are "open" when switching
+
+  const sectionsData = [
+    {title: 'How The Story Is Told', hint: 'Public / official narrative beats', arr: cu.pattern || []},
+    {title: 'Red Flags', hint: 'Details that don’t add up', arr: cu.redFlags || []},
+    {title: 'Who Needs This Cover', hint: 'Who benefits if you believe it', arr: cu.whoBenefits || []},
+    {title: 'How To Read The Scene', hint: 'Questions to ask and what to document', arr: cu.investigate || []},
+    {title: 'Field Notes', hint: 'Context and recurring signatures', arr: cu.notes || []},
+  ];
+
+  sectionsData.forEach((sectionObj, idx) => {
+    if (!sectionObj.arr || sectionObj.arr.length === 0) return;
+    const card = buildSectionCard(
+      sectionObj.title,
+      sectionObj.hint,
+      sectionObj.arr,
+      (idx === 0 || idx === 1) // first two opened by default
+    );
+    coverupSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  // scroll main to top so user sees header
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+/* HIGHLIGHT ACTIVE ITEM IN SIDEBAR */
+function highlightActive(id) {
+  const items = coverupListEl.querySelectorAll('.coverup-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+/* SEARCH */
+searchInputEl.addEventListener('input', (e) => {
+  renderCoverupList(e.target.value);
+});
+
+/* INIT */
+renderCoverupList('');
+if (coverups.length > 0) {
+  showCoverup(coverups[0].id);
+}
+</script>
+
+</body>
+</html>
