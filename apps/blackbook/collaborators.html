@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Human Traitors | Black Book Archive</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #0a0a10;
+  --panel: #13131f;
+  --panel-light: #1d1d2d;
+  --accent: #c17cff; /* collaborator page: sinister violet */
+  --accent-soft: rgba(193,124,255,0.18);
+  --text: #f5f5f7;
+  --muted: #7a7a90;
+  --line: #2a2a3f;
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --glow: 0 0 12px rgba(193,124,255,0.7);
+}
+
+/* RESET-ish */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* BODY LAYOUT */
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #1a1a2a 0%, #050507 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  line-height: 1.45;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: 58px; /* space for fixed nav bar */
+}
+
+/* TOP NAV BAR (shared across site) */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10,10,16,0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-shadow: var(--glow);
+  white-space: nowrap;
+}
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: var(--glow);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: var(--glow);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, #1b1230 0%, #0c0c13 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.8);
+  position: relative;
+  z-index: 10;
+  min-height: calc(100vh - 58px);
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(to right, rgba(193,124,255,0.15) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: var(--glow);
+}
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(193,124,255,0.25);
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(193,124,255,0.6), inset 0 0 10px rgba(193,124,255,0.35);
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  pointer-events: none;
+}
+
+/* ROLE LIST (sidebar list) */
+.role-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+.role-list::-webkit-scrollbar { width: 6px; }
+.role-list::-webkit-scrollbar-track { background: #000; }
+.role-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(193,124,255,0.9);
+}
+
+.role-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+.role-item:hover { background: rgba(193,124,255,0.07); }
+.role-item.active {
+  background: rgba(193,124,255,0.15);
+  box-shadow: inset 0 0 12px rgba(193,124,255,0.6);
+}
+.role-line1 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+.role-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+}
+.role-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(193,124,255,0.8);
+}
+.role-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(193,124,255,0.07) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 10% 90%, rgba(92,0,255,0.08) 0%, rgba(0,0,0,0) 70%),
+    #0a0a10;
+  position: relative;
+  overflow-x: hidden;
+}
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER CARD */
+#roleHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(193,124,255,0.25);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+.role-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+#roleName {
+  font-family: var(--font-head);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(193,124,255,0.8);
+  margin: 0;
+  line-height: 1.2;
+}
+#roleTagline {
+  font-size: 0.75rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  line-height: 1.3;
+  font-weight: 700;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(193,124,255,0.6);
+  white-space: nowrap;
+  max-width: 100%;
+}
+#roleProfile {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* SECTION CARDS */
+.section-card {
+  margin-top: 20px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.8),
+    0 0 40px rgba(92,0,255,0.15);
+}
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(193,124,255,0.15) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  padding: 14px 16px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-shadow: 0 0 8px rgba(193,124,255,0.7);
+}
+.section-header .label { display: flex; flex-direction: column; gap: 3px; }
+.section-header .title-line { display: flex; align-items: baseline; gap: 8px; }
+.section-header .section-title { color: var(--text); }
+.section-header .hint {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  text-shadow: none;
+}
+.section-header .chevron {
+  font-size: 0.8rem; line-height: 1; color: var(--accent);
+  text-shadow: var(--glow); transition: transform 0.15s;
+}
+.section-card.open .section-header .chevron { transform: rotate(90deg); }
+.section-body {
+  display: none;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+  background: radial-gradient(circle at 10% 0%, rgba(193,124,255,0.08) 0%, transparent 70%);
+}
+.section-card.open .section-body { display: block; }
+.section-body ul { margin: 0; padding-left: 18px; }
+.section-body li { margin-bottom: 10px; color: var(--text); }
+.section-body li strong { color: var(--accent); font-weight: 700; text-shadow: var(--glow); }
+
+/* FOOTER NOTE */
+.footer-note {
+  margin-top: 32px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 60px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 20px;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 750px) {
+  #sidebar { width: 220px; }
+  #roleName { font-size: 1.1rem; }
+  #roleTagline { font-size: 0.7rem; white-space: normal; }
+}
+@media (max-width: 600px) {
+  body { flex-direction: column; }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .role-list { max-height: calc(40vh - 110px); }
+  #main { flex: 1; }
+  .role-title-row { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">BLACK BOOK ARCHIVE</div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Monster Lies</a>
+      <a class="nav-link" href="weaknesses.html">Human Weaknesses</a>
+      <a class="nav-link" href="coverups.html">Erasure Tactics</a>
+      <a class="nav-link" href="survival.html">Hunter Manual</a>
+      <a class="nav-link active" href="collaborators.html">Human Traitors</a>
+      <a class="nav-link" href="timeline.html">Timeline</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">
+      <span>HUMAN TRAITORS</span>
+      <span style="color:var(--accent);font-size:0.7rem;font-weight:700;text-shadow:var(--glow);">ROLES • TELLS • COUNTERS</span>
+    </div>
+    <div class="app-sub">
+      Monsters rarely work alone. They recruit us. These are the roles, motives, and ways to break the leash without becoming the next target.
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search collaborator roles..." />
+    </div>
+  </div>
+
+  <div id="roleList" class="role-list"></div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <div class="main-inner">
+    <section id="roleHeader">
+      <div class="role-title-row">
+        <h1 id="roleName">Loading...</h1>
+        <div id="roleTagline"></div>
+      </div>
+      <div id="roleProfile"></div>
+    </section>
+
+    <div id="roleSections"></div>
+
+    <div class="footer-note">
+      Reminder: this page maps patterns, not professions. Any person in any walk of life can get compromised. Look for behaviors, not uniforms.
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+Each role object fields:
+id, name, shortDesc, tagline, profile,
+motives[], tells[], tasks[], leverage[], countermeasures[], notes[]
+*/
+
+const roles = [
+  {
+    id: 'familiar',
+    name: 'Familiar (Vampire Adjutant)',
+    shortDesc: 'Daylight hands, errands, alibis, worship.',
+    tagline: '“I’m Loved. I’m Special.”',
+    profile: 'A vampire’s human right hand. They fetch, feed, schedule, clean, and defend. They believe they are chosen and will be turned “someday.” They are often the first threat you actually face.',
+    motives: [
+      'Promise of immortality or beauty.',
+      'Addiction to attention, power, or blood-highs.',
+      'Fear of being discarded; identity fused to the master.',
+      'Revenge: enjoys hurting those the master marks.'
+    ],
+    tells: [
+      'Reverse sleep schedule without a job that requires it.',
+      'Overprotective of a “partner” nobody else sees during the day.',
+      'Bruises at wrist/neck explained as “rough fun,” never medical.',
+      'Reflexive defense: any criticism of the “partner” triggers panic or rage.'
+    ],
+    tasks: [
+      'Procurement: secures victims, blood, rooms, transport.',
+      'Narrative control: runs social media and PR to make the master look harmless.',
+      'Cleanup: destroys footage, wipes phones, sanitizes scenes.',
+      'Gatekeeping: keeps worried friends/family away from targets.'
+    ],
+    leverage: [
+      'Love-bombing alternating with abandonment.',
+      'Blood as reward / withdrawal as punishment.',
+      'Threats to expose their crimes if they try to leave.',
+      'Blackmail files collected “for their own protection.”'
+    ],
+    countermeasures: [
+      'Treat the familiar as the immediate danger. Create witnesses and cameras on them.',
+      'Offer exits that preserve face: “You were lied to. Walk away and you walk free.”',
+      'Document their tasks, not their feelings. Evidence breaks the spell faster than debate.',
+      'Cut the supply lines: vehicles, rooms, deliveries, access to targets.'
+    ],
+    notes: [
+      'Most familiars are not irredeemable. They are replaceable. That’s the tragedy.',
+      'If the master is truly threatened, the familiar will be sacrificed first.',
+      'They often carry keys and codes you will never get from the master directly.'
+    ]
+  },
+
+  {
+    id: 'spotter',
+    name: 'Spotter / Lure',
+    shortDesc: 'Finds appetizing targets and escorts them into danger.',
+    tagline: '“Come With Me—It’ll Be Fun.”',
+    profile: 'A human lure. Attractive, friendly, disarming, or pitiably harmless. Their gift is getting you to step over a threshold you would normally avoid.',
+    motives: [
+      'Money, drugs, safety from the monster.',
+      'Thrill-seeking and status in a secret world.',
+      'Coercion: family threatened, debt called in.',
+      'Ideology: believes “the chosen” are honored by being taken.'
+    ],
+    tells: [
+      'Insists on last-minute plan changes toward isolated spots.',
+      'Explains away every red flag with silky confidence.',
+      'Knows “cool shortcuts” nobody else uses.',
+      'New best friend who fast-tracks intimacy and access.'
+    ],
+    tasks: [
+      'Escort to waterline, treeline, basements, rooftops.',
+      'Alcohol/drug management so targets are slowed.',
+      'Signal-calling: texts/calls when target is isolated.',
+      'Excuse generation for “why they left with me.”'
+    ],
+    leverage: [
+      'Debt spiral (money, substances, favors owed).',
+      'Compromising videos/photos used to corral obedience.',
+      '“We’re family now, we protect each other.”',
+      'Threat of being fed to the monster if they balk.'
+    ],
+    countermeasures: [
+      'Refuse location changes that reduce witnesses. “No crowd, no go.”',
+      'Bring a third friend by default. Lures hate odd numbers.',
+      'Pre-commit to safe rides home you control.',
+      'If separated, call loudly for your group. Force the social scene back on.'
+    ],
+    notes: [
+      'Lures often look like the safest person in the room. That’s the point.',
+      'If you feel shepherded, you are being shepherded.',
+      'When a lure defects, the monster hunts them first. Move them fast.'
+    ]
+  },
+
+  {
+    id: 'fixer',
+    name: 'Fixer / Disinformation Agent',
+    shortDesc: 'Kills stories and manufactures “official” explanations.',
+    tagline: '“I Can Make This Go Away.”',
+    profile: 'A professional cleaner of narratives. They lean on media contacts, spin police language, and seed the phrases that close a case (animal attack, gas leak, hysteria).',
+    motives: [
+      'Payment, career advancement, favors bank.',
+      'Philosophy: “people can’t handle the truth.”',
+      'Compromise: tied to prior coverups.',
+      'Blackmail by non-human clients via handlers.'
+    ],
+    tells: [
+      'Shows up faster than they should, armed with a theory.',
+      'Uses identical phrasing across unrelated incidents.',
+      'Pushes NDAs, “respect the family,” “don’t panic the town.”',
+      'Has access to footage they “can’t show you.”'
+    ],
+    tasks: [
+      'Script press releases and police quotes.',
+      'Coach witnesses into safer memories.',
+      'Coordinate removal of physical evidence.',
+      'Outrage management on social platforms.'
+    ],
+    leverage: [
+      'Career threats against officials who resist.',
+      'Legal intimidation and strategic lawsuits.',
+      'Info-dumps that make resisters look unhinged.',
+      'Selective leak-and-smear campaigns.'
+    ],
+    countermeasures: [
+      'Archive everything off their networks immediately.',
+      'Collect independent witness statements before they’re coached.',
+      'Track phrases and timing—show the copy-paste pattern.',
+      'Publish redundantly (multiple platforms/people) at once.'
+    ],
+    notes: [
+      'Fixers don’t need to know the monster to serve it.',
+      'They operate on speed. Slow them and the truth breathes.',
+      'Sunlight wrecks their margins: many little voices beat one official voice.'
+    ]
+  },
+
+  {
+    id: 'archivist',
+    name: 'Archivist / Fence',
+    shortDesc: 'Moves cursed objects, stolen relics, body parts, data.',
+    tagline: '“This Is For Research.”',
+    profile: 'Middleperson who acquires, catalogs, or sells artifacts and remains. They connect predators with buyers and erase provenance.',
+    motives: [
+      'Greed and academic vanity.',
+      'Belief that the items are “too important” to hand to civilians.',
+      'Compulsion—some objects demand circulation.',
+      'Thrill of handling power others fear.'
+    ],
+    tells: [
+      'Climate-controlled storage with odd security but no public record.',
+      '“Private collection” talk and inconsistent origin stories.',
+      'Multiple passports/aliases around auctions and estate sales.',
+      'Disappearing sellers and buyers.'
+    ],
+    tasks: [
+      'Provenance laundering and forgery.',
+      'Smuggling across borders and jurisdictions.',
+      'Selective access for cults and non-human clients.',
+      'Baiting collectors to gather pieces that “want to be together.”'
+    ],
+    leverage: [
+      'Gatekeeping careers for researchers.',
+      'Debt to dangerous buyers.',
+      'Binding agreements hidden in “loan” contracts.',
+      'Cursed-object retaliation if they defy orders.'
+    ],
+    countermeasures: [
+      'Photograph and share catalog numbers widely.',
+      'Pressure legitimate institutions to demand chain-of-custody.',
+      'Track shipping routes and “lost in transit” patterns.',
+      'If you must handle an item, limit time, touch, and solitude.'
+    ],
+    notes: [
+      'Many “museums” are just quiet warehouses for things that eat.',
+      'Destroying a catalog can free an object from being found.',
+      'Do not take souvenirs. Souvenirs take you.'
+    ]
+  },
+
+  {
+    id: 'cleaner',
+    name: 'Cleaner / Sanitizer',
+    shortDesc: 'Erases scenes, bodies, biometrics, and metadata.',
+    tagline: '“There’s Nothing To See Here.”',
+    profile: 'Hands-on crew that handles the physical mess. Not every cleaner knows the client isn’t human; payment and NDAs keep curiosity low.',
+    motives: [
+      'Money for dangerous, unlicensed work.',
+      'Fear: they know what happens to people who ask questions.',
+      'Loyalty to a handler who once “saved” them.',
+      'Practical cynicism: “someone’s got to do it.”'
+    ],
+    tells: [
+      'Unmarked vans with odd equipment at odd hours.',
+      'Full protective suits for mundane jobs.',
+      'Phone jammers / RF detectors on-site.',
+      'Fast arrival before official services.'
+    ],
+    tasks: [
+      'Body extraction and fluid neutralization.',
+      'Hole-patching, repainting, odor resets.',
+      'Hardware swaps to kill CCTV and alarms.',
+      'Planting fake evidence consistent with the cover story.'
+    ],
+    leverage: [
+      'Debt bondage, immigration vulnerabilities.',
+      'Video of prior crimes.',
+      'Threats to family.',
+      'Payment in cash, crypto, or favors that tie them deeper.'
+    ],
+    countermeasures: [
+      'Photograph plates, people, gear before they notice.',
+      'Call multiple agencies; cross-attention slows them.',
+      'Engage neighbors: witnesses from many angles.',
+      'If safe, drop trackers (AirTag-like) on bags/vehicles.'
+    ],
+    notes: [
+      'They are the most at-risk humans in the chain.',
+      'Scared cleaners turn into informants—protect them.',
+      'If the client is truly inhuman, cleaners disappear often.'
+    ]
+  },
+
+  {
+    id: 'medical_gate',
+    name: 'Medical Gatekeeper',
+    shortDesc: 'Controls access to labs, morgues, and records.',
+    tagline: '“HIPAA Says No.”',
+    profile: 'A bureaucratic node in hospitals, labs, or morgues that quietly redirects tests, withholds findings, and fast-tracks cremations.',
+    motives: [
+      'Professional favors and promotions.',
+      'Ideology: prevent panic.',
+      'Coercion via family medical care.',
+      'Payments routed through “grants.”'
+    ],
+    tells: [
+      'Results “inconclusive” across multiple labs.',
+      'Unusual rush to cremate or transfer remains.',
+      'Missing samples and mislabeled vials.',
+      'Visitor logs altered or “offline.”'
+    ],
+    tasks: [
+      'Specimen diversion and result editing.',
+      'Restricting access to critical wards.',
+      'Smoothing death certificates into safe categories.',
+      'Routing curious staff into disciplinary trouble.'
+    ],
+    leverage: [
+      'Employment reviews and credential threats.',
+      'Confidential health data used for pressure.',
+      'Promises of research funding.',
+      'Anonymous complaints to silence whistleblowers.'
+    ],
+    countermeasures: [
+      'Parallel testing at independent labs.',
+      'Demand chain-of-custody in writing.',
+      'Involve multiple family signatories to stall fast cremations.',
+      'Secure private copies of images/scans early.'
+    ],
+    notes: [
+      'Hospitals are perfect for predators: blood, bodies, locked rooms, respectability.',
+      'A single clerk can erase a year of evidence.',
+      'Be kind to honest staff. They are your lifeline.'
+    ]
+  },
+
+  {
+    id: 'tech_suppressor',
+    name: 'Tech Suppressor',
+    shortDesc: 'Makes cameras and data “malfunction.”',
+    tagline: '“Weird Bug, Must Be Firmware.”',
+    profile: 'IT/security asset who can quietly kill recordings, wipe logs, and retrofit a digital narrative after an incident.',
+    motives: [
+      'Money, novelty, access to systems.',
+      'Fear of clients with sharp teeth.',
+      'Professional pride in “impossible” fixes.',
+      'Belief that myths are dangerous if viral.'
+    ],
+    tells: [
+      'Artifacts/glitches at the exact wrong minutes.',
+      '“Upgrades” right after events.',
+      'Backdoors left open “for maintenance.”',
+      'Air-gapped gear that somehow still gets hit.'
+    ],
+    tasks: [
+      'Log tampering and time-shift edits.',
+      'Credential spoofing to move blame.',
+      'Network blackouts during field ops.',
+      'Seeding dummy footage for FOIA or discovery.'
+    ],
+    leverage: [
+      'Credential revocation threats.',
+      'Exposure of side work or hacking priors.',
+      'Non-human clients demonstrate reach.',
+      'Golden handcuffs: stock/options bound to silence.'
+    ],
+    countermeasures: [
+      'Out-of-band backups you control physically.',
+      'Hash/sign your files at capture time, then mirror.',
+      'Write down exact event times (seconds).',
+      'Keep a “dumb” recording device offline.'
+    ],
+    notes: [
+      'If your gear always dies around one place, it’s not the gear.',
+      'A single honest sysadmin beats three liars. Find them.',
+      'Paper logs still matter.'
+    ]
+  },
+
+  {
+    id: 'procurer',
+    name: 'Procurer / Supplier',
+    shortDesc: 'Delivers blood, bodies, rooms, vehicles, paperwork.',
+    tagline: '“Don’t Ask What It’s For.”',
+    profile: 'Logistics person who gets whatever is needed with minimal questions. They smooth commerce between worlds.',
+    motives: [
+      'Profit and immunity.',
+      'Debt to handlers.',
+      'Addiction subsidized by “clients.”',
+      'Belief they are “keeping order.”'
+    ],
+    tells: [
+      'Multiple phones/aliases and shell companies.',
+      'Odd rental patterns (late-night, no luggage, cash).',
+      'Buys medical supplies without license ties.',
+      'Has keys to places they don’t “work” at.'
+    ],
+    tasks: [
+      'Room and vehicle rentals off books.',
+      'Cold chain for blood/biologics.',
+      'Paperwork kits (IDs, badges, decals).',
+      'Weapon and tool sourcing without serials.'
+    ],
+    leverage: [
+      'Bookkeeping that makes them complicit.',
+      'Threats to suppliers who talk.',
+      'Family safety bargaining chip.',
+      'Client testimonials used as blackmail.'
+    ],
+    countermeasures: [
+      'Audit patterns: same dates, same drop sites.',
+      'Pressure legitimate vendors to ID end-buyers.',
+      'Community reporting around “that one unit” with constant strange visitors.',
+      'Track vans and storage lockers over time.'
+    ],
+    notes: [
+      'The supply chain is the monster’s real artery.',
+      'Procurers look boring. Boring is camouflage.',
+      'Cut the logistics, the hunt slows.'
+    ]
+  },
+
+  {
+    id: 'coroner',
+    name: 'Mortician / Coroner Ally',
+    shortDesc: 'Final edits before the ground closes.',
+    tagline: '“Cause: Undetermined.”',
+    profile: 'Gate between truth and burial. When compromised, they funnel everything into safe categories and make timelines vanish.',
+    motives: [
+      'Kickbacks and political favors.',
+      'Career safety—rocking the boat ends careers.',
+      'Ideology against “superstitious chaos.”',
+      'Direct threats from handlers.'
+    ],
+    tells: [
+      'Rash of “undetermined” or “overdose” calls.',
+      'Families pressured to accept quick services.',
+      'Missing tissue samples and photos.',
+      'Witness-hostile office policies.'
+    ],
+    tasks: [
+      'Adjusting reports to match cover stories.',
+      'Selective photography and “lost” images.',
+      'Fast-tracking cremations.',
+      'Blocking independent second opinions.'
+    ],
+    leverage: [
+      'Licensing boards and political patrons.',
+      'Conflicts of interest with funeral homes.',
+      'Threats couched as “respect for the family.”',
+      'Quiet cash flows through charities.'
+    ],
+    countermeasures: [
+      'Request all materials up front in writing.',
+      'Secure private autopsy if possible.',
+      'Keep copies off-site and off-network.',
+      'Publicize patterns of “undetermined” spikes.'
+    ],
+    notes: [
+      'Respect for grief gets weaponized to shut you up.',
+      'One honest mortician can blow a ring apart.',
+      'Dates and times are where lies start. Check them.'
+    ]
+  },
+
+  {
+    id: 'influencer',
+    name: 'Voice On The Air / Streamer',
+    shortDesc: 'Sells the myth, recruits the next meal.',
+    tagline: '“I’m Just Telling Stories.”',
+    profile: 'Charismatic media personality who normalizes predators: “they’re romantic,” “it’s a vibe,” “haters are scared.” They seed memes that become consent.',
+    motives: [
+      'Fame, money, cultural power.',
+      'Secret sponsorships from handlers.',
+      'Belief they’re part of something beautiful.',
+      'Fear of losing the audience-high.'
+    ],
+    tells: [
+      'Mocking real victims as clout-chasers.',
+      'Glossy content from locations with active incidents.',
+      'Insider access to “private parties.”',
+      'Sudden reversals when a story gets too close to truth.'
+    ],
+    tasks: [
+      'Reframing danger as sexy.',
+      'Recruiting via parasocial intimacy.',
+      'Harassing skeptics and survivors.',
+      'Pointing fans to “exclusive” events/DMs.'
+    ],
+    leverage: [
+      'Sponsor money and NDAs.',
+      'Dirt on their private life held by handlers.',
+      'Audience mob used as attack dog.',
+      'Addiction to adoration—compliance to keep it.'
+    ],
+    countermeasures: [
+      'De-romanticize with facts and survivor voices.',
+      'Starve the feedback loop: do not engage on their turf; publish elsewhere.',
+      'Archive their contradictions (clips, dates).',
+      'Platform switch when they brigand—don’t fight in their castle.'
+    ],
+    notes: [
+      'The cult doesn’t need a building if it has a channel.',
+      'Don’t debate a performance. Expose it.',
+      'Teach teens what grooming content looks like.'
+    ]
+  },
+
+  {
+    id: 'landlord',
+    name: 'Property Owner / Gateholder',
+    shortDesc: 'Controls the doors and the paper trail.',
+    tagline: '“No Vacancy… For You.”',
+    profile: 'Owns or manages sites where things feed. They can look the other way, falsify access logs, and evict witnesses.',
+    motives: [
+      'Rent money from clients who pay well.',
+      'Fear of retaliation.',
+      'Greed—feeding grounds are profitable.',
+      'Deal: guarantees of “no trouble” from the inhuman tenant.'
+    ],
+    tells: [
+      'Units constantly “under renovation.”',
+      'Security cameras that always “fail” on one floor.',
+      'Tenants who complain vanish from leases.',
+      'Odd deliveries at 3AM, never questioned.'
+    ],
+    tasks: [
+      'Key control and quiet move-ins.',
+      'Renovations that create soundproof zones.',
+      'Selective tenant screening to isolate victims.',
+      'Coordination with cleaners/fixers after incidents.'
+    ],
+    leverage: [
+      'Eviction threats.',
+      'Deposit theft, trumped-up violations.',
+      'Harassment via “maintenance.”',
+      'Friends in local permitting offices.'
+    ],
+    countermeasures: [
+      'Organize tenants—predators fear groups with records.',
+      'Demand compliance inspections by third parties.',
+      'Flood the site with ordinary attention (press, community).',
+      'If you must flee, copy everything first (emails, notices).'
+    ],
+    notes: [
+      'Buildings can be farmed quietly for years.',
+      'Workers (custodial, maintenance) notice the most. Listen to them.',
+      'If a whole floor is always empty, ask why.'
+    ]
+  }
+
+]; // end roles array
+
+/* DOM refs */
+const roleListEl = document.getElementById('roleList');
+const searchInputEl = document.getElementById('searchInput');
+
+const roleNameEl = document.getElementById('roleName');
+const roleTaglineEl = document.getElementById('roleTagline');
+const roleProfileEl = document.getElementById('roleProfile');
+const roleSectionsEl = document.getElementById('roleSections');
+
+let currentRoleId = null;
+
+/* TRACK OPEN SECTIONS (max 2 at a time) */
+let openCards = [];
+function registerOpen(card) {
+  if (!openCards.includes(card)) openCards.push(card);
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) toClose.classList.remove('open');
+  }
+}
+function unregister(card) { openCards = openCards.filter(c => c !== card); }
+
+/* BUILD ACCORDION CARD */
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div'); labelWrap.className = 'label';
+  const titleLine = document.createElement('div'); titleLine.className = 'title-line';
+  const titleSpan = document.createElement('div'); titleSpan.className = 'section-title'; titleSpan.textContent = title;
+  const hintSpan = document.createElement('div'); hintSpan.className = 'hint'; hintSpan.textContent = hint;
+
+  titleLine.appendChild(titleSpan);
+  labelWrap.appendChild(titleLine);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div'); chev.className = 'chevron'; chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div'); bodyDiv.className = 'section-body';
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b.replace(/^([^:]+):/, '<strong>$1:</strong>');
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) { card.classList.remove('open'); unregister(card); }
+    else { card.classList.add('open'); registerOpen(card); }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+  if (open) registerOpen(card);
+  return card;
+}
+
+/* RENDER LIST IN SIDEBAR */
+function renderRoleList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  roleListEl.innerHTML = '';
+
+  roles
+    .filter(r => {
+      if (!f) return true;
+      const haystack = [r.name, r.shortDesc, r.tagline].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'role-item';
+      item.setAttribute('data-id', r.id);
+
+      const line1 = document.createElement('div'); line1.className = 'role-line1';
+      const nameSpan = document.createElement('div'); nameSpan.className = 'role-name'; nameSpan.textContent = r.name;
+      const tagSpan = document.createElement('div'); tagSpan.className = 'role-tag'; tagSpan.textContent = r.tagline;
+
+      line1.appendChild(nameSpan); line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div'); descDiv.className = 'role-desc'; descDiv.textContent = r.shortDesc;
+
+      item.appendChild(line1); item.appendChild(descDiv);
+      item.addEventListener('click', () => { showRole(r.id); });
+
+      roleListEl.appendChild(item);
+    });
+
+  highlightActive(currentRoleId);
+}
+
+/* SHOW DETAILS IN MAIN PANEL */
+function showRole(id) {
+  const r = roles.find(x => x.id === id);
+  if (!r) return;
+
+  currentRoleId = id;
+  roleNameEl.textContent = r.name;
+  roleTaglineEl.textContent = r.tagline;
+  roleProfileEl.textContent = r.profile;
+
+  roleSectionsEl.innerHTML = '';
+  openCards = [];
+
+  const sectionsData = [
+    {title: 'Why They Do It', hint: 'Motives and hooks', arr: r.motives || []},
+    {title: 'How To Spot One', hint: 'Behavioral tells', arr: r.tells || []},
+    {title: 'What They Actually Do', hint: 'Operational tasks', arr: r.tasks || []},
+    {title: 'How They’re Controlled', hint: 'Leashes and pressure', arr: r.leverage || []},
+    {title: 'How To Counter', hint: 'Practical steps', arr: r.countermeasures || []},
+    {title: 'Field Notes', hint: 'Patterns and caveats', arr: r.notes || []},
+  ];
+
+  sectionsData.forEach((sectionObj, idx) => {
+    if (!sectionObj.arr || sectionObj.arr.length === 0) return;
+    const card = buildSectionCard(sectionObj.title, sectionObj.hint, sectionObj.arr, (idx === 0 || idx === 1));
+    roleSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  document.getElementById('main').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* HIGHLIGHT ACTIVE ITEM IN SIDEBAR */
+function highlightActive(id) {
+  const items = roleListEl.querySelectorAll('.role-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+}
+
+/* SEARCH */
+searchInputEl.addEventListener('input', (e) => { renderRoleList(e.target.value); });
+
+/* INIT */
+renderRoleList('');
+if (roles.length > 0) { showRole(roles[0].id); }
+</script>
+
+</body>
+</html>
