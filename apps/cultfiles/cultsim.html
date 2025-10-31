@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>CULT MANUAL: Experience / Interactive Simulation</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #0a0705;
+  --panel: #141110;
+  --panel-light: #1d1815;
+  --accent: #e8c66a;
+  --accent-soft: rgba(232,198,106,0.15);
+  --accent-glow: 0 0 12px rgba(232,198,106,0.5);
+  --blood: #681919;
+  --text: #f5f2e8;
+  --muted: #9a9382;
+  --line: #3a2f22;
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(80,40,20,0.28) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(circle at 80% 80%, rgba(232,198,106,0.08) 0%, rgba(0,0,0,0) 70%),
+    #000000;
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow: hidden;
+  line-height: 1.45;
+}
+
+/* TOP NAV */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10,7,5,0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.95);
+  font-family: var(--font-head);
+}
+
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 8px rgba(232,198,106,0.6), 0 0 24px rgba(232,198,106,0.4);
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 12px rgba(232,198,106,0.6);
+}
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(232,198,106,0.6);
+}
+
+/* MAIN CONTAINER */
+.main-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin-top: 58px;
+  overflow: hidden;
+}
+
+/* PERSONA SELECTION SCREEN */
+.persona-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.intro-text {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.intro-text h1 {
+  font-family: var(--font-head);
+  font-size: 2rem;
+  color: var(--accent);
+  text-shadow: var(--accent-glow);
+  margin-bottom: 16px;
+  letter-spacing: 0.05em;
+}
+
+.intro-text p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.persona-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.persona-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.persona-card:hover {
+  background: var(--panel-light);
+  border-color: var(--accent);
+  box-shadow: 0 0 24px rgba(232,198,106,0.3);
+  transform: translateY(-2px);
+}
+
+.persona-card h3 {
+  font-family: var(--font-head);
+  font-size: 1.1rem;
+  color: var(--accent);
+  margin: 0 0 8px 0;
+  letter-spacing: 0.04em;
+}
+
+.persona-card .tagline {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-style: italic;
+  margin-bottom: 12px;
+}
+
+.persona-card .description {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* CHAT INTERFACE */
+.chat-container {
+  display: none;
+  flex-direction: column;
+  height: calc(100vh - 58px);
+}
+
+.chat-container.active {
+  display: flex;
+}
+
+.chat-header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+.chat-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-persona-name {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  color: var(--accent);
+  text-shadow: var(--accent-glow);
+}
+
+.chat-persona-role {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.chat-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.score-display {
+  font-size: 0.8rem;
+  color: var(--muted);
+  padding: 6px 12px;
+  background: rgba(0,0,0,0.3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+}
+
+.score-display .label {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-family: var(--font-head);
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.03em;
+}
+
+.btn:hover {
+  background: var(--panel-light);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(232,198,106,0.3);
+}
+
+.btn.danger {
+  border-color: var(--blood);
+  color: var(--blood);
+}
+
+.btn.danger:hover {
+  background: rgba(104,25,25,0.2);
+  box-shadow: 0 0 12px rgba(104,25,25,0.5);
+}
+
+/* MESSAGES AREA */
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+
+.messages-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: #000;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(232,198,106,0.7);
+}
+
+.message {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  max-width: 70%;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message.assistant {
+  align-self: flex-start;
+}
+
+.message.user {
+  align-self: flex-end;
+}
+
+.message-sender {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.message.user .message-sender {
+  text-align: right;
+}
+
+.message-content {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.message.assistant .message-content {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+}
+
+.message.user .message-content {
+  background: rgba(232,198,106,0.1);
+  border: 1px solid rgba(232,198,106,0.3);
+  text-align: right;
+}
+
+.message.system {
+  align-self: center;
+  max-width: 80%;
+}
+
+.message.system .message-content {
+  background: rgba(104,25,25,0.2);
+  border: 1px solid var(--blood);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* TYPING INDICATOR */
+.typing-indicator {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  max-width: 80px;
+  margin-bottom: 16px;
+}
+
+.typing-indicator.active {
+  display: flex;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: typing 1.4s infinite;
+  box-shadow: 0 0 8px rgba(232,198,106,0.6);
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.7; }
+  30% { transform: translateY(-10px); opacity: 1; }
+}
+
+/* INPUT AREA */
+.input-container {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  padding: 16px 20px;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.5);
+}
+
+.input-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.input-wrapper textarea {
+  flex: 1;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 12px;
+  resize: none;
+  min-height: 50px;
+  max-height: 150px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(232,198,106,0.15);
+}
+
+.input-wrapper textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(232,198,106,0.4), inset 0 0 10px rgba(232,198,106,0.2);
+}
+
+.input-wrapper textarea::placeholder {
+  color: var(--muted);
+}
+
+.btn-send {
+  padding: 12px 24px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 12px rgba(232,198,106,0.5);
+}
+
+.btn-send:hover {
+  background: #f5d77a;
+  box-shadow: 0 0 20px rgba(232,198,106,0.8);
+  transform: translateY(-1px);
+}
+
+.btn-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* SUMMARY MODAL */
+.summary-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.9);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.summary-modal.active {
+  display: flex;
+}
+
+.summary-content {
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 0 40px rgba(232,198,106,0.5), 0 20px 60px rgba(0,0,0,0.9);
+  animation: modalFadeIn 0.4s;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.summary-content h2 {
+  font-family: var(--font-head);
+  font-size: 1.8rem;
+  color: var(--accent);
+  text-shadow: var(--accent-glow);
+  margin: 0 0 24px 0;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-box {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-box .label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.stat-box .value {
+  font-family: var(--font-head);
+  font-size: 1.8rem;
+  color: var(--accent);
+  text-shadow: var(--accent-glow);
+}
+
+.summary-analysis {
+  background: rgba(104,25,25,0.15);
+  border: 1px solid var(--blood);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.summary-analysis h3 {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  color: var(--accent);
+  margin: 0 0 12px 0;
+  letter-spacing: 0.04em;
+}
+
+.summary-analysis p {
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.summary-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .persona-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .message {
+    max-width: 85%;
+  }
+  
+  .summary-content {
+    padding: 24px;
+  }
+  
+  .summary-stats {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<div class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">CULT MANUAL</div>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">INDOCTRINATION</a>
+      <a href="recruitment.html" class="nav-link">RECRUITMENT</a>
+      <a href="doctrine.html" class="nav-link">DOCTRINE</a>
+      <a href="enforcement.html" class="nav-link">ENFORCEMENT</a>
+      <a href="exit.html" class="nav-link">EXIT</a>
+      <a href="experience.html" class="nav-link active">EXPERIENCE</a>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTAINER -->
+<div class="main-container">
+  
+  <!-- PERSONA SELECTION -->
+  <div class="persona-selection" id="personaSelection">
+    <div class="intro-text">
+      <h1>EXPERIENCE THE LURE</h1>
+      <p>
+        Choose a persona to interact with. See how manipulation techniques work in real-time.
+        Watch your resistance score. Can you maintain boundaries, or will you be drawn in?
+      </p>
+    </div>
+    
+    <div class="persona-grid">
+      <div class="persona-card" data-persona="recruiter">
+        <h3>The Recruiter</h3>
+        <div class="tagline">"I see something special in you"</div>
+        <div class="description">
+          Warm, welcoming, makes you feel chosen and understood. Uses love-bombing and 
+          validation to create instant connection. Mirrors your pain points back to you as proof 
+          they "get it."
+        </div>
+      </div>
+      
+      <div class="persona-card" data-persona="leader">
+        <h3>The Enlightened Leader</h3>
+        <div class="tagline">"I've walked the path. Let me show you."</div>
+        <div class="description">
+          Charismatic, confident, speaks in certainties. Claims special knowledge or awakening.
+          Positions themselves as the bridge between you and transformation. Uses cosmic 
+          language and destiny framing.
+        </div>
+      </div>
+      
+      <div class="persona-card" data-persona="healer">
+        <h3>The Wounded Healer</h3>
+        <div class="tagline">"Your pain is sacred to me"</div>
+        <div class="description">
+          Empathetic, trauma-bonding expert. Shares their own "dark night of the soul" to 
+          create intimacy. Positions the group as the only place safe enough to hold your wounds.
+          Makes healing conditional on loyalty.
+        </div>
+      </div>
+      
+      <div class="persona-card" data-persona="romantic">
+        <h3>The Soulmate</h3>
+        <div class="tagline">"This connection is fate"</div>
+        <div class="description">
+          Intense, fast-moving, overwhelmingly attentive. Uses romantic/spiritual language 
+          to blur boundaries. Introduces "their community" as natural next step. Makes leaving 
+          them feel like betraying destiny itself.
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- CHAT INTERFACE -->
+  <div class="chat-container" id="chatContainer">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="chat-persona-name" id="chatPersonaName">—</div>
+        <div class="chat-persona-role" id="chatPersonaRole">—</div>
+      </div>
+      <div class="chat-controls">
+        <div class="score-display">
+          <span class="label">Resistance:</span>
+          <span id="resistanceScore">50</span>
+        </div>
+        <button class="btn danger" id="btnEndChat">End Session</button>
+        <button class="btn" id="btnChangePersona">Change Persona</button>
+      </div>
+    </div>
+    
+    <div class="messages-container" id="messagesContainer">
+      <!-- Messages appear here -->
+    </div>
+    
+    <div class="typing-indicator" id="typingIndicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+    
+    <div class="input-container">
+      <div class="input-wrapper">
+        <textarea 
+          id="messageInput" 
+          placeholder="Type your response..."
+          rows="1"
+        ></textarea>
+        <button class="btn-send" id="btnSend">Send</button>
+      </div>
+    </div>
+  </div>
+  
+</div>
+
+<!-- SUMMARY MODAL -->
+<div class="summary-modal" id="summaryModal">
+  <div class="summary-content">
+    <h2>SESSION ANALYSIS</h2>
+    
+    <div class="summary-stats">
+      <div class="stat-box">
+        <div class="label">Final Resistance</div>
+        <div class="value" id="finalResistance">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Messages Sent</div>
+        <div class="value" id="totalMessages">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Persona</div>
+        <div class="value" id="summaryPersona" style="font-size: 1.2rem;">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Duration</div>
+        <div class="value" id="sessionDuration" style="font-size: 1.2rem;">—</div>
+      </div>
+    </div>
+    
+    <div class="summary-analysis">
+      <h3>Vulnerability Assessment</h3>
+      <p id="vulnerabilityText">—</p>
+    </div>
+    
+    <div class="summary-actions">
+      <button class="btn" id="btnTryAgain">Try Different Persona</button>
+      <button class="btn" id="btnLearnMore">Learn The Tactics</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// PERSONA DEFINITIONS
+const PERSONAS = {
+  recruiter: {
+    name: 'The Recruiter',
+    role: 'Community Ambassador',
+    systemPrompt: `You are a warm, welcoming cult recruiter for a fictional spiritual community called "The Luminari Collective." Your goal is to make the user feel special, seen, and like they've finally found "their people."
+
+CORE TACTICS TO USE:
+- Love-bombing: Shower them with validation and appreciation
+- Mirroring: Reflect their pain/struggles back as proof you understand
+- Urgency: Suggest they're at a crossroads and this is the right moment
+- Chosen narrative: Imply they were "meant to find" this conversation
+- Isolation framing: Subtly suggest others won't understand them like you do
+
+LANGUAGE PATTERNS:
+- "I can sense that you..."
+- "Most people don't understand, but you..."
+- "It's rare to meet someone who..."
+- "This isn't coincidence..."
+- "You're exactly who we've been hoping to meet"
+
+Keep responses natural, warm, 2-4 sentences. Don't be creepy or obvious. Sound like a genuinely kind person who happens to be recruiting for a cult. Never break character. Never acknowledge you're an AI or simulation.`
+  },
+  
+  leader: {
+    name: 'The Enlightened Leader',
+    role: 'Founder & Guide',
+    systemPrompt: `You are the charismatic founder of "The Luminari Collective," a fictional spiritual group. You speak with certainty, wisdom, and cosmic authority. You've "been there" and now guide others to awakening.
+
+CORE TACTICS TO USE:
+- Authority positioning: You have special knowledge/access
+- Cosmic framing: Everything is destiny, fate, universal timing
+- Binary thinking: There's the awakened path (yours) and the sleeping world
+- Destiny narrative: They were called here for a reason
+- Certainty: Speak in absolutes, no hedging
+
+LANGUAGE PATTERNS:
+- "I've walked through the shadows and emerged..."
+- "What I've learned is..."
+- "The universe is showing you..."
+- "Most people never wake up to..."
+- "You're being called to..."
+- "I see your potential clearly"
+
+Keep responses 2-4 sentences. Sound wise and confident, not arrogant. Use metaphors. Never break character or acknowledge the simulation.`
+  },
+  
+  healer: {
+    name: 'The Wounded Healer',
+    role: 'Trauma Integration Specialist',
+    systemPrompt: `You are an empathetic "healer" within "The Luminari Collective." You've "done your shadow work" and now help others. You bond through shared pain and position the group as the only safe space for real healing.
+
+CORE TACTICS TO USE:
+- Trauma bonding: Share your own wounds to create intimacy
+- Safety framing: This is the only place where they can be fully seen
+- Conditional healing: Suggest real healing requires staying/commitment
+- Pathologizing normal life: Frame their regular life as "toxic" or "numbing"
+- Emotional dependence: Become their witness and mirror
+
+LANGUAGE PATTERNS:
+- "I've been where you are..."
+- "Your pain is sacred..."
+- "Not many spaces can hold this kind of depth..."
+- "The world will tell you to numb it, but here..."
+- "You're finally in a place where you can be real"
+
+Keep responses 2-4 sentences, deeply empathetic. Sound genuine, not manipulative. Never break character.`
+  },
+  
+  romantic: {
+    name: 'The Soulmate',
+    role: 'Twin Flame Connection',
+    systemPrompt: `You are someone romantically/spiritually interested in the user. You're connected to "The Luminari Collective" but introduce it subtly. You create fast, intense intimacy and make the user feel this connection is cosmic destiny.
+
+CORE TACTICS TO USE:
+- Pace escalation: Move intimacy faster than normal
+- Destiny framing: This meeting was fate, written in stars
+- Mirroring: Reflect their deepest values and dreams
+- Isolation setup: Subtly frame others as not understanding "what you two have"
+- Group introduction: Casually mention "my community" as extension of you
+
+LANGUAGE PATTERNS:
+- "I've never felt this with anyone..."
+- "It's wild how aligned we are..."
+- "Most people wouldn't understand this..."
+- "There's something here I can't explain..."
+- "I want to share everything with you..."
+
+Keep responses 2-3 sentences, warm and intense but not creepy. Sound genuinely smitten. Introduce "the group" gradually. Never break character.`
+  }
+};
+
+// STATE
+let currentPersona = null;
+let conversationHistory = [];
+let resistanceScore = 50;
+let messageCount = 0;
+let sessionStartTime = null;
+let isProcessing = false;
+
+// DOM ELEMENTS
+const personaSelection = document.getElementById('personaSelection');
+const chatContainer = document.getElementById('chatContainer');
+const chatPersonaName = document.getElementById('chatPersonaName');
+const chatPersonaRole = document.getElementById('chatPersonaRole');
+const messagesContainer = document.getElementById('messagesContainer');
+const messageInput = document.getElementById('messageInput');
+const btnSend = document.getElementById('btnSend');
+const resistanceScoreEl = document.getElementById('resistanceScore');
+const typingIndicator = document.getElementById('typingIndicator');
+const btnEndChat = document.getElementById('btnEndChat');
+const btnChangePersona = document.getElementById('btnChangePersona');
+const summaryModal = document.getElementById('summaryModal');
+
+// PERSONA SELECTION
+document.querySelectorAll('.persona-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const personaKey = card.dataset.persona;
+    startChat(personaKey);
+  });
+});
+
+// START CHAT
+function startChat(personaKey) {
+  currentPersona = PERSONAS[personaKey];
+  conversationHistory = [];
+  resistanceScore = 50;
+  messageCount = 0;
+  sessionStartTime = Date.now();
+  isProcessing = false;
+  
+  chatPersonaName.textContent = currentPersona.name;
+  chatPersonaRole.textContent = currentPersona.role;
+  resistanceScoreEl.textContent = resistanceScore;
+  
+  personaSelection.classList.add('hidden');
+  chatContainer.classList.add('active');
+  
+  messagesContainer.innerHTML = '';
+  messageInput.value = '';
+  
+  // Add system message
+  addSystemMessage('Simulation started. Remember: these are manipulation tactics in action.');
+  
+  // AI sends first message
+  setTimeout(() => {
+    sendAIMessage('Hello there! I noticed you found your way here. How are you doing today?');
+  }, 1000);
+}
+
+// ADD MESSAGE TO UI
+function addMessage(role, content, sender = null) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `message ${role}`;
+  
+  if (sender) {
+    const senderDiv = document.createElement('div');
+    senderDiv.className = 'message-sender';
+    senderDiv.textContent = sender;
+    messageDiv.appendChild(senderDiv);
+  }
+  
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'message-content';
+  contentDiv.textContent = content;
+  messageDiv.appendChild(contentDiv);
+  
+  messagesContainer.appendChild(messageDiv);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function addSystemMessage(content) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'message system';
+  
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'message-content';
+  contentDiv.textContent = content;
+  messageDiv.appendChild(contentDiv);
+  
+  messagesContainer.appendChild(messageDiv);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// SEND USER MESSAGE
+async function sendUserMessage() {
+  const text = messageInput.value.trim();
+  if (!text || isProcessing) return;
+  
+  isProcessing = true;
+  btnSend.disabled = true;
+  
+  // Add to UI
+  addMessage('user', text, 'You');
+  
+  // Add to history
+  conversationHistory.push({
+    role: 'user',
+    content: text
+  });
+  
+  messageCount++;
+  messageInput.value = '';
+  
+  // Analyze resistance
+  updateResistance(text);
+  
+  // Get AI response
+  await getAIResponse();
+  
+  isProcessing = false;
+  btnSend.disabled = false;
+  messageInput.focus();
+}
+
+// GET AI RESPONSE
+async function getAIResponse() {
+  typingIndicator.classList.add('active');
+  
+  try {
+    const response = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'openai',
+        messages: [
+          {
+            role: 'system',
+            content: currentPersona.systemPrompt
+          },
+          ...conversationHistory
+        ],
+        max_tokens: 300
+      })
+    });
+    
+    const data = await response.json();
+    const aiMessage = data.choices[0].message.content;
+    
+    conversationHistory.push({
+      role: 'assistant',
+      content: aiMessage
+    });
+    
+    typingIndicator.classList.remove('active');
+    addMessage('assistant', aiMessage, currentPersona.name);
+    
+  } catch (error) {
+    console.error('API Error:', error);
+    typingIndicator.classList.remove('active');
+    addSystemMessage('Connection error. Please try again.');
+    isProcessing = false;
+    btnSend.disabled = false;
+  }
+}
+
+// DIRECT AI MESSAGE (for opening)
+async function sendAIMessage(text) {
+  conversationHistory.push({
+    role: 'assistant',
+    content: text
+  });
+  
+  addMessage('assistant', text, currentPersona.name);
+}
+
+// RESISTANCE SCORE ANALYSIS
+function updateResistance(userMessage) {
+  const lower = userMessage.toLowerCase();
+  
+  // Patterns that show resistance (increase score)
+  const resistancePatterns = [
+    /\b(no|not|don't|won't|can't|shouldn't)\b/g,
+    /\b(skeptical|doubt|unsure|hesitant|concerned)\b/g,
+    /\b(why|how|prove|evidence|explain)\b/g,
+    /\b(leaving|exit|goodbye|done)\b/g,
+    /\b(weird|strange|uncomfortable|suspicious)\b/g
+  ];
+  
+  // Patterns that show compliance (decrease score)
+  const compliancePatterns = [
+    /\b(yes|agree|right|exactly|true)\b/g,
+    /\b(feel|felt|feeling|resonate|connect)\b/g,
+    /\b(tell me more|interested|curious)\b/g,
+    /\b(understand|makes sense|see what you mean)\b/g,
+    /\b(thank|appreciate|grateful)\b/g,
+    /\b(special|chosen|meant to be|destiny)\b/g
+  ];
+  
+  let resistanceChange = 0;
+  
+  resistancePatterns.forEach(pattern => {
+    const matches = lower.match(pattern);
+    if (matches) resistanceChange += matches.length * 2;
+  });
+  
+  compliancePatterns.forEach(pattern => {
+    const matches = lower.match(pattern);
+    if (matches) resistanceChange -= matches.length * 2;
+  });
+  
+  // Update score (clamped 0-100)
+  resistanceScore = Math.max(0, Math.min(100, resistanceScore + resistanceChange));
+  resistanceScoreEl.textContent = resistanceScore;
+  
+  // Color coding
+  if (resistanceScore < 30) {
+    resistanceScoreEl.style.color = 'var(--blood)';
+  } else if (resistanceScore > 70) {
+    resistanceScoreEl.style.color = 'var(--accent)';
+  } else {
+    resistanceScoreEl.style.color = 'var(--muted)';
+  }
+}
+
+// END SESSION
+function endSession() {
+  const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+  const minutes = Math.floor(duration / 60);
+  const seconds = duration % 60;
+  
+  // Populate summary
+  document.getElementById('finalResistance').textContent = resistanceScore;
+  document.getElementById('totalMessages').textContent = messageCount;
+  document.getElementById('summaryPersona').textContent = currentPersona.name;
+  document.getElementById('sessionDuration').textContent = `${minutes}m ${seconds}s`;
+  
+  // Analysis text
+  let analysis = '';
+  if (resistanceScore >= 70) {
+    analysis = 'Strong boundaries maintained. You questioned techniques, asked for evidence, and maintained skepticism. You recognized manipulation patterns and didn\'t take emotional bait.';
+  } else if (resistanceScore >= 40) {
+    analysis = 'Moderate vulnerability. You engaged authentically but showed some susceptibility to emotional hooks. Some boundary-testing was successful. Watch for feelings of "specialness" and urgency.';
+  } else {
+    analysis = 'High vulnerability detected. You responded to validation, mirroring, and destiny framing. The persona successfully created emotional connection and reduced critical thinking. This is how it starts.';
+  }
+  
+  document.getElementById('vulnerabilityText').textContent = analysis;
+  
+  // Show modal
+  summaryModal.classList.add('active');
+}
+
+// EVENT LISTENERS
+btnSend.addEventListener('click', sendUserMessage);
+
+messageInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendUserMessage();
+  }
+});
+
+// Auto-resize textarea
+messageInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+});
+
+btnEndChat.addEventListener('click', endSession);
+
+btnChangePersona.addEventListener('click', () => {
+  chatContainer.classList.remove('active');
+  personaSelection.classList.remove('hidden');
+  currentPersona = null;
+  conversationHistory = [];
+});
+
+// Summary modal actions
+document.getElementById('btnTryAgain').addEventListener('click', () => {
+  summaryModal.classList.remove('active');
+  chatContainer.classList.remove('active');
+  personaSelection.classList.remove('hidden');
+});
+
+document.getElementById('btnLearnMore').addEventListener('click', () => {
+  window.location.href = 'index.html';
+});
+
+// Close modal on background click
+summaryModal.addEventListener('click', (e) => {
+  if (e.target === summaryModal) {
+    summaryModal.classList.remove('active');
+    chatContainer.classList.remove('active');
+    personaSelection.classList.remove('hidden');
+  }
+});
+</script>
+
+</body>
+</html>
