@@ -108,14 +108,16 @@
   /* Sidebar */
   .sidebar{background:rgba(15,20,35,.7);border:1px solid rgba(255,255,255,.1);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
   .sidebar-header{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:800;font-size:13px}
-  .units-list{flex:1;padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
-  .unit-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px;cursor:pointer;transition:all .2s}
-  .unit-card:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);transform:translateX(2px)}
+  .units-list{flex:1;padding:10px;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:10px;align-content:start}
+  .unit-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;cursor:pointer;transition:all .2s;overflow:hidden;display:flex;flex-direction:column}
+  .unit-card:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);transform:translateY(-2px)}
   .unit-card.active{border-color:var(--surv);background:rgba(59,130,246,.15);box-shadow:0 0 8px rgba(59,130,246,.3)}
-  .unit-card.placed{opacity:.4;cursor:not-allowed}
-  .unit-name{font-weight:700;font-size:13px;margin-bottom:3px}
-  .unit-meta{font-size:11px;color:var(--muted)}
-  .unit-status{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-top:4px}
+  .unit-card.placed{opacity:.5;cursor:not-allowed}
+  .unit-thumb{width:100%;height:100px;background:rgba(255,255,255,.03) center/cover no-repeat;border-bottom:1px solid rgba(255,255,255,.08)}
+  .unit-info{padding:8px 10px}
+  .unit-name{font-weight:700;font-size:12px;margin-bottom:3px}
+  .unit-meta{font-size:10px;color:var(--muted);margin-bottom:4px}
+  .unit-status{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-top:2px}
   .unit-status.ready{background:rgba(34,197,94,.2);color:var(--ok)}
   .unit-status.placed{background:rgba(100,116,139,.2);color:var(--muted)}
   
@@ -236,7 +238,14 @@ const CFG = {
   ANIMATION_TIME: 900,
   SCAN_DURATION: 1500,
   POINTS: { HIT: 10, SINK: 50, WIN: 200 },
-  POLLINATIONS_URL: "https://text.pollinations.ai/openai"
+  POLLINATIONS_URL: "https://text.pollinations.ai/openai",
+  POLLINATIONS_IMAGE: "https://image.pollinations.ai/prompt/",
+  IMAGE_PROMPTS: {
+    destroyer: "sleek military destroyer ship, tactical grid HUD, neon blue lights, cinematic, 16:9",
+    cruiser: "armored cruiser warship, advanced radar systems, neon blue HUD, dramatic lighting, 16:9",
+    battleship: "massive battleship with heavy artillery, tactical command interface, neon blue accents, cinematic, 16:9",
+    carrier: "aircraft carrier flagship, flight deck operations, neon blue holographic displays, epic scale, 16:9"
+  }
 };
 
 // ============ UNIT DEFINITIONS ============
@@ -310,6 +319,12 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+function getImageURL(unitId) {
+  const prompt = CFG.IMAGE_PROMPTS[unitId] || CFG.IMAGE_PROMPTS.destroyer;
+  const encoded = encodeURIComponent(prompt);
+  return `${CFG.POLLINATIONS_IMAGE}${encoded}?width=1280&height=720&model=flux&seed=${unitId.charCodeAt(0) * 42}&nologo=true`;
+}
+
 function updateUI() {
   $('#playerScore').textContent = state.playerScore;
   $('#enemyScore').textContent = state.enemyScore;
@@ -374,10 +389,15 @@ function renderUnits() {
       if (unit.placed) card.classList.add('placed');
       if (state.placingUnit === idx) card.classList.add('active');
       
+      const imageUrl = getImageURL(unit.id);
+      
       card.innerHTML = `
-        <div class="unit-name">${unit.name}</div>
-        <div class="unit-meta">Size: ${unit.size} cells</div>
-        <div class="unit-status ${unit.placed ? 'placed' : 'ready'}">${unit.placed ? '✓ PLACED' : '○ READY'}</div>
+        <div class="unit-thumb" style="background-image:url('${imageUrl}')"></div>
+        <div class="unit-info">
+          <div class="unit-name">${unit.name}</div>
+          <div class="unit-meta">Size: ${unit.size} cells</div>
+          <div class="unit-status ${unit.placed ? 'placed' : 'ready'}">${unit.placed ? '✓ PLACED' : '○ READY'}</div>
+        </div>
       `;
       
       if (!unit.placed) {
@@ -396,10 +416,15 @@ function renderUnits() {
       const card = document.createElement('div');
       card.className = 'unit-card placed';
       const hpPercent = (unit.hp / unit.size * 100).toFixed(0);
+      const imageUrl = getImageURL(unit.id.split('_')[0]); // Get base unit type
+      
       card.innerHTML = `
-        <div class="unit-name">${unit.name}</div>
-        <div class="unit-meta">HP: ${unit.hp}/${unit.size} (${hpPercent}%)</div>
-        <div class="unit-status ready">⚡ ACTIVE</div>
+        <div class="unit-thumb" style="background-image:url('${imageUrl}')"></div>
+        <div class="unit-info">
+          <div class="unit-name">${unit.name}</div>
+          <div class="unit-meta">HP: ${unit.hp}/${unit.size} (${hpPercent}%)</div>
+          <div class="unit-status ready">⚡ ACTIVE</div>
+        </div>
       `;
       list.appendChild(card);
     });
