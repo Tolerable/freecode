@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>⚡ Tactical Grid Combat</title>
+<title>⚡ Tactical Grid Combat — Survivors vs AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0a0e1a; --panel:#151b2e; --ink:#e8f0ff; --muted:#8b9dc3;
     --surv:#3b82f6; --ai:#22c55e; --bad:#ef4444; --ok:#22c55e;
     --grid:#1a2237; --cell:#0f1624; --cellH:#1a2540;
-    --hit:#ef4444; --miss:#475569; --ship:#3b82f6; --scan:#8b5cf6;
+    --hit:#ef4444; --miss:#475569; --unit:#3b82f6; --scan:#8b5cf6;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;background:linear-gradient(135deg,#0a0e1a 0%,#151b2e 100%);color:var(--ink);font-family:Inter,system-ui,sans-serif;overflow:hidden}
@@ -56,15 +56,15 @@
   .grid{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;width:100%;max-width:100%;height:100%;max-height:100%}
   .cell{background:var(--cell);border:1px solid rgba(255,255,255,.06);border-radius:3px;cursor:pointer;transition:all .15s;position:relative;aspect-ratio:2/1;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden}
   .cell:hover{background:var(--cellH);border-color:rgba(255,255,255,.15)}
-  .cell.ship{background:linear-gradient(135deg,rgba(59,130,246,.3),rgba(59,130,246,.15));border-color:rgba(59,130,246,.5);box-shadow:inset 0 0 8px rgba(59,130,246,.2)}
+  .cell.unit{background:linear-gradient(135deg,rgba(59,130,246,.3),rgba(59,130,246,.15));border-color:rgba(59,130,246,.5);box-shadow:inset 0 0 8px rgba(59,130,246,.2)}
   .cell.hit{background:linear-gradient(135deg,rgba(239,68,68,.4),rgba(239,68,68,.25));border-color:rgba(239,68,68,.7)}
   .cell.hit::after{content:'💥';position:absolute;font-size:20px;animation:boom .6s ease-out}
   .cell.miss{background:rgba(71,85,105,.3);border-color:rgba(71,85,105,.5)}
-  .cell.miss::after{content:'💧';position:absolute;font-size:16px;opacity:.7}
+  .cell.miss::after{content:'✖';position:absolute;font-size:16px;opacity:.7}
   .cell.your-hit{background:linear-gradient(135deg,rgba(34,197,94,.4),rgba(34,197,94,.25));border-color:rgba(34,197,94,.7);box-shadow:inset 0 0 8px rgba(34,197,94,.3)}
   .cell.your-hit::after{content:'🎯';font-size:18px}
   .cell.your-miss{background:rgba(100,116,139,.25);border-color:rgba(100,116,139,.4)}
-  .cell.your-miss::after{content:'❌';font-size:14px;opacity:.5}
+  .cell.your-miss::after{content:'✖';font-size:14px;opacity:.5}
   .cell.preview-ok{outline:2px dashed var(--ok);background:rgba(34,197,94,.15);animation:pulse 1s infinite}
   .cell.preview-bad{outline:2px dashed var(--bad);background:rgba(239,68,68,.15)}
   
@@ -115,7 +115,7 @@
   .unit-card.active{border-color:var(--surv);background:rgba(59,130,246,.15);box-shadow:0 0 8px rgba(59,130,246,.3)}
   .unit-card.placed{opacity:.5;cursor:not-allowed}
   .unit-thumb{width:100%;height:100px;background:rgba(255,255,255,.03) center/cover no-repeat;border-bottom:1px solid rgba(255,255,255,.08);position:relative}
-  .unit-thumb.loading::after{content:'⏳';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(0,0,0,.3)}
+  /* hourglass removed per requirements */
   .unit-info{padding:8px 10px}
   .unit-name{font-weight:700;font-size:12px;margin-bottom:3px}
   .unit-meta{font-size:10px;color:var(--muted);margin-bottom:4px}
@@ -173,7 +173,7 @@
   .intro-skip{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);padding:10px 24px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:white;cursor:pointer;font-size:12px;transition:all .2s}
   .intro-skip:hover{background:rgba(255,255,255,.2);transform:translateX(-50%) translateY(-2px)}
   
-  /* Enemy Fleet Modal */
+  /* Enemy Forces Modal */
   .fleet-modal .modal-content{max-width:600px;max-height:80vh;overflow-y:auto}
   .fleet-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:20px}
   .fleet-ship{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;overflow:hidden}
@@ -203,7 +203,7 @@
         <div class="label">You</div>
         <div class="value" id="playerScore">0</div>
       </div>
-      <div class="stat" id="enemyFleetBtn" title="View enemy fleet">
+      <div class="stat" id="enemyFleetBtn" title="View enemy forces">
         <div class="label">Enemy</div>
         <div class="value" id="enemyScore">0</div>
       </div>
@@ -278,7 +278,7 @@
         This is the FINAL CONFLICT<br><br>
         
         Choose your side.<br>
-        Destroy the enemy fleet.<br>
+        Destroy the enemy forces.<br>
         Survive.<br><br>
         
         ⚡ TACTICAL GRID COMBAT ⚡
@@ -291,17 +291,17 @@
   <div class="modal" id="gameOverModal">
     <div class="modal-content">
       <div class="modal-title" id="modalTitle">VICTORY!</div>
-      <div class="modal-message" id="modalMessage">You destroyed the enemy fleet!</div>
+      <div class="modal-message" id="modalMessage">You destroyed the enemy forces!</div>
       <div class="modal-score" id="modalScore">750</div>
       <button class="btn btn-primary" onclick="resetGame()">PLAY AGAIN</button>
     </div>
   </div>
 
-  <!-- Enemy Fleet Modal -->
+  <!-- Enemy Forces Modal -->
   <div class="modal fleet-modal" id="fleetModal">
     <div class="modal-content" onclick="event.stopPropagation()">
-      <div class="modal-title">🎯 ENEMY FLEET</div>
-      <div class="modal-message">Track enemy ship status</div>
+      <div class="modal-title">🎯 ENEMY FORCES</div>
+      <div class="modal-message">Track enemy unit status</div>
       <div class="fleet-grid" id="fleetGrid"></div>
       <button class="btn btn-ghost" onclick="closeFleetModal()" style="margin-top:20px">CLOSE</button>
     </div>
@@ -309,8 +309,8 @@
 
   <!-- Action Popup -->
   <div class="action-popup" id="actionPopup">
-    <div class="action-popup-title" id="actionPopupTitle">SHIP DESTROYED!</div>
-    <div class="action-popup-subtitle" id="actionPopupSubtitle">Enemy Destroyer</div>
+    <div class="action-popup-title" id="actionPopupTitle">UNIT DESTROYED!</div>
+    <div class="action-popup-subtitle" id="actionPopupSubtitle">Enemy Unit</div>
     <div class="action-popup-hint">Click to continue</div>
   </div>
 </div>
@@ -330,19 +330,33 @@ const CFG = {
   IMAGE_RETRY_DELAY: 3000,
   IMAGE_MAX_RETRIES: 3,
   IMAGE_PROMPTS: {
-    destroyer: "sleek military destroyer ship, tactical grid HUD, neon blue lights, cinematic warfare, 16:9",
-    cruiser: "armored cruiser warship, advanced radar systems, neon blue HUD, dramatic lighting, epic scale, 16:9",
-    battleship: "massive battleship with heavy artillery, tactical command interface, neon blue accents, cinematic, 16:9",
-    carrier: "aircraft carrier flagship, flight deck operations, neon blue holographic displays, epic scale, wide shot, 16:9"
+    // Survivors (scrappy, salvaged, blue accents)
+    scout_buggy: "post-apocalyptic scout buggy, salvaged metal panels, dusty terrain, blue tactical HUD accents, cinematic lighting, gritty realism, 16:9, nologo",
+    heavy_tank: "makeshift heavy tank, welded armor plates, improvised reactive armor, urban rubble, blue UI glow, cinematic volumetric dust, 16:9, nologo",
+    artillery_truck: "modified missile truck with rack-mounted launchers, scavenged chassis, night raid, blue holographic targeting overlay, 16:9, nologo",
+    gunship_heli: "military-grade gunship helicopter, battle-worn, external rocket pods, searchlights cutting through smoke, blue HUD, 16:9, nologo",
+    // AI Forces (sleek, menacing, red sensors)
+    hunter_drone: "sleek autonomous hunter drone, carbon-black shell, red glowing sensor array, moody smoke, neon reflections, 16:9, nologo",
+    war_walker: "bipedal assault mech, articulated legs, matte armor, thin red visors, sparks and fog, ominous, 16:9, nologo",
+    assault_tank: "autonomous assault tank, low-slung turret, segmented armor, red optic core, cityscape at night, 16:9, nologo",
+    mobile_fortress: "massive mobile command fortress, crawler treads, towering silhouette, rows of red scanner lights, dramatic scale, 16:9, nologo"
   }
 };
 
 // ============ UNIT DEFINITIONS ============
 const UNITS = {
-  DESTROYER: { id: 'destroyer', size: 2, count: 2, name: 'Destroyer' },
-  CRUISER: { id: 'cruiser', size: 3, count: 2, name: 'Cruiser' },
-  BATTLESHIP: { id: 'battleship', size: 4, count: 1, name: 'Battleship' },
-  CARRIER: { id: 'carrier', size: 5, count: 1, name: 'Carrier' }
+  survivors: {
+    SCOUT_BUGGY:   { id: 'scout_buggy',   size: 2, count: 2, name: 'Scout Buggy' },
+    HEAVY_TANK:    { id: 'heavy_tank',    size: 3, count: 2, name: 'Heavy Tank' },
+    ARTY_TRUCK:    { id: 'artillery_truck', size: 4, count: 1, name: 'Artillery Truck' },
+    GUNSHIP_HELI:  { id: 'gunship_heli',  size: 5, count: 1, name: 'Gunship Heli' }
+  },
+  ai: {
+    HUNTER_DRONE:  { id: 'hunter_drone',  size: 2, count: 2, name: 'Hunter Drone' },
+    WAR_WALKER:    { id: 'war_walker',    size: 3, count: 2, name: 'War Walker' },
+    ASSAULT_TANK:  { id: 'assault_tank',  size: 4, count: 1, name: 'Assault Tank' },
+    MOBILE_FORT:   { id: 'mobile_fortress', size: 5, count: 1, name: 'Mobile Fortress' }
+  }
 };
 
 // ============ IMAGE CACHE ============
@@ -380,7 +394,7 @@ function createBoard() {
   for (let y = 0; y < CFG.BOARD_SIZE; y++) {
     board[y] = [];
     for (let x = 0; x < CFG.BOARD_SIZE; x++) {
-      board[y][x] = { ship: null, hit: false, miss: false };
+      board[y][x] = { unit: null, hit: false, miss: false };
     }
   }
   return board;
@@ -394,67 +408,43 @@ function log(message, type = 'normal') {
   if (type === 'miss') entry.classList.add('miss');
   entry.textContent = '• ' + message;
   $('#log').prepend(entry);
-  
   const logs = $$('.log-entry');
   if (logs.length > 50) logs[logs.length - 1].remove();
 }
 
-function cellIndex(x, y) {
-  return y * CFG.BOARD_SIZE + x;
-}
+function cellIndex(x, y) { return y * CFG.BOARD_SIZE + x; }
+function getCellElement(x, y) { return $('#grid').children[cellIndex(x, y)]; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function getCellElement(x, y) {
-  return $('#grid').children[cellIndex(x, y)];
-}
-
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
-}
-
-// ============ IMAGE HANDLING WITH RETRY ============
+// ============ IMAGE HANDLING WITH RETRY (no spinner) ============
 function getImageURL(unitType) {
-  const baseType = unitType.split('_')[0];
-  const prompt = CFG.IMAGE_PROMPTS[baseType] || CFG.IMAGE_PROMPTS.destroyer;
+  const prompt = CFG.IMAGE_PROMPTS[unitType] || CFG.IMAGE_PROMPTS.scout_buggy;
   const encoded = encodeURIComponent(prompt);
-  return `${CFG.POLLINATIONS_IMAGE}${encoded}?width=1280&height=720&model=flux&seed=${baseType.charCodeAt(0) * 42}&nologo=true`;
+  return `${CFG.POLLINATIONS_IMAGE}${encoded}?width=1280&height=720&model=flux&seed=${unitType.charCodeAt(0) * 42}&nologo=true`;
 }
 
 function preloadImage(unitType) {
-  const baseType = unitType.split('_')[0];
-  if (imageCache[baseType]) return Promise.resolve(imageCache[baseType]);
-  
+  if (imageCache[unitType]) return Promise.resolve(imageCache[unitType]);
   return new Promise((resolve) => {
-    const url = getImageURL(baseType);
+    const url = getImageURL(unitType);
     const img = new Image();
     let retryCount = 0;
-    
     const tryLoad = () => {
-      img.onload = () => {
-        imageCache[baseType] = url;
-        resolve(url);
-      };
-      
+      img.onload = () => { imageCache[unitType] = url; resolve(url); };
       img.onerror = () => {
         retryCount++;
-        if (retryCount < CFG.IMAGE_MAX_RETRIES) {
-          setTimeout(tryLoad, CFG.IMAGE_RETRY_DELAY);
-        } else {
-          // Fallback: resolve with URL anyway (will show loading state)
-          resolve(url);
-        }
+        if (retryCount < CFG.IMAGE_MAX_RETRIES) setTimeout(tryLoad, CFG.IMAGE_RETRY_DELAY);
+        else resolve(url); // no indicator per requirements
       };
-      
       img.src = url;
     };
-    
     tryLoad();
   });
 }
 
 async function preloadAllImages() {
   const types = Object.keys(CFG.IMAGE_PROMPTS);
-  const promises = types.map(type => preloadImage(type));
-  await Promise.all(promises);
+  await Promise.all(types.map(preloadImage));
 }
 
 // ============ ACTION POPUP ============
@@ -463,43 +453,35 @@ function showActionPopup(title, subtitle) {
   $('#actionPopupTitle').textContent = title;
   $('#actionPopupSubtitle').textContent = subtitle;
   popup.classList.add('show');
-  
   const dismiss = () => {
     popup.classList.remove('show');
     popup.removeEventListener('click', dismiss);
     document.removeEventListener('click', dismiss);
   };
-  
   setTimeout(() => {
     popup.addEventListener('click', dismiss);
     document.addEventListener('click', dismiss);
   }, 100);
 }
 
-// ============ INTRO STORY ============
+// ============ INTRO ============
 function showIntro() {
   $('#introModal').classList.add('show');
-  setTimeout(() => {
-    skipIntro();
-  }, 32000); // Auto-skip after story
+  setTimeout(() => { skipIntro(); }, 32000);
 }
-
 function skipIntro() {
   $('#introModal').classList.remove('show');
   state.phase = 'faction_select';
   updateUI();
 }
 
-// ============ FLEET MODAL ============
+// ============ ENEMY FORCES MODAL ============
 function showFleetModal() {
   const grid = $('#fleetGrid');
   grid.innerHTML = '';
-  
   state.enemyUnits.forEach(unit => {
-    const baseType = unit.id.split('_')[0];
-    const imageUrl = imageCache[baseType] || getImageURL(baseType);
+    const imageUrl = imageCache[unit.baseId] || getImageURL(unit.baseId);
     const destroyed = unit.hp <= 0;
-    
     const card = document.createElement('div');
     card.className = 'fleet-ship' + (destroyed ? ' destroyed' : '');
     card.innerHTML = `
@@ -514,70 +496,54 @@ function showFleetModal() {
     `;
     grid.appendChild(card);
   });
-  
   $('#fleetModal').classList.add('show');
 }
+function closeFleetModal() { $('#fleetModal').classList.remove('show'); }
+$('#enemyFleetBtn').onclick = () => { if (state.phase === 'battle') showFleetModal(); };
+$('#fleetModal').onclick = (e) => { if (e.target.id === 'fleetModal') closeFleetModal(); };
 
-function closeFleetModal() {
-  $('#fleetModal').classList.remove('show');
-}
-
-$('#enemyFleetBtn').onclick = () => {
-  if (state.phase === 'battle') showFleetModal();
-};
-
-$('#fleetModal').onclick = (e) => {
-  if (e.target.id === 'fleetModal') closeFleetModal();
-};
-
+// ============ UI ============
 function updateUI() {
   $('#playerScore').textContent = state.playerScore;
   $('#enemyScore').textContent = state.enemyScore;
-  
   $('#ap1').classList.toggle('active', state.ap >= 1);
   $('#ap2').classList.toggle('active', state.ap >= 2);
-  
   const inBattle = state.phase === 'battle';
   const playerTurn = state.currentTurn === 'player';
-  
   $('#attackBtn').disabled = !inBattle || !playerTurn || state.ap < 1;
   $('#scanBtn').disabled = !inBattle || !playerTurn || state.ap < 1;
   $('#endTurnBtn').disabled = !inBattle || !playerTurn;
-  
   $('#attackBtn').classList.toggle('active', state.selectedAction === 'attack');
   $('#scanBtn').classList.toggle('active', state.selectedAction === 'scan');
-  
   if (state.phase === 'placement') {
     $('#phaseLabel').textContent = `Place units (${state.placedCount}/${state.playerUnitsToPlace.length})`;
     $('#boardTitle').textContent = 'YOUR GRID - PLACEMENT';
   } else if (state.phase === 'battle') {
     $('#phaseLabel').textContent = playerTurn ? '🎮 Your turn' : '🤖 AI attacking...';
     $('#boardTitle').textContent = 'YOUR GRID - BATTLE';
+  } else if (state.phase === 'faction_select') {
+    $('#phaseLabel').textContent = 'Select faction to begin';
+    $('#boardTitle').textContent = 'YOUR GRID';
   }
 }
 
-// ============ BOARD RENDERING ============
+// ============ BOARD RENDER ============
 function renderGrid() {
   const grid = $('#grid');
   grid.innerHTML = '';
-  
   for (let y = 0; y < CFG.BOARD_SIZE; y++) {
     for (let x = 0; x < CFG.BOARD_SIZE; x++) {
       const cell = document.createElement('div');
       cell.className = 'cell';
       cell.dataset.x = x;
       cell.dataset.y = y;
-      
       const playerCell = state.playerBoard[y][x];
       const knowledgeCell = state.playerKnowledge[y][x];
-      
-      if (playerCell.ship) cell.classList.add('ship');
+      if (playerCell.unit) cell.classList.add('unit');
       if (playerCell.hit) cell.classList.add('hit');
       else if (playerCell.miss) cell.classList.add('miss');
-      
       if (knowledgeCell.hit) cell.classList.add('your-hit');
       else if (knowledgeCell.miss) cell.classList.add('your-miss');
-      
       grid.appendChild(cell);
     }
   }
@@ -586,27 +552,21 @@ function renderGrid() {
 function renderUnits() {
   const list = $('#unitsList');
   list.innerHTML = '';
-  
   if (state.phase === 'placement') {
     state.playerUnitsToPlace.forEach((unit, idx) => {
       const card = document.createElement('div');
       card.className = 'unit-card';
       if (unit.placed) card.classList.add('placed');
       if (state.placingUnit === idx) card.classList.add('active');
-      
-      const baseType = unit.id.split('_')[0];
-      const imageUrl = imageCache[baseType] || getImageURL(baseType);
-      const loading = !imageCache[baseType];
-      
+      const imageUrl = imageCache[unit.baseId] || getImageURL(unit.baseId);
       card.innerHTML = `
-        <div class="unit-thumb ${loading ? 'loading' : ''}" style="background-image:url('${imageUrl}')"></div>
+        <div class="unit-thumb" style="background-image:url('${imageUrl}')"></div>
         <div class="unit-info">
           <div class="unit-name">${unit.name}</div>
           <div class="unit-meta">Size: ${unit.size} cells</div>
           <div class="unit-status ${unit.placed ? 'placed' : 'ready'}">${unit.placed ? '✓ PLACED' : '○ READY'}</div>
         </div>
       `;
-      
       if (!unit.placed) {
         card.onclick = () => {
           state.placingUnit = idx;
@@ -614,7 +574,6 @@ function renderUnits() {
           log(`${unit.name} selected. Click grid to place (R to rotate)`, 'important');
         };
       }
-      
       list.appendChild(card);
     });
   } else if (state.phase === 'battle') {
@@ -622,10 +581,8 @@ function renderUnits() {
     alive.forEach(unit => {
       const card = document.createElement('div');
       card.className = 'unit-card placed';
-      const hpPercent = (unit.hp / unit.size * 100).toFixed(0);
-      const baseType = unit.id.split('_')[0];
-      const imageUrl = imageCache[baseType] || getImageURL(baseType);
-      
+      const hpPercent = Math.round(unit.hp / unit.size * 100);
+      const imageUrl = imageCache[unit.baseId] || getImageURL(unit.baseId);
       card.innerHTML = `
         <div class="unit-thumb" style="background-image:url('${imageUrl}')"></div>
         <div class="unit-info">
@@ -646,7 +603,7 @@ function canPlaceUnit(board, unit, x, y, rotation) {
     const cx = rotation ? x : x + i;
     const cy = rotation ? y + i : y;
     if (cx < 0 || cy < 0 || cx >= CFG.BOARD_SIZE || cy >= CFG.BOARD_SIZE) return false;
-    if (board[cy][cx].ship) return false;
+    if (board[cy][cx].unit) return false;
   }
   return true;
 }
@@ -654,16 +611,15 @@ function canPlaceUnit(board, unit, x, y, rotation) {
 function placeUnit(board, units, unit, x, y, rotation) {
   const size = unit.size;
   const coords = [];
-  
   for (let i = 0; i < size; i++) {
     const cx = rotation ? x : x + i;
     const cy = rotation ? y + i : y;
-    board[cy][cx].ship = unit.id;
+    board[cy][cx].unit = unit.baseId;
     coords.push({ x: cx, y: cy });
   }
-  
   units.push({
     id: unit.id,
+    baseId: unit.baseId,
     name: unit.name,
     size: unit.size,
     hp: unit.size,
@@ -674,17 +630,18 @@ function placeUnit(board, units, unit, x, y, rotation) {
 // ============ COMBAT ============
 function attack(board, units, x, y) {
   const cell = board[y][x];
-  
-  if (cell.hit || cell.miss) {
-    return { valid: false, reason: 'Already attacked' };
-  }
-  
-  if (cell.ship) {
+  if (cell.hit || cell.miss) return { valid: false, reason: 'Already targeted' };
+  if (cell.unit) {
     cell.hit = true;
-    const unit = units.find(u => u.id === cell.ship);
-    unit.hp--;
-    const sunk = unit.hp <= 0;
-    return { valid: true, hit: true, sunk, unitName: unit.name };
+    const unit = units.find(u => u.baseId === cell.unit && u.coords.some(c => c.x===x && c.y===y));
+    // If not found by coord match (edge case), fall back to first with same baseId that still has hp
+    const target = unit || units.find(u => u.baseId === cell.unit && u.hp > 0);
+    if (target) {
+      target.hp--;
+      const sunk = target.hp <= 0;
+      return { valid: true, hit: true, sunk, unitName: target.name };
+    }
+    return { valid: true, hit: true, sunk: false, unitName: 'Unit' };
   } else {
     cell.miss = true;
     return { valid: true, hit: false };
@@ -694,38 +651,21 @@ function attack(board, units, x, y) {
 async function scan(board, x, y) {
   let count = 0;
   const cells = [];
-  
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
-      const cx = x + dx;
-      const cy = y + dy;
+      const cx = x + dx, cy = y + dy;
       if (cx >= 0 && cy >= 0 && cx < CFG.BOARD_SIZE && cy < CFG.BOARD_SIZE) {
         cells.push({ x: cx, y: cy });
-        if (board[cy][cx].ship && !board[cy][cx].hit) count++;
+        if (board[cy][cx].unit && !board[cy][cx].hit) count++;
       }
     }
   }
-  
-  cells.forEach(c => {
-    const el = getCellElement(c.x, c.y);
-    el.classList.add('scan-glow');
-  });
-  
+  cells.forEach(c => getCellElement(c.x,c.y).classList.add('scan-glow'));
   await sleep(500);
-  
-  const reveals = cells.filter(c => board[c.y][c.x].ship && !board[c.y][c.x].hit);
-  reveals.forEach(c => {
-    const el = getCellElement(c.x, c.y);
-    el.classList.add('scan-reveal');
-  });
-  
+  cells.filter(c => board[c.y][c.x].unit && !board[c.y][c.x].hit)
+       .forEach(c => getCellElement(c.x,c.y).classList.add('scan-reveal'));
   await sleep(CFG.SCAN_DURATION);
-  
-  cells.forEach(c => {
-    const el = getCellElement(c.x, c.y);
-    el.classList.remove('scan-glow', 'scan-reveal');
-  });
-  
+  cells.forEach(c => getCellElement(c.x,c.y).classList.remove('scan-glow','scan-reveal'));
   return { count, cells };
 }
 
@@ -734,11 +674,9 @@ async function showTargeting(x, y) {
   const cell = getCellElement(x, y);
   const rect = cell.getBoundingClientRect();
   const container = $('#grid').getBoundingClientRect();
-  
   cursor.style.left = (rect.left - container.left + rect.width / 2 - 30) + 'px';
   cursor.style.top = (rect.top - container.top + rect.height / 2 - 30) + 'px';
   cursor.classList.add('show');
-  
   await sleep(1000);
   cursor.classList.remove('show');
 }
@@ -747,22 +685,17 @@ async function showTargeting(x, y) {
 async function showAIThinking() {
   $('#aiOverlay').classList.add('show');
   $('#aiActionLog').textContent = 'Scanning battlefield...';
-  
   await sleep(CFG.AI_STEP_TIME);
   $('#step1').classList.add('active');
-  $('#aiActionLog').textContent = 'Analyzing attack patterns...';
-  
+  $('#aiActionLog').textContent = 'Analyzing engagement patterns...';
   await sleep(CFG.AI_STEP_TIME);
   $('#step2').classList.add('active');
   $('#aiActionLog').textContent = 'Selecting optimal targets...';
-  
   await sleep(CFG.AI_STEP_TIME);
   $('#step3').classList.add('active');
   $('#aiActionLog').textContent = 'Preparing to strike...';
-  
   await sleep(CFG.AI_STEP_TIME);
 }
-
 async function hideAIThinking() {
   $('#aiActionLog').textContent = 'Attack complete.';
   await sleep(500);
@@ -775,117 +708,93 @@ async function getAITargets() {
   for (let y = 0; y < CFG.BOARD_SIZE; y++) {
     for (let x = 0; x < CFG.BOARD_SIZE; x++) {
       const cell = state.playerBoard[y][x];
-      if (!cell.hit && !cell.miss) {
-        untargeted.push({ x, y });
-      }
+      if (!cell.hit && !cell.miss) untargeted.push({ x, y });
     }
   }
-  
   if (untargeted.length === 0) return [];
-  
+
   const recentHits = [];
   for (let y = 0; y < CFG.BOARD_SIZE; y++) {
     for (let x = 0; x < CFG.BOARD_SIZE; x++) {
       const cell = state.playerBoard[y][x];
-      if (cell.hit && cell.ship) {
+      if (cell.hit && cell.unit) {
         [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dx,dy]) => {
-          const nx = x + dx, ny = y + dy;
-          if (nx >= 0 && ny >= 0 && nx < CFG.BOARD_SIZE && ny < CFG.BOARD_SIZE) {
+          const nx=x+dx, ny=y+dy;
+          if (nx>=0 && ny>=0 && nx<CFG.BOARD_SIZE && ny<CFG.BOARD_SIZE) {
             const nc = state.playerBoard[ny][nx];
-            if (!nc.hit && !nc.miss) {
-              recentHits.push({ x: nx, y: ny });
-            }
+            if (!nc.hit && !nc.miss) recentHits.push({x:nx,y:ny});
           }
         });
       }
     }
   }
-  
-  const priority = recentHits.length > 0 ? recentHits.slice(0, 3) : 
-                   untargeted.sort(() => Math.random() - 0.5).slice(0, 3);
-  
-  const prompt = `Battleship AI: Pick 2 actions from these targets:
-${priority.map((t, i) => `${i+1}. (${t.x},${t.y})`).join('\n')}
-${recentHits.length > 0 ? 'Strategy: Follow up hits!' : 'Strategy: Hunt mode.'}
 
-Return JSON: [{"action":"attack","target":1},{"action":"attack","target":2}]`;
+  const priority = recentHits.length>0 ? recentHits.slice(0,3) : untargeted.sort(()=>Math.random()-0.5).slice(0,3);
+
+  const prompt = `Tactical Grid AI: Pick 2 actions from these targets:
+${priority.map((t,i)=>`${i+1}. (${t.x},${t.y})`).join('\n')}
+${recentHits.length>0 ? 'Strategy: Follow-up on adjacent cells.' : 'Strategy: Hunt mode.'}
+
+Return JSON only: [{"action":"attack","target":1},{"action":"attack","target":2}]`;
 
   try {
     const response = await fetch(CFG.POLLINATIONS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: "openai",
-        messages: [
-          { role: "system", content: "Battleship AI. JSON only." },
-          { role: "user", content: prompt }
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:"openai",
+        messages:[
+          { role:"system", content:"You are a tactical grid AI. Respond with JSON only." },
+          { role:"user", content:prompt }
         ]
       })
     });
-    
     if (!response.ok) throw new Error('API failed');
-    
     const data = await response.json();
     const text = data.choices[0].message.content.trim();
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error('No JSON');
-    
     const actions = JSON.parse(jsonMatch[0]);
-    
     return actions.slice(0, CFG.AP_PER_TURN).map(action => ({
       type: action.action || 'attack',
       x: priority[action.target - 1]?.x ?? priority[0].x,
       y: priority[action.target - 1]?.y ?? priority[0].y
     }));
-    
   } catch (err) {
     console.error('AI error:', err);
-    return untargeted.sort(() => Math.random() - 0.5).slice(0, CFG.AP_PER_TURN).map(t => ({
-      type: 'attack',
-      x: t.x,
-      y: t.y
-    }));
+    return untargeted.sort(()=>Math.random()-0.5).slice(0, CFG.AP_PER_TURN).map(t=>({type:'attack',x:t.x,y:t.y}));
   }
 }
 
 async function executeAITurn() {
   state.currentTurn = 'enemy';
   updateUI();
-  
   await showAIThinking();
-  
   const actions = await getAITargets();
-  
   for (const action of actions) {
     $('#aiActionLog').textContent = `Targeting (${action.x}, ${action.y})...`;
     await showTargeting(action.x, action.y);
-    
     const result = attack(state.playerBoard, state.playerUnits, action.x, action.y);
-    
     if (result.valid) {
       if (result.hit) {
         state.enemyScore += CFG.POINTS.HIT;
-        log(`💥 Enemy HIT your ship at (${action.x},${action.y})!`, 'important');
+        log(`💥 Enemy HIT your unit at (${action.x},${action.y})!`, 'important');
         if (result.sunk) {
           state.enemyScore += CFG.POINTS.SINK;
           log(`🔥 Enemy DESTROYED your ${result.unitName}!`, 'important');
-          showActionPopup('SHIP DESTROYED!', `Your ${result.unitName} was destroyed!`);
+          showActionPopup('UNIT DESTROYED!', `Your ${result.unitName} was destroyed!`);
           await sleep(2000);
         }
       } else {
-        log(`💧 Enemy missed at (${action.x},${action.y})`, 'miss');
+        log(`✖ Enemy missed at (${action.x},${action.y})`, 'miss');
       }
     }
-    
     renderGrid();
     updateUI();
     await sleep(CFG.ANIMATION_TIME);
   }
-  
   await hideAIThinking();
-  
   if (checkGameOver()) return;
-  
   state.currentTurn = 'player';
   state.ap = CFG.AP_PER_TURN;
   updateUI();
@@ -896,116 +805,70 @@ async function executeAITurn() {
 function checkGameOver() {
   const playerAlive = state.playerUnits.filter(u => u.hp > 0).length;
   const enemyAlive = state.enemyUnits.filter(u => u.hp > 0).length;
-  
-  if (playerAlive === 0) {
-    endGame(false, 'Enemy destroyed your fleet!');
-    return true;
-  }
-  
-  if (enemyAlive === 0) {
-    endGame(true, 'You destroyed the enemy fleet!');
-    return true;
-  }
-  
+  if (playerAlive === 0) { endGame(false, 'Enemy destroyed your forces!'); return true; }
+  if (enemyAlive === 0) { endGame(true, 'You destroyed the enemy forces!'); return true; }
   return false;
 }
-
 function endGame(playerWon, message) {
   state.phase = 'game_over';
-  
-  if (playerWon) {
-    state.playerScore += CFG.POINTS.WIN;
-  } else {
-    state.enemyScore += CFG.POINTS.WIN;
-  }
-  
+  if (playerWon) state.playerScore += CFG.POINTS.WIN; else state.enemyScore += CFG.POINTS.WIN;
   $('#modalTitle').textContent = playerWon ? '🏆 VICTORY!' : '💀 DEFEAT';
   $('#modalMessage').textContent = message;
   $('#modalScore').textContent = state.playerScore;
   $('#gameOverModal').classList.add('show');
-  
   updateUI();
 }
 
 // ============ EVENTS ============
 $('#grid').addEventListener('click', async (e) => {
-  const cell = e.target.closest('.cell');
-  if (!cell) return;
-  
-  const x = parseInt(cell.dataset.x);
-  const y = parseInt(cell.dataset.y);
-  
+  const cell = e.target.closest('.cell'); if (!cell) return;
+  const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
+
   if (state.phase === 'placement') {
-    if (state.placingUnit === null) {
-      log('Select a unit first!', 'important');
-      return;
-    }
-    
+    if (state.placingUnit === null) { log('Select a unit first!', 'important'); return; }
     const unit = state.playerUnitsToPlace[state.placingUnit];
     if (unit.placed) return;
-    
     if (canPlaceUnit(state.playerBoard, unit, x, y, state.placingRotation)) {
       placeUnit(state.playerBoard, state.playerUnits, unit, x, y, state.placingRotation);
-      unit.placed = true;
-      state.placedCount++;
-      state.placingUnit = null;
-      
-      renderGrid();
-      renderUnits();
-      
+      unit.placed = true; state.placedCount++; state.placingUnit = null;
+      renderGrid(); renderUnits();
       if (state.placedCount === state.playerUnitsToPlace.length) {
         log('⚡ All units placed! Battle begins!', 'important');
         await sleep(1000);
         state.phase = 'battle';
         updateUI();
-      } else {
-        log(`✓ ${unit.name} placed!`, 'important');
-      }
+      } else { log(`✓ ${unit.name} placed!`, 'important'); }
     } else {
       log('❌ Cannot place there!', 'important');
     }
     return;
   }
-  
+
   if (state.phase === 'battle' && state.currentTurn === 'player' && state.ap > 0) {
     if (state.selectedAction === 'attack') {
       await showTargeting(x, y);
-      
       const result = attack(state.enemyBoard, state.enemyUnits, x, y);
-      
-      if (!result.valid) {
-        log('⚠️ ' + result.reason, 'important');
-        return;
-      }
-      
+      if (!result.valid) { log('⚠️ ' + result.reason, 'important'); return; }
       state.ap--;
       state.playerKnowledge[y][x].hit = result.hit;
       state.playerKnowledge[y][x].miss = !result.hit;
-      
       if (result.hit) {
         state.playerScore += CFG.POINTS.HIT;
         log(`🎯 DIRECT HIT at (${x},${y})!`, 'hit');
         if (result.sunk) {
           state.playerScore += CFG.POINTS.SINK;
           log(`🔥 DESTROYED enemy ${result.unitName}!`, 'hit');
-          showActionPopup('🔥 SHIP DESTROYED! 🔥', `Enemy ${result.unitName}`);
+          showActionPopup('🔥 UNIT DESTROYED! 🔥', `Enemy ${result.unitName}`);
         }
       } else {
-        log(`💧 Miss at (${x},${y})`, 'miss');
+        log(`✖ Miss at (${x},${y})`, 'miss');
       }
-      
-      renderGrid();
-      updateUI();
-      
+      renderGrid(); updateUI();
       if (checkGameOver()) return;
-      
-      if (state.ap === 0) {
-        log('⚠️ Out of AP. End your turn!', 'important');
-      }
+      if (state.ap === 0) log('⚠️ Out of AP. End your turn!', 'important');
     } else if (state.selectedAction === 'scan') {
       const result = await scan(state.enemyBoard, x, y);
-      state.ap--;
-      log(`📡 Scan detected ${result.count} ship(s) nearby!`, 'important');
+      state.ap--; log(`📡 Scan detected ${result.count} unit(s) nearby!`, 'important');
       updateUI();
     }
   }
@@ -1013,53 +876,26 @@ $('#grid').addEventListener('click', async (e) => {
 
 $('#grid').addEventListener('mousemove', (e) => {
   if (state.phase !== 'placement' || state.placingUnit === null) return;
-  
-  const cell = e.target.closest('.cell');
-  if (!cell) return;
-  
-  const x = parseInt(cell.dataset.x);
-  const y = parseInt(cell.dataset.y);
-  
-  $$('.cell').forEach(c => c.classList.remove('preview-ok', 'preview-bad'));
-  
+  const cell = e.target.closest('.cell'); if (!cell) return;
+  const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
+  $$('.cell').forEach(c => c.classList.remove('preview-ok','preview-bad'));
   const unit = state.playerUnitsToPlace[state.placingUnit];
   if (unit.placed) return;
-  
-  const canPlace = canPlaceUnit(state.playerBoard, unit, x, y, state.placingRotation);
-  
-  for (let i = 0; i < unit.size; i++) {
-    const cx = state.placingRotation ? x : x + i;
-    const cy = state.placingRotation ? y + i : y;
-    if (cx >= 0 && cy >= 0 && cx < CFG.BOARD_SIZE && cy < CFG.BOARD_SIZE) {
-      const idx = cellIndex(cx, cy);
-      $('#grid').children[idx]?.classList.add(canPlace ? 'preview-ok' : 'preview-bad');
+  const ok = canPlaceUnit(state.playerBoard, unit, x, y, state.placingRotation);
+  for (let i=0;i<unit.size;i++){
+    const cx = state.placingRotation ? x : x+i;
+    const cy = state.placingRotation ? y+i : y;
+    if (cx>=0 && cy>=0 && cx<CFG.BOARD_SIZE && cy<CFG.BOARD_SIZE) {
+      const idx = cellIndex(cx,cy);
+      $('#grid').children[idx]?.classList.add(ok?'preview-ok':'preview-bad');
     }
   }
 });
+$('#grid').addEventListener('mouseleave',()=>{$$('.cell').forEach(c=>c.classList.remove('preview-ok','preview-bad'));});
 
-$('#grid').addEventListener('mouseleave', () => {
-  $$('.cell').forEach(c => c.classList.remove('preview-ok', 'preview-bad'));
-});
-
-$('#attackBtn').onclick = () => {
-  state.selectedAction = 'attack';
-  updateUI();
-  log('🎯 Attack mode active!', 'important');
-};
-
-$('#scanBtn').onclick = () => {
-  state.selectedAction = 'scan';
-  updateUI();
-  log('📡 Scan mode active!', 'important');
-};
-
-$('#endTurnBtn').onclick = () => {
-  if (state.phase === 'battle' && state.currentTurn === 'player') {
-    log('⏭️ Ending turn...', 'important');
-    executeAITurn();
-  }
-};
-
+$('#attackBtn').onclick = () => { state.selectedAction = 'attack'; updateUI(); log('🎯 Attack mode active!', 'important'); };
+$('#scanBtn').onclick = () => { state.selectedAction = 'scan'; updateUI(); log('📡 Scan mode active!', 'important'); };
+$('#endTurnBtn').onclick = () => { if (state.phase==='battle' && state.currentTurn==='player'){ log('⏭️ Ending turn...', 'important'); executeAITurn(); } };
 $('#resetBtn').onclick = resetGame;
 
 document.addEventListener('keydown', (e) => {
@@ -1074,62 +910,63 @@ document.addEventListener('keydown', (e) => {
 $$('.faction-btn').forEach(btn => {
   btn.onclick = async () => {
     if (state.phase !== 'faction_select') return;
-    
     $$('.faction-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.playerFaction = btn.dataset.faction;
-    
     log(`⚡ ${state.playerFaction === 'survivors' ? 'Survivors' : 'AI Forces'} selected!`, 'important');
-    
-    // Preload images in background (don't wait)
-    preloadAllImages();
-    
+    preloadAllImages(); // background preload, no indicators
     startPlacement();
   };
 });
 
 // ============ INIT ============
+function oppositeFaction(f){ return f==='survivors' ? 'ai' : 'survivors'; }
+
 function startPlacement() {
   state.phase = 'placement';
   state.placedCount = 0;
   state.placingUnit = null;
-  
+  state.playerUnits = [];
+  state.enemyUnits = [];
+
+  // Player roster based on chosen faction
   state.playerUnitsToPlace = [];
-  Object.values(UNITS).forEach(def => {
-    for (let i = 0; i < def.count; i++) {
+  const pDefs = Object.values(UNITS[state.playerFaction]);
+  pDefs.forEach(def => {
+    for (let i=0;i<def.count;i++){
       state.playerUnitsToPlace.push({
-        ...def,
         id: `${def.id}_${i}`,
+        baseId: def.id,
+        name: def.name,
+        size: def.size,
         placed: false
       });
     }
   });
-  
-  Object.values(UNITS).forEach(def => {
-    for (let i = 0; i < def.count; i++) {
-      let placed = false;
-      let attempts = 0;
-      while (!placed && attempts < 100) {
-        const x = Math.floor(Math.random() * CFG.BOARD_SIZE);
-        const y = Math.floor(Math.random() * CFG.BOARD_SIZE);
-        const rot = Math.random() < 0.5;
-        
-        if (canPlaceUnit(state.enemyBoard, def, x, y, rot)) {
-          placeUnit(state.enemyBoard, state.enemyUnits, {
-            ...def,
-            id: `${def.id}_enemy_${i}`
-          }, x, y, rot);
+
+  // Enemy roster: opposite faction
+  const eDefs = Object.values(UNITS[oppositeFaction(state.playerFaction)]);
+  eDefs.forEach(def => {
+    for (let i=0;i<def.count;i++){
+      let placed = false, attempts = 0;
+      while (!placed && attempts < 200) {
+        const x = Math.floor(Math.random()*CFG.BOARD_SIZE);
+        const y = Math.floor(Math.random()*CFG.BOARD_SIZE);
+        const rot = Math.random()<0.5;
+        const stub = { baseId:def.id, name:def.name, size:def.size, id:`${def.id}_enemy_${i}` };
+        if (canPlaceUnit(state.enemyBoard, stub, x, y, rot)) {
+          placeUnit(state.enemyBoard, state.enemyUnits, stub, x, y, rot);
           placed = true;
         }
         attempts++;
       }
     }
   });
-  
+
   renderGrid();
   renderUnits();
   updateUI();
-  log('🛠️ Place your fleet! Select unit, then click grid.', 'important');
+  log('🛠️ Place your forces! Select a unit, then click the grid. Press R to rotate.', 'important');
 }
 
 function resetGame() {
@@ -1142,23 +979,18 @@ function resetGame() {
   state.selectedAction = 'attack';
   state.placingUnit = null;
   state.placingRotation = false;
-  
   state.playerBoard = createBoard();
   state.enemyBoard = createBoard();
   state.playerKnowledge = createBoard();
-  
   state.playerUnits = [];
   state.enemyUnits = [];
   state.playerUnitsToPlace = [];
   state.placedCount = 0;
-  
   $('#gameOverModal').classList.remove('show');
   $('#log').innerHTML = '';
-  
   renderGrid();
   renderUnits();
   updateUI();
-  
   showIntro();
 }
 
