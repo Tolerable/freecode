@@ -60,15 +60,18 @@
   .cell.preview-bad{outline:2px dashed rgba(239,68,68,.9) !important; background:rgba(239,68,68,.08)}
   .side{border:1px solid rgba(255,255,255,.08); border-radius:16px; overflow:hidden; background:rgba(8,12,24,.7); backdrop-filter: blur(8px); display:flex; flex-direction:column;}
   .sideHeader{ padding:12px 14px; font-weight:800; border-bottom:1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between}
-  .cards{ padding:12px; display:grid; grid-template-columns:1fr; gap:10px; overflow:auto}
+
+  /* Bigger 2×3 unit grid with taller thumbs */
+  .cards{ padding:12px; display:grid; grid-template-columns:repeat(2,1fr); gap:12px; overflow:auto}
   .card{border:1px solid rgba(255,255,255,.1); border-radius:14px; overflow:hidden; background:rgba(12,18,32,.86); transition:box-shadow .15s ease, border-color .15s ease;}
   .card.active{ box-shadow:0 0 0 2px var(--surv) inset; border-color: rgba(96,165,250,.75) }
-  .thumb{ height:90px; background:rgba(255,255,255,.04) center/cover no-repeat; filter:saturate(1.05) contrast(1.1)}
+  .thumb{ height:140px; background:rgba(255,255,255,.04) center/cover no-repeat; filter:saturate(1.05) contrast(1.1)}
   .row{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; }
   .name{ font-weight:800 }
   .meta{ font-size:12px; color:var(--muted) }
   .count{ font-weight:800; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16)}
   .cd{ display:flex; gap:4px} .cd .pip{ width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.16)} .cd .pip.on{ background:var(--warn) }
+
   .actions{ padding:12px; border-top:1px solid rgba(255,255,255,.06); display:grid; grid-template-columns:repeat(2,1fr); gap:10px;
     background:linear-gradient(0deg, rgba(255,255,255,.02), transparent 60%);}
   button{appearance:none; border:none; border-radius:12px; padding:12px; font-weight:800; color:white; cursor:pointer;
@@ -79,10 +82,12 @@
   .btn-warn{ background: linear-gradient(180deg, rgba(250,204,21,.95), rgba(250,204,21,.7)); border-color:rgba(250,204,21,.6); color:#101010 }
   .btn-danger{ background: linear-gradient(180deg, rgba(239,68,68,.95), rgba(239,68,68,.7)); border-color:rgba(239,68,68,.6) }
   .btn-active{ outline:2px solid var(--surv); box-shadow:0 0 0 2px rgba(96,165,250,.5) inset, 0 8px 18px rgba(96,165,250,.25) }
+
   .bottombar{position:absolute; left:0; right:0; bottom:0; height:110px; display:flex; align-items:center; gap:12px; padding:12px 18px;
     background:linear-gradient(180deg, rgba(2,6,23,.35), rgba(2,6,23,.85)); border-top:1px solid rgba(255,255,255,.06);}
   .log{ flex:1; height:86px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:8px 10px; overflow:auto; font-size:13px; color:var(--muted) }
   .ap{ display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); font-weight:800 }
+
   .overlay{position:absolute; left:0; right:0; top:-180px; height:180px; display:flex; align-items:center; justify-content:center; gap:18px;
     background:linear-gradient(180deg, rgba(10,16,30,.94), rgba(10,16,30,.8)); border-bottom:1px solid rgba(255,255,255,.06);
     transform:translateY(0); transition:transform .5s ease; z-index:20;}
@@ -94,6 +99,24 @@
   .switch{ display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:8px 10px; font-size:13px }
   .select{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); color:var(--ink); border-radius:10px; padding:9px 10px; }
   .kbd{ font-family: ui-monospace, Consolas, monospace; font-size:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); padding:2px 6px; border-radius:6px }
+
+  /* Reveal blip FX for scans */
+  .fx.reveal{
+    background: radial-gradient(circle, rgba(147,51,234,.85) 0%, rgba(147,51,234,.25) 55%, transparent 70%);
+    box-shadow: 0 0 12px rgba(147,51,234,.6), inset 0 0 0 2px rgba(147,51,234,.95);
+    animation: ping 1.2s ease-out infinite;
+  }
+  @keyframes ping{
+    0%{ transform:scale(.9); opacity:.95 }
+    70%{ transform:scale(1.05); opacity:.55 }
+    100%{ transform:scale(1.1); opacity:0 }
+  }
+
+  /* End Turn call-to-action when AP=0 */
+  .btn-pulse{ animation: throb 0.9s ease-in-out infinite }
+  @keyframes throb{ 0%,100%{ transform:translateY(0) scale(1) } 50%{ transform:translateY(0) scale(1.03) } }
+  button:disabled{ opacity:.45; cursor:not-allowed; filter:saturate(.6) }
+
   @media (max-width:1100px){ .main{ grid-template-columns:1fr } }
 </style>
 </head>
@@ -119,6 +142,7 @@
       <div class="kpi">
         <div class="chip" id="turnChip">Placement Phase</div>
         <div class="chip">AP <span class="pip" id="ap1"></span><span class="pip" id="ap2"></span></div>
+        <div class="chip" id="scoreChip">Score 0–0</div>
       </div>
     </div>
 
@@ -172,16 +196,15 @@
 const CFG = {
   BOARD_SIZE: 10,
   AP_PER_TURN: 2,
-  FX_TIME: 1200,         // ms: scan/jam/repair/hit/miss visibility
-  AI_STEP_DELAY: 750,    // ms between enemy actions (readable pace)
-  AI_OVERLAY_HOLD: 700,  // ms overlay linger after AI done
+  FX_TIME: 1800,         // longer FX so the player can absorb them
+  AI_STEP_DELAY: 1000,   // slower enemy pacing
+  AI_OVERLAY_HOLD: 1200, // overlay lingers a touch
   USE_BG_ART: false,
   KILL_CAM: true,
   POLLINATIONS: {
     textEndpoint: "https://text.pollinations.ai/openai",
     imageEndpoint: "https://image.pollinations.ai/prompt/",
     model: "openai",
-    maxTokens: 300,
     // Image defaults
     imgModel: "flux", width: 1280, height: 720, seed: 42, nologo: false,
     prompts: {
@@ -302,7 +325,6 @@ class Board{
 
 /* =============== Pollinations Text Client =============== */
 async function pollinationsAIPlan({model, ap, fog, lastHits, lastMisses, jamMap}){
-  // fog: 10x10 with U/H/M (unknown/hit/miss). jamMap: boolean 10x10
   const sys = "You are an enemy commander in a 10x10 hidden-information grid battle. Return ONLY a compact JSON array of actions for this turn. No prose.";
   const schema = `
 Rules:
@@ -326,15 +348,9 @@ recentMisses=${JSON.stringify(lastMisses.slice(-4))}
 ${schema}`}
   ];
 
-  const payload = {
-    model,
-    temperature: CFG.POLLINATIONS.temperature,
-    max_tokens: CFG.POLLINATIONS.maxTokens,
-    messages: msg,
-    stream: false
-  };
+  // minimal payload: avoids 400s from extra params
+  const payload = { model, messages: msg };
 
-  // retry with backoff for the anonymous rate limits
   let tries=0, delay=800;
   while(tries<3){
     try{
@@ -349,7 +365,6 @@ ${schema}`}
       }
       const data = await resp.json();
       const text = data?.choices?.[0]?.message?.content?.trim() || "[]";
-      // extract JSON robustly
       const jsonText = text.startsWith('[') ? text : (text.match(/\[[\s\S]*\]/)?.[0] || "[]");
       const plan = JSON.parse(jsonText);
       return Array.isArray(plan) ? plan : [];
@@ -357,13 +372,12 @@ ${schema}`}
       tries++; await sleep(delay); delay*=2;
     }
   }
-  // give up -> empty list (caller will fallback)
   return [];
 }
 
-/* =============== Simple fallback AI (only used when Pollinations fails for that turn) =============== */
+/* =============== Simple fallback AI (used when Pollinations fails) =============== */
 class HeuristicAI{
-  constructor(enemyFog){ this.fog=enemyFog; this.queue=[]; }
+  constructor(enemyFog){ this.fog=enemyFog; this.queue=[]; this.scanned=new Set(); }
   huntCell(){
     let best=-1, pick={x:0,y:0};
     for(let y=0;y<10;y++)for(let x=0;x<10;x++){
@@ -382,7 +396,6 @@ class HeuristicAI{
   }
   plan(ap){
     const acts=[];
-    // one scan roughly center of largest unknown mass
     if(ap>=1){
       let best=-1,bx=1,by=1;
       for(let y=1;y<9;y++)for(let x=1;x<9;x++){
@@ -392,11 +405,12 @@ class HeuristicAI{
           if(!c.hit && !c.miss) score++;
           if(c.jam) score-=1;
         }
-        if(score>best){ best=score; bx=x; by=y; }
+        const key=`${bx},${by}`;
+        if(score>best && !this.scanned.has(key)){ best=score; bx=x; by=y; }
       }
-      acts.push({type:'scan',x:bx,y:by}); ap--;
+      acts.push({type:'scan',x:bx,y:by}); this.scanned.add(`${bx},${by}`); ap--;
     }
-    while(ap>0){ 
+    while(ap>0){
       const p = this.queue.length ? this.queue.shift() : this.huntCell();
       acts.push({type:'attack',x:p.x,y:p.y}); ap--;
     }
@@ -419,7 +433,7 @@ const state={
   ai:new Board(CFG.BOARD_SIZE),
   aiFog:new Board(CFG.BOARD_SIZE),
 
-  lastHitsAI:[],    // AI hits against player (for story/plan)
+  lastHitsAI:[],
   lastMissesAI:[],
   lastHitsYou:[],
   lastMissesYou:[],
@@ -483,13 +497,28 @@ function renderCards(){
     cardsEl.appendChild(card);
   }
 }
+function updateScore(){
+  const youHits = state.ai.units.reduce((a,u)=>a + (u.size - u.hp), 0);
+  const aiHits  = state.player.units.reduce((a,u)=>a + (u.size - u.hp), 0);
+  $("#scoreChip").textContent = `Score ${youHits}–${aiHits}`;
+}
 function setButtonsActive(){
   const map={attack:'#attackBtn',scan:'#scanBtn',jam:'#jamBtn',move:'#moveBtn',repair:'#repairBtn'};
-  for(const [act,sel] of Object.entries(map)){ const el=$(sel); if(state.selectedAction===act) el.classList.add('btn-active'); else el.classList.remove('btn-active'); }
+  for(const [act,sel] of Object.entries(map)){
+    const el=$(sel);
+    if(state.selectedAction===act) el.classList.add('btn-active'); else el.classList.remove('btn-active');
+    // disable when it's not your play turn or no AP (except Move selection UI)
+    el.disabled = state.phase!=='play' || state.turn!=='survivors' ? true : (act!=='move' && state.ap<=0);
+  }
+  const endBtn = $("#endTurnBtn");
+  endBtn.classList.toggle('btn-pulse', state.phase==='play' && state.turn==='survivors' && state.ap===0);
+
   apHud.textContent=`AP: ${state.ap}`;
   ap1.classList.toggle('live',state.ap>=1); ap2.classList.toggle('live',state.ap>=2);
   phaseLabel.textContent = state.phase==='placement' ? 'Place Units' : (state.turn==='survivors' ? 'Your Turn' : 'AI Turn');
   turnChip.textContent   = state.phase==='placement' ? 'Placement Phase' : (state.turn==='survivors' ? 'Your Turn' : 'AI Turn');
+
+  updateScore();
 }
 
 /* =============== Init/Reset =============== */
@@ -623,9 +652,15 @@ async function actAttack(x,y){
 async function actScan(x,y){
   if(state.ap<1){ log("Not enough AP."); return false; }
   state.ap--; setButtonsActive();
+
   const out=state.ai.scan3(x,y);
-  fxCells('scan', out.cells);
-  log(`Scan ${String.fromCharCode(65+y)}${x+1}: ${out.count} signatures detected.`);
+  fxCells('scan', out.cells); // radius
+
+  // brief “blip” reveals on true enemy cells
+  const reveals = out.cells.filter(p => state.ai.cell(p.x,p.y).shipId);
+  if(reveals.length) fxCells('reveal', reveals);
+
+  log(`Scan ${String.fromCharCode(65+y)}${x+1}: ${out.count} signatures blipped.`);
   return true;
 }
 async function actJam(x,y){
@@ -660,7 +695,6 @@ function checkWin(){
 }
 
 function buildFogSnapshot(){
-  // U/H/M map and jam map for the AI prompt
   const fog=[], jam=[];
   for(let y=0;y<10;y++){
     const row=[], jrow=[];
@@ -680,7 +714,6 @@ async function endTurn(){
   state.turn='ai'; state.ap=CFG.AP_PER_TURN; setButtonsActive();
   aiOverlay.classList.add('show'); log("AI (Pollinations) is planning…");
 
-  // Build prompt & call Pollinations
   const snap = buildFogSnapshot();
   const plan = await pollinationsAIPlan({
     model: CFG.POLLINATIONS.model,
@@ -697,7 +730,6 @@ async function endTurn(){
     actions = state.heuristicAI.plan(CFG.AP_PER_TURN);
   }
 
-  // Execute with readable pacing
   for(const act of actions.slice(0,CFG.AP_PER_TURN)){
     await sleep(CFG.AI_STEP_DELAY);
     if(act.type==='scan'){
@@ -706,23 +738,22 @@ async function endTurn(){
       log(`AI scans a sector: ${out.count} signatures.`);
     } else if(act.type==='attack'){
       const res=state.player.receiveAttack(act.x,act.y);
+      let tx=act.x, ty=act.y, hitRes=res;
+
       if(!res.valid){
-        // find a fresh target quickly
+        // quick fresh target
         let nx=0,ny=0, found=false;
         for(let y=0;y<10 && !found;y++)for(let x=0;x<10 && !found;x++){
           const c=state.player.cell(x,y); if(!c.hit && !c.miss){ nx=x; ny=y; found=true; }
         }
-        const res2=state.player.receiveAttack(nx,ny);
-        fxOne(res2.hit?'hit':'miss', nx,ny);
-        if(res2.hit){ state.lastHitsAI.push({x:nx,y:ny}); } else { state.lastMissesAI.push({x:nx,y:ny}); }
-        log(`AI attacks ${String.fromCharCode(65+ny)}${nx+1}: ${res2.hit?'HIT':'miss'}`);
-        if(res2.hit && res2.sunk && state.killcam) log(`${res2.unit.label} destroyed!`);
-      } else {
-        fxOne(res.hit?'hit':'miss', act.x,act.y);
-        if(res.hit){ state.lastHitsAI.push({x:act.x,y:act.y}); } else { state.lastMissesAI.push({x:act.x,y:act.y}); }
-        log(`AI attacks ${String.fromCharCode(65+act.y)}${act.x+1}: ${res.hit?'HIT':'miss'}`);
-        if(res.hit && res.sunk && state.killcam) log(`${res.unit.label} destroyed!`);
+        hitRes=state.player.receiveAttack(nx,ny); tx=nx; ty=ny;
       }
+
+      fxOne(hitRes.hit?'hit':'miss', tx,ty);
+      if(hitRes.hit){ state.lastHitsAI.push({x:tx,y:ty}); } else { state.lastMissesAI.push({x:tx,y:ty}); }
+      log(`AI attacks ${String.fromCharCode(65+ty)}${tx+1}: ${hitRes.hit?'HIT':'miss'}`);
+      if(hitRes.hit && hitRes.sunk && state.killcam) log(`${hitRes.unit.label} destroyed!`);
+
       renderGrid();
       if(checkWin()){ aiOverlay.classList.remove('show'); return; }
     }
