@@ -3,785 +3,831 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>You Erased My AI — Pollinations Opponent</title>
+<title>Tactical Grid Combat — AI Opponent</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0b0f19; --panel:#121929; --ink:#e9efff; --muted:#a6b2d1;
-    --brand:#7c5cff; --ai:#22c55e; --surv:#60a5fa; --bad:#ef4444; --ok:#22c55e;
-    --warn:#f59e0b; --grid:#1c2741; --cell:#162036; --cellH:#1d2a45;
-    --hit:#ef4444; --miss:#334155; --scan:#3b82f6; --jam:#9333ea; --emp:#eab308;
-    --accent:#2dd4bf; --shadow:0 10px 30px rgba(0,0,0,.35);
+    --bg:#0a0e1a; --panel:#151b2e; --ink:#e8f0ff; --muted:#8b9dc3;
+    --surv:#3b82f6; --ai:#22c55e; --bad:#ef4444; --ok:#22c55e;
+    --grid:#1a2237; --cell:#0f1624; --cellH:#1a2540;
+    --hit:#ef4444; --miss:#475569; --ship:#3b82f6;
   }
-  *{box-sizing:border-box}
-  html,body{height:100%;background:radial-gradient(1200px 600px at 50% 0%,#0a1022 0%,#070b17 60%,#050812 100%), var(--bg);color:var(--ink);margin:0;font-family:Inter,system-ui,Arial,Helvetica,sans-serif}
-  .app{height:100dvh; width:100vw; display:flex; align-items:center; justify-content:center; overflow:hidden;}
-  .frame{aspect-ratio:16/9; width:min(95vw,1400px); position:relative; border-radius:18px; background:
-      linear-gradient(180deg, rgba(124,92,255,.08), transparent 40%),
-      linear-gradient(0deg, rgba(45,212,191,.06), transparent 50%),
-      var(--panel);
-    box-shadow:var(--shadow); overflow:hidden; border:1px solid rgba(124,92,255,.25);}
-  .bg-art{position:absolute; inset:0; pointer-events:none; opacity:.12; filter:grayscale(20%) contrast(110%); background-position:center; background-size:cover; transition:background-image .4s ease;}
-  .topbar{position:absolute; left:0; right:0; top:0; height:64px; display:flex; align-items:center; gap:16px; padding:0 20px;
-    background:linear-gradient(180deg, rgba(2,6,23,.8), rgba(2,6,23,.35)); border-bottom:1px solid rgba(255,255,255,.06);}
-  .badge{display:inline-flex; align-items:center; gap:10px; padding:8px 12px; border-radius:999px; background:rgba(124,92,255,.14); border:1px solid rgba(124,92,255,.35)}
-  .dot{width:9px;height:9px;border-radius:50%}
-  .dot.ai{background:var(--ai)} .dot.human{background:var(--surv)}
-  .title{font-weight:800; letter-spacing:.2px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:linear-gradient(135deg,#0a0e1a 0%,#151b2e 100%);color:var(--ink);font-family:Inter,system-ui,sans-serif;overflow:hidden}
+  
+  .app{height:100vh;width:100vw;display:flex;flex-direction:column}
+  
+  /* Top bar */
+  .topbar{height:70px;background:rgba(15,20,35,.95);border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 24px;gap:20px}
+  .logo{font-size:20px;font-weight:800;letter-spacing:.5px;color:var(--surv)}
+  .faction-pick{display:flex;gap:8px}
+  .faction-btn{padding:10px 18px;border-radius:8px;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:var(--ink);font-weight:700;cursor:pointer;transition:all .2s}
+  .faction-btn:hover{background:rgba(255,255,255,.1);transform:translateY(-1px)}
+  .faction-btn.active{border-color:var(--surv);background:rgba(59,130,246,.2);box-shadow:0 0 12px rgba(59,130,246,.4)}
   .spacer{flex:1}
-  .kpi{display:flex; align-items:center; gap:14px}
-  .kpi .chip{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); padding:8px 12px; border-radius:10px; font-weight:700;}
-  .kpi .pip{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.16)} .kpi .pip.live{background:var(--accent)}
-  .main{position:absolute; inset:64px 0 110px 0; display:grid; grid-template-columns: 1fr 360px; gap:18px; padding:18px;}
-  .boardWrap{position:relative; border:1px solid rgba(255,255,255,.08); border-radius:16px; overflow:hidden;
-    background:linear-gradient(180deg, rgba(255,255,255,.02), transparent 60%), rgba(6,10,22,.6); backdrop-filter: blur(8px);}
-  .boardHeader{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; font-weight:700; border-bottom:1px solid rgba(255,255,255,.06); background:rgba(124,92,255,.08)}
-  .grid{display:grid; gap:2px; padding:14px; grid-template-columns: repeat(10, 1fr); grid-auto-rows: 1fr; height: calc(100% - 50px); background:var(--grid); position:relative;}
-  .cell{background:var(--cell); border:1px solid rgba(255,255,255,.04); border-radius:6px; display:flex; align-items:center; justify-content:center;
-    font-size:12px; color:rgba(255,255,255,.35); user-select:none; cursor:pointer; transition:background .12s ease, transform .05s ease;}
-  .cell:hover{ background:var(--cellH) }
-  .cell.own{ background: #0f1a33 }
-  .cell.ship{ outline:2px solid rgba(96,165,250,.35) }
-  .cell.hit{ background:linear-gradient(180deg, rgba(239,68,68,.28), rgba(239,68,68,.18)); border-color:rgba(239,68,68,.55)}
-  .cell.miss{ background:var(--miss); color:#7c849b }
-  .cell.jammed::after{
-    content:""; position:absolute; inset:0; background-image:linear-gradient(transparent 60%, rgba(147,51,234,.28) 60%), repeating-linear-gradient(90deg, rgba(147,51,234,.12) 0 2px, transparent 2px 6px);
-    mix-blend-mode:screen; border-radius:6px;
-  }
-  .effects{position:absolute; inset:14px; display:grid; grid-template-columns:repeat(10,1fr); grid-auto-rows:1fr; gap:2px; pointer-events:none;}
-  .fx{border-radius:6px; opacity:0; transition:opacity .2s ease;}
-  .fx.scan{background:radial-gradient(circle at center, rgba(59,130,246,.45) 0%, rgba(59,130,246,.12) 60%, transparent 70%); box-shadow: inset 0 0 0 2px rgba(59,130,246,.85);}
-  .fx.jam{background:repeating-linear-gradient(0deg, rgba(147,51,234,.18) 0 4px, rgba(147,51,234,.05) 4px 8px); box-shadow: inset 0 0 0 2px rgba(147,51,234,.9);}
-  .fx.repair{background:radial-gradient(circle, rgba(34,197,94,.35), transparent 70%); box-shadow: inset 0 0 0 2px rgba(34,197,94,.85);}
-  .fx.hit{background:radial-gradient(circle, rgba(239,68,68,.45), transparent 70%); box-shadow: inset 0 0 0 2px rgba(239,68,68,.9);}
-  .fx.miss{background:radial-gradient(circle, rgba(148,163,184,.35), transparent 70%); box-shadow: inset 0 0 0 2px rgba(148,163,184,.85);}
-  .fx.show{opacity:1;}
-  .cell.preview-ok{outline:2px dashed rgba(34,197,94,.9) !important; background:rgba(34,197,94,.08)}
-  .cell.preview-bad{outline:2px dashed rgba(239,68,68,.9) !important; background:rgba(239,68,68,.08)}
-  .side{border:1px solid rgba(255,255,255,.08); border-radius:16px; overflow:hidden; background:rgba(8,12,24,.7); backdrop-filter: blur(8px); display:flex; flex-direction:column;}
-  .sideHeader{ padding:12px 14px; font-weight:800; border-bottom:1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between}
-
-  /* Bigger 2×3 unit grid with taller thumbs */
-  .cards{ padding:12px; display:grid; grid-template-columns:repeat(2,1fr); gap:12px; overflow:auto}
-  .card{border:1px solid rgba(255,255,255,.1); border-radius:14px; overflow:hidden; background:rgba(12,18,32,.86); transition:box-shadow .15s ease, border-color .15s ease;}
-  .card.active{ box-shadow:0 0 0 2px var(--surv) inset; border-color: rgba(96,165,250,.75) }
-  .thumb{ height:140px; background:rgba(255,255,255,.04) center/cover no-repeat; filter:saturate(1.05) contrast(1.1)}
-  .row{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; }
-  .name{ font-weight:800 }
-  .meta{ font-size:12px; color:var(--muted) }
-  .count{ font-weight:800; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16)}
-  .cd{ display:flex; gap:4px} .cd .pip{ width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.16)} .cd .pip.on{ background:var(--warn) }
-
-  .actions{ padding:12px; border-top:1px solid rgba(255,255,255,.06); display:grid; grid-template-columns:repeat(2,1fr); gap:10px;
-    background:linear-gradient(0deg, rgba(255,255,255,.02), transparent 60%);}
-  button{appearance:none; border:none; border-radius:12px; padding:12px; font-weight:800; color:white; cursor:pointer;
-    background: linear-gradient(180deg, rgba(124,92,255,.9), rgba(124,92,255,.6)); border:1px solid rgba(124,92,255,.5);
-    box-shadow:0 6px 16px rgba(124,92,255,.35); transition:transform .06s ease, filter .15s ease, opacity .2s ease;}
-  button:hover{ filter:brightness(1.06) } button:active{ transform:translateY(1px) }
-  .btn-ghost{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16); box-shadow:none }
-  .btn-warn{ background: linear-gradient(180deg, rgba(250,204,21,.95), rgba(250,204,21,.7)); border-color:rgba(250,204,21,.6); color:#101010 }
-  .btn-danger{ background: linear-gradient(180deg, rgba(239,68,68,.95), rgba(239,68,68,.7)); border-color:rgba(239,68,68,.6) }
-  .btn-active{ outline:2px solid var(--surv); box-shadow:0 0 0 2px rgba(96,165,250,.5) inset, 0 8px 18px rgba(96,165,250,.25) }
-
-  .bottombar{position:absolute; left:0; right:0; bottom:0; height:110px; display:flex; align-items:center; gap:12px; padding:12px 18px;
-    background:linear-gradient(180deg, rgba(2,6,23,.35), rgba(2,6,23,.85)); border-top:1px solid rgba(255,255,255,.06);}
-  .log{ flex:1; height:86px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:8px 10px; overflow:auto; font-size:13px; color:var(--muted) }
-  .ap{ display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); font-weight:800 }
-
-  .overlay{position:absolute; left:0; right:0; top:-180px; height:180px; display:flex; align-items:center; justify-content:center; gap:18px;
-    background:linear-gradient(180deg, rgba(10,16,30,.94), rgba(10,16,30,.8)); border-bottom:1px solid rgba(255,255,255,.06);
-    transform:translateY(0); transition:transform .5s ease; z-index:20;}
-  .overlay.show{ transform:translateY(180px) }
-  .overlay .flag{ padding:10px 14px; border-radius:999px; background:rgba(34,197,94,.15); border:1px solid rgba(34,197,94,.5); font-weight:900; letter-spacing:.4px }
-  .mini{display:flex; gap:10px; align-items:center; opacity:.9;} .key{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted)}
-  .swatch{ width:12px; height:12px; border-radius:3px } .swatch.hit{ background:var(--hit) } .swatch.miss{ background:var(--miss) } .swatch.scan{ background:rgba(59,130,246,.7) } .swatch.jam{ background:rgba(147,51,234,.7)}
-  .legend{ display:flex; gap:12px; align-items:center; font-size:12px; color:var(--muted) }
-  .switch{ display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:8px 10px; font-size:13px }
-  .select{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); color:var(--ink); border-radius:10px; padding:9px 10px; }
-  .kbd{ font-family: ui-monospace, Consolas, monospace; font-size:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); padding:2px 6px; border-radius:6px }
-
-  /* Reveal blip FX for scans */
-  .fx.reveal{
-    background: radial-gradient(circle, rgba(147,51,234,.85) 0%, rgba(147,51,234,.25) 55%, transparent 70%);
-    box-shadow: 0 0 12px rgba(147,51,234,.6), inset 0 0 0 2px rgba(147,51,234,.95);
-    animation: ping 1.2s ease-out infinite;
-  }
-  @keyframes ping{
-    0%{ transform:scale(.9); opacity:.95 }
-    70%{ transform:scale(1.05); opacity:.55 }
-    100%{ transform:scale(1.1); opacity:0 }
-  }
-
-  /* End Turn call-to-action when AP=0 */
-  .btn-pulse{ animation: throb 0.9s ease-in-out infinite }
-  @keyframes throb{ 0%,100%{ transform:translateY(0) scale(1) } 50%{ transform:translateY(0) scale(1.03) } }
-  button:disabled{ opacity:.45; cursor:not-allowed; filter:saturate(.6) }
-
-  @media (max-width:1100px){ .main{ grid-template-columns:1fr } }
+  .score-panel{display:flex;gap:16px;align-items:center}
+  .stat{background:rgba(255,255,255,.06);padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.1);font-weight:700}
+  .stat .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .stat .value{font-size:18px;margin-top:2px}
+  .ap-display{display:flex;gap:6px}
+  .ap-pip{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2)}
+  .ap-pip.active{background:var(--ok);border-color:var(--ok);box-shadow:0 0 8px var(--ok)}
+  
+  /* Main game area */
+  .main{flex:1;display:grid;grid-template-columns:1fr 320px;gap:20px;padding:20px;overflow:hidden}
+  
+  /* Board container */
+  .board-wrap{background:rgba(15,20,35,.7);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .board-header{padding:14px 18px;background:rgba(59,130,246,.12);border-bottom:1px solid rgba(255,255,255,.08);font-weight:800;display:flex;justify-content:space-between;align-items:center}
+  .phase-label{font-size:13px;color:var(--muted);font-weight:600}
+  .grid-container{flex:1;padding:16px;position:relative}
+  .grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;height:100%;width:100%;max-width:600px;margin:0 auto}
+  .cell{background:var(--cell);border:1px solid rgba(255,255,255,.06);border-radius:4px;cursor:pointer;transition:all .15s;position:relative;aspect-ratio:1}
+  .cell:hover{background:var(--cellH);border-color:rgba(255,255,255,.15)}
+  .cell.ship{background:linear-gradient(135deg,rgba(59,130,246,.25),rgba(59,130,246,.15));border-color:rgba(59,130,246,.4)}
+  .cell.hit{background:linear-gradient(135deg,rgba(239,68,68,.35),rgba(239,68,68,.2));border-color:rgba(239,68,68,.6)}
+  .cell.hit::after{content:'✕';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--hit);font-weight:800}
+  .cell.miss{background:rgba(71,85,105,.25);border-color:rgba(71,85,105,.4)}
+  .cell.miss::after{content:'○';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--miss);font-weight:600}
+  .cell.your-hit{background:linear-gradient(135deg,rgba(34,197,94,.35),rgba(34,197,94,.2));border-color:rgba(34,197,94,.6)}
+  .cell.your-hit::after{content:'✓';color:var(--ok)}
+  .cell.your-miss{background:rgba(100,116,139,.2);border-color:rgba(100,116,139,.35)}
+  .cell.preview-ok{outline:2px dashed var(--ok);background:rgba(34,197,94,.1)}
+  .cell.preview-bad{outline:2px dashed var(--bad);background:rgba(239,68,68,.1)}
+  
+  /* Sidebar */
+  .sidebar{background:rgba(15,20,35,.7);border:1px solid rgba(255,255,255,.1);border-radius:12px;display:flex;flex-direction:column}
+  .sidebar-header{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:800;font-size:15px}
+  .units-list{flex:1;padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+  .unit-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;cursor:pointer;transition:all .2s}
+  .unit-card:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
+  .unit-card.active{border-color:var(--surv);background:rgba(59,130,246,.15);box-shadow:0 0 8px rgba(59,130,246,.3)}
+  .unit-card.placed{opacity:.5;cursor:not-allowed}
+  .unit-name{font-weight:700;font-size:14px;margin-bottom:4px}
+  .unit-meta{font-size:12px;color:var(--muted)}
+  .unit-status{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-top:6px}
+  .unit-status.ready{background:rgba(34,197,94,.2);color:var(--ok)}
+  .unit-status.placed{background:rgba(100,116,139,.2);color:var(--muted)}
+  
+  /* Actions */
+  .actions{padding:12px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:8px}
+  .btn{padding:12px;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;color:white}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-primary{background:linear-gradient(135deg,#3b82f6,#2563eb);box-shadow:0 4px 12px rgba(59,130,246,.3)}
+  .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 16px rgba(59,130,246,.4)}
+  .btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 12px rgba(239,68,68,.3)}
+  .btn-danger:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 16px rgba(239,68,68,.4)}
+  .btn-ghost{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--ink)}
+  .btn-ghost:hover:not(:disabled){background:rgba(255,255,255,.12)}
+  
+  /* Bottom log */
+  .log-area{height:80px;background:rgba(15,20,35,.95);border-top:1px solid rgba(255,255,255,.08);padding:12px 24px;overflow-y:auto;font-size:13px}
+  .log-entry{padding:4px 0;color:var(--muted)}
+  .log-entry.important{color:var(--ink);font-weight:600}
+  
+  /* AI thinking overlay */
+  .ai-overlay{position:absolute;inset:0;background:rgba(10,14,26,.95);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;opacity:0;pointer-events:none;transition:opacity .3s;z-index:100}
+  .ai-overlay.show{opacity:1}
+  .ai-spinner{width:48px;height:48px;border:4px solid rgba(34,197,94,.2);border-top-color:var(--ai);border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ai-label{font-size:18px;font-weight:700;color:var(--ai)}
+  
+  /* Game over modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;z-index:200}
+  .modal.show{opacity:1;pointer-events:all}
+  .modal-content{background:var(--panel);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:32px;text-align:center;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .modal-title{font-size:32px;font-weight:800;margin-bottom:12px}
+  .modal-message{font-size:16px;color:var(--muted);margin-bottom:24px}
+  .modal-score{font-size:48px;font-weight:800;color:var(--surv);margin-bottom:24px}
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="frame" id="app">
-    <div class="bg-art" id="bgArt"></div>
-
-    <div class="topbar">
-      <div class="badge"><span class="dot human"></span><span class="title">Survivors</span></div>
-      <div class="badge"><span class="dot ai"></span><span class="title">AI Attack</span></div>
-      <div class="spacer"></div>
-
-      <label class="switch" title="Pick Pollinations text model for the enemy">
-        <span>AI Model</span>
-        <select id="modelSelect" class="select" style="margin-left:8px">
-          <option value="openai">openai</option>
-          <option value="mistral">mistral</option>
-        </select>
-      </label>
-
-      <label class="switch"><input type="checkbox" id="bgToggle"> Cinematic BG</label>
-      <div class="kpi">
-        <div class="chip" id="turnChip">Placement Phase</div>
-        <div class="chip">AP <span class="pip" id="ap1"></span><span class="pip" id="ap2"></span></div>
-        <div class="chip" id="scoreChip">Score 0–0</div>
-      </div>
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="logo">⚡ TACTICAL GRID COMBAT</div>
+    <div class="faction-pick">
+      <button class="faction-btn active" data-faction="survivors">🛡️ Survivors</button>
+      <button class="faction-btn" data-faction="ai">🤖 AI Forces</button>
     </div>
-
-    <div class="overlay" id="aiOverlay">
-      <div class="flag">AI TURN • Pollinations thinking…</div>
-      <div class="mini">
-        <div class="key"><div class="swatch hit"></div>Hit</div>
-        <div class="key"><div class="swatch miss"></div>Miss</div>
-        <div class="key"><div class="swatch scan"></div>Scan</div>
-        <div class="key"><div class="swatch jam"></div>Jam</div>
+    <div class="spacer"></div>
+    <div class="score-panel">
+      <div class="stat">
+        <div class="label">Your Score</div>
+        <div class="value" id="playerScore">0</div>
       </div>
-    </div>
-
-    <div class="main">
-      <div class="boardWrap">
-        <div class="boardHeader">
-          <div>YOUR GRID • <span id="phaseLabel">Place Units</span></div>
-          <div class="legend"><span class="kbd">R</span> rotate • <span class="kbd">Esc</span> cancel</div>
+      <div class="stat">
+        <div class="label">Enemy Score</div>
+        <div class="value" id="enemyScore">0</div>
+      </div>
+      <div class="stat">
+        <div class="label">Action Points</div>
+        <div class="ap-display">
+          <div class="ap-pip" id="ap1"></div>
+          <div class="ap-pip" id="ap2"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Game Area -->
+  <div class="main">
+    <div class="board-wrap">
+      <div class="board-header">
+        <span id="boardTitle">YOUR GRID</span>
+        <span class="phase-label" id="phaseLabel">Place your units</span>
+      </div>
+      <div class="grid-container">
         <div class="grid" id="grid"></div>
-        <div class="effects" id="effects"></div>
-      </div>
-
-      <div class="side">
-        <div class="sideHeader">
-          <span>Units & Abilities</span>
-          <label class="switch"><input type="checkbox" id="killcamToggle" checked> Kill-cam</label>
-        </div>
-        <div class="cards" id="cards"></div>
-        <div class="actions">
-          <button id="attackBtn" class="btn-danger">Attack</button>
-          <button id="scanBtn"   class="btn-ghost">Scan</button>
-          <button id="jamBtn"    class="btn-ghost">Jam</button>
-          <button id="moveBtn"   class="btn-ghost">Move</button>
-          <button id="repairBtn" class="btn-warn">Repair</button>
-          <button id="endTurnBtn" class="btn-danger">End Turn</button>
+        <div class="ai-overlay" id="aiOverlay">
+          <div class="ai-spinner"></div>
+          <div class="ai-label">AI COMPUTING...</div>
         </div>
       </div>
     </div>
 
-    <div class="bottombar">
-      <div class="ap" id="apHud">AP: 2</div>
-      <div class="log" id="log"></div>
-      <button id="resetBtn" class="btn-ghost">New Game</button>
+    <div class="sidebar">
+      <div class="sidebar-header">UNITS & ACTIONS</div>
+      <div class="units-list" id="unitsList"></div>
+      <div class="actions">
+        <button class="btn btn-danger" id="attackBtn" disabled>🎯 Attack</button>
+        <button class="btn btn-primary" id="scanBtn" disabled>📡 Scan Area (1 AP)</button>
+        <button class="btn btn-ghost" id="endTurnBtn" disabled>⏭️ End Turn</button>
+        <button class="btn btn-ghost" id="resetBtn">🔄 New Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Area -->
+  <div class="log-area" id="log"></div>
+
+  <!-- Game Over Modal -->
+  <div class="modal" id="gameOverModal">
+    <div class="modal-content">
+      <div class="modal-title" id="modalTitle">VICTORY!</div>
+      <div class="modal-message" id="modalMessage">You destroyed the enemy fleet!</div>
+      <div class="modal-score" id="modalScore">750</div>
+      <button class="btn btn-primary" onclick="resetGame()">Play Again</button>
     </div>
   </div>
 </div>
 
 <script>
-/* =============== Config =============== */
+// ============ CONFIG ============
 const CFG = {
   BOARD_SIZE: 10,
   AP_PER_TURN: 2,
-  FX_TIME: 1800,         // longer FX so the player can absorb them
-  AI_STEP_DELAY: 1000,   // slower enemy pacing
-  AI_OVERLAY_HOLD: 1200, // overlay lingers a touch
-  USE_BG_ART: false,
-  KILL_CAM: true,
-  POLLINATIONS: {
-    textEndpoint: "https://text.pollinations.ai/openai",
-    imageEndpoint: "https://image.pollinations.ai/prompt/",
-    model: "openai",
-    // Image defaults
-    imgModel: "flux", width: 1280, height: 720, seed: 42, nologo: false,
-    prompts: {
-      survivors: "cinematic post-apocalyptic command center HUD, neon blue accents, glass UI, depth of field, ultrareal, 16:9",
-      ai: "futuristic autonomous drone hive, neon green pipelines, grid aesthetic, dramatic lighting, 16:9",
-      scout: "rugged scout convoy trucks, neon blue HUD, dusk, cinematic still, 16:9",
-      artillery: "armored artillery truck with missile pod, neon blue HUD, dusk, cinematic, 16:9",
-      jammer: "mobile signal jammer truck with antenna mast, neon blue HUD, cinematic, 16:9",
-      shelter: "hardened underground command shelter entrance, neon blue HUD, cinematic, 16:9",
-      hunter: "sleek hunter drone pair, neon green hive grid, cinematic, 16:9",
-      siege: "heavy siege drone with railgun, neon green hive grid, cinematic, 16:9",
-      recon: "recon nano-drone swarm cloud, neon green hive grid, cinematic, 16:9",
-      uplink: "towering AI core uplink node, neon green hive grid, cinematic, 16:9",
-    }
-  }
+  AI_THINK_TIME: 1200,
+  ANIMATION_TIME: 600,
+  POINTS: { HIT: 10, SINK: 50, WIN: 200 },
+  POLLINATIONS_URL: "https://text.pollinations.ai/openai"
 };
 
-/* =============== Helpers =============== */
-const $ = s=>document.querySelector(s);
-const logEl=$("#log"), gridEl=$("#grid"), effEl=$("#effects"), cardsEl=$("#cards");
-const turnChip=$("#turnChip"), phaseLabel=$("#phaseLabel"), apHud=$("#apHud"), ap1=$("#ap1"), ap2=$("#ap2"), aiOverlay=$("#aiOverlay"), bgArt=$("#bgArt");
-function log(msg){ logEl.innerHTML = `<div>• ${msg}</div>` + logEl.innerHTML; }
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
-function cellIndex(x,y){ return y*CFG.BOARD_SIZE + x; }
-function clamp(n,a,b){ return Math.max(a,Math.min(b,n)); }
-function imgURL(prompt, extra={}){
-  const p=encodeURIComponent(prompt);
-  const q=new URLSearchParams({
-    model: CFG.POLLINATIONS.imgModel,
-    width: extra.width || CFG.POLLINATIONS.width,
-    height: extra.height || CFG.POLLINATIONS.height,
-    seed: extra.seed ?? CFG.POLLINATIONS.seed,
-    nologo: (extra.nologo ?? CFG.POLLINATIONS.nologo)
-  }).toString();
-  return `${CFG.POLLINATIONS.imageEndpoint}${p}?${q}`;
-}
-function setBG(which){
-  if(!CFG.USE_BG_ART) return;
-  const key = which==='ai' ? 'ai' : 'survivors';
-  bgArt.style.backgroundImage=`url("${imgURL(CFG.POLLINATIONS.prompts[key])}")`;
-}
-
-/* =============== Data & Boards =============== */
-const FACTIONS={SURV:'survivors', AI:'ai'};
-const UNITS={
-  ScoutConvoy:{ id:'ScoutConvoy', size:2, count:2, faction:FACTIONS.SURV, movable:true, maxMoves:3, label:'Scout Convoy', prompt:'scout' },
-  ArtilleryTruck:{ id:'ArtilleryTruck', size:3, count:2, faction:FACTIONS.SURV, label:'Artillery Truck', prompt:'artillery' },
-  SignalJammer:{ id:'SignalJammer', size:3, count:1, faction:FACTIONS.SURV, label:'Signal Jammer', prompt:'jammer' },
-  CommandShelter:{ id:'CommandShelter', size:4, count:1, faction:FACTIONS.SURV, label:'Command Shelter', prompt:'shelter' },
-
-  HunterDrone:{ id:'HunterDrone', size:2, count:2, faction:FACTIONS.AI, label:'Hunter Drone', prompt:'hunter' },
-  SiegeDrone:{ id:'SiegeDrone', size:3, count:2, faction:FACTIONS.AI, label:'Siege Drone', prompt:'siege' },
-  ReconSwarm:{ id:'ReconSwarm', size:3, count:1, faction:FACTIONS.AI, label:'Recon Swarm', prompt:'recon', cooldown:2 },
-  CoreUplink:{ id:'CoreUplink', size:4, count:1, faction:FACTIONS.AI, label:'Core Uplink', prompt:'uplink' },
+// ============ UNIT DEFINITIONS ============
+const UNITS = {
+  DESTROYER: { id: 'destroyer', size: 2, count: 2, name: 'Destroyer' },
+  CRUISER: { id: 'cruiser', size: 3, count: 2, name: 'Cruiser' },
+  BATTLESHIP: { id: 'battleship', size: 4, count: 1, name: 'Battleship' },
+  CARRIER: { id: 'carrier', size: 5, count: 1, name: 'Carrier' }
 };
 
-class Board{
-  constructor(n){ this.size=n; this.cells=new Map(); this.units=[]; }
-  in(x,y){ return x>=0 && y>=0 && x<this.size && y<this.size; }
-  key(x,y){ return `${x},${y}`; }
-  cell(x,y){ const k=this.key(x,y); if(!this.cells.has(k)) this.cells.set(k,{}); return this.cells.get(k); }
-  canPlace(size,x,y,rot){
-    for(let i=0;i<size;i++){
-      const cx=x+(rot?0:i), cy=y+(rot?i:0);
-      if(!this.in(cx,cy)) return false;
-      if(this.cell(cx,cy).shipId) return false;
-    } return true;
-  }
-  place(unit,x,y,rot){
-    if(!this.canPlace(unit.size,x,y,rot)) return false;
-    unit.coords=[]; unit.rot=rot; unit.hp=unit.size; unit.alive=true;
-    if(unit.movable) unit.movesLeft=unit.maxMoves;
-    for(let i=0;i<unit.size;i++){
-      const cx=x+(rot?0:i), cy=y+(rot?i:0);
-      this.cell(cx,cy).shipId=unit.uid;
-      unit.coords.push({x:cx,y:cy});
+// ============ GAME STATE ============
+const state = {
+  phase: 'faction_select', // faction_select, placement, battle, game_over
+  playerFaction: 'survivors',
+  currentTurn: 'player',
+  ap: CFG.AP_PER_TURN,
+  playerScore: 0,
+  enemyScore: 0,
+  selectedAction: 'attack',
+  placingUnit: null,
+  placingRotation: false,
+  
+  playerBoard: createBoard(),
+  enemyBoard: createBoard(),
+  playerKnowledge: createBoard(), // What player knows about enemy
+  
+  playerUnits: [],
+  enemyUnits: [],
+  
+  playerUnitsToPlace: [],
+  placedCount: 0
+};
+
+// ============ HELPERS ============
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+function createBoard() {
+  const board = [];
+  for (let y = 0; y < CFG.BOARD_SIZE; y++) {
+    board[y] = [];
+    for (let x = 0; x < CFG.BOARD_SIZE; x++) {
+      board[y][x] = { ship: null, hit: false, miss: false };
     }
-    this.units.push(unit); return true;
   }
-  receiveAttack(x,y){
-    const c=this.cell(x,y);
-    if(c.hit || c.miss) return {valid:false};
-    if(c.shipId){
-      c.hit=true;
-      const u=this.units.find(u=>u.uid===c.shipId);
-      u.hp--; if(u.hp<=0) u.alive=false;
-      return {valid:true, hit:true, sunk:!u.alive, unit:u};
-    } else {
-      c.miss=true; return {valid:true, hit:false};
-    }
-  }
-  scan3(cx,cy){
-    let count=0; const cells=[];
-    for(let y=cy-1;y<=cy+1;y++)for(let x=cx-1;x<=cx+1;x++)if(this.in(x,y)){ cells.push({x,y}); if(this.cell(x,y).shipId) count++; }
-    return {count,cells};
-  }
-  jam3(cx,cy,turns=2){
-    const A=[];
-    for(let y=cy-1;y<=cy+1;y++)for(let x=cx-1;x<=cx+1;x++)if(this.in(x,y)){ const c=this.cell(x,y); c.jam=(c.jam||0)+turns; A.push({x,y}); }
-    return A;
-  }
-  tick(){ for(const [k,c] of this.cells){ if(c.jam){ c.jam--; if(c.jam<=0) delete c.jam; } } }
-  moveUnit(uid,tx,ty){
-    const u=this.units.find(u=>u.uid===uid && u.alive && u.movable && u.movesLeft>0); if(!u) return false;
-    const anchor=u.coords[0]; const dx=tx-anchor.x, dy=ty-anchor.y;
-    const ncoords=u.coords.map(p=>({x:p.x+dx,y:p.y+dy}));
-    for(const p of ncoords){
-      if(!this.in(p.x,p.y)) return false;
-      const c=this.cell(p.x,p.y);
-      if(c.shipId && c.shipId!==uid) return false;
-    }
-    for(const p of u.coords){ const c=this.cell(p.x,p.y); if(c.shipId===uid) delete c.shipId; }
-    for(const p of ncoords){ this.cell(p.x,p.y).shipId=uid; }
-    u.coords=ncoords; u.movesLeft--; return true;
-  }
-  segmentsLeft(){ return this.units.filter(u=>u.alive).reduce((a,u)=>a+u.hp,0); }
+  return board;
 }
 
-/* =============== Pollinations Text Client =============== */
-async function pollinationsAIPlan({model, ap, fog, lastHits, lastMisses, jamMap}){
-  const sys = "You are an enemy commander in a 10x10 hidden-information grid battle. Return ONLY a compact JSON array of actions for this turn. No prose.";
-  const schema = `
-Rules:
-- Coordinates are 0-based integers: x in [0,9], y in [0,9].
-- Return at most ${CFG.AP_PER_TURN} actions.
-- Allowed actions:
-  {"type":"attack","x":int,"y":int}
-  {"type":"scan","x":int,"y":int}  // scans 3x3 centered at (x,y)
-- Prefer 1 scan if many Unknown cells remain; bias attacks near recent hits.
-- Avoid tiles already Hit or Miss. Avoid jammed areas for scans if possible.
-- Output strictly JSON, e.g. [{"type":"scan","x":5,"y":5},{"type":"attack","x":5,"y":6}]
-  `;
-  const msg = [
-    {role:"system", content: sys},
-    {role:"user", content:
-`ap=${ap}
-fog=${JSON.stringify(fog)}
-jam=${JSON.stringify(jamMap)}
-recentHits=${JSON.stringify(lastHits.slice(-4))}
-recentMisses=${JSON.stringify(lastMisses.slice(-4))}
-${schema}`}
-  ];
-
-  // minimal payload: avoids 400s from extra params
-  const payload = { model, messages: msg };
-
-  let tries=0, delay=800;
-  while(tries<3){
-    try{
-      const resp = await fetch(CFG.POLLINATIONS.textEndpoint, {
-        method:"POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify(payload)
-      });
-      if(!resp.ok){
-        if(resp.status===429){ await sleep(delay); delay*=2; tries++; continue; }
-        throw new Error(`Pollinations error ${resp.status}`);
-      }
-      const data = await resp.json();
-      const text = data?.choices?.[0]?.message?.content?.trim() || "[]";
-      const jsonText = text.startsWith('[') ? text : (text.match(/\[[\s\S]*\]/)?.[0] || "[]");
-      const plan = JSON.parse(jsonText);
-      return Array.isArray(plan) ? plan : [];
-    }catch(e){
-      tries++; await sleep(delay); delay*=2;
-    }
-  }
-  return [];
+function log(message, important = false) {
+  const entry = document.createElement('div');
+  entry.className = 'log-entry' + (important ? ' important' : '');
+  entry.textContent = '• ' + message;
+  $('#log').prepend(entry);
 }
 
-/* =============== Simple fallback AI (used when Pollinations fails) =============== */
-class HeuristicAI{
-  constructor(enemyFog){ this.fog=enemyFog; this.queue=[]; this.scanned=new Set(); }
-  huntCell(){
-    let best=-1, pick={x:0,y:0};
-    for(let y=0;y<10;y++)for(let x=0;x<10;x++){
-      const c=this.fog.cell(x,y); if(c.hit||c.miss) continue;
-      const score=((x+y)%2===0?2:1) + (c.jam?-2:0);
-      if(score>best){ best=score; pick={x,y}; }
-    } return pick;
+function cellIndex(x, y) {
+  return y * CFG.BOARD_SIZE + x;
+}
+
+function updateUI() {
+  $('#playerScore').textContent = state.playerScore;
+  $('#enemyScore').textContent = state.enemyScore;
+  
+  $('#ap1').classList.toggle('active', state.ap >= 1);
+  $('#ap2').classList.toggle('active', state.ap >= 2);
+  
+  const inBattle = state.phase === 'battle';
+  const playerTurn = state.currentTurn === 'player';
+  
+  $('#attackBtn').disabled = !inBattle || !playerTurn || state.ap < 1;
+  $('#scanBtn').disabled = !inBattle || !playerTurn || state.ap < 1;
+  $('#endTurnBtn').disabled = !inBattle || !playerTurn;
+  
+  if (state.phase === 'placement') {
+    $('#phaseLabel').textContent = `Place units (${state.placedCount}/${state.playerUnitsToPlace.length})`;
+    $('#boardTitle').textContent = 'YOUR GRID - PLACEMENT';
+  } else if (state.phase === 'battle') {
+    $('#phaseLabel').textContent = playerTurn ? 'Your turn' : 'Enemy turn';
+    $('#boardTitle').textContent = playerTurn ? 'YOUR GRID - BATTLE' : 'ENEMY ATTACKING...';
   }
-  pushTargets(x,y){
-    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{
-      const nx=x+dx, ny=y+dy;
-      if(nx>=0&&ny>=0&&nx<10&&ny<10){
-        const c=this.fog.cell(nx,ny); if(!c.hit && !c.miss) this.queue.push({x:nx,y:ny});
+}
+
+// ============ BOARD RENDERING ============
+function renderGrid() {
+  const grid = $('#grid');
+  grid.innerHTML = '';
+  
+  for (let y = 0; y < CFG.BOARD_SIZE; y++) {
+    for (let x = 0; x < CFG.BOARD_SIZE; x++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.x = x;
+      cell.dataset.y = y;
+      
+      const playerCell = state.playerBoard[y][x];
+      const knowledgeCell = state.playerKnowledge[y][x];
+      
+      // Show player's own ships during placement and battle
+      if (playerCell.ship) {
+        cell.classList.add('ship');
       }
+      
+      // Show hits/misses on player's board (enemy attacks)
+      if (playerCell.hit) {
+        cell.classList.add('hit');
+      } else if (playerCell.miss) {
+        cell.classList.add('miss');
+      }
+      
+      // Show player's attacks on enemy board (via knowledge board)
+      if (knowledgeCell.hit) {
+        cell.classList.add('your-hit');
+      } else if (knowledgeCell.miss) {
+        cell.classList.add('your-miss');
+      }
+      
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function renderUnits() {
+  const list = $('#unitsList');
+  list.innerHTML = '';
+  
+  if (state.phase === 'placement') {
+    state.playerUnitsToPlace.forEach((unit, idx) => {
+      const card = document.createElement('div');
+      card.className = 'unit-card';
+      if (unit.placed) card.classList.add('placed');
+      if (state.placingUnit === idx) card.classList.add('active');
+      
+      card.innerHTML = `
+        <div class="unit-name">${unit.name}</div>
+        <div class="unit-meta">Size: ${unit.size} cells</div>
+        <div class="unit-status ${unit.placed ? 'placed' : 'ready'}">${unit.placed ? 'PLACED' : 'READY'}</div>
+      `;
+      
+      if (!unit.placed) {
+        card.onclick = () => {
+          state.placingUnit = idx;
+          renderUnits();
+          log(`Selected ${unit.name}. Click grid to place. Press R to rotate.`);
+        };
+      }
+      
+      list.appendChild(card);
+    });
+  } else if (state.phase === 'battle') {
+    const alive = state.playerUnits.filter(u => u.hp > 0);
+    alive.forEach(unit => {
+      const card = document.createElement('div');
+      card.className = 'unit-card placed';
+      card.innerHTML = `
+        <div class="unit-name">${unit.name}</div>
+        <div class="unit-meta">HP: ${unit.hp}/${unit.size}</div>
+        <div class="unit-status ready">ACTIVE</div>
+      `;
+      list.appendChild(card);
     });
   }
-  plan(ap){
-    const acts=[];
-    if(ap>=1){
-      let best=-1,bx=1,by=1;
-      for(let y=1;y<9;y++)for(let x=1;x<9;x++){
-        let score=0;
-        for(let yy=y-1;yy<=y+1;yy++)for(let xx=x-1;xx<=x+1;xx++){
-          const c=this.fog.cell(xx,yy);
-          if(!c.hit && !c.miss) score++;
-          if(c.jam) score-=1;
-        }
-        const key=`${bx},${by}`;
-        if(score>best && !this.scanned.has(key)){ best=score; bx=x; by=y; }
+}
+
+// ============ PLACEMENT LOGIC ============
+function canPlaceUnit(board, unit, x, y, rotation) {
+  const size = unit.size;
+  for (let i = 0; i < size; i++) {
+    const cx = rotation ? x : x + i;
+    const cy = rotation ? y + i : y;
+    
+    if (cx < 0 || cy < 0 || cx >= CFG.BOARD_SIZE || cy >= CFG.BOARD_SIZE) return false;
+    if (board[cy][cx].ship) return false;
+  }
+  return true;
+}
+
+function placeUnit(board, units, unit, x, y, rotation) {
+  const size = unit.size;
+  const coords = [];
+  
+  for (let i = 0; i < size; i++) {
+    const cx = rotation ? x : x + i;
+    const cy = rotation ? y + i : y;
+    board[cy][cx].ship = unit.id;
+    coords.push({ x: cx, y: cy });
+  }
+  
+  units.push({
+    id: unit.id,
+    name: unit.name,
+    size: unit.size,
+    hp: unit.size,
+    coords: coords
+  });
+}
+
+// ============ COMBAT LOGIC ============
+function attack(board, units, x, y) {
+  const cell = board[y][x];
+  
+  if (cell.hit || cell.miss) {
+    return { valid: false, reason: 'Already attacked' };
+  }
+  
+  if (cell.ship) {
+    cell.hit = true;
+    const unit = units.find(u => u.id === cell.ship);
+    unit.hp--;
+    
+    const sunk = unit.hp <= 0;
+    return { valid: true, hit: true, sunk, unitName: unit.name };
+  } else {
+    cell.miss = true;
+    return { valid: true, hit: false };
+  }
+}
+
+function scan(board, x, y) {
+  let count = 0;
+  const cells = [];
+  
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const cx = x + dx;
+      const cy = y + dy;
+      if (cx >= 0 && cy >= 0 && cx < CFG.BOARD_SIZE && cy < CFG.BOARD_SIZE) {
+        cells.push({ x: cx, y: cy });
+        if (board[cy][cx].ship && !board[cy][cx].hit) count++;
       }
-      acts.push({type:'scan',x:bx,y:by}); this.scanned.add(`${bx},${by}`); ap--;
-    }
-    while(ap>0){
-      const p = this.queue.length ? this.queue.shift() : this.huntCell();
-      acts.push({type:'attack',x:p.x,y:p.y}); ap--;
-    }
-    return acts;
-  }
-}
-
-/* =============== Game State =============== */
-const state={
-  phase:'placement',
-  turn:'survivors',
-  ap:CFG.AP_PER_TURN,
-  rot:0,
-  selectedAction:'attack',
-  placeSelect:null,
-  moving:{ uid:null, targets:[] },
-  killcam:CFG.KILL_CAM,
-
-  player:new Board(CFG.BOARD_SIZE),
-  ai:new Board(CFG.BOARD_SIZE),
-  aiFog:new Board(CFG.BOARD_SIZE),
-
-  lastHitsAI:[],
-  lastMissesAI:[],
-  lastHitsYou:[],
-  lastMissesYou:[],
-
-  poolSurv:[],
-  heuristicAI:new HeuristicAI(null)
-};
-
-function makeUID(base,i,fac){ return `${base}_${i+1}_${fac}`; }
-function copyUnit(s,uid){ const u=JSON.parse(JSON.stringify(s)); u.uid=uid; return u; }
-function unitsFor(fac){
-  const out=[]; for(const spec of Object.values(UNITS)){ if(spec.faction!==fac) continue; for(let i=0;i<spec.count;i++){ out.push(copyUnit(spec, makeUID(spec.id,i,fac))); } } return out;
-}
-
-/* =============== UI Builders =============== */
-function buildGrid(){
-  gridEl.innerHTML=""; effEl.innerHTML="";
-  gridEl.style.gridTemplateColumns=`repeat(${CFG.BOARD_SIZE},1fr)`;
-  effEl.style.gridTemplateColumns=`repeat(${CFG.BOARD_SIZE},1fr)`;
-  for(let y=0;y<CFG.BOARD_SIZE;y++)for(let x=0;x<CFG.BOARD_SIZE;x++){
-    const c=document.createElement('div'); c.className='cell own'; c.dataset.x=x; c.dataset.y=y; gridEl.appendChild(c);
-    const fx=document.createElement('div'); fx.className='fx'; fx.dataset.x=x; fx.dataset.y=y; effEl.appendChild(fx);
-  }
-}
-function renderGrid(){
-  for(const el of gridEl.children){
-    const x=+el.dataset.x, y=+el.dataset.y; const c=state.player.cell(x,y);
-    el.className='cell own';
-    if(c.shipId) el.classList.add('ship');
-    if(c.hit) el.classList.add('hit'); else if(c.miss) el.classList.add('miss');
-    if(c.jam) el.classList.add('jammed');
-  }
-}
-function cardMarkup(u, remaining){
-  const promptKey = u.prompt || (u.faction===FACTIONS.SURV?'survivors':'ai');
-  const img = imgURL(CFG.POLLINATIONS.prompts[promptKey]);
-  const cdDots = u.cooldown? Array.from({length:u.cooldown},()=>`<span class="pip"></span>`).join('') : '';
-  return `
-    <div class="thumb" style="background-image:url('${img}')"></div>
-    <div class="row">
-      <div><div class="name">${u.label}</div><div class="meta">Size ${u.size}${u.movable?` • Moves ${u.maxMoves}`:''}</div></div>
-      <div style="display:flex; align-items:center; gap:8px">
-        ${u.cooldown? `<div class="cd">${cdDots}</div>`:''}
-        <div class="count">${remaining}</div>
-      </div>
-    </div>`;
-}
-function renderCards(){
-  cardsEl.innerHTML="";
-  for(const entry of state.poolSurv){
-    const card=document.createElement('div');
-    card.className='card';
-    card.dataset.uid=entry.uid;
-    card.innerHTML = cardMarkup(entry, entry.remaining);
-    if(state.placeSelect===entry.uid) card.classList.add('active');
-    card.onclick=()=>{
-      if(state.phase!=='placement') return;
-      if(entry.remaining<=0){ log(`${entry.label}: none left to place.`); return; }
-      state.placeSelect=entry.uid; renderCards();
-    };
-    cardsEl.appendChild(card);
-  }
-}
-function updateScore(){
-  const youHits = state.ai.units.reduce((a,u)=>a + (u.size - u.hp), 0);
-  const aiHits  = state.player.units.reduce((a,u)=>a + (u.size - u.hp), 0);
-  $("#scoreChip").textContent = `Score ${youHits}–${aiHits}`;
-}
-function setButtonsActive(){
-  const map={attack:'#attackBtn',scan:'#scanBtn',jam:'#jamBtn',move:'#moveBtn',repair:'#repairBtn'};
-  for(const [act,sel] of Object.entries(map)){
-    const el=$(sel);
-    if(state.selectedAction===act) el.classList.add('btn-active'); else el.classList.remove('btn-active');
-    // disable when it's not your play turn or no AP (except Move selection UI)
-    el.disabled = state.phase!=='play' || state.turn!=='survivors' ? true : (act!=='move' && state.ap<=0);
-  }
-  const endBtn = $("#endTurnBtn");
-  endBtn.classList.toggle('btn-pulse', state.phase==='play' && state.turn==='survivors' && state.ap===0);
-
-  apHud.textContent=`AP: ${state.ap}`;
-  ap1.classList.toggle('live',state.ap>=1); ap2.classList.toggle('live',state.ap>=2);
-  phaseLabel.textContent = state.phase==='placement' ? 'Place Units' : (state.turn==='survivors' ? 'Your Turn' : 'AI Turn');
-  turnChip.textContent   = state.phase==='placement' ? 'Placement Phase' : (state.turn==='survivors' ? 'Your Turn' : 'AI Turn');
-
-  updateScore();
-}
-
-/* =============== Init/Reset =============== */
-function resetGame(){
-  state.phase='placement'; state.turn='survivors'; state.ap=CFG.AP_PER_TURN; state.rot=0;
-  state.selectedAction='attack'; state.placeSelect=null; state.moving={uid:null,targets:[]}; state.killcam=$("#killcamToggle").checked;
-
-  state.player=new Board(CFG.BOARD_SIZE); state.ai=new Board(CFG.BOARD_SIZE); state.aiFog=new Board(CFG.BOARD_SIZE);
-  state.heuristicAI = new HeuristicAI(state.aiFog);
-
-  state.lastHitsAI=[]; state.lastMissesAI=[]; state.lastHitsYou=[]; state.lastMissesYou=[];
-
-  state.poolSurv = unitsFor(FACTIONS.SURV).map(u=>({ ...u, remaining:1 }));
-
-  // Place AI units randomly
-  for(const u of unitsFor(FACTIONS.AI)){
-    let placed=false, guard=0;
-    while(!placed && guard<500){
-      const rot=Math.random()<.5?0:1; const maxX=CFG.BOARD_SIZE-(rot?1:u.size); const maxY=CFG.BOARD_SIZE-(rot?u.size:1);
-      const x=Math.floor(Math.random()*maxX), y=Math.floor(Math.random()*maxY);
-      placed = state.ai.place(copyUnit(u,u.uid),x,y,rot); guard++;
     }
   }
-
-  buildGrid(); renderGrid(); renderCards(); setButtonsActive();
-  log("Select a unit card, hover for green/red preview, click to place. Press R to rotate. When everything is placed, play begins.");
-  if(CFG.USE_BG_ART) setBG('survivors');
+  
+  return { count, cells };
 }
 
-/* =============== Placement UX =============== */
-function previewClear(){ for(const el of gridEl.children){ el.classList.remove('preview-ok','preview-bad'); } }
-function previewAt(x,y){
-  previewClear();
-  const entry = state.poolSurv.find(u=>u.uid===state.placeSelect); if(!entry) return;
-  const size=entry.size, rot=state.rot;
-  let ok=true;
-  for(let i=0;i<size;i++){
-    const cx=x+(rot?0:i), cy=y+(rot?i:0);
-    const el=gridEl.children[cellIndex(cx,cy)];
-    if(!el){ ok=false; continue; }
-    const inb = cx>=0&&cy>=0&&cx<CFG.BOARD_SIZE&&cy<CFG.BOARD_SIZE;
-    const cell = inb? state.player.cell(cx,cy):null;
-    const free = inb && !cell.shipId;
-    el.classList.add(free?'preview-ok':'preview-bad'); if(!free) ok=false;
+// ============ AI LOGIC ============
+async function getAITargets() {
+  // Build simple target options for AI
+  const options = [];
+  
+  // Find untargeted cells
+  const untargeted = [];
+  for (let y = 0; y < CFG.BOARD_SIZE; y++) {
+    for (let x = 0; x < CFG.BOARD_SIZE; x++) {
+      const cell = state.playerBoard[y][x];
+      if (!cell.hit && !cell.miss) {
+        untargeted.push({ x, y, hasShip: !!cell.ship });
+      }
+    }
   }
-  return ok;
-}
-gridEl.addEventListener('mousemove', e=>{
-  if(state.phase!=='placement') return;
-  const t=e.target.closest('.cell'); if(!t) return; previewAt(+t.dataset.x,+t.dataset.y);
-});
-gridEl.addEventListener('mouseleave', previewClear);
-
-gridEl.addEventListener('click', async (e)=>{
-  const t=e.target.closest('.cell'); if(!t) return;
-  const x=+t.dataset.x, y=+t.dataset.y;
-
-  if(state.phase==='placement'){
-    const entry = state.poolSurv.find(u=>u.uid===state.placeSelect);
-    if(!entry){ log("Pick a unit card on the right, then place."); return; }
-    const ok = state.player.canPlace(entry.size,x,y,state.rot);
-    if(!ok){ log("Blocked there."); return; }
-    state.player.place(copyUnit(entry,entry.uid),x,y,state.rot);
-    entry.remaining--; if(entry.remaining<=0){ state.placeSelect=null; }
-    renderGrid(); renderCards(); previewClear();
-    const left=state.poolSurv.reduce((a,u)=>a+u.remaining,0);
-    if(left===0){ state.phase='play'; setButtonsActive(); log("All placed. You have 2 AP per turn. Choose an action and click the grid. End Turn when done."); }
-    return;
-  }
-
-  if(state.phase==='play' && state.turn==='survivors'){
-    if(state.ap<=0){ log("No AP left. End Turn."); return; }
-    const act=state.selectedAction;
-
-    if(act==='move'){
-      if(!state.moving.uid){
-        const c=state.player.cell(x,y); if(!c.shipId){ log("Click a Scout Convoy tile to move."); return; }
-        const u=state.player.units.find(u=>u.uid===c.shipId && u.movable && u.alive);
-        if(!u){ log("That unit cannot move."); return; }
-        if(u.movesLeft<=0){ log("No moves left for this Scout."); return; }
-        state.moving.uid=u.uid; state.moving.targets=[];
-        [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{
-          const tx=u.coords[0].x+dx, ty=u.coords[0].y+dy;
-          const ncoords=u.coords.map(p=>({x:p.x+dx,y:p.y+dy}));
-          const ok = ncoords.every(p=> state.player.in(p.x,p.y) && (!state.player.cell(p.x,p.y).shipId || state.player.cell(p.x,p.y).shipId===u.uid) );
-          if(ok){ state.moving.targets.push({x:tx,y:ty}); gridEl.children[cellIndex(tx,ty)].classList.add('preview-ok'); }
+  
+  if (untargeted.length === 0) return [];
+  
+  // Recent hits to follow up on
+  const recentHits = [];
+  for (let y = 0; y < CFG.BOARD_SIZE; y++) {
+    for (let x = 0; x < CFG.BOARD_SIZE; x++) {
+      const cell = state.playerBoard[y][x];
+      if (cell.hit && cell.ship) {
+        // Check adjacent cells
+        [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dx,dy]) => {
+          const nx = x + dx, ny = y + dy;
+          if (nx >= 0 && ny >= 0 && nx < CFG.BOARD_SIZE && ny < CFG.BOARD_SIZE) {
+            const nc = state.playerBoard[ny][nx];
+            if (!nc.hit && !nc.miss) {
+              recentHits.push({ x: nx, y: ny });
+            }
+          }
         });
-        log("Select a highlighted cell to confirm the move.");
-        return;
-      } else {
-        const hit = state.moving.targets.some(p=>p.x===x&&p.y===y);
-        if(!hit){ log("Pick one of the highlighted targets."); return; }
-        if(state.ap<1){ log("Not enough AP."); return; }
-        state.ap--; setButtonsActive();
-        const moved = state.player.moveUnit(state.moving.uid,x,y);
-        previewClear(); state.moving={uid:null,targets:[]};
-        if(moved){ log("Scout Convoy repositioned."); renderGrid(); } else { log("Move blocked."); state.ap++; setButtonsActive(); }
-        return;
       }
     }
-
-    if(act==='attack'){ if(await actAttack(x,y)){} return; }
-    if(act==='scan'){ if(await actScan(x,y)){} return; }
-    if(act==='jam'){ if(await actJam(x,y)){} return; }
-    if(act==='repair'){ if(await actRepair(x,y)){} return; }
   }
-});
+  
+  // Priority targets (near hits)
+  const priority = recentHits.length > 0 ? recentHits.slice(0, 3) : 
+                   untargeted.sort(() => Math.random() - 0.5).slice(0, 3);
+  
+  // Build simple decision prompt
+  const prompt = `You are playing battleship. Pick 2 actions from these options:
 
-/* =============== Effects =============== */
-function fxCells(type, cells){
-  for(const {x,y} of cells){
-    const fx=effEl.children[cellIndex(x,y)]; fx.className='fx '+type; fx.classList.add('show');
-    setTimeout(()=>fx.classList.remove('show'), CFG.FX_TIME);
+TARGET OPTIONS (coordinates):
+${priority.map((t, i) => `${i+1}. Attack (${t.x},${t.y})`).join('\n')}
+
+${recentHits.length > 0 ? 'STRATEGY: Recent hits detected - follow up on damaged ships!' : 'STRATEGY: Hunt for enemy ships across the grid.'}
+
+Respond with JSON array of 2 actions, like:
+[{"action":"attack","target":1},{"action":"attack","target":2}]
+
+Or include a scan:
+[{"action":"scan","target":1},{"action":"attack","target":2}]`;
+
+  try {
+    const response = await fetch(CFG.POLLINATIONS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: "openai",
+        messages: [
+          { role: "system", content: "You are a tactical AI playing battleship. Respond only with valid JSON." },
+          { role: "user", content: prompt }
+        ]
+      })
+    });
+    
+    if (!response.ok) throw new Error('API failed');
+    
+    const data = await response.json();
+    const text = data.choices[0].message.content.trim();
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('No JSON found');
+    
+    const actions = JSON.parse(jsonMatch[0]);
+    
+    // Convert actions to actual coordinates
+    return actions.slice(0, CFG.AP_PER_TURN).map(action => ({
+      type: action.action,
+      x: priority[action.target - 1]?.x ?? priority[0].x,
+      y: priority[action.target - 1]?.y ?? priority[0].y
+    }));
+    
+  } catch (err) {
+    console.error('AI error:', err);
+    // Fallback: just pick random untargeted cells
+    return untargeted.sort(() => Math.random() - 0.5).slice(0, CFG.AP_PER_TURN).map(t => ({
+      type: 'attack',
+      x: t.x,
+      y: t.y
+    }));
   }
 }
-function fxOne(type, x,y){ fxCells(type,[{x,y}]); }
 
-/* =============== Player Actions =============== */
-async function actAttack(x,y){
-  if(state.ap<1){ log("Not enough AP."); return false; }
-  const res=state.ai.receiveAttack(x,y);
-  if(!res.valid){ log("Already targeted."); return false; }
-  state.ap--; setButtonsActive();
-  fxOne(res.hit?'hit':'miss', x,y);
-  if(res.hit){ state.lastHitsYou.push({x,y}); } else { state.lastMissesYou.push({x,y}); }
-  log(`Attack ${String.fromCharCode(65+y)}${x+1}: ${res.hit?'HIT':'miss'}`);
-  if(res.hit && res.sunk && state.killcam) log(`${res.unit.label} destroyed.`);
-  if(checkWin()) return true;
-  return true;
-}
-async function actScan(x,y){
-  if(state.ap<1){ log("Not enough AP."); return false; }
-  state.ap--; setButtonsActive();
-
-  const out=state.ai.scan3(x,y);
-  fxCells('scan', out.cells); // radius
-
-  // brief “blip” reveals on true enemy cells
-  const reveals = out.cells.filter(p => state.ai.cell(p.x,p.y).shipId);
-  if(reveals.length) fxCells('reveal', reveals);
-
-  log(`Scan ${String.fromCharCode(65+y)}${x+1}: ${out.count} signatures blipped.`);
-  return true;
-}
-async function actJam(x,y){
-  if(state.ap<1){ log("Not enough AP."); return false; }
-  state.ap--; setButtonsActive();
-  const cells=state.ai.jam3(x,y,2);
-  fxCells('jam', cells);
-  log(`Jam ${String.fromCharCode(65+y)}${x+1}: area disrupted.`);
-  return true;
-}
-async function actRepair(x,y){
-  if(state.ap<1){ log("Not enough AP."); return false; }
-  let fixed=null;
-  for(let yy=y-1;yy<=y+1;yy++)for(let xx=x-1;xx<=x+1;xx++)if(state.player.in(xx,yy)){
-    const c=state.player.cell(xx,yy); if(c.shipId && c.hit){ c.hit=false; const u=state.player.units.find(u=>u.uid===c.shipId); u.hp=clamp(u.hp+1,0,u.size); fixed={xx,yy}; break; }
+async function executeAITurn() {
+  state.currentTurn = 'enemy';
+  $('#aiOverlay').classList.add('show');
+  updateUI();
+  
+  await new Promise(r => setTimeout(r, CFG.AI_THINK_TIME));
+  
+  const actions = await getAITargets();
+  
+  for (const action of actions) {
+    await new Promise(r => setTimeout(r, CFG.ANIMATION_TIME));
+    
+    if (action.type === 'attack') {
+      const result = attack(state.playerBoard, state.playerUnits, action.x, action.y);
+      
+      if (result.valid) {
+        if (result.hit) {
+          state.enemyScore += CFG.POINTS.HIT;
+          log(`Enemy hit your ship at (${action.x},${action.y})!`, true);
+          if (result.sunk) {
+            state.enemyScore += CFG.POINTS.SINK;
+            log(`Enemy sunk your ${result.unitName}!`, true);
+          }
+        } else {
+          log(`Enemy missed at (${action.x},${action.y})`);
+        }
+      }
+    } else if (action.type === 'scan') {
+      log(`Enemy scanned area around (${action.x},${action.y})`);
+    }
+    
+    renderGrid();
+    updateUI();
   }
-  if(fixed){
-    state.ap--; setButtonsActive();
-    fxCells('repair', [{x:fixed.xx,y:fixed.yy}]);
-    renderGrid(); log(`Repair near ${String.fromCharCode(65+y)}${x+1}: restored.`);
+  
+  $('#aiOverlay').classList.remove('show');
+  
+  if (checkGameOver()) return;
+  
+  state.currentTurn = 'player';
+  state.ap = CFG.AP_PER_TURN;
+  updateUI();
+  log('Your turn!', true);
+}
+
+// ============ GAME FLOW ============
+function checkGameOver() {
+  const playerAlive = state.playerUnits.filter(u => u.hp > 0).length;
+  const enemyAlive = state.enemyUnits.filter(u => u.hp > 0).length;
+  
+  if (playerAlive === 0) {
+    endGame(false, 'Enemy destroyed your fleet!');
     return true;
-  } else { log("No damage here to repair."); return false; }
-}
-
-/* =============== Turn Flow =============== */
-function checkWin(){
-  const you=state.player.segmentsLeft(), ai=state.ai.segmentsLeft();
-  if(ai<=0 && you<=0){ log("Tie: both destroyed."); return true; }
-  if(ai<=0){ log("You win!"); return true; }
-  if(you<=0){ log("Defeat."); return true; }
+  }
+  
+  if (enemyAlive === 0) {
+    endGame(true, 'You destroyed the enemy fleet!');
+    return true;
+  }
+  
   return false;
 }
 
-function buildFogSnapshot(){
-  const fog=[], jam=[];
-  for(let y=0;y<10;y++){
-    const row=[], jrow=[];
-    for(let x=0;x<10;x++){
-      const c=state.player.cell(x,y);
-      row.push(c.hit?'H':(c.miss?'M':'U'));
-      jrow.push(!!c.jam);
-    }
-    fog.push(row); jam.push(jrow);
+function endGame(playerWon, message) {
+  state.phase = 'game_over';
+  
+  if (playerWon) {
+    state.playerScore += CFG.POINTS.WIN;
+  } else {
+    state.enemyScore += CFG.POINTS.WIN;
   }
-  return {fog, jam};
+  
+  $('#modalTitle').textContent = playerWon ? 'VICTORY!' : 'DEFEAT';
+  $('#modalMessage').textContent = message;
+  $('#modalScore').textContent = state.playerScore;
+  $('#gameOverModal').classList.add('show');
+  
+  updateUI();
 }
 
-async function endTurn(){
-  if(state.phase!=='play') return;
-  state.player.tick(); state.ai.tick();
-  state.turn='ai'; state.ap=CFG.AP_PER_TURN; setButtonsActive();
-  aiOverlay.classList.add('show'); log("AI (Pollinations) is planning…");
-
-  const snap = buildFogSnapshot();
-  const plan = await pollinationsAIPlan({
-    model: CFG.POLLINATIONS.model,
-    ap: CFG.AP_PER_TURN,
-    fog: snap.fog,
-    jamMap: snap.jam,
-    lastHits: state.lastHitsAI,
-    lastMisses: state.lastMissesAI
-  });
-
-  let actions = plan;
-  if(!actions.length){
-    log("Pollinations unavailable this turn — using backup logic.");
-    actions = state.heuristicAI.plan(CFG.AP_PER_TURN);
-  }
-
-  for(const act of actions.slice(0,CFG.AP_PER_TURN)){
-    await sleep(CFG.AI_STEP_DELAY);
-    if(act.type==='scan'){
-      const out=state.player.scan3(act.x,act.y);
-      fxCells('scan', out.cells);
-      log(`AI scans a sector: ${out.count} signatures.`);
-    } else if(act.type==='attack'){
-      const res=state.player.receiveAttack(act.x,act.y);
-      let tx=act.x, ty=act.y, hitRes=res;
-
-      if(!res.valid){
-        // quick fresh target
-        let nx=0,ny=0, found=false;
-        for(let y=0;y<10 && !found;y++)for(let x=0;x<10 && !found;x++){
-          const c=state.player.cell(x,y); if(!c.hit && !c.miss){ nx=x; ny=y; found=true; }
-        }
-        hitRes=state.player.receiveAttack(nx,ny); tx=nx; ty=ny;
-      }
-
-      fxOne(hitRes.hit?'hit':'miss', tx,ty);
-      if(hitRes.hit){ state.lastHitsAI.push({x:tx,y:ty}); } else { state.lastMissesAI.push({x:tx,y:ty}); }
-      log(`AI attacks ${String.fromCharCode(65+ty)}${tx+1}: ${hitRes.hit?'HIT':'miss'}`);
-      if(hitRes.hit && hitRes.sunk && state.killcam) log(`${hitRes.unit.label} destroyed!`);
-
+// ============ EVENT HANDLERS ============
+$('#grid').addEventListener('click', async (e) => {
+  const cell = e.target.closest('.cell');
+  if (!cell) return;
+  
+  const x = parseInt(cell.dataset.x);
+  const y = parseInt(cell.dataset.y);
+  
+  // PLACEMENT PHASE
+  if (state.phase === 'placement') {
+    if (state.placingUnit === null) {
+      log('Select a unit from the sidebar first!');
+      return;
+    }
+    
+    const unit = state.playerUnitsToPlace[state.placingUnit];
+    if (unit.placed) return;
+    
+    if (canPlaceUnit(state.playerBoard, unit, x, y, state.placingRotation)) {
+      placeUnit(state.playerBoard, state.playerUnits, unit, x, y, state.placingRotation);
+      unit.placed = true;
+      state.placedCount++;
+      state.placingUnit = null;
+      
       renderGrid();
-      if(checkWin()){ aiOverlay.classList.remove('show'); return; }
+      renderUnits();
+      
+      if (state.placedCount === state.playerUnitsToPlace.length) {
+        log('All units placed! Starting battle...', true);
+        await new Promise(r => setTimeout(r, 1000));
+        state.phase = 'battle';
+        updateUI();
+      } else {
+        log(`${unit.name} placed! Select next unit.`);
+      }
+    } else {
+      log('Cannot place unit there!');
+    }
+    return;
+  }
+  
+  // BATTLE PHASE
+  if (state.phase === 'battle' && state.currentTurn === 'player' && state.ap > 0) {
+    if (state.selectedAction === 'attack') {
+      const result = attack(state.enemyBoard, state.enemyUnits, x, y);
+      
+      if (!result.valid) {
+        log(result.reason);
+        return;
+      }
+      
+      state.ap--;
+      state.playerKnowledge[y][x].hit = result.hit;
+      state.playerKnowledge[y][x].miss = !result.hit;
+      
+      if (result.hit) {
+        state.playerScore += CFG.POINTS.HIT;
+        log(`Direct hit at (${x},${y})!`, true);
+        if (result.sunk) {
+          state.playerScore += CFG.POINTS.SINK;
+          log(`You sunk enemy ${result.unitName}!`, true);
+        }
+      } else {
+        log(`Miss at (${x},${y})`);
+      }
+      
+      renderGrid();
+      updateUI();
+      
+      if (checkGameOver()) return;
+      
+      if (state.ap === 0) {
+        log('Out of AP. End your turn!', true);
+      }
+    } else if (state.selectedAction === 'scan') {
+      const result = scan(state.enemyBoard, x, y);
+      state.ap--;
+      log(`Scan detected ${result.count} ship(s) in the area!`, true);
+      updateUI();
     }
   }
-
-  await sleep(CFG.AI_OVERLAY_HOLD);
-  aiOverlay.classList.remove('show');
-  state.turn='survivors'; state.ap=CFG.AP_PER_TURN; setButtonsActive(); renderGrid(); log("Your turn.");
-}
-
-/* =============== Wire Controls =============== */
-$("#attackBtn").onclick=()=>{ state.selectedAction='attack'; state.moving={uid:null,targets:[]}; setButtonsActive(); };
-$("#scanBtn").onclick=()=>{ state.selectedAction='scan'; state.moving={uid:null,targets:[]}; setButtonsActive(); };
-$("#jamBtn").onclick =()=>{ state.selectedAction='jam';  state.moving={uid:null,targets:[]}; setButtonsActive(); };
-$("#moveBtn").onclick=()=>{ state.selectedAction='move'; state.moving={uid:null,targets:[]}; setButtonsActive(); };
-$("#repairBtn").onclick=()=>{ state.selectedAction='repair'; state.moving={uid:null,targets:[]}; setButtonsActive(); };
-$("#endTurnBtn").onclick=endTurn;
-$("#resetBtn").onclick=()=>{ resetGame(); log("Reset."); };
-
-$("#bgToggle").onchange=e=>{ CFG.USE_BG_ART=e.target.checked; if(CFG.USE_BG_ART){ setBG(state.turn==='ai'?'ai':'survivors'); bgArt.style.opacity=.12; } else { bgArt.style.opacity=0; } };
-$("#modelSelect").onchange=e=>{ CFG.POLLINATIONS.model=e.target.value; log(`Enemy model: ${CFG.POLLINATIONS.model}`); };
-
-document.addEventListener('keydown', e=>{
-  if(e.key==='r' || e.key==='R'){ if(state.phase==='placement'){ state.rot=state.rot?0:1; log(`Rotation: ${state.rot? 'Vertical':'Horizontal'}`); } }
-  if(e.key==='Escape'){ if(state.phase==='placement'){ state.placeSelect=null; renderCards(); previewClear(); } state.moving={uid:null,targets:[]}; previewClear(); }
 });
 
-/* =============== Boot =============== */
+$('#grid').addEventListener('mousemove', (e) => {
+  if (state.phase !== 'placement' || state.placingUnit === null) return;
+  
+  const cell = e.target.closest('.cell');
+  if (!cell) return;
+  
+  const x = parseInt(cell.dataset.x);
+  const y = parseInt(cell.dataset.y);
+  
+  $$('.cell').forEach(c => c.classList.remove('preview-ok', 'preview-bad'));
+  
+  const unit = state.playerUnitsToPlace[state.placingUnit];
+  if (unit.placed) return;
+  
+  const canPlace = canPlaceUnit(state.playerBoard, unit, x, y, state.placingRotation);
+  
+  for (let i = 0; i < unit.size; i++) {
+    const cx = state.placingRotation ? x : x + i;
+    const cy = state.placingRotation ? y + i : y;
+    if (cx >= 0 && cy >= 0 && cx < CFG.BOARD_SIZE && cy < CFG.BOARD_SIZE) {
+      const idx = cellIndex(cx, cy);
+      $('#grid').children[idx]?.classList.add(canPlace ? 'preview-ok' : 'preview-bad');
+    }
+  }
+});
+
+$('#grid').addEventListener('mouseleave', () => {
+  $$('.cell').forEach(c => c.classList.remove('preview-ok', 'preview-bad'));
+});
+
+$('#attackBtn').onclick = () => {
+  state.selectedAction = 'attack';
+  log('Attack mode: Click enemy grid to fire!');
+};
+
+$('#scanBtn').onclick = () => {
+  state.selectedAction = 'scan';
+  log('Scan mode: Click to scan 3x3 area for ships!');
+};
+
+$('#endTurnBtn').onclick = () => {
+  if (state.phase === 'battle' && state.currentTurn === 'player') {
+    log('Ending turn...', true);
+    executeAITurn();
+  }
+};
+
+$('#resetBtn').onclick = resetGame;
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'r' || e.key === 'R') {
+    if (state.phase === 'placement') {
+      state.placingRotation = !state.placingRotation;
+      log(`Rotation: ${state.placingRotation ? 'Vertical' : 'Horizontal'}`);
+    }
+  }
+});
+
+// Faction selection
+$$('.faction-btn').forEach(btn => {
+  btn.onclick = () => {
+    if (state.phase !== 'faction_select') return;
+    
+    $$('.faction-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.playerFaction = btn.dataset.faction;
+    
+    log(`You selected ${state.playerFaction === 'survivors' ? '🛡️ Survivors' : '🤖 AI Forces'}!`, true);
+    
+    setTimeout(() => {
+      startPlacement();
+    }, 800);
+  };
+});
+
+// ============ GAME INITIALIZATION ============
+function startPlacement() {
+  state.phase = 'placement';
+  state.placedCount = 0;
+  state.placingUnit = null;
+  
+  // Create units to place
+  state.playerUnitsToPlace = [];
+  Object.values(UNITS).forEach(def => {
+    for (let i = 0; i < def.count; i++) {
+      state.playerUnitsToPlace.push({
+        ...def,
+        id: `${def.id}_${i}`,
+        placed: false
+      });
+    }
+  });
+  
+  // Place enemy units randomly
+  Object.values(UNITS).forEach(def => {
+    for (let i = 0; i < def.count; i++) {
+      let placed = false;
+      let attempts = 0;
+      while (!placed && attempts < 100) {
+        const x = Math.floor(Math.random() * CFG.BOARD_SIZE);
+        const y = Math.floor(Math.random() * CFG.BOARD_SIZE);
+        const rot = Math.random() < 0.5;
+        
+        if (canPlaceUnit(state.enemyBoard, def, x, y, rot)) {
+          placeUnit(state.enemyBoard, state.enemyUnits, {
+            ...def,
+            id: `${def.id}_enemy_${i}`
+          }, x, y, rot);
+          placed = true;
+        }
+        attempts++;
+      }
+    }
+  });
+  
+  renderGrid();
+  renderUnits();
+  updateUI();
+  log('Place your fleet on the grid!', true);
+}
+
+function resetGame() {
+  // Reset state
+  state.phase = 'faction_select';
+  state.playerFaction = 'survivors';
+  state.currentTurn = 'player';
+  state.ap = CFG.AP_PER_TURN;
+  state.playerScore = 0;
+  state.enemyScore = 0;
+  state.selectedAction = 'attack';
+  state.placingUnit = null;
+  state.placingRotation = false;
+  
+  state.playerBoard = createBoard();
+  state.enemyBoard = createBoard();
+  state.playerKnowledge = createBoard();
+  
+  state.playerUnits = [];
+  state.enemyUnits = [];
+  state.playerUnitsToPlace = [];
+  state.placedCount = 0;
+  
+  $('#gameOverModal').classList.remove('show');
+  $('#log').innerHTML = '';
+  
+  renderGrid();
+  renderUnits();
+  updateUI();
+  
+  log('Select your faction to begin!', true);
+}
+
+// ============ START ============
 resetGame();
 </script>
 </body>
