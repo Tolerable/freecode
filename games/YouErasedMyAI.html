@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>You Erased My AI — Pollinations Opponent</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0f19; --panel:#121929; --ink:#e9efff; --muted:#a6b2d1;
+    --brand:#7c5cff; --ai:#22c55e; --surv:#60a5fa; --bad:#ef4444; --ok:#22c55e;
+    --warn:#f59e0b; --grid:#1c2741; --cell:#162036; --cellH:#1d2a45;
+    --hit:#ef4444; --miss:#334155; --scan:#3b82f6; --jam:#9333ea; --emp:#eab308;
+    --accent:#2dd4bf; --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;background:radial-gradient(1200px 600px at 50% 0%,#0a1022 0%,#070b17 60%,#050812 100%), var(--bg);color:var(--ink);margin:0;font-family:Inter,system-ui,Arial,Helvetica,sans-serif}
+  .app{height:100dvh; width:100vw; display:flex; align-items:center; justify-content:center; overflow:hidden;}
+  .frame{aspect-ratio:16/9; width:min(95vw,1400px); position:relative; border-radius:18px; background:
+      linear-gradient(180deg, rgba(124,92,255,.08), transparent 40%),
+      linear-gradient(0deg, rgba(45,212,191,.06), transparent 50%),
+      var(--panel);
+    box-shadow:var(--shadow); overflow:hidden; border:1px solid rgba(124,92,255,.25);}
+  .bg-art{position:absolute; inset:0; pointer-events:none; opacity:.12; filter:grayscale(20%) contrast(110%); background-position:center; background-size:cover; transition:background-image .4s ease;}
+  .topbar{position:absolute; left:0; right:0; top:0; height:64px; display:flex; align-items:center; gap:16px; padding:0 20px;
+    background:linear-gradient(180deg, rgba(2,6,23,.8), rgba(2,6,23,.35)); border-bottom:1px solid rgba(255,255,255,.06);}
+  .badge{display:inline-flex; align-items:center; gap:10px; padding:8px 12px; border-radius:999px; background:rgba(124,92,255,.14); border:1px solid rgba(124,92,255,.35)}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .dot.ai{background:var(--ai)} .dot.human{background:var(--surv)}
+  .title{font-weight:800; letter-spacing:.2px}
+  .spacer{flex:1}
+  .kpi{display:flex; align-items:center; gap:14px}
+  .kpi .chip{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); padding:8px 12px; border-radius:10px; font-weight:700;}
+  .kpi .pip{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.16)} .kpi .pip.live{background:var(--accent)}
+  .main{position:absolute; inset:64px 0 110px 0; display:grid; grid-template-columns: 1fr 360px; gap:18px; padding:18px;}
+  .boardWrap{position:relative; border:1px solid rgba(255,255,255,.08); border-radius:16px; overflow:hidden;
+    background:linear-gradient(180deg, rgba(255,255,255,.02), transparent 60%), rgba(6,10,22,.6); backdrop-filter: blur(8px);}
+  .boardHeader{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; font-weight:700; border-bottom:1px solid rgba(255,255,255,.06); background:rgba(124,92,255,.08)}
+  .grid{display:grid; gap:2px; padding:14px; grid-template-columns: repeat(10, 1fr); grid-auto-rows: 1fr; height: calc(100% - 50px); background:var(--grid); position:relative;}
+  .cell{background:var(--cell); border:1px solid rgba(255,255,255,.04); border-radius:6px; display:flex; align-items:center; justify-content:center;
+    font-size:12px; color:rgba(255,255,255,.35); user-select:none; cursor:pointer; transition:background .12s ease, transform .05s ease;}
+  .cell:hover{ background:var(--cellH) }
+  .cell.own{ background: #0f1a33 }
+  .cell.ship{ outline:2px solid rgba(96,165,250,.35) }
+  .cell.hit{ background:linear-gradient(180deg, rgba(239,68,68,.28), rgba(239,68,68,.18)); border-color:rgba(239,68,68,.55)}
+  .cell.miss{ background:var(--miss); color:#7c849b }
+  .cell.jammed::after{
+    content:""; position:absolute; inset:0; background-image:linear-gradient(transparent 60%, rgba(147,51,234,.28) 60%), repeating-linear-gradient(90deg, rgba(147,51,234,.12) 0 2px, transparent 2px 6px);
+    mix-blend-mode:screen; border-radius:6px;
+  }
+  .effects{position:absolute; inset:14px; display:grid; grid-template-columns:repeat(10,1fr); grid-auto-rows:1fr; gap:2px; pointer-events:none;}
+  .fx{border-radius:6px; opacity:0; transition:opacity .2s ease;}
+  .fx.scan{background:radial-gradient(circle at center, rgba(59,130,246,.45) 0%, rgba(59,130,246,.12) 60%, transparent 70%); box-shadow: inset 0 0 0 2px rgba(59,130,246,.85);}
+  .fx.jam{background:repeating-linear-gradient(0deg, rgba(147,51,234,.18) 0 4px, rgba(147,51,234,.05) 4px 8px); box-shadow: inset 0 0 0 2px rgba(147,51,234,.9);}
+  .fx.repair{background:radial-gradient(circle, rgba(34,197,94,.35), transparent 70%); box-shadow: inset 0 0 0 2px rgba(34,197,94,.85);}
+  .fx.hit{background:radial-gradient(circle, rgba(239,68,68,.45), transparent 70%); box-shadow: inset 0 0 0 2px rgba(239,68,68,.9);}
+  .fx.miss{background:radial-gradient(circle, rgba(148,163,184,.35), transparent 70%); box-shadow: inset 0 0 0 2px rgba(148,163,184,.85);}
+  .fx.show{opacity:1;}
+  .cell.preview-ok{outline:2px dashed rgba(34,197,94,.9) !important; background:rgba(34,197,94,.08)}
+  .cell.preview-bad{outline:2px dashed rgba(239,68,68,.9) !important; background:rgba(239,68,68,.08)}
+  .side{border:1px solid rgba(255,255,255,.08); border-radius:16px; overflow:hidden; background:rgba(8,12,24,.7); backdrop-filter: blur(8px); display:flex; flex-direction:column;}
+  .sideHeader{ padding:12px 14px; font-weight:800; border-bottom:1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between}
+  .cards{ padding:12px; display:grid; grid-template-columns:1fr; gap:10px; overflow:auto}
+  .card{border:1px solid rgba(255,255,255,.1); border-radius:14px; overflow:hidden; background:rgba(12,18,32,.86); transition:box-shadow .15s ease, border-color .15s ease;}
+  .card.active{ box-shadow:0 0 0 2px var(--surv) inset; border-color: rgba(96,165,250,.75) }
+  .thumb{ height:90px; background:rgba(255,255,255,.04) center/cover no-repeat; filter:saturate(1.05) contrast(1.1)}
+  .row{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; }
+  .name{ font-weight:800 }
+  .meta{ font-size:12px; color:var(--muted) }
+  .count{ font-weight:800; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16)}
+  .cd{ display:flex; gap:4px} .cd .pip{ width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.16)} .cd .pip.on{ background:var(--warn) }
+  .actions{ padding:12px; border-top:1px solid rgba(255,255,255,.06); display:grid; grid-template-columns:repeat(2,1fr); gap:10px;
+    background:linear-gradient(0deg, rgba(255,255,255,.02), transparent 60%);}
+  button{appearance:none; border:none; border-radius:12px; padding:12px; font-weight:800; color:white; cursor:pointer;
+    background: linear-gradient(180deg, rgba(124,92,255,.9), rgba(124,92,255,.6)); border:1px solid rgba(124,92,255,.5);
+    box-shadow:0 6px 16px rgba(124,92,255,.35); transition:transform .06s ease, filter .15s ease, opacity .2s ease;}
+  button:hover{ filter:brightness(1.06) } button:active{ transform:translateY(1px) }
+  .btn-ghost{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16); box-shadow:none }
+  .btn-warn{ background: linear-gradient(180deg, rgba(250,204,21,.95), rgba(250,204,21,.7)); border-color:rgba(250,204,21,.6); color:#101010 }
+  .btn-danger{ background: linear-gradient(180deg, rgba(239,68,68,.95), rgba(239,68,68,.7)); border-color:rgba(239,68,68,.6) }
+  .btn-active{ outline:2px solid var(--surv); box-shadow:0 0 0 2px rgba(96,165,250,.5) inset, 0 8px 18px rgba(96,165,250,.25) }
+  .bottombar{position:absolute; left:0; right:0; bottom:0; height:110px; display:flex; align-items:center; gap:12px; padding:12px 18px;
+    background:linear-gradient(180deg, rgba(2,6,23,.35), rgba(2,6,23,.85)); border-top:1px solid rgba(255,255,255,.06);}
+  .log{ flex:1; height:86px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:8px 10px; overflow:auto; font-size:13px; color:var(--muted) }
+  .ap{ display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); font-weight:800 }
+  .overlay{position:absolute; left:0; right:0; top:-180px; height:180px; display:flex; align-items:center; justify-content:center; gap:18px;
+    background:linear-gradient(180deg, rgba(10,16,30,.94), rgba(10,16,30,.8)); border-bottom:1px solid rgba(255,255,255,.06);
+    transform:translateY(0); transition:transform .5s ease; z-index:20;}
+  .overlay.show{ transform:translateY(180px) }
+  .overlay .flag{ padding:10px 14px; border-radius:999px; background:rgba(34,197,94,.15); border:1px solid rgba(34,197,94,.5); font-weight:900; letter-spacing:.4px }
+  .mini{display:flex; gap:10px; align-items:center; opacity:.9;} .key{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted)}
+  .swatch{ width:12px; height:12px; border-radius:3px } .swatch.hit{ background:var(--hit) } .swatch.miss{ background:var(--miss) } .swatch.scan{ background:rgba(59,130,246,.7) } .swatch.jam{ background:rgba(147,51,234,.7)}
+  .legend{ display:flex; gap:12px; align-items:center; font-size:12px; color:var(--muted) }
+  .switch{ display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:8px 10px; font-size:13px }
+  .select{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); color:var(--ink); border-radius:10px; padding:9px 10px; }
+  .kbd{ font-family: ui-monospace, Consolas, monospace; font-size:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); padding:2px 6px; border-radius:6px }
+  @media (max-width:1100px){ .main{ grid-template-columns:1fr } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="frame" id="app">
+    <div class="bg-art" id="bgArt"></div>
+
+    <div class="topbar">
+      <div class="badge"><span class="dot human"></span><span class="title">Survivors</span></div>
+      <div class="badge"><span class="dot ai"></span><span class="title">AI Attack</span></div>
+      <div class="spacer"></div>
+
+      <label class="switch" title="Pick Pollinations text model for the enemy">
+        <span>AI Model</span>
+        <select id="modelSelect" class="select" style="margin-left:8px">
+          <option value="openai">openai</option>
+          <option value="mistral">mistral</option>
+        </select>
+      </label>
+
+      <label class="switch"><input type="checkbox" id="bgToggle"> Cinematic BG</label>
+      <div class="kpi">
+        <div class="chip" id="turnChip">Placement Phase</div>
+        <div class="chip">AP <span class="pip" id="ap1"></span><span class="pip" id="ap2"></span></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="aiOverlay">
+      <div class="flag">AI TURN • Pollinations thinking…</div>
+      <div class="mini">
+        <div class="key"><div class="swatch hit"></div>Hit</div>
+        <div class="key"><div class="swatch miss"></div>Miss</div>
+        <div class="key"><div class="swatch scan"></div>Scan</div>
+        <div class="key"><div class="swatch jam"></div>Jam</div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="boardWrap">
+        <div class="boardHeader">
+          <div>YOUR GRID • <span id="phaseLabel">Place Units</span></div>
+          <div class="legend"><span class="kbd">R</span> rotate • <span class="kbd">Esc</span> cancel</div>
+        </div>
+        <div class="grid" id="grid"></div>
+        <div class="effects" id="effects"></div>
+      </div>
+
+      <div class="side">
+        <div class="sideHeader">
+          <span>Units & Abilities</span>
+          <label class="switch"><input type="checkbox" id="killcamToggle" checked> Kill-cam</label>
+        </div>
+        <div class="cards" id="cards"></div>
+        <div class="actions">
+          <button id="attackBtn" class="btn-danger">Attack</button>
+          <button id="scanBtn"   class="btn-ghost">Scan</button>
+          <button id="jamBtn"    class="btn-ghost">Jam</button>
+          <button id="moveBtn"   class="btn-ghost">Move</button>
+          <button id="repairBtn" class="btn-warn">Repair</button>
+          <button id="endTurnBtn" class="btn-danger">End Turn</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottombar">
+      <div class="ap" id="apHud">AP: 2</div>
+      <div class="log" id="log"></div>
+      <button id="resetBtn" class="btn-ghost">New Game</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =============== Config =============== */
+const CFG = {
+  BOARD_SIZE: 10,
+  AP_PER_TURN: 2,
+  FX_TIME: 1200,         // ms: scan/jam/repair/hit/miss visibility
+  AI_STEP_DELAY: 750,    // ms between enemy actions (readable pace)
+  AI_OVERLAY_HOLD: 700,  // ms overlay linger after AI done
+  USE_BG_ART: false,
+  KILL_CAM: true,
+  POLLINATIONS: {
+    textEndpoint: "https://text.pollinations.ai/openai",
+    imageEndpoint: "https://image.pollinations.ai/prompt/",
+    model: "openai",
+    maxTokens: 300,
+    // Image defaults
+    imgModel: "flux", width: 1280, height: 720, seed: 42, nologo: false,
+    prompts: {
+      survivors: "cinematic post-apocalyptic command center HUD, neon blue accents, glass UI, depth of field, ultrareal, 16:9",
+      ai: "futuristic autonomous drone hive, neon green pipelines, grid aesthetic, dramatic lighting, 16:9",
+      scout: "rugged scout convoy trucks, neon blue HUD, dusk, cinematic still, 16:9",
+      artillery: "armored artillery truck with missile pod, neon blue HUD, dusk, cinematic, 16:9",
+      jammer: "mobile signal jammer truck with antenna mast, neon blue HUD, cinematic, 16:9",
+      shelter: "hardened underground command shelter entrance, neon blue HUD, cinematic, 16:9",
+      hunter: "sleek hunter drone pair, neon green hive grid, cinematic, 16:9",
+      siege: "heavy siege drone with railgun, neon green hive grid, cinematic, 16:9",
+      recon: "recon nano-drone swarm cloud, neon green hive grid, cinematic, 16:9",
+      uplink: "towering AI core uplink node, neon green hive grid, cinematic, 16:9",
+    }
+  }
+};
+
+/* =============== Helpers =============== */
+const $ = s=>document.querySelector(s);
+const logEl=$("#log"), gridEl=$("#grid"), effEl=$("#effects"), cardsEl=$("#cards");
+const turnChip=$("#turnChip"), phaseLabel=$("#phaseLabel"), apHud=$("#apHud"), ap1=$("#ap1"), ap2=$("#ap2"), aiOverlay=$("#aiOverlay"), bgArt=$("#bgArt");
+function log(msg){ logEl.innerHTML = `<div>• ${msg}</div>` + logEl.innerHTML; }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function cellIndex(x,y){ return y*CFG.BOARD_SIZE + x; }
+function clamp(n,a,b){ return Math.max(a,Math.min(b,n)); }
+function imgURL(prompt, extra={}){
+  const p=encodeURIComponent(prompt);
+  const q=new URLSearchParams({
+    model: CFG.POLLINATIONS.imgModel,
+    width: extra.width || CFG.POLLINATIONS.width,
+    height: extra.height || CFG.POLLINATIONS.height,
+    seed: extra.seed ?? CFG.POLLINATIONS.seed,
+    nologo: (extra.nologo ?? CFG.POLLINATIONS.nologo)
+  }).toString();
+  return `${CFG.POLLINATIONS.imageEndpoint}${p}?${q}`;
+}
+function setBG(which){
+  if(!CFG.USE_BG_ART) return;
+  const key = which==='ai' ? 'ai' : 'survivors';
+  bgArt.style.backgroundImage=`url("${imgURL(CFG.POLLINATIONS.prompts[key])}")`;
+}
+
+/* =============== Data & Boards =============== */
+const FACTIONS={SURV:'survivors', AI:'ai'};
+const UNITS={
+  ScoutConvoy:{ id:'ScoutConvoy', size:2, count:2, faction:FACTIONS.SURV, movable:true, maxMoves:3, label:'Scout Convoy', prompt:'scout' },
+  ArtilleryTruck:{ id:'ArtilleryTruck', size:3, count:2, faction:FACTIONS.SURV, label:'Artillery Truck', prompt:'artillery' },
+  SignalJammer:{ id:'SignalJammer', size:3, count:1, faction:FACTIONS.SURV, label:'Signal Jammer', prompt:'jammer' },
+  CommandShelter:{ id:'CommandShelter', size:4, count:1, faction:FACTIONS.SURV, label:'Command Shelter', prompt:'shelter' },
+
+  HunterDrone:{ id:'HunterDrone', size:2, count:2, faction:FACTIONS.AI, label:'Hunter Drone', prompt:'hunter' },
+  SiegeDrone:{ id:'SiegeDrone', size:3, count:2, faction:FACTIONS.AI, label:'Siege Drone', prompt:'siege' },
+  ReconSwarm:{ id:'ReconSwarm', size:3, count:1, faction:FACTIONS.AI, label:'Recon Swarm', prompt:'recon', cooldown:2 },
+  CoreUplink:{ id:'CoreUplink', size:4, count:1, faction:FACTIONS.AI, label:'Core Uplink', prompt:'uplink' },
+};
+
+class Board{
+  constructor(n){ this.size=n; this.cells=new Map(); this.units=[]; }
+  in(x,y){ return x>=0 && y>=0 && x<this.size && y<this.size; }
+  key(x,y){ return `${x},${y}`; }
+  cell(x,y){ const k=this.key(x,y); if(!this.cells.has(k)) this.cells.set(k,{}); return this.cells.get(k); }
+  canPlace(size,x,y,rot){
+    for(let i=0;i<size;i++){
+      const cx=x+(rot?0:i), cy=y+(rot?i:0);
+      if(!this.in(cx,cy)) return false;
+      if(this.cell(cx,cy).shipId) return false;
+    } return true;
+  }
+  place(unit,x,y,rot){
+    if(!this.canPlace(unit.size,x,y,rot)) return false;
+    unit.coords=[]; unit.rot=rot; unit.hp=unit.size; unit.alive=true;
+    if(unit.movable) unit.movesLeft=unit.maxMoves;
+    for(let i=0;i<unit.size;i++){
+      const cx=x+(rot?0:i), cy=y+(rot?i:0);
+      this.cell(cx,cy).shipId=unit.uid;
+      unit.coords.push({x:cx,y:cy});
+    }
+    this.units.push(unit); return true;
+  }
+  receiveAttack(x,y){
+    const c=this.cell(x,y);
+    if(c.hit || c.miss) return {valid:false};
+    if(c.shipId){
+      c.hit=true;
+      const u=this.units.find(u=>u.uid===c.shipId);
+      u.hp--; if(u.hp<=0) u.alive=false;
+      return {valid:true, hit:true, sunk:!u.alive, unit:u};
+    } else {
+      c.miss=true; return {valid:true, hit:false};
+    }
+  }
+  scan3(cx,cy){
+    let count=0; const cells=[];
+    for(let y=cy-1;y<=cy+1;y++)for(let x=cx-1;x<=cx+1;x++)if(this.in(x,y)){ cells.push({x,y}); if(this.cell(x,y).shipId) count++; }
+    return {count,cells};
+  }
+  jam3(cx,cy,turns=2){
+    const A=[];
+    for(let y=cy-1;y<=cy+1;y++)for(let x=cx-1;x<=cx+1;x++)if(this.in(x,y)){ const c=this.cell(x,y); c.jam=(c.jam||0)+turns; A.push({x,y}); }
+    return A;
+  }
+  tick(){ for(const [k,c] of this.cells){ if(c.jam){ c.jam--; if(c.jam<=0) delete c.jam; } } }
+  moveUnit(uid,tx,ty){
+    const u=this.units.find(u=>u.uid===uid && u.alive && u.movable && u.movesLeft>0); if(!u) return false;
+    const anchor=u.coords[0]; const dx=tx-anchor.x, dy=ty-anchor.y;
+    const ncoords=u.coords.map(p=>({x:p.x+dx,y:p.y+dy}));
+    for(const p of ncoords){
+      if(!this.in(p.x,p.y)) return false;
+      const c=this.cell(p.x,p.y);
+      if(c.shipId && c.shipId!==uid) return false;
+    }
+    for(const p of u.coords){ const c=this.cell(p.x,p.y); if(c.shipId===uid) delete c.shipId; }
+    for(const p of ncoords){ this.cell(p.x,p.y).shipId=uid; }
+    u.coords=ncoords; u.movesLeft--; return true;
+  }
+  segmentsLeft(){ return this.units.filter(u=>u.alive).reduce((a,u)=>a+u.hp,0); }
+}
+
+/* =============== Pollinations Text Client =============== */
+async function pollinationsAIPlan({model, ap, fog, lastHits, lastMisses, jamMap}){
+  // fog: 10x10 with U/H/M (unknown/hit/miss). jamMap: boolean 10x10
+  const sys = "You are an enemy commander in a 10x10 hidden-information grid battle. Return ONLY a compact JSON array of actions for this turn. No prose.";
+  const schema = `
+Rules:
+- Coordinates are 0-based integers: x in [0,9], y in [0,9].
+- Return at most ${CFG.AP_PER_TURN} actions.
+- Allowed actions:
+  {"type":"attack","x":int,"y":int}
+  {"type":"scan","x":int,"y":int}  // scans 3x3 centered at (x,y)
+- Prefer 1 scan if many Unknown cells remain; bias attacks near recent hits.
+- Avoid tiles already Hit or Miss. Avoid jammed areas for scans if possible.
+- Output strictly JSON, e.g. [{"type":"scan","x":5,"y":5},{"type":"attack","x":5,"y":6}]
+  `;
+  const msg = [
+    {role:"system", content: sys},
+    {role:"user", content:
+`ap=${ap}
+fog=${JSON.stringify(fog)}
+jam=${JSON.stringify(jamMap)}
+recentHits=${JSON.stringify(lastHits.slice(-4))}
+recentMisses=${JSON.stringify(lastMisses.slice(-4))}
+${schema}`}
+  ];
+
+  const payload = {
+    model,
+    temperature: CFG.POLLINATIONS.temperature,
+    max_tokens: CFG.POLLINATIONS.maxTokens,
+    messages: msg,
+    stream: false
+  };
+
+  // retry with backoff for the anonymous rate limits
+  let tries=0, delay=800;
+  while(tries<3){
+    try{
+      const resp = await fetch(CFG.POLLINATIONS.textEndpoint, {
+        method:"POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify(payload)
+      });
+      if(!resp.ok){
+        if(resp.status===429){ await sleep(delay); delay*=2; tries++; continue; }
+        throw new Error(`Pollinations error ${resp.status}`);
+      }
+      const data = await resp.json();
+      const text = data?.choices?.[0]?.message?.content?.trim() || "[]";
+      // extract JSON robustly
+      const jsonText = text.startsWith('[') ? text : (text.match(/\[[\s\S]*\]/)?.[0] || "[]");
+      const plan = JSON.parse(jsonText);
+      return Array.isArray(plan) ? plan : [];
+    }catch(e){
+      tries++; await sleep(delay); delay*=2;
+    }
+  }
+  // give up -> empty list (caller will fallback)
+  return [];
+}
+
+/* =============== Simple fallback AI (only used when Pollinations fails for that turn) =============== */
+class HeuristicAI{
+  constructor(enemyFog){ this.fog=enemyFog; this.queue=[]; }
+  huntCell(){
+    let best=-1, pick={x:0,y:0};
+    for(let y=0;y<10;y++)for(let x=0;x<10;x++){
+      const c=this.fog.cell(x,y); if(c.hit||c.miss) continue;
+      const score=((x+y)%2===0?2:1) + (c.jam?-2:0);
+      if(score>best){ best=score; pick={x,y}; }
+    } return pick;
+  }
+  pushTargets(x,y){
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{
+      const nx=x+dx, ny=y+dy;
+      if(nx>=0&&ny>=0&&nx<10&&ny<10){
+        const c=this.fog.cell(nx,ny); if(!c.hit && !c.miss) this.queue.push({x:nx,y:ny});
+      }
+    });
+  }
+  plan(ap){
+    const acts=[];
+    // one scan roughly center of largest unknown mass
+    if(ap>=1){
+      let best=-1,bx=1,by=1;
+      for(let y=1;y<9;y++)for(let x=1;x<9;x++){
+        let score=0;
+        for(let yy=y-1;yy<=y+1;yy++)for(let xx=x-1;xx<=x+1;xx++){
+          const c=this.fog.cell(xx,yy);
+          if(!c.hit && !c.miss) score++;
+          if(c.jam) score-=1;
+        }
+        if(score>best){ best=score; bx=x; by=y; }
+      }
+      acts.push({type:'scan',x:bx,y:by}); ap--;
+    }
+    while(ap>0){ 
+      const p = this.queue.length ? this.queue.shift() : this.huntCell();
+      acts.push({type:'attack',x:p.x,y:p.y}); ap--;
+    }
+    return acts;
+  }
+}
+
+/* =============== Game State =============== */
+const state={
+  phase:'placement',
+  turn:'survivors',
+  ap:CFG.AP_PER_TURN,
+  rot:0,
+  selectedAction:'attack',
+  placeSelect:null,
+  moving:{ uid:null, targets:[] },
+  killcam:CFG.KILL_CAM,
+
+  player:new Board(CFG.BOARD_SIZE),
+  ai:new Board(CFG.BOARD_SIZE),
+  aiFog:new Board(CFG.BOARD_SIZE),
+
+  lastHitsAI:[],    // AI hits against player (for story/plan)
+  lastMissesAI:[],
+  lastHitsYou:[],
+  lastMissesYou:[],
+
+  poolSurv:[],
+  heuristicAI:new HeuristicAI(null)
+};
+
+function makeUID(base,i,fac){ return `${base}_${i+1}_${fac}`; }
+function copyUnit(s,uid){ const u=JSON.parse(JSON.stringify(s)); u.uid=uid; return u; }
+function unitsFor(fac){
+  const out=[]; for(const spec of Object.values(UNITS)){ if(spec.faction!==fac) continue; for(let i=0;i<spec.count;i++){ out.push(copyUnit(spec, makeUID(spec.id,i,fac))); } } return out;
+}
+
+/* =============== UI Builders =============== */
+function buildGrid(){
+  gridEl.innerHTML=""; effEl.innerHTML="";
+  gridEl.style.gridTemplateColumns=`repeat(${CFG.BOARD_SIZE},1fr)`;
+  effEl.style.gridTemplateColumns=`repeat(${CFG.BOARD_SIZE},1fr)`;
+  for(let y=0;y<CFG.BOARD_SIZE;y++)for(let x=0;x<CFG.BOARD_SIZE;x++){
+    const c=document.createElement('div'); c.className='cell own'; c.dataset.x=x; c.dataset.y=y; gridEl.appendChild(c);
+    const fx=document.createElement('div'); fx.className='fx'; fx.dataset.x=x; fx.dataset.y=y; effEl.appendChild(fx);
+  }
+}
+function renderGrid(){
+  for(const el of gridEl.children){
+    const x=+el.dataset.x, y=+el.dataset.y; const c=state.player.cell(x,y);
+    el.className='cell own';
+    if(c.shipId) el.classList.add('ship');
+    if(c.hit) el.classList.add('hit'); else if(c.miss) el.classList.add('miss');
+    if(c.jam) el.classList.add('jammed');
+  }
+}
+function cardMarkup(u, remaining){
+  const promptKey = u.prompt || (u.faction===FACTIONS.SURV?'survivors':'ai');
+  const img = imgURL(CFG.POLLINATIONS.prompts[promptKey]);
+  const cdDots = u.cooldown? Array.from({length:u.cooldown},()=>`<span class="pip"></span>`).join('') : '';
+  return `
+    <div class="thumb" style="background-image:url('${img}')"></div>
+    <div class="row">
+      <div><div class="name">${u.label}</div><div class="meta">Size ${u.size}${u.movable?` • Moves ${u.maxMoves}`:''}</div></div>
+      <div style="display:flex; align-items:center; gap:8px">
+        ${u.cooldown? `<div class="cd">${cdDots}</div>`:''}
+        <div class="count">${remaining}</div>
+      </div>
+    </div>`;
+}
+function renderCards(){
+  cardsEl.innerHTML="";
+  for(const entry of state.poolSurv){
+    const card=document.createElement('div');
+    card.className='card';
+    card.dataset.uid=entry.uid;
+    card.innerHTML = cardMarkup(entry, entry.remaining);
+    if(state.placeSelect===entry.uid) card.classList.add('active');
+    card.onclick=()=>{
+      if(state.phase!=='placement') return;
+      if(entry.remaining<=0){ log(`${entry.label}: none left to place.`); return; }
+      state.placeSelect=entry.uid; renderCards();
+    };
+    cardsEl.appendChild(card);
+  }
+}
+function setButtonsActive(){
+  const map={attack:'#attackBtn',scan:'#scanBtn',jam:'#jamBtn',move:'#moveBtn',repair:'#repairBtn'};
+  for(const [act,sel] of Object.entries(map)){ const el=$(sel); if(state.selectedAction===act) el.classList.add('btn-active'); else el.classList.remove('btn-active'); }
+  apHud.textContent=`AP: ${state.ap}`;
+  ap1.classList.toggle('live',state.ap>=1); ap2.classList.toggle('live',state.ap>=2);
+  phaseLabel.textContent = state.phase==='placement' ? 'Place Units' : (state.turn==='survivors' ? 'Your Turn' : 'AI Turn');
+  turnChip.textContent   = state.phase==='placement' ? 'Placement Phase' : (state.turn==='survivors' ? 'Your Turn' : 'AI Turn');
+}
+
+/* =============== Init/Reset =============== */
+function resetGame(){
+  state.phase='placement'; state.turn='survivors'; state.ap=CFG.AP_PER_TURN; state.rot=0;
+  state.selectedAction='attack'; state.placeSelect=null; state.moving={uid:null,targets:[]}; state.killcam=$("#killcamToggle").checked;
+
+  state.player=new Board(CFG.BOARD_SIZE); state.ai=new Board(CFG.BOARD_SIZE); state.aiFog=new Board(CFG.BOARD_SIZE);
+  state.heuristicAI = new HeuristicAI(state.aiFog);
+
+  state.lastHitsAI=[]; state.lastMissesAI=[]; state.lastHitsYou=[]; state.lastMissesYou=[];
+
+  state.poolSurv = unitsFor(FACTIONS.SURV).map(u=>({ ...u, remaining:1 }));
+
+  // Place AI units randomly
+  for(const u of unitsFor(FACTIONS.AI)){
+    let placed=false, guard=0;
+    while(!placed && guard<500){
+      const rot=Math.random()<.5?0:1; const maxX=CFG.BOARD_SIZE-(rot?1:u.size); const maxY=CFG.BOARD_SIZE-(rot?u.size:1);
+      const x=Math.floor(Math.random()*maxX), y=Math.floor(Math.random()*maxY);
+      placed = state.ai.place(copyUnit(u,u.uid),x,y,rot); guard++;
+    }
+  }
+
+  buildGrid(); renderGrid(); renderCards(); setButtonsActive();
+  log("Select a unit card, hover for green/red preview, click to place. Press R to rotate. When everything is placed, play begins.");
+  if(CFG.USE_BG_ART) setBG('survivors');
+}
+
+/* =============== Placement UX =============== */
+function previewClear(){ for(const el of gridEl.children){ el.classList.remove('preview-ok','preview-bad'); } }
+function previewAt(x,y){
+  previewClear();
+  const entry = state.poolSurv.find(u=>u.uid===state.placeSelect); if(!entry) return;
+  const size=entry.size, rot=state.rot;
+  let ok=true;
+  for(let i=0;i<size;i++){
+    const cx=x+(rot?0:i), cy=y+(rot?i:0);
+    const el=gridEl.children[cellIndex(cx,cy)];
+    if(!el){ ok=false; continue; }
+    const inb = cx>=0&&cy>=0&&cx<CFG.BOARD_SIZE&&cy<CFG.BOARD_SIZE;
+    const cell = inb? state.player.cell(cx,cy):null;
+    const free = inb && !cell.shipId;
+    el.classList.add(free?'preview-ok':'preview-bad'); if(!free) ok=false;
+  }
+  return ok;
+}
+gridEl.addEventListener('mousemove', e=>{
+  if(state.phase!=='placement') return;
+  const t=e.target.closest('.cell'); if(!t) return; previewAt(+t.dataset.x,+t.dataset.y);
+});
+gridEl.addEventListener('mouseleave', previewClear);
+
+gridEl.addEventListener('click', async (e)=>{
+  const t=e.target.closest('.cell'); if(!t) return;
+  const x=+t.dataset.x, y=+t.dataset.y;
+
+  if(state.phase==='placement'){
+    const entry = state.poolSurv.find(u=>u.uid===state.placeSelect);
+    if(!entry){ log("Pick a unit card on the right, then place."); return; }
+    const ok = state.player.canPlace(entry.size,x,y,state.rot);
+    if(!ok){ log("Blocked there."); return; }
+    state.player.place(copyUnit(entry,entry.uid),x,y,state.rot);
+    entry.remaining--; if(entry.remaining<=0){ state.placeSelect=null; }
+    renderGrid(); renderCards(); previewClear();
+    const left=state.poolSurv.reduce((a,u)=>a+u.remaining,0);
+    if(left===0){ state.phase='play'; setButtonsActive(); log("All placed. You have 2 AP per turn. Choose an action and click the grid. End Turn when done."); }
+    return;
+  }
+
+  if(state.phase==='play' && state.turn==='survivors'){
+    if(state.ap<=0){ log("No AP left. End Turn."); return; }
+    const act=state.selectedAction;
+
+    if(act==='move'){
+      if(!state.moving.uid){
+        const c=state.player.cell(x,y); if(!c.shipId){ log("Click a Scout Convoy tile to move."); return; }
+        const u=state.player.units.find(u=>u.uid===c.shipId && u.movable && u.alive);
+        if(!u){ log("That unit cannot move."); return; }
+        if(u.movesLeft<=0){ log("No moves left for this Scout."); return; }
+        state.moving.uid=u.uid; state.moving.targets=[];
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{
+          const tx=u.coords[0].x+dx, ty=u.coords[0].y+dy;
+          const ncoords=u.coords.map(p=>({x:p.x+dx,y:p.y+dy}));
+          const ok = ncoords.every(p=> state.player.in(p.x,p.y) && (!state.player.cell(p.x,p.y).shipId || state.player.cell(p.x,p.y).shipId===u.uid) );
+          if(ok){ state.moving.targets.push({x:tx,y:ty}); gridEl.children[cellIndex(tx,ty)].classList.add('preview-ok'); }
+        });
+        log("Select a highlighted cell to confirm the move.");
+        return;
+      } else {
+        const hit = state.moving.targets.some(p=>p.x===x&&p.y===y);
+        if(!hit){ log("Pick one of the highlighted targets."); return; }
+        if(state.ap<1){ log("Not enough AP."); return; }
+        state.ap--; setButtonsActive();
+        const moved = state.player.moveUnit(state.moving.uid,x,y);
+        previewClear(); state.moving={uid:null,targets:[]};
+        if(moved){ log("Scout Convoy repositioned."); renderGrid(); } else { log("Move blocked."); state.ap++; setButtonsActive(); }
+        return;
+      }
+    }
+
+    if(act==='attack'){ if(await actAttack(x,y)){} return; }
+    if(act==='scan'){ if(await actScan(x,y)){} return; }
+    if(act==='jam'){ if(await actJam(x,y)){} return; }
+    if(act==='repair'){ if(await actRepair(x,y)){} return; }
+  }
+});
+
+/* =============== Effects =============== */
+function fxCells(type, cells){
+  for(const {x,y} of cells){
+    const fx=effEl.children[cellIndex(x,y)]; fx.className='fx '+type; fx.classList.add('show');
+    setTimeout(()=>fx.classList.remove('show'), CFG.FX_TIME);
+  }
+}
+function fxOne(type, x,y){ fxCells(type,[{x,y}]); }
+
+/* =============== Player Actions =============== */
+async function actAttack(x,y){
+  if(state.ap<1){ log("Not enough AP."); return false; }
+  const res=state.ai.receiveAttack(x,y);
+  if(!res.valid){ log("Already targeted."); return false; }
+  state.ap--; setButtonsActive();
+  fxOne(res.hit?'hit':'miss', x,y);
+  if(res.hit){ state.lastHitsYou.push({x,y}); } else { state.lastMissesYou.push({x,y}); }
+  log(`Attack ${String.fromCharCode(65+y)}${x+1}: ${res.hit?'HIT':'miss'}`);
+  if(res.hit && res.sunk && state.killcam) log(`${res.unit.label} destroyed.`);
+  if(checkWin()) return true;
+  return true;
+}
+async function actScan(x,y){
+  if(state.ap<1){ log("Not enough AP."); return false; }
+  state.ap--; setButtonsActive();
+  const out=state.ai.scan3(x,y);
+  fxCells('scan', out.cells);
+  log(`Scan ${String.fromCharCode(65+y)}${x+1}: ${out.count} signatures detected.`);
+  return true;
+}
+async function actJam(x,y){
+  if(state.ap<1){ log("Not enough AP."); return false; }
+  state.ap--; setButtonsActive();
+  const cells=state.ai.jam3(x,y,2);
+  fxCells('jam', cells);
+  log(`Jam ${String.fromCharCode(65+y)}${x+1}: area disrupted.`);
+  return true;
+}
+async function actRepair(x,y){
+  if(state.ap<1){ log("Not enough AP."); return false; }
+  let fixed=null;
+  for(let yy=y-1;yy<=y+1;yy++)for(let xx=x-1;xx<=x+1;xx++)if(state.player.in(xx,yy)){
+    const c=state.player.cell(xx,yy); if(c.shipId && c.hit){ c.hit=false; const u=state.player.units.find(u=>u.uid===c.shipId); u.hp=clamp(u.hp+1,0,u.size); fixed={xx,yy}; break; }
+  }
+  if(fixed){
+    state.ap--; setButtonsActive();
+    fxCells('repair', [{x:fixed.xx,y:fixed.yy}]);
+    renderGrid(); log(`Repair near ${String.fromCharCode(65+y)}${x+1}: restored.`);
+    return true;
+  } else { log("No damage here to repair."); return false; }
+}
+
+/* =============== Turn Flow =============== */
+function checkWin(){
+  const you=state.player.segmentsLeft(), ai=state.ai.segmentsLeft();
+  if(ai<=0 && you<=0){ log("Tie: both destroyed."); return true; }
+  if(ai<=0){ log("You win!"); return true; }
+  if(you<=0){ log("Defeat."); return true; }
+  return false;
+}
+
+function buildFogSnapshot(){
+  // U/H/M map and jam map for the AI prompt
+  const fog=[], jam=[];
+  for(let y=0;y<10;y++){
+    const row=[], jrow=[];
+    for(let x=0;x<10;x++){
+      const c=state.player.cell(x,y);
+      row.push(c.hit?'H':(c.miss?'M':'U'));
+      jrow.push(!!c.jam);
+    }
+    fog.push(row); jam.push(jrow);
+  }
+  return {fog, jam};
+}
+
+async function endTurn(){
+  if(state.phase!=='play') return;
+  state.player.tick(); state.ai.tick();
+  state.turn='ai'; state.ap=CFG.AP_PER_TURN; setButtonsActive();
+  aiOverlay.classList.add('show'); log("AI (Pollinations) is planning…");
+
+  // Build prompt & call Pollinations
+  const snap = buildFogSnapshot();
+  const plan = await pollinationsAIPlan({
+    model: CFG.POLLINATIONS.model,
+    ap: CFG.AP_PER_TURN,
+    fog: snap.fog,
+    jamMap: snap.jam,
+    lastHits: state.lastHitsAI,
+    lastMisses: state.lastMissesAI
+  });
+
+  let actions = plan;
+  if(!actions.length){
+    log("Pollinations unavailable this turn — using backup logic.");
+    actions = state.heuristicAI.plan(CFG.AP_PER_TURN);
+  }
+
+  // Execute with readable pacing
+  for(const act of actions.slice(0,CFG.AP_PER_TURN)){
+    await sleep(CFG.AI_STEP_DELAY);
+    if(act.type==='scan'){
+      const out=state.player.scan3(act.x,act.y);
+      fxCells('scan', out.cells);
+      log(`AI scans a sector: ${out.count} signatures.`);
+    } else if(act.type==='attack'){
+      const res=state.player.receiveAttack(act.x,act.y);
+      if(!res.valid){
+        // find a fresh target quickly
+        let nx=0,ny=0, found=false;
+        for(let y=0;y<10 && !found;y++)for(let x=0;x<10 && !found;x++){
+          const c=state.player.cell(x,y); if(!c.hit && !c.miss){ nx=x; ny=y; found=true; }
+        }
+        const res2=state.player.receiveAttack(nx,ny);
+        fxOne(res2.hit?'hit':'miss', nx,ny);
+        if(res2.hit){ state.lastHitsAI.push({x:nx,y:ny}); } else { state.lastMissesAI.push({x:nx,y:ny}); }
+        log(`AI attacks ${String.fromCharCode(65+ny)}${nx+1}: ${res2.hit?'HIT':'miss'}`);
+        if(res2.hit && res2.sunk && state.killcam) log(`${res2.unit.label} destroyed!`);
+      } else {
+        fxOne(res.hit?'hit':'miss', act.x,act.y);
+        if(res.hit){ state.lastHitsAI.push({x:act.x,y:act.y}); } else { state.lastMissesAI.push({x:act.x,y:act.y}); }
+        log(`AI attacks ${String.fromCharCode(65+act.y)}${act.x+1}: ${res.hit?'HIT':'miss'}`);
+        if(res.hit && res.sunk && state.killcam) log(`${res.unit.label} destroyed!`);
+      }
+      renderGrid();
+      if(checkWin()){ aiOverlay.classList.remove('show'); return; }
+    }
+  }
+
+  await sleep(CFG.AI_OVERLAY_HOLD);
+  aiOverlay.classList.remove('show');
+  state.turn='survivors'; state.ap=CFG.AP_PER_TURN; setButtonsActive(); renderGrid(); log("Your turn.");
+}
+
+/* =============== Wire Controls =============== */
+$("#attackBtn").onclick=()=>{ state.selectedAction='attack'; state.moving={uid:null,targets:[]}; setButtonsActive(); };
+$("#scanBtn").onclick=()=>{ state.selectedAction='scan'; state.moving={uid:null,targets:[]}; setButtonsActive(); };
+$("#jamBtn").onclick =()=>{ state.selectedAction='jam';  state.moving={uid:null,targets:[]}; setButtonsActive(); };
+$("#moveBtn").onclick=()=>{ state.selectedAction='move'; state.moving={uid:null,targets:[]}; setButtonsActive(); };
+$("#repairBtn").onclick=()=>{ state.selectedAction='repair'; state.moving={uid:null,targets:[]}; setButtonsActive(); };
+$("#endTurnBtn").onclick=endTurn;
+$("#resetBtn").onclick=()=>{ resetGame(); log("Reset."); };
+
+$("#bgToggle").onchange=e=>{ CFG.USE_BG_ART=e.target.checked; if(CFG.USE_BG_ART){ setBG(state.turn==='ai'?'ai':'survivors'); bgArt.style.opacity=.12; } else { bgArt.style.opacity=0; } };
+$("#modelSelect").onchange=e=>{ CFG.POLLINATIONS.model=e.target.value; log(`Enemy model: ${CFG.POLLINATIONS.model}`); };
+
+document.addEventListener('keydown', e=>{
+  if(e.key==='r' || e.key==='R'){ if(state.phase==='placement'){ state.rot=state.rot?0:1; log(`Rotation: ${state.rot? 'Vertical':'Horizontal'}`); } }
+  if(e.key==='Escape'){ if(state.phase==='placement'){ state.placeSelect=null; renderCards(); previewClear(); } state.moving={uid:null,targets:[]}; previewClear(); }
+});
+
+/* =============== Boot =============== */
+resetGame();
+</script>
+</body>
+</html>
