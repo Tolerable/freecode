@@ -115,6 +115,7 @@
   .unit-card.active{border-color:var(--surv);background:rgba(59,130,246,.15);box-shadow:0 0 8px rgba(59,130,246,.3)}
   .unit-card.placed{opacity:.5;cursor:not-allowed}
   .unit-thumb{width:100%;height:100px;background:rgba(255,255,255,.03) center/cover no-repeat;border-bottom:1px solid rgba(255,255,255,.08);position:relative}
+  .unit-thumb.loading::after{content:'⏳';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(0,0,0,.3)}
   .unit-info{padding:8px 10px}
   .unit-name{font-weight:700;font-size:12px;margin-bottom:3px}
   .unit-meta{font-size:10px;color:var(--muted);margin-bottom:4px}
@@ -300,7 +301,7 @@
   <div class="modal fleet-modal" id="fleetModal">
     <div class="modal-content" onclick="event.stopPropagation()">
       <div class="modal-title">🎯 ENEMY FLEET</div>
-      <div class="modal-message">Track enemy unit status</div>
+      <div class="modal-message">Track enemy ship status</div>
       <div class="fleet-grid" id="fleetGrid"></div>
       <button class="btn btn-ghost" onclick="closeFleetModal()" style="margin-top:20px">CLOSE</button>
     </div>
@@ -308,8 +309,8 @@
 
   <!-- Action Popup -->
   <div class="action-popup" id="actionPopup">
-    <div class="action-popup-title" id="actionPopupTitle">UNIT DESTROYED!</div>
-    <div class="action-popup-subtitle" id="actionPopupSubtitle">Enemy Hunter Drone</div>
+    <div class="action-popup-title" id="actionPopupTitle">SHIP DESTROYED!</div>
+    <div class="action-popup-subtitle" id="actionPopupSubtitle">Enemy Destroyer</div>
     <div class="action-popup-hint">Click to continue</div>
   </div>
 </div>
@@ -326,37 +327,22 @@ const CFG = {
   POINTS: { HIT: 10, SINK: 50, WIN: 200 },
   POLLINATIONS_URL: "https://text.pollinations.ai/openai",
   POLLINATIONS_IMAGE: "https://image.pollinations.ai/prompt/",
-  IMAGE_RETRY_DELAY: 2000,
-  IMAGE_MAX_RETRIES: 5
+  IMAGE_RETRY_DELAY: 3000,
+  IMAGE_MAX_RETRIES: 3,
+  IMAGE_PROMPTS: {
+    destroyer: "sleek military destroyer ship, tactical grid HUD, neon blue lights, cinematic warfare, 16:9",
+    cruiser: "armored cruiser warship, advanced radar systems, neon blue HUD, dramatic lighting, epic scale, 16:9",
+    battleship: "massive battleship with heavy artillery, tactical command interface, neon blue accents, cinematic, 16:9",
+    carrier: "aircraft carrier flagship, flight deck operations, neon blue holographic displays, epic scale, wide shot, 16:9"
+  }
 };
 
 // ============ UNIT DEFINITIONS ============
-const SURVIVOR_UNITS = {
-  SCOUT: { id: 'survivor_scout', size: 2, count: 2, name: 'Scout Buggy' },
-  TANK: { id: 'survivor_tank', size: 3, count: 2, name: 'Heavy Tank' },
-  ARTILLERY: { id: 'survivor_artillery', size: 4, count: 1, name: 'Artillery Truck' },
-  GUNSHIP: { id: 'survivor_gunship', size: 5, count: 1, name: 'Gunship Heli' }
-};
-
-const AI_UNITS = {
-  DRONE: { id: 'ai_drone', size: 2, count: 2, name: 'Hunter Drone' },
-  WALKER: { id: 'ai_walker', size: 3, count: 2, name: 'War Walker' },
-  TANK: { id: 'ai_tank', size: 4, count: 1, name: 'Assault Tank' },
-  FORTRESS: { id: 'ai_fortress', size: 5, count: 1, name: 'Mobile Fortress' }
-};
-
-const IMAGE_PROMPTS = {
-  // Survivor units - makeshift, salvaged, scrappy vehicles
-  survivor_scout: "post-apocalyptic scout buggy, welded armor plates, mounted gun, desert wasteland, survival vehicle, cinematic lighting, 16:9",
-  survivor_tank: "heavy salvaged tank, patchwork armor, improvised weapons, human resistance, gritty realistic, battle-worn, 16:9",
-  survivor_artillery: "artillery truck, makeshift missile launcher, survival tech, post-apocalyptic military, dramatic sky, wide shot, 16:9",
-  survivor_gunship: "combat helicopter gunship, military grade, armed with rockets, tactical warfare, dramatic aerial shot, 16:9",
-  
-  // AI units - sleek, advanced, autonomous machines
-  ai_drone: "autonomous hunter drone, sleek metallic design, red glowing sensors, futuristic AI war machine, hovering, menacing, 16:9",
-  ai_walker: "bipedal war walker mech, advanced AI technology, glowing red optics, autonomous combat robot, intimidating, 16:9",
-  ai_tank: "AI assault tank, autonomous armored vehicle, angular design, red LED lights, advanced targeting systems, dark atmosphere, 16:9",
-  ai_fortress: "massive mobile AI fortress, autonomous command vehicle, multiple weapon systems, ominous red glow, epic scale, 16:9"
+const UNITS = {
+  DESTROYER: { id: 'destroyer', size: 2, count: 2, name: 'Destroyer' },
+  CRUISER: { id: 'cruiser', size: 3, count: 2, name: 'Cruiser' },
+  BATTLESHIP: { id: 'battleship', size: 4, count: 1, name: 'Battleship' },
+  CARRIER: { id: 'carrier', size: 5, count: 1, name: 'Carrier' }
 };
 
 // ============ IMAGE CACHE ============
@@ -426,46 +412,34 @@ function sleep(ms) {
 }
 
 // ============ IMAGE HANDLING WITH RETRY ============
-function getImageURL(unitId) {
-  const prompt = IMAGE_PROMPTS[unitId] || IMAGE_PROMPTS.survivor_scout;
+function getImageURL(unitType) {
+  const baseType = unitType.split('_')[0];
+  const prompt = CFG.IMAGE_PROMPTS[baseType] || CFG.IMAGE_PROMPTS.destroyer;
   const encoded = encodeURIComponent(prompt);
-  return `${CFG.POLLINATIONS_IMAGE}${encoded}?width=1280&height=720&model=flux&seed=${unitId.split('_').join('').charCodeAt(0) * 42}&nologo=true`;
+  return `${CFG.POLLINATIONS_IMAGE}${encoded}?width=1280&height=720&model=flux&seed=${baseType.charCodeAt(0) * 42}&nologo=true`;
 }
 
-function preloadImage(unitId) {
-  if (imageCache[unitId]) {
-    console.log(`✓ Already cached: ${unitId}`);
-    return Promise.resolve(imageCache[unitId]);
-  }
+function preloadImage(unitType) {
+  const baseType = unitType.split('_')[0];
+  if (imageCache[baseType]) return Promise.resolve(imageCache[baseType]);
   
   return new Promise((resolve) => {
-    const url = getImageURL(unitId);
-    console.log(`⏳ Starting load: ${unitId}`);
-    
+    const url = getImageURL(baseType);
     const img = new Image();
     let retryCount = 0;
     
     const tryLoad = () => {
-      const startTime = Date.now();
-      
       img.onload = () => {
-        const loadTime = Date.now() - startTime;
-        imageCache[unitId] = url;
-        console.log(`✓ Loaded: ${unitId} (${loadTime}ms)`);
+        imageCache[baseType] = url;
         resolve(url);
       };
       
-      img.onerror = (e) => {
-        const loadTime = Date.now() - startTime;
+      img.onerror = () => {
         retryCount++;
-        console.log(`✗ Failed ${unitId} (attempt ${retryCount}/${CFG.IMAGE_MAX_RETRIES}, ${loadTime}ms)`);
-        
         if (retryCount < CFG.IMAGE_MAX_RETRIES) {
-          console.log(`   Retrying in ${CFG.IMAGE_RETRY_DELAY}ms...`);
           setTimeout(tryLoad, CFG.IMAGE_RETRY_DELAY);
         } else {
-          console.log(`   Giving up on ${unitId}`);
-          imageCache[unitId] = url;
+          // Fallback: resolve with URL anyway (will show loading state)
           resolve(url);
         }
       };
@@ -478,24 +452,9 @@ function preloadImage(unitId) {
 }
 
 async function preloadAllImages() {
-  const types = Object.keys(IMAGE_PROMPTS);
-  const BATCH_SIZE = 2;
-  const BATCH_DELAY = 2000;
-  
-  for (let i = 0; i < types.length; i += BATCH_SIZE) {
-    const batch = types.slice(i, i + BATCH_SIZE);
-    console.log(`Loading batch ${Math.floor(i/BATCH_SIZE) + 1}: ${batch.join(', ')}`);
-    
-    await Promise.all(batch.map(type => preloadImage(type)));
-    
-    console.log(`✓ Batch ${Math.floor(i/BATCH_SIZE) + 1} complete`);
-    
-    if (i + BATCH_SIZE < types.length) {
-      await sleep(BATCH_DELAY);
-    }
-  }
-  
-  console.log('🎉 All images loaded!');
+  const types = Object.keys(CFG.IMAGE_PROMPTS);
+  const promises = types.map(type => preloadImage(type));
+  await Promise.all(promises);
 }
 
 // ============ ACTION POPUP ============
@@ -520,12 +479,9 @@ function showActionPopup(title, subtitle) {
 // ============ INTRO STORY ============
 function showIntro() {
   $('#introModal').classList.add('show');
-  
-  preloadAllImages();
-  
   setTimeout(() => {
     skipIntro();
-  }, 32000);
+  }, 32000); // Auto-skip after story
 }
 
 function skipIntro() {
@@ -540,7 +496,8 @@ function showFleetModal() {
   grid.innerHTML = '';
   
   state.enemyUnits.forEach(unit => {
-    const imageUrl = imageCache[unit.id] || getImageURL(unit.id);
+    const baseType = unit.id.split('_')[0];
+    const imageUrl = imageCache[baseType] || getImageURL(baseType);
     const destroyed = unit.hp <= 0;
     
     const card = document.createElement('div');
@@ -637,10 +594,12 @@ function renderUnits() {
       if (unit.placed) card.classList.add('placed');
       if (state.placingUnit === idx) card.classList.add('active');
       
-      const imageUrl = imageCache[unit.id] || getImageURL(unit.id);
+      const baseType = unit.id.split('_')[0];
+      const imageUrl = imageCache[baseType] || getImageURL(baseType);
+      const loading = !imageCache[baseType];
       
       card.innerHTML = `
-        <div class="unit-thumb" style="background-image:url('${imageUrl}')"></div>
+        <div class="unit-thumb ${loading ? 'loading' : ''}" style="background-image:url('${imageUrl}')"></div>
         <div class="unit-info">
           <div class="unit-name">${unit.name}</div>
           <div class="unit-meta">Size: ${unit.size} cells</div>
@@ -664,7 +623,8 @@ function renderUnits() {
       const card = document.createElement('div');
       card.className = 'unit-card placed';
       const hpPercent = (unit.hp / unit.size * 100).toFixed(0);
-      const imageUrl = imageCache[unit.id] || getImageURL(unit.id);
+      const baseType = unit.id.split('_')[0];
+      const imageUrl = imageCache[baseType] || getImageURL(baseType);
       
       card.innerHTML = `
         <div class="unit-thumb" style="background-image:url('${imageUrl}')"></div>
@@ -844,7 +804,7 @@ async function getAITargets() {
   const priority = recentHits.length > 0 ? recentHits.slice(0, 3) : 
                    untargeted.sort(() => Math.random() - 0.5).slice(0, 3);
   
-  const prompt = `Tactical AI: Pick 2 actions from these targets:
+  const prompt = `Battleship AI: Pick 2 actions from these targets:
 ${priority.map((t, i) => `${i+1}. (${t.x},${t.y})`).join('\n')}
 ${recentHits.length > 0 ? 'Strategy: Follow up hits!' : 'Strategy: Hunt mode.'}
 
@@ -857,7 +817,7 @@ Return JSON: [{"action":"attack","target":1},{"action":"attack","target":2}]`;
       body: JSON.stringify({
         model: "openai",
         messages: [
-          { role: "system", content: "Tactical AI. JSON only." },
+          { role: "system", content: "Battleship AI. JSON only." },
           { role: "user", content: prompt }
         ]
       })
@@ -905,11 +865,11 @@ async function executeAITurn() {
     if (result.valid) {
       if (result.hit) {
         state.enemyScore += CFG.POINTS.HIT;
-        log(`💥 Enemy HIT your unit at (${action.x},${action.y})!`, 'important');
+        log(`💥 Enemy HIT your ship at (${action.x},${action.y})!`, 'important');
         if (result.sunk) {
           state.enemyScore += CFG.POINTS.SINK;
           log(`🔥 Enemy DESTROYED your ${result.unitName}!`, 'important');
-          showActionPopup('UNIT DESTROYED!', `Your ${result.unitName} was destroyed!`);
+          showActionPopup('SHIP DESTROYED!', `Your ${result.unitName} was destroyed!`);
           await sleep(2000);
         }
       } else {
@@ -943,7 +903,7 @@ function checkGameOver() {
   }
   
   if (enemyAlive === 0) {
-    endGame(true, 'You destroyed the enemy forces!');
+    endGame(true, 'You destroyed the enemy fleet!');
     return true;
   }
   
@@ -1028,7 +988,7 @@ $('#grid').addEventListener('click', async (e) => {
         if (result.sunk) {
           state.playerScore += CFG.POINTS.SINK;
           log(`🔥 DESTROYED enemy ${result.unitName}!`, 'hit');
-          showActionPopup('🔥 UNIT DESTROYED! 🔥', `Enemy ${result.unitName}`);
+          showActionPopup('🔥 SHIP DESTROYED! 🔥', `Enemy ${result.unitName}`);
         }
       } else {
         log(`💧 Miss at (${x},${y})`, 'miss');
@@ -1045,7 +1005,7 @@ $('#grid').addEventListener('click', async (e) => {
     } else if (state.selectedAction === 'scan') {
       const result = await scan(state.enemyBoard, x, y);
       state.ap--;
-      log(`📡 Scan detected ${result.count} unit(s) nearby!`, 'important');
+      log(`📡 Scan detected ${result.count} ship(s) nearby!`, 'important');
       updateUI();
     }
   }
@@ -1112,7 +1072,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 $$('.faction-btn').forEach(btn => {
-  btn.onclick = () => {
+  btn.onclick = async () => {
     if (state.phase !== 'faction_select') return;
     
     $$('.faction-btn').forEach(b => b.classList.remove('active'));
@@ -1120,6 +1080,9 @@ $$('.faction-btn').forEach(btn => {
     state.playerFaction = btn.dataset.faction;
     
     log(`⚡ ${state.playerFaction === 'survivors' ? 'Survivors' : 'AI Forces'} selected!`, 'important');
+    
+    // Preload images in background (don't wait)
+    preloadAllImages();
     
     startPlacement();
   };
@@ -1131,22 +1094,18 @@ function startPlacement() {
   state.placedCount = 0;
   state.placingUnit = null;
   
-  // Player gets their faction's units
-  const playerUnitDefs = state.playerFaction === 'survivors' ? SURVIVOR_UNITS : AI_UNITS;
-  const enemyUnitDefs = state.playerFaction === 'survivors' ? AI_UNITS : SURVIVOR_UNITS;
-  
   state.playerUnitsToPlace = [];
-  Object.values(playerUnitDefs).forEach(def => {
+  Object.values(UNITS).forEach(def => {
     for (let i = 0; i < def.count; i++) {
       state.playerUnitsToPlace.push({
         ...def,
+        id: `${def.id}_${i}`,
         placed: false
       });
     }
   });
   
-  // Enemy gets opposite faction's units
-  Object.values(enemyUnitDefs).forEach(def => {
+  Object.values(UNITS).forEach(def => {
     for (let i = 0; i < def.count; i++) {
       let placed = false;
       let attempts = 0;
@@ -1156,7 +1115,10 @@ function startPlacement() {
         const rot = Math.random() < 0.5;
         
         if (canPlaceUnit(state.enemyBoard, def, x, y, rot)) {
-          placeUnit(state.enemyBoard, state.enemyUnits, def, x, y, rot);
+          placeUnit(state.enemyBoard, state.enemyUnits, {
+            ...def,
+            id: `${def.id}_enemy_${i}`
+          }, x, y, rot);
           placed = true;
         }
         attempts++;
@@ -1167,7 +1129,7 @@ function startPlacement() {
   renderGrid();
   renderUnits();
   updateUI();
-  log('🛠️ Place your units! Select unit, then click grid.', 'important');
+  log('🛠️ Place your fleet! Select unit, then click grid.', 'important');
 }
 
 function resetGame() {
