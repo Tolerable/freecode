@@ -327,8 +327,8 @@ const CFG = {
   POINTS: { HIT: 10, SINK: 50, WIN: 200 },
   POLLINATIONS_URL: "https://text.pollinations.ai/openai",
   POLLINATIONS_IMAGE: "https://image.pollinations.ai/prompt/",
-  IMAGE_RETRY_DELAY: 3000,
-  IMAGE_MAX_RETRIES: 3,
+  IMAGE_RETRY_DELAY: 2000, // 2 seconds between retries
+  IMAGE_MAX_RETRIES: 5, // More retries
   IMAGE_PROMPTS: {
     destroyer: "sleek military destroyer ship, tactical grid HUD, neon blue lights, cinematic warfare, 16:9",
     cruiser: "armored cruiser warship, advanced radar systems, neon blue HUD, dramatic lighting, epic scale, 16:9",
@@ -421,25 +421,42 @@ function getImageURL(unitType) {
 
 function preloadImage(unitType) {
   const baseType = unitType.split('_')[0];
-  if (imageCache[baseType]) return Promise.resolve(imageCache[baseType]);
+  if (imageCache[baseType]) {
+    console.log(`✓ Already cached: ${baseType}`);
+    return Promise.resolve(imageCache[baseType]);
+  }
   
   return new Promise((resolve) => {
     const url = getImageURL(baseType);
+    console.log(`⏳ Starting load: ${baseType}`);
+    console.log(`   URL: ${url.substring(0, 100)}...`);
+    
     const img = new Image();
     let retryCount = 0;
     
     const tryLoad = () => {
+      const startTime = Date.now();
+      
       img.onload = () => {
+        const loadTime = Date.now() - startTime;
         imageCache[baseType] = url;
+        console.log(`✓ Loaded: ${baseType} (${loadTime}ms)`);
         resolve(url);
       };
       
-      img.onerror = () => {
+      img.onerror = (e) => {
+        const loadTime = Date.now() - startTime;
         retryCount++;
+        console.log(`✗ Failed ${baseType} (attempt ${retryCount}/${CFG.IMAGE_MAX_RETRIES}, ${loadTime}ms)`);
+        console.log(`   Error:`, e);
+        
         if (retryCount < CFG.IMAGE_MAX_RETRIES) {
+          console.log(`   Retrying in ${CFG.IMAGE_RETRY_DELAY}ms...`);
           setTimeout(tryLoad, CFG.IMAGE_RETRY_DELAY);
         } else {
-          // Fallback: resolve with URL anyway (will show loading state)
+          console.log(`   Giving up on ${baseType}`);
+          // Still resolve so we don't block
+          imageCache[baseType] = url; // Cache it anyway so we stop trying
           resolve(url);
         }
       };
@@ -453,8 +470,25 @@ function preloadImage(unitType) {
 
 async function preloadAllImages() {
   const types = Object.keys(CFG.IMAGE_PROMPTS);
-  const promises = types.map(type => preloadImage(type));
-  await Promise.all(promises);
+  const BATCH_SIZE = 2; // Reduced to 2 to be safer
+  const BATCH_DELAY = 2000; // 2 second delay between batches
+  
+  // Load in batches with delay between them
+  for (let i = 0; i < types.length; i += BATCH_SIZE) {
+    const batch = types.slice(i, i + BATCH_SIZE);
+    console.log(`Loading batch ${Math.floor(i/BATCH_SIZE) + 1}: ${batch.join(', ')}`);
+    
+    await Promise.all(batch.map(type => preloadImage(type)));
+    
+    console.log(`✓ Batch ${Math.floor(i/BATCH_SIZE) + 1} complete`);
+    
+    // Wait before next batch (except on last batch)
+    if (i + BATCH_SIZE < types.length) {
+      await sleep(BATCH_DELAY);
+    }
+  }
+  
+  console.log('🎉 All images loaded!');
 }
 
 // ============ ACTION POPUP ============
@@ -479,6 +513,10 @@ function showActionPopup(title, subtitle) {
 // ============ INTRO STORY ============
 function showIntro() {
   $('#introModal').classList.add('show');
+  
+  // Start loading images during intro!
+  preloadAllImages();
+  
   setTimeout(() => {
     skipIntro();
   }, 32000); // Auto-skip after story
@@ -1072,7 +1110,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 $$('.faction-btn').forEach(btn => {
-  btn.onclick = async () => {
+  btn.onclick = () => {
     if (state.phase !== 'faction_select') return;
     
     $$('.faction-btn').forEach(b => b.classList.remove('active'));
@@ -1080,9 +1118,6 @@ $$('.faction-btn').forEach(btn => {
     state.playerFaction = btn.dataset.faction;
     
     log(`⚡ ${state.playerFaction === 'survivors' ? 'Survivors' : 'AI Forces'} selected!`, 'important');
-    
-    // Preload images in background (don't wait)
-    preloadAllImages();
     
     startPlacement();
   };
