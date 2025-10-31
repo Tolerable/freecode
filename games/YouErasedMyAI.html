@@ -3,102 +3,148 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Tactical Grid Combat — AI Opponent</title>
+<title>⚡ Tactical Grid Combat</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0a0e1a; --panel:#151b2e; --ink:#e8f0ff; --muted:#8b9dc3;
     --surv:#3b82f6; --ai:#22c55e; --bad:#ef4444; --ok:#22c55e;
     --grid:#1a2237; --cell:#0f1624; --cellH:#1a2540;
-    --hit:#ef4444; --miss:#475569; --ship:#3b82f6;
+    --hit:#ef4444; --miss:#475569; --ship:#3b82f6; --scan:#8b5cf6;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;background:linear-gradient(135deg,#0a0e1a 0%,#151b2e 100%);color:var(--ink);font-family:Inter,system-ui,sans-serif;overflow:hidden}
   
-  .app{height:100vh;width:100vw;display:flex;flex-direction:column}
+  .app{height:100vh;width:100vw;display:flex;flex-direction:column;position:relative}
   
   /* Top bar */
-  .topbar{height:70px;background:rgba(15,20,35,.95);border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 24px;gap:20px}
-  .logo{font-size:20px;font-weight:800;letter-spacing:.5px;color:var(--surv)}
+  .topbar{height:60px;background:rgba(15,20,35,.95);border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 24px;gap:20px;position:relative;z-index:10}
+  .logo{font-size:18px;font-weight:800;letter-spacing:.5px;color:var(--surv)}
   .faction-pick{display:flex;gap:8px}
-  .faction-btn{padding:10px 18px;border-radius:8px;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:var(--ink);font-weight:700;cursor:pointer;transition:all .2s}
+  .faction-btn{padding:8px 16px;border-radius:8px;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:var(--ink);font-weight:700;cursor:pointer;transition:all .2s;font-size:13px}
   .faction-btn:hover{background:rgba(255,255,255,.1);transform:translateY(-1px)}
   .faction-btn.active{border-color:var(--surv);background:rgba(59,130,246,.2);box-shadow:0 0 12px rgba(59,130,246,.4)}
   .spacer{flex:1}
-  .score-panel{display:flex;gap:16px;align-items:center}
-  .stat{background:rgba(255,255,255,.06);padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.1);font-weight:700}
-  .stat .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-  .stat .value{font-size:18px;margin-top:2px}
+  .score-panel{display:flex;gap:14px;align-items:center}
+  .stat{background:rgba(255,255,255,.06);padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.1);font-weight:700}
+  .stat .label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .stat .value{font-size:16px;margin-top:2px}
   .ap-display{display:flex;gap:6px}
-  .ap-pip{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2)}
+  .ap-pip{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2);transition:all .3s}
   .ap-pip.active{background:var(--ok);border-color:var(--ok);box-shadow:0 0 8px var(--ok)}
   
+  /* AI Thinking Overlay - slides down from top */
+  .ai-overlay{position:absolute;top:60px;left:0;right:0;height:140px;background:linear-gradient(180deg,rgba(10,20,30,.98),rgba(10,20,30,.95));border-bottom:2px solid var(--ai);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transform:translateY(-140px);transition:transform .4s ease;z-index:9;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .ai-overlay.show{transform:translateY(0)}
+  .ai-title{font-size:20px;font-weight:800;color:var(--ai);letter-spacing:1px;text-transform:uppercase}
+  .ai-steps{display:flex;gap:16px;align-items:center}
+  .ai-step{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);opacity:.3;transition:all .3s}
+  .ai-step.active{opacity:1;border-color:var(--ai);background:rgba(34,197,94,.15);box-shadow:0 0 12px rgba(34,197,94,.3)}
+  .ai-step .icon{font-size:20px}
+  .ai-step .text{font-size:13px;font-weight:700}
+  .ai-action-log{font-size:14px;color:var(--muted);font-weight:600;min-height:20px}
+  
   /* Main game area */
-  .main{flex:1;display:grid;grid-template-columns:1fr 320px;gap:20px;padding:20px;overflow:hidden}
+  .main{flex:1;display:grid;grid-template-columns:1fr 280px;gap:16px;padding:16px;overflow:hidden}
   
   /* Board container */
-  .board-wrap{background:rgba(15,20,35,.7);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-  .board-header{padding:14px 18px;background:rgba(59,130,246,.12);border-bottom:1px solid rgba(255,255,255,.08);font-weight:800;display:flex;justify-content:space-between;align-items:center}
-  .phase-label{font-size:13px;color:var(--muted);font-weight:600}
-  .grid-container{flex:1;padding:16px;position:relative}
-  .grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;height:100%;width:100%;max-width:600px;margin:0 auto}
-  .cell{background:var(--cell);border:1px solid rgba(255,255,255,.06);border-radius:4px;cursor:pointer;transition:all .15s;position:relative;aspect-ratio:1}
+  .board-wrap{background:rgba(15,20,35,.7);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+  .board-header{padding:12px 18px;background:rgba(59,130,246,.12);border-bottom:1px solid rgba(255,255,255,.08);font-weight:800;display:flex;justify-content:space-between;align-items:center;font-size:14px}
+  .phase-label{font-size:12px;color:var(--muted);font-weight:600}
+  .grid-container{flex:1;padding:12px;position:relative;display:flex;align-items:center;justify-content:center}
+  .grid{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;width:100%;max-width:100%;height:100%;max-height:100%}
+  .cell{background:var(--cell);border:1px solid rgba(255,255,255,.06);border-radius:3px;cursor:pointer;transition:all .15s;position:relative;aspect-ratio:2/1;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden}
   .cell:hover{background:var(--cellH);border-color:rgba(255,255,255,.15)}
-  .cell.ship{background:linear-gradient(135deg,rgba(59,130,246,.25),rgba(59,130,246,.15));border-color:rgba(59,130,246,.4)}
-  .cell.hit{background:linear-gradient(135deg,rgba(239,68,68,.35),rgba(239,68,68,.2));border-color:rgba(239,68,68,.6)}
-  .cell.hit::after{content:'✕';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--hit);font-weight:800}
-  .cell.miss{background:rgba(71,85,105,.25);border-color:rgba(71,85,105,.4)}
-  .cell.miss::after{content:'○';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--miss);font-weight:600}
-  .cell.your-hit{background:linear-gradient(135deg,rgba(34,197,94,.35),rgba(34,197,94,.2));border-color:rgba(34,197,94,.6)}
-  .cell.your-hit::after{content:'✓';color:var(--ok)}
-  .cell.your-miss{background:rgba(100,116,139,.2);border-color:rgba(100,116,139,.35)}
-  .cell.preview-ok{outline:2px dashed var(--ok);background:rgba(34,197,94,.1)}
-  .cell.preview-bad{outline:2px dashed var(--bad);background:rgba(239,68,68,.1)}
+  .cell.ship{background:linear-gradient(135deg,rgba(59,130,246,.3),rgba(59,130,246,.15));border-color:rgba(59,130,246,.5);box-shadow:inset 0 0 8px rgba(59,130,246,.2)}
+  .cell.hit{background:linear-gradient(135deg,rgba(239,68,68,.4),rgba(239,68,68,.25));border-color:rgba(239,68,68,.7)}
+  .cell.hit::after{content:'💥';position:absolute;font-size:20px;animation:boom .6s ease-out}
+  .cell.miss{background:rgba(71,85,105,.3);border-color:rgba(71,85,105,.5)}
+  .cell.miss::after{content:'💧';position:absolute;font-size:16px;opacity:.7}
+  .cell.your-hit{background:linear-gradient(135deg,rgba(34,197,94,.4),rgba(34,197,94,.25));border-color:rgba(34,197,94,.7);box-shadow:inset 0 0 8px rgba(34,197,94,.3)}
+  .cell.your-hit::after{content:'🎯';font-size:18px}
+  .cell.your-miss{background:rgba(100,116,139,.25);border-color:rgba(100,116,139,.4)}
+  .cell.your-miss::after{content:'❌';font-size:14px;opacity:.5}
+  .cell.preview-ok{outline:2px dashed var(--ok);background:rgba(34,197,94,.15);animation:pulse 1s infinite}
+  .cell.preview-bad{outline:2px dashed var(--bad);background:rgba(239,68,68,.15)}
+  
+  /* Scan effect */
+  .cell.scan-glow{box-shadow:0 0 16px var(--scan),inset 0 0 16px rgba(139,92,246,.4);border-color:var(--scan);animation:scanPulse 1.5s ease-in-out;z-index:1}
+  .cell.scan-reveal{background:radial-gradient(circle,rgba(139,92,246,.6),rgba(139,92,246,.2));border-color:var(--scan);animation:reveal 1.2s ease-out}
+  
+  /* Target cursor effect */
+  .target-cursor{position:absolute;width:60px;height:60px;border:3px solid var(--bad);border-radius:50%;pointer-events:none;z-index:5;opacity:0;transition:all .3s;box-shadow:0 0 20px var(--bad),inset 0 0 20px rgba(239,68,68,.3)}
+  .target-cursor.show{opacity:1;animation:targeting 1s ease-in-out}
+  .target-cursor::before,.target-cursor::after{content:'';position:absolute;background:var(--bad);box-shadow:0 0 8px var(--bad)}
+  .target-cursor::before{width:40px;height:2px;top:50%;left:50%;transform:translate(-50%,-50%)}
+  .target-cursor::after{width:2px;height:40px;top:50%;left:50%;transform:translate(-50%,-50%)}
+  
+  @keyframes targeting{
+    0%{transform:scale(2) rotate(0deg);opacity:0}
+    50%{transform:scale(1.2) rotate(180deg);opacity:1}
+    100%{transform:scale(1) rotate(360deg);opacity:1}
+  }
+  
+  @keyframes boom{
+    0%{transform:scale(0) rotate(0deg);opacity:1}
+    50%{transform:scale(1.5) rotate(180deg);opacity:1}
+    100%{transform:scale(1) rotate(360deg);opacity:1}
+  }
+  
+  @keyframes scanPulse{
+    0%,100%{box-shadow:0 0 8px var(--scan),inset 0 0 8px rgba(139,92,246,.2)}
+    50%{box-shadow:0 0 24px var(--scan),inset 0 0 20px rgba(139,92,246,.6)}
+  }
+  
+  @keyframes reveal{
+    0%{background:radial-gradient(circle,rgba(139,92,246,.8),rgba(139,92,246,.4));transform:scale(1.1)}
+    100%{background:radial-gradient(circle,rgba(139,92,246,.3),rgba(139,92,246,.1));transform:scale(1)}
+  }
+  
+  @keyframes pulse{
+    0%,100%{opacity:1}
+    50%{opacity:.7}
+  }
   
   /* Sidebar */
-  .sidebar{background:rgba(15,20,35,.7);border:1px solid rgba(255,255,255,.1);border-radius:12px;display:flex;flex-direction:column}
-  .sidebar-header{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:800;font-size:15px}
-  .units-list{flex:1;padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
-  .unit-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;cursor:pointer;transition:all .2s}
-  .unit-card:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
+  .sidebar{background:rgba(15,20,35,.7);border:1px solid rgba(255,255,255,.1);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+  .sidebar-header{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:800;font-size:13px}
+  .units-list{flex:1;padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+  .unit-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px;cursor:pointer;transition:all .2s}
+  .unit-card:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);transform:translateX(2px)}
   .unit-card.active{border-color:var(--surv);background:rgba(59,130,246,.15);box-shadow:0 0 8px rgba(59,130,246,.3)}
-  .unit-card.placed{opacity:.5;cursor:not-allowed}
-  .unit-name{font-weight:700;font-size:14px;margin-bottom:4px}
-  .unit-meta{font-size:12px;color:var(--muted)}
-  .unit-status{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-top:6px}
+  .unit-card.placed{opacity:.4;cursor:not-allowed}
+  .unit-name{font-weight:700;font-size:13px;margin-bottom:3px}
+  .unit-meta{font-size:11px;color:var(--muted)}
+  .unit-status{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-top:4px}
   .unit-status.ready{background:rgba(34,197,94,.2);color:var(--ok)}
   .unit-status.placed{background:rgba(100,116,139,.2);color:var(--muted)}
   
   /* Actions */
-  .actions{padding:12px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:8px}
-  .btn{padding:12px;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;color:white}
-  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .actions{padding:10px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:6px}
+  .btn{padding:10px;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;transition:all .15s;color:white;text-transform:uppercase;letter-spacing:.3px}
+  .btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important}
   .btn-primary{background:linear-gradient(135deg,#3b82f6,#2563eb);box-shadow:0 4px 12px rgba(59,130,246,.3)}
   .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 16px rgba(59,130,246,.4)}
   .btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 12px rgba(239,68,68,.3)}
   .btn-danger:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 16px rgba(239,68,68,.4)}
   .btn-ghost{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--ink)}
   .btn-ghost:hover:not(:disabled){background:rgba(255,255,255,.12)}
+  .btn.active{box-shadow:0 0 0 2px var(--surv),0 4px 12px rgba(59,130,246,.5)!important}
   
   /* Bottom log */
-  .log-area{height:80px;background:rgba(15,20,35,.95);border-top:1px solid rgba(255,255,255,.08);padding:12px 24px;overflow-y:auto;font-size:13px}
-  .log-entry{padding:4px 0;color:var(--muted)}
-  .log-entry.important{color:var(--ink);font-weight:600}
-  
-  /* AI thinking overlay */
-  .ai-overlay{position:absolute;inset:0;background:rgba(10,14,26,.95);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;opacity:0;pointer-events:none;transition:opacity .3s;z-index:100}
-  .ai-overlay.show{opacity:1}
-  .ai-spinner{width:48px;height:48px;border:4px solid rgba(34,197,94,.2);border-top-color:var(--ai);border-radius:50%;animation:spin 1s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .ai-label{font-size:18px;font-weight:700;color:var(--ai)}
+  .log-area{height:60px;background:rgba(15,20,35,.95);border-top:1px solid rgba(255,255,255,.08);padding:8px 24px;overflow-y:auto;font-size:12px;display:flex;flex-direction:column-reverse}
+  .log-entry{padding:3px 0;color:var(--muted);line-height:1.4}
+  .log-entry.important{color:var(--ink);font-weight:700}
+  .log-entry.hit{color:var(--ok)}
+  .log-entry.miss{color:var(--muted)}
   
   /* Game over modal */
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;z-index:200}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;z-index:200}
   .modal.show{opacity:1;pointer-events:all}
-  .modal-content{background:var(--panel);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:32px;text-align:center;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
-  .modal-title{font-size:32px;font-weight:800;margin-bottom:12px}
+  .modal-content{background:var(--panel);border:2px solid rgba(255,255,255,.2);border-radius:16px;padding:40px;text-align:center;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+  .modal-title{font-size:36px;font-weight:800;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px}
   .modal-message{font-size:16px;color:var(--muted);margin-bottom:24px}
-  .modal-score{font-size:48px;font-weight:800;color:var(--surv);margin-bottom:24px}
+  .modal-score{font-size:56px;font-weight:800;color:var(--surv);margin-bottom:28px}
 </style>
 </head>
 <body>
@@ -113,15 +159,15 @@
     <div class="spacer"></div>
     <div class="score-panel">
       <div class="stat">
-        <div class="label">Your Score</div>
+        <div class="label">You</div>
         <div class="value" id="playerScore">0</div>
       </div>
       <div class="stat">
-        <div class="label">Enemy Score</div>
+        <div class="label">Enemy</div>
         <div class="value" id="enemyScore">0</div>
       </div>
       <div class="stat">
-        <div class="label">Action Points</div>
+        <div class="label">AP</div>
         <div class="ap-display">
           <div class="ap-pip" id="ap1"></div>
           <div class="ap-pip" id="ap2"></div>
@@ -130,19 +176,27 @@
     </div>
   </div>
 
+  <!-- AI Thinking Overlay -->
+  <div class="ai-overlay" id="aiOverlay">
+    <div class="ai-title">🤖 ENEMY AI COMPUTING</div>
+    <div class="ai-steps">
+      <div class="ai-step" id="step1"><span class="icon">🔍</span><span class="text">Analyzing</span></div>
+      <div class="ai-step" id="step2"><span class="icon">🎯</span><span class="text">Targeting</span></div>
+      <div class="ai-step" id="step3"><span class="icon">⚡</span><span class="text">Executing</span></div>
+    </div>
+    <div class="ai-action-log" id="aiActionLog">Scanning battlefield...</div>
+  </div>
+
   <!-- Main Game Area -->
   <div class="main">
     <div class="board-wrap">
       <div class="board-header">
         <span id="boardTitle">YOUR GRID</span>
-        <span class="phase-label" id="phaseLabel">Place your units</span>
+        <span class="phase-label" id="phaseLabel">Select faction to begin</span>
       </div>
       <div class="grid-container">
         <div class="grid" id="grid"></div>
-        <div class="ai-overlay" id="aiOverlay">
-          <div class="ai-spinner"></div>
-          <div class="ai-label">AI COMPUTING...</div>
-        </div>
+        <div class="target-cursor" id="targetCursor"></div>
       </div>
     </div>
 
@@ -150,10 +204,10 @@
       <div class="sidebar-header">UNITS & ACTIONS</div>
       <div class="units-list" id="unitsList"></div>
       <div class="actions">
-        <button class="btn btn-danger" id="attackBtn" disabled>🎯 Attack</button>
-        <button class="btn btn-primary" id="scanBtn" disabled>📡 Scan Area (1 AP)</button>
-        <button class="btn btn-ghost" id="endTurnBtn" disabled>⏭️ End Turn</button>
-        <button class="btn btn-ghost" id="resetBtn">🔄 New Game</button>
+        <button class="btn btn-danger" id="attackBtn" disabled>🎯 ATTACK</button>
+        <button class="btn btn-primary" id="scanBtn" disabled>📡 SCAN (1 AP)</button>
+        <button class="btn btn-ghost" id="endTurnBtn" disabled>⏭️ END TURN</button>
+        <button class="btn btn-ghost" id="resetBtn">🔄 NEW GAME</button>
       </div>
     </div>
   </div>
@@ -167,7 +221,7 @@
       <div class="modal-title" id="modalTitle">VICTORY!</div>
       <div class="modal-message" id="modalMessage">You destroyed the enemy fleet!</div>
       <div class="modal-score" id="modalScore">750</div>
-      <button class="btn btn-primary" onclick="resetGame()">Play Again</button>
+      <button class="btn btn-primary" onclick="resetGame()">PLAY AGAIN</button>
     </div>
   </div>
 </div>
@@ -177,8 +231,10 @@
 const CFG = {
   BOARD_SIZE: 10,
   AP_PER_TURN: 2,
-  AI_THINK_TIME: 1200,
-  ANIMATION_TIME: 600,
+  AI_THINK_TIME: 800,
+  AI_STEP_TIME: 700,
+  ANIMATION_TIME: 900,
+  SCAN_DURATION: 1500,
   POINTS: { HIT: 10, SINK: 50, WIN: 200 },
   POLLINATIONS_URL: "https://text.pollinations.ai/openai"
 };
@@ -193,7 +249,7 @@ const UNITS = {
 
 // ============ GAME STATE ============
 const state = {
-  phase: 'faction_select', // faction_select, placement, battle, game_over
+  phase: 'faction_select',
   playerFaction: 'survivors',
   currentTurn: 'player',
   ap: CFG.AP_PER_TURN,
@@ -205,11 +261,10 @@ const state = {
   
   playerBoard: createBoard(),
   enemyBoard: createBoard(),
-  playerKnowledge: createBoard(), // What player knows about enemy
+  playerKnowledge: createBoard(),
   
   playerUnits: [],
   enemyUnits: [],
-  
   playerUnitsToPlace: [],
   placedCount: 0
 };
@@ -229,15 +284,30 @@ function createBoard() {
   return board;
 }
 
-function log(message, important = false) {
+function log(message, type = 'normal') {
   const entry = document.createElement('div');
-  entry.className = 'log-entry' + (important ? ' important' : '');
+  entry.className = 'log-entry';
+  if (type === 'important') entry.classList.add('important');
+  if (type === 'hit') entry.classList.add('hit');
+  if (type === 'miss') entry.classList.add('miss');
   entry.textContent = '• ' + message;
   $('#log').prepend(entry);
+  
+  // Keep only last 50 logs
+  const logs = $$('.log-entry');
+  if (logs.length > 50) logs[logs.length - 1].remove();
 }
 
 function cellIndex(x, y) {
   return y * CFG.BOARD_SIZE + x;
+}
+
+function getCellElement(x, y) {
+  return $('#grid').children[cellIndex(x, y)];
+}
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
 }
 
 function updateUI() {
@@ -254,12 +324,15 @@ function updateUI() {
   $('#scanBtn').disabled = !inBattle || !playerTurn || state.ap < 1;
   $('#endTurnBtn').disabled = !inBattle || !playerTurn;
   
+  $('#attackBtn').classList.toggle('active', state.selectedAction === 'attack');
+  $('#scanBtn').classList.toggle('active', state.selectedAction === 'scan');
+  
   if (state.phase === 'placement') {
     $('#phaseLabel').textContent = `Place units (${state.placedCount}/${state.playerUnitsToPlace.length})`;
     $('#boardTitle').textContent = 'YOUR GRID - PLACEMENT';
   } else if (state.phase === 'battle') {
-    $('#phaseLabel').textContent = playerTurn ? 'Your turn' : 'Enemy turn';
-    $('#boardTitle').textContent = playerTurn ? 'YOUR GRID - BATTLE' : 'ENEMY ATTACKING...';
+    $('#phaseLabel').textContent = playerTurn ? '🎮 Your turn' : '🤖 AI attacking...';
+    $('#boardTitle').textContent = 'YOUR GRID - BATTLE';
   }
 }
 
@@ -278,24 +351,12 @@ function renderGrid() {
       const playerCell = state.playerBoard[y][x];
       const knowledgeCell = state.playerKnowledge[y][x];
       
-      // Show player's own ships during placement and battle
-      if (playerCell.ship) {
-        cell.classList.add('ship');
-      }
+      if (playerCell.ship) cell.classList.add('ship');
+      if (playerCell.hit) cell.classList.add('hit');
+      else if (playerCell.miss) cell.classList.add('miss');
       
-      // Show hits/misses on player's board (enemy attacks)
-      if (playerCell.hit) {
-        cell.classList.add('hit');
-      } else if (playerCell.miss) {
-        cell.classList.add('miss');
-      }
-      
-      // Show player's attacks on enemy board (via knowledge board)
-      if (knowledgeCell.hit) {
-        cell.classList.add('your-hit');
-      } else if (knowledgeCell.miss) {
-        cell.classList.add('your-miss');
-      }
+      if (knowledgeCell.hit) cell.classList.add('your-hit');
+      else if (knowledgeCell.miss) cell.classList.add('your-miss');
       
       grid.appendChild(cell);
     }
@@ -316,14 +377,14 @@ function renderUnits() {
       card.innerHTML = `
         <div class="unit-name">${unit.name}</div>
         <div class="unit-meta">Size: ${unit.size} cells</div>
-        <div class="unit-status ${unit.placed ? 'placed' : 'ready'}">${unit.placed ? 'PLACED' : 'READY'}</div>
+        <div class="unit-status ${unit.placed ? 'placed' : 'ready'}">${unit.placed ? '✓ PLACED' : '○ READY'}</div>
       `;
       
       if (!unit.placed) {
         card.onclick = () => {
           state.placingUnit = idx;
           renderUnits();
-          log(`Selected ${unit.name}. Click grid to place. Press R to rotate.`);
+          log(`${unit.name} selected. Click grid to place (R to rotate)`, 'important');
         };
       }
       
@@ -334,23 +395,23 @@ function renderUnits() {
     alive.forEach(unit => {
       const card = document.createElement('div');
       card.className = 'unit-card placed';
+      const hpPercent = (unit.hp / unit.size * 100).toFixed(0);
       card.innerHTML = `
         <div class="unit-name">${unit.name}</div>
-        <div class="unit-meta">HP: ${unit.hp}/${unit.size}</div>
-        <div class="unit-status ready">ACTIVE</div>
+        <div class="unit-meta">HP: ${unit.hp}/${unit.size} (${hpPercent}%)</div>
+        <div class="unit-status ready">⚡ ACTIVE</div>
       `;
       list.appendChild(card);
     });
   }
 }
 
-// ============ PLACEMENT LOGIC ============
+// ============ PLACEMENT ============
 function canPlaceUnit(board, unit, x, y, rotation) {
   const size = unit.size;
   for (let i = 0; i < size; i++) {
     const cx = rotation ? x : x + i;
     const cy = rotation ? y + i : y;
-    
     if (cx < 0 || cy < 0 || cx >= CFG.BOARD_SIZE || cy >= CFG.BOARD_SIZE) return false;
     if (board[cy][cx].ship) return false;
   }
@@ -377,7 +438,7 @@ function placeUnit(board, units, unit, x, y, rotation) {
   });
 }
 
-// ============ COMBAT LOGIC ============
+// ============ COMBAT ============
 function attack(board, units, x, y) {
   const cell = board[y][x];
   
@@ -389,7 +450,6 @@ function attack(board, units, x, y) {
     cell.hit = true;
     const unit = units.find(u => u.id === cell.ship);
     unit.hp--;
-    
     const sunk = unit.hp <= 0;
     return { valid: true, hit: true, sunk, unitName: unit.name };
   } else {
@@ -398,7 +458,7 @@ function attack(board, units, x, y) {
   }
 }
 
-function scan(board, x, y) {
+async function scan(board, x, y) {
   let count = 0;
   const cells = [];
   
@@ -413,34 +473,90 @@ function scan(board, x, y) {
     }
   }
   
+  // VISUAL EFFECT
+  cells.forEach(c => {
+    const el = getCellElement(c.x, c.y);
+    el.classList.add('scan-glow');
+  });
+  
+  await sleep(500);
+  
+  // Show reveals on actual ships
+  const reveals = cells.filter(c => board[c.y][c.x].ship && !board[c.y][c.x].hit);
+  reveals.forEach(c => {
+    const el = getCellElement(c.x, c.y);
+    el.classList.add('scan-reveal');
+  });
+  
+  await sleep(CFG.SCAN_DURATION);
+  
+  cells.forEach(c => {
+    const el = getCellElement(c.x, c.y);
+    el.classList.remove('scan-glow', 'scan-reveal');
+  });
+  
   return { count, cells };
 }
 
-// ============ AI LOGIC ============
-async function getAITargets() {
-  // Build simple target options for AI
-  const options = [];
+async function showTargeting(x, y) {
+  const cursor = $('#targetCursor');
+  const cell = getCellElement(x, y);
+  const rect = cell.getBoundingClientRect();
+  const container = $('#grid').getBoundingClientRect();
   
-  // Find untargeted cells
+  cursor.style.left = (rect.left - container.left + rect.width / 2 - 30) + 'px';
+  cursor.style.top = (rect.top - container.top + rect.height / 2 - 30) + 'px';
+  cursor.classList.add('show');
+  
+  await sleep(1000);
+  cursor.classList.remove('show');
+}
+
+// ============ AI ============
+async function showAIThinking() {
+  $('#aiOverlay').classList.add('show');
+  $('#aiActionLog').textContent = 'Scanning battlefield...';
+  
+  await sleep(CFG.AI_STEP_TIME);
+  $('#step1').classList.add('active');
+  $('#aiActionLog').textContent = 'Analyzing attack patterns...';
+  
+  await sleep(CFG.AI_STEP_TIME);
+  $('#step2').classList.add('active');
+  $('#aiActionLog').textContent = 'Selecting optimal targets...';
+  
+  await sleep(CFG.AI_STEP_TIME);
+  $('#step3').classList.add('active');
+  $('#aiActionLog').textContent = 'Preparing to strike...';
+  
+  await sleep(CFG.AI_STEP_TIME);
+}
+
+async function hideAIThinking() {
+  $('#aiActionLog').textContent = 'Attack complete.';
+  await sleep(500);
+  $('#aiOverlay').classList.remove('show');
+  $$('.ai-step').forEach(s => s.classList.remove('active'));
+}
+
+async function getAITargets() {
   const untargeted = [];
   for (let y = 0; y < CFG.BOARD_SIZE; y++) {
     for (let x = 0; x < CFG.BOARD_SIZE; x++) {
       const cell = state.playerBoard[y][x];
       if (!cell.hit && !cell.miss) {
-        untargeted.push({ x, y, hasShip: !!cell.ship });
+        untargeted.push({ x, y });
       }
     }
   }
   
   if (untargeted.length === 0) return [];
   
-  // Recent hits to follow up on
   const recentHits = [];
   for (let y = 0; y < CFG.BOARD_SIZE; y++) {
     for (let x = 0; x < CFG.BOARD_SIZE; x++) {
       const cell = state.playerBoard[y][x];
       if (cell.hit && cell.ship) {
-        // Check adjacent cells
         [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dx,dy]) => {
           const nx = x + dx, ny = y + dy;
           if (nx >= 0 && ny >= 0 && nx < CFG.BOARD_SIZE && ny < CFG.BOARD_SIZE) {
@@ -454,23 +570,14 @@ async function getAITargets() {
     }
   }
   
-  // Priority targets (near hits)
   const priority = recentHits.length > 0 ? recentHits.slice(0, 3) : 
                    untargeted.sort(() => Math.random() - 0.5).slice(0, 3);
   
-  // Build simple decision prompt
-  const prompt = `You are playing battleship. Pick 2 actions from these options:
+  const prompt = `Battleship AI: Pick 2 actions from these targets:
+${priority.map((t, i) => `${i+1}. (${t.x},${t.y})`).join('\n')}
+${recentHits.length > 0 ? 'Strategy: Follow up hits!' : 'Strategy: Hunt mode.'}
 
-TARGET OPTIONS (coordinates):
-${priority.map((t, i) => `${i+1}. Attack (${t.x},${t.y})`).join('\n')}
-
-${recentHits.length > 0 ? 'STRATEGY: Recent hits detected - follow up on damaged ships!' : 'STRATEGY: Hunt for enemy ships across the grid.'}
-
-Respond with JSON array of 2 actions, like:
-[{"action":"attack","target":1},{"action":"attack","target":2}]
-
-Or include a scan:
-[{"action":"scan","target":1},{"action":"attack","target":2}]`;
+Return JSON: [{"action":"attack","target":1},{"action":"attack","target":2}]`;
 
   try {
     const response = await fetch(CFG.POLLINATIONS_URL, {
@@ -479,7 +586,7 @@ Or include a scan:
       body: JSON.stringify({
         model: "openai",
         messages: [
-          { role: "system", content: "You are a tactical AI playing battleship. Respond only with valid JSON." },
+          { role: "system", content: "Battleship AI. JSON only." },
           { role: "user", content: prompt }
         ]
       })
@@ -490,20 +597,18 @@ Or include a scan:
     const data = await response.json();
     const text = data.choices[0].message.content.trim();
     const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error('No JSON found');
+    if (!jsonMatch) throw new Error('No JSON');
     
     const actions = JSON.parse(jsonMatch[0]);
     
-    // Convert actions to actual coordinates
     return actions.slice(0, CFG.AP_PER_TURN).map(action => ({
-      type: action.action,
+      type: action.action || 'attack',
       x: priority[action.target - 1]?.x ?? priority[0].x,
       y: priority[action.target - 1]?.y ?? priority[0].y
     }));
     
   } catch (err) {
     console.error('AI error:', err);
-    // Fallback: just pick random untargeted cells
     return untargeted.sort(() => Math.random() - 0.5).slice(0, CFG.AP_PER_TURN).map(t => ({
       type: 'attack',
       x: t.x,
@@ -514,47 +619,44 @@ Or include a scan:
 
 async function executeAITurn() {
   state.currentTurn = 'enemy';
-  $('#aiOverlay').classList.add('show');
   updateUI();
   
-  await new Promise(r => setTimeout(r, CFG.AI_THINK_TIME));
+  await showAIThinking();
   
   const actions = await getAITargets();
   
   for (const action of actions) {
-    await new Promise(r => setTimeout(r, CFG.ANIMATION_TIME));
+    $('#aiActionLog').textContent = `Targeting (${action.x}, ${action.y})...`;
+    await showTargeting(action.x, action.y);
     
-    if (action.type === 'attack') {
-      const result = attack(state.playerBoard, state.playerUnits, action.x, action.y);
-      
-      if (result.valid) {
-        if (result.hit) {
-          state.enemyScore += CFG.POINTS.HIT;
-          log(`Enemy hit your ship at (${action.x},${action.y})!`, true);
-          if (result.sunk) {
-            state.enemyScore += CFG.POINTS.SINK;
-            log(`Enemy sunk your ${result.unitName}!`, true);
-          }
-        } else {
-          log(`Enemy missed at (${action.x},${action.y})`);
+    const result = attack(state.playerBoard, state.playerUnits, action.x, action.y);
+    
+    if (result.valid) {
+      if (result.hit) {
+        state.enemyScore += CFG.POINTS.HIT;
+        log(`💥 Enemy HIT your ship at (${action.x},${action.y})!`, 'important');
+        if (result.sunk) {
+          state.enemyScore += CFG.POINTS.SINK;
+          log(`🔥 Enemy SUNK your ${result.unitName}!`, 'important');
         }
+      } else {
+        log(`💧 Enemy missed at (${action.x},${action.y})`, 'miss');
       }
-    } else if (action.type === 'scan') {
-      log(`Enemy scanned area around (${action.x},${action.y})`);
     }
     
     renderGrid();
     updateUI();
+    await sleep(CFG.ANIMATION_TIME);
   }
   
-  $('#aiOverlay').classList.remove('show');
+  await hideAIThinking();
   
   if (checkGameOver()) return;
   
   state.currentTurn = 'player';
   state.ap = CFG.AP_PER_TURN;
   updateUI();
-  log('Your turn!', true);
+  log('🎮 Your turn!', 'important');
 }
 
 // ============ GAME FLOW ============
@@ -584,7 +686,7 @@ function endGame(playerWon, message) {
     state.enemyScore += CFG.POINTS.WIN;
   }
   
-  $('#modalTitle').textContent = playerWon ? 'VICTORY!' : 'DEFEAT';
+  $('#modalTitle').textContent = playerWon ? '🏆 VICTORY!' : '💀 DEFEAT';
   $('#modalMessage').textContent = message;
   $('#modalScore').textContent = state.playerScore;
   $('#gameOverModal').classList.add('show');
@@ -592,7 +694,7 @@ function endGame(playerWon, message) {
   updateUI();
 }
 
-// ============ EVENT HANDLERS ============
+// ============ EVENTS ============
 $('#grid').addEventListener('click', async (e) => {
   const cell = e.target.closest('.cell');
   if (!cell) return;
@@ -600,10 +702,10 @@ $('#grid').addEventListener('click', async (e) => {
   const x = parseInt(cell.dataset.x);
   const y = parseInt(cell.dataset.y);
   
-  // PLACEMENT PHASE
+  // PLACEMENT
   if (state.phase === 'placement') {
     if (state.placingUnit === null) {
-      log('Select a unit from the sidebar first!');
+      log('Select a unit first!', 'important');
       return;
     }
     
@@ -620,26 +722,28 @@ $('#grid').addEventListener('click', async (e) => {
       renderUnits();
       
       if (state.placedCount === state.playerUnitsToPlace.length) {
-        log('All units placed! Starting battle...', true);
-        await new Promise(r => setTimeout(r, 1000));
+        log('⚡ All units placed! Battle begins!', 'important');
+        await sleep(1000);
         state.phase = 'battle';
         updateUI();
       } else {
-        log(`${unit.name} placed! Select next unit.`);
+        log(`✓ ${unit.name} placed!`, 'important');
       }
     } else {
-      log('Cannot place unit there!');
+      log('❌ Cannot place there!', 'important');
     }
     return;
   }
   
-  // BATTLE PHASE
+  // BATTLE
   if (state.phase === 'battle' && state.currentTurn === 'player' && state.ap > 0) {
     if (state.selectedAction === 'attack') {
+      await showTargeting(x, y);
+      
       const result = attack(state.enemyBoard, state.enemyUnits, x, y);
       
       if (!result.valid) {
-        log(result.reason);
+        log('⚠️ ' + result.reason, 'important');
         return;
       }
       
@@ -649,13 +753,13 @@ $('#grid').addEventListener('click', async (e) => {
       
       if (result.hit) {
         state.playerScore += CFG.POINTS.HIT;
-        log(`Direct hit at (${x},${y})!`, true);
+        log(`🎯 DIRECT HIT at (${x},${y})!`, 'hit');
         if (result.sunk) {
           state.playerScore += CFG.POINTS.SINK;
-          log(`You sunk enemy ${result.unitName}!`, true);
+          log(`🔥 SUNK enemy ${result.unitName}!`, 'hit');
         }
       } else {
-        log(`Miss at (${x},${y})`);
+        log(`💧 Miss at (${x},${y})`, 'miss');
       }
       
       renderGrid();
@@ -664,12 +768,12 @@ $('#grid').addEventListener('click', async (e) => {
       if (checkGameOver()) return;
       
       if (state.ap === 0) {
-        log('Out of AP. End your turn!', true);
+        log('⚠️ Out of AP. End your turn!', 'important');
       }
     } else if (state.selectedAction === 'scan') {
-      const result = scan(state.enemyBoard, x, y);
+      const result = await scan(state.enemyBoard, x, y);
       state.ap--;
-      log(`Scan detected ${result.count} ship(s) in the area!`, true);
+      log(`📡 Scan detected ${result.count} ship(s) nearby!`, 'important');
       updateUI();
     }
   }
@@ -707,17 +811,19 @@ $('#grid').addEventListener('mouseleave', () => {
 
 $('#attackBtn').onclick = () => {
   state.selectedAction = 'attack';
-  log('Attack mode: Click enemy grid to fire!');
+  updateUI();
+  log('🎯 Attack mode active!', 'important');
 };
 
 $('#scanBtn').onclick = () => {
   state.selectedAction = 'scan';
-  log('Scan mode: Click to scan 3x3 area for ships!');
+  updateUI();
+  log('📡 Scan mode active!', 'important');
 };
 
 $('#endTurnBtn').onclick = () => {
   if (state.phase === 'battle' && state.currentTurn === 'player') {
-    log('Ending turn...', true);
+    log('⏭️ Ending turn...', 'important');
     executeAITurn();
   }
 };
@@ -728,12 +834,11 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'r' || e.key === 'R') {
     if (state.phase === 'placement') {
       state.placingRotation = !state.placingRotation;
-      log(`Rotation: ${state.placingRotation ? 'Vertical' : 'Horizontal'}`);
+      log(`🔄 Rotation: ${state.placingRotation ? 'VERTICAL' : 'HORIZONTAL'}`, 'important');
     }
   }
 });
 
-// Faction selection
 $$('.faction-btn').forEach(btn => {
   btn.onclick = () => {
     if (state.phase !== 'faction_select') return;
@@ -742,7 +847,7 @@ $$('.faction-btn').forEach(btn => {
     btn.classList.add('active');
     state.playerFaction = btn.dataset.faction;
     
-    log(`You selected ${state.playerFaction === 'survivors' ? '🛡️ Survivors' : '🤖 AI Forces'}!`, true);
+    log(`⚡ ${state.playerFaction === 'survivors' ? 'Survivors' : 'AI Forces'} selected!`, 'important');
     
     setTimeout(() => {
       startPlacement();
@@ -750,13 +855,12 @@ $$('.faction-btn').forEach(btn => {
   };
 });
 
-// ============ GAME INITIALIZATION ============
+// ============ INIT ============
 function startPlacement() {
   state.phase = 'placement';
   state.placedCount = 0;
   state.placingUnit = null;
   
-  // Create units to place
   state.playerUnitsToPlace = [];
   Object.values(UNITS).forEach(def => {
     for (let i = 0; i < def.count; i++) {
@@ -768,7 +872,7 @@ function startPlacement() {
     }
   });
   
-  // Place enemy units randomly
+  // Place enemy
   Object.values(UNITS).forEach(def => {
     for (let i = 0; i < def.count; i++) {
       let placed = false;
@@ -793,11 +897,10 @@ function startPlacement() {
   renderGrid();
   renderUnits();
   updateUI();
-  log('Place your fleet on the grid!', true);
+  log('🛠️ Place your fleet! Select unit, then click grid.', 'important');
 }
 
 function resetGame() {
-  // Reset state
   state.phase = 'faction_select';
   state.playerFaction = 'survivors';
   state.currentTurn = 'player';
@@ -824,10 +927,9 @@ function resetGame() {
   renderUnits();
   updateUI();
   
-  log('Select your faction to begin!', true);
+  log('⚡ Select your faction to begin!', 'important');
 }
 
-// ============ START ============
 resetGame();
 </script>
 </body>
