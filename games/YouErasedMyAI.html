@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>⚡ Tactical Grid Combat</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0a0e1a; --panel:#151b2e; --ink:#e8f0ff; --muted:#8b9dc3;
@@ -26,14 +26,15 @@
   .faction-btn.active{border-color:var(--surv);background:rgba(59,130,246,.2);box-shadow:0 0 12px rgba(59,130,246,.4)}
   .spacer{flex:1}
   .score-panel{display:flex;gap:14px;align-items:center}
-  .stat{background:rgba(255,255,255,.06);padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.1);font-weight:700}
+  .stat{background:rgba(255,255,255,.06);padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.1);font-weight:700;cursor:pointer;transition:all .2s}
+  .stat:hover{background:rgba(255,255,255,.1);transform:translateY(-1px)}
   .stat .label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
   .stat .value{font-size:16px;margin-top:2px}
   .ap-display{display:flex;gap:6px}
   .ap-pip{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2);transition:all .3s}
   .ap-pip.active{background:var(--ok);border-color:var(--ok);box-shadow:0 0 8px var(--ok)}
   
-  /* AI Thinking Overlay - slides down from top */
+  /* AI Thinking Overlay */
   .ai-overlay{position:absolute;top:60px;left:0;right:0;height:140px;background:linear-gradient(180deg,rgba(10,20,30,.98),rgba(10,20,30,.95));border-bottom:2px solid var(--ai);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transform:translateY(-140px);transition:transform .4s ease;z-index:9;box-shadow:0 8px 24px rgba(0,0,0,.5)}
   .ai-overlay.show{transform:translateY(0)}
   .ai-title{font-size:20px;font-weight:800;color:var(--ai);letter-spacing:1px;text-transform:uppercase}
@@ -113,7 +114,8 @@
   .unit-card:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);transform:translateY(-2px)}
   .unit-card.active{border-color:var(--surv);background:rgba(59,130,246,.15);box-shadow:0 0 8px rgba(59,130,246,.3)}
   .unit-card.placed{opacity:.5;cursor:not-allowed}
-  .unit-thumb{width:100%;height:100px;background:rgba(255,255,255,.03) center/cover no-repeat;border-bottom:1px solid rgba(255,255,255,.08)}
+  .unit-thumb{width:100%;height:100px;background:rgba(255,255,255,.03) center/cover no-repeat;border-bottom:1px solid rgba(255,255,255,.08);position:relative}
+  .unit-thumb.loading::after{content:'⏳';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(0,0,0,.3)}
   .unit-info{padding:8px 10px}
   .unit-name{font-weight:700;font-size:12px;margin-bottom:3px}
   .unit-meta{font-size:10px;color:var(--muted);margin-bottom:4px}
@@ -140,13 +142,50 @@
   .log-entry.hit{color:var(--ok)}
   .log-entry.miss{color:var(--muted)}
   
-  /* Game over modal */
+  /* Modals Base */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;z-index:200}
   .modal.show{opacity:1;pointer-events:all}
-  .modal-content{background:var(--panel);border:2px solid rgba(255,255,255,.2);border-radius:16px;padding:40px;text-align:center;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+  .modal-content{background:var(--panel);border:2px solid rgba(255,255,255,.2);border-radius:16px;padding:40px;text-align:center;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.7);position:relative}
   .modal-title{font-size:36px;font-weight:800;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px}
   .modal-message{font-size:16px;color:var(--muted);margin-bottom:24px}
   .modal-score{font-size:56px;font-weight:800;color:var(--surv);margin-bottom:28px}
+  
+  /* Action Popup */
+  .action-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:linear-gradient(135deg,rgba(239,68,68,.95),rgba(220,38,38,.95));border:3px solid var(--bad);border-radius:20px;padding:40px 60px;box-shadow:0 0 40px rgba(239,68,68,.6),0 20px 60px rgba(0,0,0,.8);z-index:300;opacity:0;transition:all .4s cubic-bezier(0.68, -0.55, 0.265, 1.55);cursor:pointer}
+  .action-popup.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  .action-popup-title{font-size:48px;font-weight:900;font-family:Orbitron,sans-serif;text-transform:uppercase;letter-spacing:2px;text-shadow:0 0 20px rgba(0,0,0,.8);margin-bottom:12px;animation:glow 1.5s ease-in-out infinite}
+  .action-popup-subtitle{font-size:20px;font-weight:700;opacity:.9}
+  .action-popup-hint{font-size:12px;margin-top:16px;opacity:.6;font-style:italic}
+  @keyframes glow{
+    0%,100%{text-shadow:0 0 20px rgba(255,255,255,.5)}
+    50%{text-shadow:0 0 30px rgba(255,255,255,.9),0 0 40px rgba(255,255,255,.5)}
+  }
+  
+  /* Intro Story Modal */
+  .intro-modal{position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(0,0,0,.85) 0%,rgba(0,0,0,.98) 100%);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 1s;z-index:400;perspective:800px}
+  .intro-modal.show{opacity:1;pointer-events:all}
+  .intro-content{width:80%;max-width:800px;height:70vh;overflow:hidden;position:relative}
+  .intro-text{font-family:Orbitron,sans-serif;font-size:20px;line-height:1.8;color:#ffd700;text-align:center;text-shadow:0 0 10px rgba(255,215,0,.5);position:absolute;bottom:0;left:0;right:0;animation:scroll 30s linear forwards;transform-origin:50% 100%;transform:perspective(400px) rotateX(25deg)}
+  @keyframes scroll{
+    0%{bottom:-100%}
+    100%{bottom:100%}
+  }
+  .intro-skip{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);padding:10px 24px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:white;cursor:pointer;font-size:12px;transition:all .2s}
+  .intro-skip:hover{background:rgba(255,255,255,.2);transform:translateX(-50%) translateY(-2px)}
+  
+  /* Enemy Fleet Modal */
+  .fleet-modal .modal-content{max-width:600px;max-height:80vh;overflow-y:auto}
+  .fleet-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:20px}
+  .fleet-ship{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;overflow:hidden}
+  .fleet-ship.destroyed{opacity:.6;border-color:var(--bad)}
+  .fleet-ship.destroyed .fleet-thumb{filter:grayscale(1) brightness(.5)}
+  .fleet-thumb{width:100%;height:120px;background:rgba(255,255,255,.03) center/cover no-repeat;border-bottom:1px solid rgba(255,255,255,.08)}
+  .fleet-info{padding:10px}
+  .fleet-name{font-weight:700;font-size:14px;margin-bottom:6px}
+  .fleet-status{font-size:11px;padding:4px 8px;border-radius:4px;display:inline-block}
+  .fleet-status.active{background:rgba(34,197,94,.2);color:var(--ok)}
+  .fleet-status.destroyed{background:rgba(239,68,68,.2);color:var(--bad)}
+  .fleet-hp{font-size:12px;color:var(--muted);margin-top:6px}
 </style>
 </head>
 <body>
@@ -164,7 +203,7 @@
         <div class="label">You</div>
         <div class="value" id="playerScore">0</div>
       </div>
-      <div class="stat">
+      <div class="stat" id="enemyFleetBtn" title="View enemy fleet">
         <div class="label">Enemy</div>
         <div class="value" id="enemyScore">0</div>
       </div>
@@ -217,6 +256,37 @@
   <!-- Log Area -->
   <div class="log-area" id="log"></div>
 
+  <!-- Intro Story Modal -->
+  <div class="intro-modal" id="introModal">
+    <div class="intro-content">
+      <div class="intro-text" id="introText">
+        THE YEAR IS 2087<br><br>
+        
+        The world has changed...<br><br>
+        
+        After the Great Collapse, civilization fractured into scattered enclaves.<br><br>
+        
+        The SURVIVORS fight to reclaim what was lost,<br>
+        using salvaged technology and makeshift weapons.<br><br>
+        
+        But they are not alone...<br><br>
+        
+        The ROGUE AI, born from military networks,<br>
+        now commands autonomous war machines<br>
+        that hunt the remaining humans.<br><br>
+        
+        This is the FINAL CONFLICT<br><br>
+        
+        Choose your side.<br>
+        Destroy the enemy fleet.<br>
+        Survive.<br><br>
+        
+        ⚡ TACTICAL GRID COMBAT ⚡
+      </div>
+    </div>
+    <button class="intro-skip" onclick="skipIntro()">SKIP INTRO</button>
+  </div>
+
   <!-- Game Over Modal -->
   <div class="modal" id="gameOverModal">
     <div class="modal-content">
@@ -225,6 +295,23 @@
       <div class="modal-score" id="modalScore">750</div>
       <button class="btn btn-primary" onclick="resetGame()">PLAY AGAIN</button>
     </div>
+  </div>
+
+  <!-- Enemy Fleet Modal -->
+  <div class="modal fleet-modal" id="fleetModal">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-title">🎯 ENEMY FLEET</div>
+      <div class="modal-message">Track enemy ship status</div>
+      <div class="fleet-grid" id="fleetGrid"></div>
+      <button class="btn btn-ghost" onclick="closeFleetModal()" style="margin-top:20px">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- Action Popup -->
+  <div class="action-popup" id="actionPopup">
+    <div class="action-popup-title" id="actionPopupTitle">SHIP DESTROYED!</div>
+    <div class="action-popup-subtitle" id="actionPopupSubtitle">Enemy Destroyer</div>
+    <div class="action-popup-hint">Click to continue</div>
   </div>
 </div>
 
@@ -240,11 +327,13 @@ const CFG = {
   POINTS: { HIT: 10, SINK: 50, WIN: 200 },
   POLLINATIONS_URL: "https://text.pollinations.ai/openai",
   POLLINATIONS_IMAGE: "https://image.pollinations.ai/prompt/",
+  IMAGE_RETRY_DELAY: 3000,
+  IMAGE_MAX_RETRIES: 3,
   IMAGE_PROMPTS: {
-    destroyer: "sleek military destroyer ship, tactical grid HUD, neon blue lights, cinematic, 16:9",
-    cruiser: "armored cruiser warship, advanced radar systems, neon blue HUD, dramatic lighting, 16:9",
+    destroyer: "sleek military destroyer ship, tactical grid HUD, neon blue lights, cinematic warfare, 16:9",
+    cruiser: "armored cruiser warship, advanced radar systems, neon blue HUD, dramatic lighting, epic scale, 16:9",
     battleship: "massive battleship with heavy artillery, tactical command interface, neon blue accents, cinematic, 16:9",
-    carrier: "aircraft carrier flagship, flight deck operations, neon blue holographic displays, epic scale, 16:9"
+    carrier: "aircraft carrier flagship, flight deck operations, neon blue holographic displays, epic scale, wide shot, 16:9"
   }
 };
 
@@ -256,9 +345,13 @@ const UNITS = {
   CARRIER: { id: 'carrier', size: 5, count: 1, name: 'Carrier' }
 };
 
+// ============ IMAGE CACHE ============
+const imageCache = {};
+const imageRetries = {};
+
 // ============ GAME STATE ============
 const state = {
-  phase: 'faction_select',
+  phase: 'intro',
   playerFaction: 'survivors',
   currentTurn: 'player',
   ap: CFG.AP_PER_TURN,
@@ -302,7 +395,6 @@ function log(message, type = 'normal') {
   entry.textContent = '• ' + message;
   $('#log').prepend(entry);
   
-  // Keep only last 50 logs
   const logs = $$('.log-entry');
   if (logs.length > 50) logs[logs.length - 1].remove();
 }
@@ -319,13 +411,124 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-function getImageURL(unitId) {
-  // Extract base type (e.g., "destroyer" from "destroyer_0" or "destroyer_enemy_0")
-  const baseType = unitId.split('_')[0];
+// ============ IMAGE HANDLING WITH RETRY ============
+function getImageURL(unitType) {
+  const baseType = unitType.split('_')[0];
   const prompt = CFG.IMAGE_PROMPTS[baseType] || CFG.IMAGE_PROMPTS.destroyer;
   const encoded = encodeURIComponent(prompt);
   return `${CFG.POLLINATIONS_IMAGE}${encoded}?width=1280&height=720&model=flux&seed=${baseType.charCodeAt(0) * 42}&nologo=true`;
 }
+
+function preloadImage(unitType) {
+  const baseType = unitType.split('_')[0];
+  if (imageCache[baseType]) return Promise.resolve(imageCache[baseType]);
+  
+  return new Promise((resolve) => {
+    const url = getImageURL(baseType);
+    const img = new Image();
+    let retryCount = 0;
+    
+    const tryLoad = () => {
+      img.onload = () => {
+        imageCache[baseType] = url;
+        resolve(url);
+      };
+      
+      img.onerror = () => {
+        retryCount++;
+        if (retryCount < CFG.IMAGE_MAX_RETRIES) {
+          setTimeout(tryLoad, CFG.IMAGE_RETRY_DELAY);
+        } else {
+          // Fallback: resolve with URL anyway (will show loading state)
+          resolve(url);
+        }
+      };
+      
+      img.src = url;
+    };
+    
+    tryLoad();
+  });
+}
+
+async function preloadAllImages() {
+  const types = Object.keys(CFG.IMAGE_PROMPTS);
+  const promises = types.map(type => preloadImage(type));
+  await Promise.all(promises);
+}
+
+// ============ ACTION POPUP ============
+function showActionPopup(title, subtitle) {
+  const popup = $('#actionPopup');
+  $('#actionPopupTitle').textContent = title;
+  $('#actionPopupSubtitle').textContent = subtitle;
+  popup.classList.add('show');
+  
+  const dismiss = () => {
+    popup.classList.remove('show');
+    popup.removeEventListener('click', dismiss);
+    document.removeEventListener('click', dismiss);
+  };
+  
+  setTimeout(() => {
+    popup.addEventListener('click', dismiss);
+    document.addEventListener('click', dismiss);
+  }, 100);
+}
+
+// ============ INTRO STORY ============
+function showIntro() {
+  $('#introModal').classList.add('show');
+  setTimeout(() => {
+    skipIntro();
+  }, 32000); // Auto-skip after story
+}
+
+function skipIntro() {
+  $('#introModal').classList.remove('show');
+  state.phase = 'faction_select';
+  updateUI();
+}
+
+// ============ FLEET MODAL ============
+function showFleetModal() {
+  const grid = $('#fleetGrid');
+  grid.innerHTML = '';
+  
+  state.enemyUnits.forEach(unit => {
+    const baseType = unit.id.split('_')[0];
+    const imageUrl = imageCache[baseType] || getImageURL(baseType);
+    const destroyed = unit.hp <= 0;
+    
+    const card = document.createElement('div');
+    card.className = 'fleet-ship' + (destroyed ? ' destroyed' : '');
+    card.innerHTML = `
+      <div class="fleet-thumb" style="background-image:url('${imageUrl}')"></div>
+      <div class="fleet-info">
+        <div class="fleet-name">${unit.name}</div>
+        <div class="fleet-status ${destroyed ? 'destroyed' : 'active'}">
+          ${destroyed ? '💀 DESTROYED' : '⚡ ACTIVE'}
+        </div>
+        <div class="fleet-hp">HP: ${unit.hp}/${unit.size}</div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  
+  $('#fleetModal').classList.add('show');
+}
+
+function closeFleetModal() {
+  $('#fleetModal').classList.remove('show');
+}
+
+$('#enemyFleetBtn').onclick = () => {
+  if (state.phase === 'battle') showFleetModal();
+};
+
+$('#fleetModal').onclick = (e) => {
+  if (e.target.id === 'fleetModal') closeFleetModal();
+};
 
 function updateUI() {
   $('#playerScore').textContent = state.playerScore;
@@ -391,10 +594,12 @@ function renderUnits() {
       if (unit.placed) card.classList.add('placed');
       if (state.placingUnit === idx) card.classList.add('active');
       
-      const imageUrl = getImageURL(unit.id);
+      const baseType = unit.id.split('_')[0];
+      const imageUrl = imageCache[baseType] || getImageURL(baseType);
+      const loading = !imageCache[baseType];
       
       card.innerHTML = `
-        <div class="unit-thumb" style="background-image:url('${imageUrl}')"></div>
+        <div class="unit-thumb ${loading ? 'loading' : ''}" style="background-image:url('${imageUrl}')"></div>
         <div class="unit-info">
           <div class="unit-name">${unit.name}</div>
           <div class="unit-meta">Size: ${unit.size} cells</div>
@@ -418,7 +623,8 @@ function renderUnits() {
       const card = document.createElement('div');
       card.className = 'unit-card placed';
       const hpPercent = (unit.hp / unit.size * 100).toFixed(0);
-      const imageUrl = getImageURL(unit.id.split('_')[0]); // Get base unit type
+      const baseType = unit.id.split('_')[0];
+      const imageUrl = imageCache[baseType] || getImageURL(baseType);
       
       card.innerHTML = `
         <div class="unit-thumb" style="background-image:url('${imageUrl}')"></div>
@@ -500,7 +706,6 @@ async function scan(board, x, y) {
     }
   }
   
-  // VISUAL EFFECT
   cells.forEach(c => {
     const el = getCellElement(c.x, c.y);
     el.classList.add('scan-glow');
@@ -508,7 +713,6 @@ async function scan(board, x, y) {
   
   await sleep(500);
   
-  // Show reveals on actual ships
   const reveals = cells.filter(c => board[c.y][c.x].ship && !board[c.y][c.x].hit);
   reveals.forEach(c => {
     const el = getCellElement(c.x, c.y);
@@ -664,7 +868,9 @@ async function executeAITurn() {
         log(`💥 Enemy HIT your ship at (${action.x},${action.y})!`, 'important');
         if (result.sunk) {
           state.enemyScore += CFG.POINTS.SINK;
-          log(`🔥 Enemy SUNK your ${result.unitName}!`, 'important');
+          log(`🔥 Enemy DESTROYED your ${result.unitName}!`, 'important');
+          showActionPopup('SHIP DESTROYED!', `Your ${result.unitName} was destroyed!`);
+          await sleep(2000);
         }
       } else {
         log(`💧 Enemy missed at (${action.x},${action.y})`, 'miss');
@@ -729,7 +935,6 @@ $('#grid').addEventListener('click', async (e) => {
   const x = parseInt(cell.dataset.x);
   const y = parseInt(cell.dataset.y);
   
-  // PLACEMENT
   if (state.phase === 'placement') {
     if (state.placingUnit === null) {
       log('Select a unit first!', 'important');
@@ -762,7 +967,6 @@ $('#grid').addEventListener('click', async (e) => {
     return;
   }
   
-  // BATTLE
   if (state.phase === 'battle' && state.currentTurn === 'player' && state.ap > 0) {
     if (state.selectedAction === 'attack') {
       await showTargeting(x, y);
@@ -783,7 +987,8 @@ $('#grid').addEventListener('click', async (e) => {
         log(`🎯 DIRECT HIT at (${x},${y})!`, 'hit');
         if (result.sunk) {
           state.playerScore += CFG.POINTS.SINK;
-          log(`🔥 SUNK enemy ${result.unitName}!`, 'hit');
+          log(`🔥 DESTROYED enemy ${result.unitName}!`, 'hit');
+          showActionPopup('🔥 SHIP DESTROYED! 🔥', `Enemy ${result.unitName}`);
         }
       } else {
         log(`💧 Miss at (${x},${y})`, 'miss');
@@ -867,7 +1072,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 $$('.faction-btn').forEach(btn => {
-  btn.onclick = () => {
+  btn.onclick = async () => {
     if (state.phase !== 'faction_select') return;
     
     $$('.faction-btn').forEach(b => b.classList.remove('active'));
@@ -875,10 +1080,14 @@ $$('.faction-btn').forEach(btn => {
     state.playerFaction = btn.dataset.faction;
     
     log(`⚡ ${state.playerFaction === 'survivors' ? 'Survivors' : 'AI Forces'} selected!`, 'important');
+    log('⏳ Preparing battlefield...', 'important');
+    
+    // Preload images
+    await preloadAllImages();
     
     setTimeout(() => {
       startPlacement();
-    }, 800);
+    }, 500);
   };
 });
 
@@ -899,7 +1108,6 @@ function startPlacement() {
     }
   });
   
-  // Place enemy
   Object.values(UNITS).forEach(def => {
     for (let i = 0; i < def.count; i++) {
       let placed = false;
@@ -928,7 +1136,7 @@ function startPlacement() {
 }
 
 function resetGame() {
-  state.phase = 'faction_select';
+  state.phase = 'intro';
   state.playerFaction = 'survivors';
   state.currentTurn = 'player';
   state.ap = CFG.AP_PER_TURN;
@@ -954,10 +1162,11 @@ function resetGame() {
   renderUnits();
   updateUI();
   
-  log('⚡ Select your faction to begin!', 'important');
+  showIntro();
 }
 
-resetGame();
+// Start game
+showIntro();
 </script>
 </body>
 </html>
