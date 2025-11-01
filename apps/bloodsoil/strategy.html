@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Strategic Payoff | Blood & Soil</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #0a0a10;
+  --panel: #13131f;
+  --panel-light: #1d1d2d;
+  --accent: #60ffcc;
+  --accent-soft: rgba(96,255,204,0.2);
+  --text: #f5f5f7;
+  --muted: #7a7a90;
+  --line: #2a2a3f;
+  --glow: 0 0 12px rgba(96,255,204,0.7);
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #1a1a2a 0%, #050507 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  line-height: 1.45;
+  padding-top: 58px;
+}
+
+/* TOP NAV BAR */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10,10,16,0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-shadow: var(--glow);
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: var(--glow);
+}
+
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: var(--glow);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, rgba(96,255,204,0.10) 0%, #0c0c13 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.8);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(to right, rgba(96,255,204,0.15) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: var(--glow);
+}
+
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(96,255,204,0.25);
+}
+
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(96,255,204,0.6), inset 0 0 10px rgba(96,255,204,0.35);
+}
+
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  pointer-events: none;
+}
+
+/* TOPIC LIST */
+.topic-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+
+.topic-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.topic-list::-webkit-scrollbar-track {
+  background: #000;
+}
+
+.topic-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(96,255,204,0.9);
+}
+
+.topic-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+
+.topic-item:hover {
+  background: rgba(96,255,204,0.07);
+}
+
+.topic-item.active {
+  background: rgba(96,255,204,0.15);
+  box-shadow: inset 0 0 12px rgba(96,255,204,0.6);
+}
+
+.topic-line1 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.topic-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+}
+
+.topic-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(96,255,204,0.8);
+}
+
+.topic-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background: radial-gradient(circle at 80% 20%, rgba(96,255,204,0.08) 0%, rgba(0,0,0,0) 70%), 
+              radial-gradient(circle at 10% 90%, rgba(92,0,255,0.08) 0%, rgba(0,0,0,0) 70%), 
+              #0a0a10;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+
+#main::-webkit-scrollbar {
+  width: 8px;
+}
+
+#main::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(96,255,204,0.9);
+}
+
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER / PROFILE CARD */
+#topicHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(96,255,204,0.3);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+
+.topic-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#topicName {
+  font-family: var(--font-head);
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 10px rgba(96,255,204,0.8);
+}
+
+#topicTagline {
+  font-size: 0.75rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 20px rgba(96,255,204,0.6);
+  white-space: nowrap;
+}
+
+#topicProfile {
+  margin-top: 16px;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+/* ACCORDION SECTIONS */
+#topicSections {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-card {
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+  transition: all 0.2s ease;
+}
+
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(96,255,204,0.15) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: left;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  cursor: pointer;
+  text-shadow: 0 0 8px rgba(96,255,204,0.7);
+  transition: background 0.15s;
+}
+
+.section-header:hover {
+  background: linear-gradient(to right, rgba(96,255,204,0.22) 0%, rgba(0,0,0,0) 80%);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section-title {
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+}
+
+.hint {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-weight: 400;
+  font-family: var(--font-body);
+}
+
+.chevron {
+  color: var(--accent);
+  font-size: 0.8rem;
+  transition: transform 0.2s;
+  margin-left: 12px;
+}
+
+.section-card.open .chevron {
+  transform: rotate(90deg);
+}
+
+.section-body {
+  display: none;
+  padding: 16px 18px 18px;
+  font-size: 0.85rem;
+  line-height: 1.65;
+  background: radial-gradient(circle at 10% 0%, rgba(96,255,204,0.05) 0%, transparent 70%);
+}
+
+.section-card.open .section-body {
+  display: block;
+}
+
+.section-body ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.section-body li {
+  margin-bottom: 12px;
+  position: relative;
+  padding-left: 8px;
+}
+
+.section-body li:before {
+  content: "▸";
+  position: absolute;
+  left: -12px;
+  color: var(--accent);
+  font-size: 0.7rem;
+}
+
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .topic-list {
+    max-height: calc(40vh - 120px);
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV BAR -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">BLOOD & SOIL</div>
+    
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">Overview</a>
+      <a class="nav-link" href="terroir-chemistry.html">Terroir & Chemistry</a>
+      <a class="nav-link active" href="strategy.html">Strategic Payoff</a>
+      <a class="nav-link" href="fieldsigns.html">Field Signs</a>
+      <a class="nav-link" href="logistics.html">Logistics</a>
+      <a class="nav-link" href="faq.html">FAQ & Glossary</a>
+    </div>
+
+    <div style="margin-left: auto; display: flex; gap: 12px;">
+      <a class="nav-link" href="#" onclick="if(history.length>1){history.back();}else{location.href='/apps/archive-gate.html'};return false;">← Back</a>
+      <a class="nav-link" href="/apps/archive-gate.html">Archive</a>
+      <a class="nav-link" href="/">Home</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">STRATEGIC PAYOFF</div>
+    <div class="app-sub">Why vampires adopt this system. What they gain. How it changes their operations.</div>
+    <div class="search-wrap">
+      <span class="search-icon">🔎</span>
+      <input id="searchInput" placeholder="Filter topics..." />
+    </div>
+  </div>
+  <div id="topicList" class="topic-list"></div>
+</aside>
+
+<!-- MAIN PANEL -->
+<main id="main">
+  <div class="main-inner">
+    
+    <section id="topicHeader">
+      <div class="topic-title-row">
+        <h1 id="topicName">Strategic Payoff</h1>
+        <div id="topicTagline">Force Multiplier</div>
+      </div>
+      <div id="topicProfile">
+        Blood & Soil isn't just clever—it's a complete operational upgrade. Vampires who adopt this system gain unprecedented 
+        mobility, stealth capability, enhanced regeneration, and a loyal human support network. Every seeded garden becomes 
+        a safe house. Every harvest cycle extends their range. The result: modern vampires who move like freight schedules, 
+        not bats.
+      </div>
+    </section>
+
+    <div id="topicSections"></div>
+
+  </div>
+</main>
+
+<script>
+// DATA
+const topics = [
+  {
+    id: 'mobility-revolution',
+    name: 'Mobility Revolution',
+    shortDesc: 'Home-field everywhere.',
+    tagline: 'Range',
+    profile: 'Traditional vampires were prisoners of geography—stuck near their graves or hauling heavy coffins. Blood & Soil breaks that constraint. Homeland signature travels in sachets, not boxes. Every seeded grow becomes a viable rest node. The result: continental-scale mobility without degradation.',
+    no_coffin_logistics: [
+      '<strong>Traditional burden:</strong> Coffins weigh 200-400 lbs when filled with homeland dirt. Obvious. Vulnerable to theft.',
+      '<strong>Modern solution:</strong> Homeland pinch weighs 5-10 grams. Fits in a pocket. Can seed 20+ sites from one collection.',
+      '<strong>Transport method:</strong> Vacuum-sealed sachets in amendment shipments. Looks like organic fertilizer samples.',
+      '<strong>Security advantage:</strong> No single point of failure. Lose one sachet, you still have backups at other sites.',
+      '<strong>Speed of deployment:</strong> Can establish new rest node in 72 hours from first tea application.',
+      '<strong>Abandonment flexibility:</strong> If site is compromised, vampire walks away. No evidence left behind.'
+    ],
+    rest_node_network: [
+      '<strong>Coverage area:</strong> One vampire can maintain 5-15 active sites across multiple cities.',
+      '<strong>Rotation strategy:</strong> Move between nodes every 2-4 weeks. Harder to track, harder to ambush.',
+      '<strong>Redundancy:</strong> If one site is raided, vampire still has 4-14 backup locations.',
+      '<strong>Strategic placement:</strong> Nodes near transit hubs, entertainment districts, industrial areas—wherever they hunt.',
+      '<strong>Shared network:</strong> Vampire covens can pool resources. 20 vampires = 100+ coordinated rest nodes.',
+      '<strong>Emergency protocol:</strong> If primary site is compromised, vampire reaches nearest node within 2-3 hours.'
+    ],
+    wake_pad_synchronization: [
+      '<strong>Pad chemistry mirrors beds:</strong> Sleep pad uses same blood/bone/pinch tea as grow site.',
+      '<strong>Circadian alignment:</strong> Vampire wakes at consistent time regardless of which city they\'re in.',
+      '<strong>Torpor depth control:</strong> Properly matched pad keeps day-sleep light enough for emergency waking.',
+      '<strong>No jet lag equivalent:</strong> Signature keeps internal clock stable across time zones.',
+      '<strong>Multi-site rotation:</strong> Can sleep at Site A Monday, Site B Wednesday, Site C Friday—no degradation.',
+      '<strong>Backup pads:</strong> Carry travel pad soaked in signature. Hotels become viable if needed.'
+    ],
+    range_extension: [
+      '<strong>Historical limit:</strong> 50-100 miles from grave before power degradation became dangerous.',
+      '<strong>Modern range:</strong> Full power 2,000+ miles from original site as long as signature is maintained.',
+      '<strong>International operations:</strong> Vampires can relocate to different continents without losing effectiveness.',
+      '<strong>Power consistency:</strong> Strength, speed, glamour, regeneration—all remain at 95-100% baseline.',
+      '<strong>Sensory acuity:</strong> Vision, hearing, smell stay sharp. No "distance fog" like traditional vampires experienced.',
+      '<strong>Hunter evasion:</strong> Can relocate entire operation if hunters get close. Ghost before the raid.'
+    ],
+    strategic_implications: [
+      '<strong>Territory expansion:</strong> Vampires no longer tied to ancestral holdings. Can claim new regions aggressively.',
+      '<strong>Resource access:</strong> Follow prey populations (cities, festivals, tourist zones) without homeland constraint.',
+      '<strong>Political maneuvering:</strong> Can attend councils, negotiations, conflicts in distant territories without weakness.',
+      '<strong>Elder advantage:</strong> Old vampires with centuries of homeland dependency suddenly gain young vampire mobility.',
+      '<strong>Hunter adaptation lag:</strong> Hunters still think in terms of graves and crypts. Vampire is already three cities away.',
+      '<strong>Exponential growth:</strong> Each new vampire can seed their own network immediately. No 50-year "territory binding" period.'
+    ]
+  },
+
+  {
+    id: 'stealth-feeding',
+    name: 'Stealth Feeding',
+    shortDesc: 'No bodies, no headlines.',
+    tagline: 'Invisibility',
+    profile: 'Traditional vampire feeding leaves evidence: bodies, witnesses, patterns. Blood & Soil enables micro-feeding through aerosols and Wake Pads. No hunting required. No killing necessary. The vampire sustains through chemistry, and the operation looks like successful horticulture.',
+    micro_sip_mechanics: [
+      '<strong>Aerosol inhalation:</strong> During twilight watering, vampire breathes in blood meal particles + homeland signature.',
+      '<strong>Wake Pad absorption:</strong> 6-8 hours of skin contact with saturated pad provides trace iron and protein.',
+      '<strong>Daily accumulation:</strong> Micro-doses add up. Equivalent to 4-6 oz blood per week without ever biting anyone.',
+      '<strong>Supplemental hunting:</strong> Still need occasional full feeds, but frequency drops 70-80%.',
+      '<strong>Appetite regulation:</strong> Cannabinoid exposure smooths hunger spikes. Less panic, better control.',
+      '<strong>Zero victim count:</strong> If disciplined, vampire can go months between actual feeding events.'
+    ],
+    evidence_elimination: [
+      '<strong>No bodies:</strong> Micro-feeding leaves no corpses. Missing persons reports don\'t spike.',
+      '<strong>No blood spatter:</strong> No biting = no forensic traces at crime scenes.',
+      '<strong>No witnesses:</strong> Handlers see watering and gardening, not feeding.',
+      '<strong>Waste disposal:</strong> Spent pads and tea go to compost or trash. Look like used grow amendments.',
+      '<strong>Chemical invisibility:</strong> Blood meal is legal, common, expected in organic grows.',
+      '<strong>Pattern disruption:</strong> Hunter profiling breaks down. No kill clusters, no geographic patterns.'
+    ],
+    legal_protection: [
+      '<strong>Grow permits:</strong> Medical or personal cannabis licenses provide legal cover for entire operation.',
+      '<strong>Zoning laws:</strong> Warehouses, barns, basements—all legal grow spaces in many jurisdictions.',
+      '<strong>Inspection resistance:</strong> Growers have legal rights. Warrants are harder to get than "vampire suspicion."',
+      '<strong>Community perception:</strong> Gardens are seen as positive. "Local organic grower" is respectable.',
+      '<strong>Financial legitimacy:</strong> Grow operations generate real income. Money laundering becomes unnecessary.',
+      '<strong>Political cover:</strong> Cannabis legalization activists unknowingly protect vampire infrastructure.'
+    ],
+    narrative_control: [
+      '<strong>"Plants are thriving":</strong> Perfect cover story. Neighbors see success, not predation.',
+      '<strong>Handler testimonials:</strong> Thrall-drifted growers give glowing reviews. "Best job I ever had."',
+      '<strong>Media deflection:</strong> If questioned, blame "organic methods" and "lucky soil batch."',
+      '<strong>Expert credibility:</strong> Brokers pose as nutrient consultants. Legitimate-seeming credentials.',
+      '<strong>Misinformation seeding:</strong> Spread rumors about "healing gardens" and "wellness grows." Truth hides in noise.',
+      '<strong>Community goodwill:</strong> Donate excess cannabis to medical patients. Builds trust, disarms suspicion.'
+    ],
+    hunter_frustration: [
+      '<strong>No kill patterns:</strong> Traditional vampire hunters track bodies. Here, there are none.',
+      '<strong>Legal barriers:</strong> Raiding a legal grow operation requires warrants and probable cause.',
+      '<strong>False positives:</strong> Lots of legal gardens use blood/bone meal. Can\'t raid them all.',
+      '<strong>Evidence ambiguity:</strong> Even if they find homeland pinch, hard to prove supernatural purpose.',
+      '<strong>Public backlash:</strong> Raids on "innocent organic farmers" generate negative press for hunters.',
+      '<strong>Resource drain:</strong> Tracking this system requires lab analysis, surveillance, multi-site coordination. Expensive.'
+    ]
+  },
+
+  {
+    id: 'enhanced-regeneration',
+    name: 'Enhanced Regeneration',
+    shortDesc: 'Faster healing, more resilience.',
+    tagline: 'Durability',
+    profile: 'Blood & Soil doesn\'t just provide homeland signature—it optimizes vampire metabolism. The combination of matched terroir, iron from blood meal, phosphorus from bone meal, and cannabinoid regulation creates a measurable boost to healing speed and damage resistance.',
+    iron_and_hemoglobin: [
+      '<strong>Heme iron bioavailability:</strong> Blood meal provides iron in the same molecular form vampires use.',
+      '<strong>Hemoglobin synthesis boost:</strong> 30-40% faster red blood cell analog production when signature is aligned.',
+      '<strong>Oxygen transport:</strong> Better hemoglobin = more efficient cellular respiration = faster healing.',
+      '<strong>Burn recovery:</strong> UV and fire damage heal 2-3x faster with proper iron intake.',
+      '<strong>Wound closure:</strong> Cuts and punctures seal in hours instead of days.',
+      '<strong>Toxin processing:</strong> Liver analog functions improve. Faster clearance of silver, garlic compounds, holy water residue.'
+    ],
+    phosphorus_and_ATP: [
+      '<strong>Bone meal phosphorus:</strong> Critical for ATP (cellular energy) production.',
+      '<strong>Energy availability:</strong> More ATP = more resources for tissue repair and regeneration.',
+      '<strong>Bone healing:</strong> Fractures knit faster when calcium phosphate supply is steady.',
+      '<strong>Neural repair:</strong> Phospholipids in brain tissue regenerate more efficiently.',
+      '<strong>Muscle recovery:</strong> Post-exertion soreness and micro-tears heal overnight.',
+      '<strong>Metabolic efficiency:</strong> 15-20% reduction in "downtime" needed after major injuries.'
+    ],
+    terroir_alignment_bonus: [
+      '<strong>Metabolic match eliminates drag:</strong> Wrong soil costs 20-30% metabolic efficiency. Right soil = zero loss.',
+      '<strong>Cellular recognition:</strong> Homeland signature tells vampire cells "safe to regenerate fully."',
+      '<strong>Immune system analog:</strong> Vampire immune response functions optimally when tether is satisfied.',
+      '<strong>Stem cell activation:</strong> Dormant regenerative cells activate faster when signature is present.',
+      '<strong>Scar reduction:</strong> Properly fed vampires heal with minimal scarring compared to signature-deprived ones.',
+      '<strong>Age reversal:</strong> Some very old vampires report looking/feeling "younger" after months on Blood & Soil.'
+    ],
+    cannabinoid_modulation: [
+      '<strong>Anti-inflammatory:</strong> CBD reduces tissue inflammation, allowing faster healing.',
+      '<strong>Pain management:</strong> Cannabinoids dull pain signals without sedating to dangerous levels.',
+      '<strong>Stress reduction:</strong> Lower cortisol analogs = less healing interference from systemic stress.',
+      '<strong>Appetite regulation:</strong> Better feeding discipline = more consistent nutrient intake = stable regen baseline.',
+      '<strong>Sleep quality:</strong> CBN improves torpor efficiency. Healing happens faster during proper rest.',
+      '<strong>Neuroprotection:</strong> Cannabinoids may slow cognitive decline in ancient vampires.'
+    ],
+    terpene_bio_sealant: [
+      '<strong>Resin coating:</strong> Trichome oils applied to cuts create temporary waterproof barrier.',
+      '<strong>Antimicrobial properties:</strong> Limonene and pinene inhibit bacterial growth in wounds.',
+      '<strong>UV micro-buffer:</strong> Resin varnish provides SPF 2-4 equivalent. Small but measurable.',
+      '<strong>Moisture retention:</strong> Prevents excessive fluid loss from burns or abrasions.',
+      '<strong>Camouflage:</strong> Terpene smell masks the metallic vampire scent that attracts predators.',
+      '<strong>Field application:</strong> Handlers can prep "emergency kits" with concentrated trichome paste.'
+    ],
+    combat_advantage: [
+      '<strong>Attrition warfare:</strong> Vampires on Blood & Soil can sustain longer fights. Outlast opponents.',
+      '<strong>Multi-encounter capability:</strong> Heal between skirmishes without days of downtime.',
+      '<strong>Reduced vulnerability windows:</strong> Less time spent injured = less opportunity for hunters to strike.',
+      '<strong>Confidence boost:</strong> Knowing they heal faster makes vampires more aggressive in conflicts.',
+      '<strong>Strategic persistence:</strong> Can maintain pressure on hunter cells without retreating to recover.',
+      '<strong>Escalation dominance:</strong> Hunters with limited medical resources tire out first.'
+    ]
+  },
+
+  {
+    id: 'thrall-drift',
+    name: 'Thrall Drift',
+    shortDesc: 'Loyal humans without force.',
+    tagline: 'Influence',
+    profile: 'Chronic exposure to terpene-blood aerosols does something subtle to human handlers. Not mind control. Not magical compulsion. Just a slow neurochemical drift toward calm, loyalty, and protective instinct. The handlers genuinely believe they love their garden—and by extension, the vampire who seeds it.',
+    exposure_mechanism: [
+      '<strong>Aerosol inhalation:</strong> Handlers breathe in cannabinoid + terpene + blood meal particles during daily work.',
+      '<strong>Dermal absorption:</strong> Trimming and handling plants coats skin with trichome resin.',
+      '<strong>Cumulative dosing:</strong> 20-40 hours per week of exposure over months produces measurable effects.',
+      '<strong>Cross-blood-brain barrier:</strong> Lipid-soluble terpenes and cannabinoids reach brain tissue easily.',
+      '<strong>Slow onset:</strong> Takes 6-12 weeks for full drift. Gradual enough that handlers don\'t notice the change.',
+      '<strong>Reversibility:</strong> If removed from exposure, effects fade over 4-8 weeks. Not permanent damage.'
+    ],
+    neurochemical_effects: [
+      '<strong>Serotonin regulation:</strong> Chronic low-dose cannabinoids smooth mood without euphoria.',
+      '<strong>Cortisol suppression:</strong> Stress hormone levels drop. Handlers become calmer, less reactive.',
+      '<strong>Oxytocin boost:</strong> "Bonding hormone" increases. Handlers feel attachment to garden, crew, vampire.',
+      '<strong>Dopamine stability:</strong> Reward pathways function smoothly. Handlers feel satisfied, content.',
+      '<strong>GABA enhancement:</strong> Anxiety circuits quiet down. Less paranoia, less questioning.',
+      '<strong>Norepinephrine modulation:</strong> Fight-or-flight response dulls. Handlers less likely to panic or flee.'
+    ],
+    behavioral_changes: [
+      '<strong>Increased loyalty:</strong> Handlers defend "their" garden aggressively. Protective of space and crew.',
+      '<strong>Reduced suspicion:</strong> Cognitive dissonance resolution. Brain rationalizes away red flags.',
+      '<strong>Improved cooperation:</strong> Team cohesion increases. Less interpersonal conflict.',
+      '<strong>Routine adherence:</strong> Handlers follow ritual timing (twilight watering) without questioning.',
+      '<strong>Secret-keeping:</strong> Less likely to gossip or report "weird stuff" to outsiders.',
+      '<strong>Emotional stability:</strong> Fewer mood swings, better stress management, higher job satisfaction.'
+    ],
+    superstition_formation: [
+      '<strong>"Lucky pinch" belief:</strong> Handlers treat homeland soil like a talisman. "This is why we succeed."',
+      '<strong>Ritual reverence:</strong> Twilight watering becomes sacred. "It just feels right."',
+      '<strong>Garden animism:</strong> Handlers start talking about plants like they have feelings or spirits.',
+      '<strong>Protective mythology:</strong> Stories develop: "The garden protects us." "Bad things happen to people who disrespect it."',
+      '<strong>Identity fusion:</strong> Handlers tie self-worth to garden success. "I am a good grower."',
+      '<strong>In-group strengthening:</strong> "We know something special." Outsiders don\'t understand.'
+    ],
+    recruitment_advantage: [
+      '<strong>Word-of-mouth:</strong> Thrall-drifted handlers recruit friends. "Best job ever, you should apply."',
+      '<strong>Retention rate:</strong> Turnover drops to near zero. Handlers don\'t quit even for better pay elsewhere.',
+      '<strong>Self-policing:</strong> Crew members pressure newcomers to follow rituals. Peer enforcement.',
+      '<strong>Defensive screening:</strong> Handlers instinctively distrust outsiders who ask too many questions.',
+      '<strong>Cover story consistency:</strong> Everyone tells the same version of events. No contradictions.',
+      '<strong>Cult-like cohesion:</strong> Without formal cult structure. Just chemistry and shared experience.'
+    ],
+    hunter_complications: [
+      '<strong>Witness unreliability:</strong> Thrall-drifted handlers make terrible witnesses. Rationalize everything.',
+      '<strong>Infiltration difficulty:</strong> New hires get spotted fast. They don\'t "feel right" to the crew.',
+      '<strong>Interview resistance:</strong> Handlers defend vampire even under interrogation. Genuinely believe nothing\'s wrong.',
+      '<strong>Deprogramming required:</strong> Can\'t just tell them the truth. Need weeks of isolation and therapy.',
+      '<strong>Community sympathy:</strong> Raids look like attacking "innocent happy farmers." Public relations nightmare.',
+      '<strong>Legal protection:</strong> Handlers aren\'t compelled. They volunteer. Hard to prosecute as victims.'
+    ]
+  },
+
+  {
+    id: 'supply-chain-mobility',
+    name: 'Supply Chain Mobility',
+    shortDesc: 'Signatures ride clone routes.',
+    tagline: 'Distribution',
+    profile: 'The black market cannabis trade already moves cuttings, seeds, and genetics across regions. Blood & Soil hijacks this infrastructure. Every clone trade is an opportunity to distribute homeland signature. Every delivery is a chance to seed a new rest node. The vampire network scales using criminal logistics.',
+    clone_trade_networks: [
+      '<strong>Existing infrastructure:</strong> Cannabis cultivators already trade cuttings to maintain genetic diversity.',
+      '<strong>Stealth vector:</strong> Dip cutting in dilute blood/bone/pinch tea before shipping. Signature travels with plant.',
+      '<strong>Legal gray area:</strong> Clone trades often happen peer-to-peer. Low oversight, hard to track.',
+      '<strong>Geographic spread:</strong> One master plant can spawn 50+ clones across a region in 6 months.',
+      '<strong>Plausible deniability:</strong> If caught, looks like standard horticultural practice. "I\'m just sharing genetics."',
+      '<strong>Exponential distribution:</strong> Each seeded grower can spawn more clones, creating cascade effect.'
+    ],
+    broker_operations: [
+      '<strong>Cover identity:</strong> "Nutrient consultant" or "organic amendment specialist." Legitimate-seeming business cards.',
+      '<strong>Multi-site servicing:</strong> Broker visits 10-20 grows per month. Distributes sachets, checks signature fidelity.',
+      '<strong>Quality control role:</strong> Tests soil pH, inspects pads, logs dates. All legitimate activities that cover real mission.',
+      '<strong>Intelligence gathering:</strong> Broker learns handler schedules, security systems, local hunter activity.',
+      '<strong>Troubleshooting:</strong> If signature breaks down, broker identifies problem (wrong pinch, boiled tea, etc.).',
+      '<strong>Recruitment scouting:</strong> Identifies new growers who could be brought into network.'
+    ],
+    shipping_methods: [
+      '<strong>Amendment pallets:</strong> Homeland sachets hidden in bulk shipments of bone meal and blood meal.',
+      '<strong>Vacuum-sealed packets:</strong> 5-10 gram samples look like "soil test kits" or "amendment samples."',
+      '<strong>Legitimate manifests:</strong> All paperwork lists standard organic inputs. Nothing illegal on the books.',
+      '<strong>Temperature control:</strong> Refrigerated transport keeps microbial cultures viable during long hauls.',
+      '<strong>Redundancy:</strong> Multiple sachets in each shipment. Lose one, others still arrive.',
+      '<strong>Decoy shipments:</strong> Mix legitimate orders with covert ones. Harder to identify which pallets matter.'
+    ],
+    rest_node_seeding: [
+      '<strong>Rapid establishment:</strong> From first shipment arrival to viable rest node: 72 hours with fast protocol.',
+      '<strong>Minimal footprint:</strong> Vampire doesn\'t need to visit site until it\'s ready. Broker handles setup.',
+      '<strong>Testing phase:</strong> Vampire makes short visits to confirm signature match before committing.',
+      '<strong>Network expansion:</strong> One vampire can maintain 5 primary + 10 secondary nodes across multiple states.',
+      '<strong>Coordinated deployment:</strong> Coven of 10 vampires = 50-150 rest nodes in coordinated network.',
+      '<strong>Strategic placement:</strong> Nodes near highways, train stations, airports—mobility infrastructure.'
+    ],
+    security_through_obscurity: [
+      '<strong>Volume overwhelms trackers:</strong> Thousands of legal cannabis grows. Handful are vampire nodes. Needle in haystack.',
+      '<strong>Legitimate business cover:</strong> Real income from real cannabis sales. Financial forensics find nothing.',
+      '<strong>Decentralized network:</strong> No central hub. Lose one node, 14 others still function.',
+      '<strong>Burn and rebuild:</strong> If site is compromised, abandon immediately. New node operational within a week.',
+      '<strong>Compartmentalization:</strong> Handlers at Site A don\'t know Site B exists. Can\'t expose what they don\'t know.',
+      '<strong>Legal exploitation:</strong> Cannabis laws vary by jurisdiction. Vampires exploit regulatory gaps and confusion.'
+    ],
+    hunter_interdiction_challenges: [
+      '<strong>Multi-jurisdictional:</strong> Network spans counties, states, countries. No single agency has full picture.',
+      '<strong>Resource intensive:</strong> Tracking requires surveillance teams, lab analysis, multi-site raids.',
+      '<strong>Evidence requirements:</strong> Need to prove supernatural purpose. "They use blood meal" isn\'t enough.',
+      '<strong>Legal delays:</strong> Getting warrants for 15 sites simultaneously takes weeks. Vampire relocates in that time.',
+      '<strong>Political resistance:</strong> Cannabis industry lobbies against "overreach." Hunters get pushback.',
+      '<strong>Information security:</strong> Brokers use encrypted comms, dead drops, in-person-only meetings. Hard to intercept.'
+    ]
+  },
+
+  {
+    id: 'cost-benefit',
+    name: 'Cost-Benefit Analysis',
+    shortDesc: 'Why vampires adopt this.',
+    tagline: 'ROI',
+    profile: 'Blood & Soil requires investment: finding homeland soil, establishing grows, recruiting handlers, maintaining rituals. So why do vampires adopt it? Because the strategic advantages vastly outweigh the costs. This is a force multiplier that turns local predators into continental-scale operators.',
+    upfront_costs: [
+      '<strong>Homeland collection:</strong> One-time trip to original site. Risky if site is hunter-monitored.',
+      '<strong>Initial seeding:</strong> First grow setup costs $2,000-$10,000 depending on scale.',
+      '<strong>Handler recruitment:</strong> 2-4 weeks to find reliable grower. Thrall drift takes another 6-12 weeks.',
+      '<strong>Signature tuning:</strong> 1-2 failed batches before getting tea ratios correct.',
+      '<strong>Broker arrangement:</strong> Either pay for services or turn a human into dedicated logistics agent.',
+      '<strong>Security setup:</strong> Legal permits, proper zoning, security systems to avoid unwanted attention.'
+    ],
+    ongoing_costs: [
+      '<strong>Amendment purchases:</strong> $50-$200/month for blood meal, bone meal, mycorrhizae powder.',
+      '<strong>Grow utilities:</strong> Electricity, water, HVAC. $100-$500/month depending on size.',
+      '<strong>Handler wages:</strong> $15-$25/hour. 20-40 hours/week = $1,200-$4,000/month.',
+      '<strong>Rent/mortgage:</strong> If site isn\'t vampire-owned. $500-$2,000/month depending on location.',
+      '<strong>Maintenance:</strong> Equipment replacement, pest control, inspections. $100-$300/month.',
+      '<strong>Total ongoing:</strong> $2,000-$7,000/month per site for small-to-medium operation.'
+    ],
+    benefits_quantified: [
+      '<strong>Feeding cost reduction:</strong> 70-80% fewer hunting events needed. Saves time, risk, cleanup.',
+      '<strong>Mobility gain:</strong> Travel anywhere signature is seeded. 50-mile radius → continental scale.',
+      '<strong>Regeneration boost:</strong> Heal 2-3x faster. Spend less time vulnerable, more time active.',
+      '<strong>Detection avoidance:</strong> No kill patterns = no hunter attention. Survive decades longer.',
+      '<strong>Network access:</strong> Tap into coven resources. 10 vampires sharing 100 nodes = exponential value.',
+      '<strong>Income generation:</strong> Excess cannabis sells legally. Operation pays for itself + profit.'
+    ],
+    break_even_timeline: [
+      '<strong>Month 1-3:</strong> Upfront investment. Pure cost.',
+      '<strong>Month 4-6:</strong> Handler thrall drift completes. Operations smooth out.',
+      '<strong>Month 7-9:</strong> First cannabis harvest. Revenue begins.',
+      '<strong>Month 10-12:</strong> Break even on initial investment if selling excess product.',
+      '<strong>Year 2+:</strong> Net positive. Operation generates income while providing vampire benefits.',
+      '<strong>Long-term ROI:</strong> After 3-5 years, one successful site can fund 3-5 new sites.'
+    ],
+    risk_adjusted_value: [
+      '<strong>Traditional vampire risk:</strong> Hunt nightly. 1-2% chance of hunter encounter per year. Compounds over decades.',
+      '<strong>Blood & Soil risk:</strong> Hunt monthly. 0.1-0.2% encounter risk. 10x safety improvement.',
+      '<strong>Longevity multiplier:</strong> Vampires on system live 50-100 years longer on average before final death.',
+      '<strong>Power preservation:</strong> Avoid degradation from homeland distance. Maintain peak capability.',
+      '<strong>Strategic flexibility:</strong> Can relocate to avoid threats. Traditional vampires stuck defending one location.',
+      '<strong>Coven leverage:</strong> Shared network increases all members\' survival odds. Cooperative game theory win.'
+    ],
+    comparison_to_alternatives: [
+      '<strong>Coffin hauling:</strong> Heavy, obvious, expensive, slow. Blood & Soil wins on all metrics.',
+      '<strong>Thrall farming:</strong> Keep captive humans for feeding. High security needs, high risk. Blood & Soil safer.',
+      '<strong>Blood bank theft:</strong> Unreliable supply, hunter bait, doesn\'t provide homeland signature. Inferior.',
+      '<strong>Synthetic substitutes:</strong> Lab-grown blood lacks terroir component. Doesn\'t solve mobility problem.',
+      '<strong>Traditional crypts:</strong> Single point of failure. Hunters find it, you\'re done. Blood & Soil is distributed.',
+      '<strong>Nomadic lifestyle:</strong> Constant degradation from signature mismatch. Blood & Soil eliminates that tax.'
+    ]
+  }
+];
+
+// DOM REFS
+const topicListEl = document.getElementById('topicList');
+const searchInputEl = document.getElementById('searchInput');
+const topicNameEl = document.getElementById('topicName');
+const topicTaglineEl = document.getElementById('topicTagline');
+const topicProfileEl = document.getElementById('topicProfile');
+const topicSectionsEl = document.getElementById('topicSections');
+
+let openCards = [];
+let currentTopicId = null;
+
+// RENDER LIST
+function renderTopicList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  topicListEl.innerHTML = '';
+
+  topics
+    .filter(t => {
+      if (!f) return true;
+      const haystack = [
+        t.name,
+        t.shortDesc,
+        t.tagline
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(topic => {
+      const item = document.createElement('div');
+      item.className = 'topic-item';
+      item.setAttribute('data-id', topic.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'topic-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'topic-name';
+      nameSpan.textContent = topic.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'topic-tag';
+      tagSpan.textContent = topic.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'topic-desc';
+      descDiv.textContent = topic.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showTopic(topic.id);
+      });
+
+      topicListEl.appendChild(item);
+    });
+
+  highlightActive(currentTopicId);
+}
+
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+// BUILD SECTION CARD
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  labelWrap.appendChild(titleSpan);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b;
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+// SHOW TOPIC DETAILS
+function showTopic(id) {
+  const topic = topics.find(t => t.id === id);
+  if (!topic) return;
+
+  currentTopicId = id;
+
+  topicNameEl.textContent = topic.name;
+  topicTaglineEl.textContent = topic.tagline;
+  topicProfileEl.textContent = topic.profile;
+
+  topicSectionsEl.innerHTML = '';
+  openCards = [];
+
+  // Build sections dynamically from topic properties
+  const sections = [];
+  for (let key in topic) {
+    if (key === 'id' || key === 'name' || key === 'shortDesc' || key === 'tagline' || key === 'profile') continue;
+    if (Array.isArray(topic[key]) && topic[key].length > 0) {
+      // Convert key to title
+      const title = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      sections.push({
+        title: title,
+        hint: '',
+        arr: topic[key]
+      });
+    }
+  }
+
+  sections.forEach((sec, idx) => {
+    const card = buildSectionCard(
+      sec.title,
+      sec.hint,
+      sec.arr,
+      idx === 0 || idx === 1
+    );
+    topicSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+function highlightActive(id) {
+  const items = topicListEl.querySelectorAll('.topic-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+// SEARCH
+searchInputEl.addEventListener('input', (e) => {
+  renderTopicList(e.target.value);
+});
+
+// INIT
+renderTopicList('');
+if (topics.length > 0) {
+  showTopic(topics[0].id);
+}
+</script>
+
+</body>
+</html>
