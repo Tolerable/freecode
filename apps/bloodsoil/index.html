@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Blood & Soil — Agrivampirism Field Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --bg: #0a0a10;
+  --panel: #13131f;
+  --panel-light: #1d1d2d;
+  --accent: #60ffcc;
+  --accent-soft: rgba(96,255,204,0.2);
+  --text: #f5f5f7;
+  --muted: #7a7a90;
+  --line: #2a2a3f;
+  --glow: 0 0 12px rgba(96,255,204,0.7);
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --font-head: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #1a1a2a 0%, #050507 70%);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  line-height: 1.45;
+  padding-top: 58px;
+}
+
+/* TOP NAV BAR */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10,10,16,0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 9999;
+  box-shadow: 0 20px 30px rgba(0,0,0,0.9);
+  font-family: var(--font-head);
+}
+
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.nav-brand {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-shadow: var(--glow);
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: var(--glow);
+}
+
+.nav-link:hover {
+  color: var(--accent);
+  text-shadow: var(--glow);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 270px;
+  background: radial-gradient(circle at 0% 0%, rgba(96,255,204,0.10) 0%, #0c0c13 60%);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.8);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(to right, rgba(96,255,204,0.15) 0%, rgba(0,0,0,0) 60%);
+}
+
+.app-title {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-shadow: var(--glow);
+}
+
+.app-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.search-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 9px 10px 9px 30px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(96,255,204,0.25);
+}
+
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(96,255,204,0.6), inset 0 0 10px rgba(96,255,204,0.35);
+}
+
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  pointer-events: none;
+}
+
+/* TOPIC LIST */
+.topic-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 80px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+
+.topic-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.topic-list::-webkit-scrollbar-track {
+  background: #000;
+}
+
+.topic-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(96,255,204,0.9);
+}
+
+.topic-item {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+
+.topic-item:hover {
+  background: rgba(96,255,204,0.07);
+}
+
+.topic-item.active {
+  background: rgba(96,255,204,0.15);
+  box-shadow: inset 0 0 12px rgba(96,255,204,0.6);
+}
+
+.topic-line1 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.topic-name {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+}
+
+.topic-tag {
+  background: var(--accent);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(96,255,204,0.8);
+}
+
+.topic-desc {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.3;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+/* MAIN PANEL */
+#main {
+  flex: 1;
+  background: radial-gradient(circle at 80% 20%, rgba(96,255,204,0.08) 0%, rgba(0,0,0,0) 70%), 
+              radial-gradient(circle at 10% 90%, rgba(92,0,255,0.08) 0%, rgba(0,0,0,0) 70%), 
+              #0a0a10;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) #000;
+}
+
+#main::-webkit-scrollbar {
+  width: 8px;
+}
+
+#main::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(96,255,204,0.9);
+}
+
+.main-inner {
+  max-width: 900px;
+  padding: 24px clamp(16px,2vw,24px) 120px;
+  margin: 0 auto;
+  position: relative;
+  color: var(--text);
+}
+
+/* HEADER / PROFILE CARD */
+#topicHeader {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.9),
+    0 0 60px rgba(96,255,204,0.3);
+  position: relative;
+  padding: 20px 20px 16px;
+}
+
+.topic-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#topicName {
+  font-family: var(--font-head);
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 10px rgba(96,255,204,0.8);
+}
+
+#topicTagline {
+  font-size: 0.75rem;
+  color: #000;
+  background: var(--accent);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 20px rgba(96,255,204,0.6);
+  white-space: nowrap;
+}
+
+#topicProfile {
+  margin-top: 16px;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+/* ACCORDION SECTIONS */
+#topicSections {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-card {
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+  transition: all 0.2s ease;
+}
+
+.section-header {
+  width: 100%;
+  background: linear-gradient(to right, rgba(96,255,204,0.15) 0%, rgba(0,0,0,0) 80%);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: left;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  cursor: pointer;
+  text-shadow: 0 0 8px rgba(96,255,204,0.7);
+  transition: background 0.15s;
+}
+
+.section-header:hover {
+  background: linear-gradient(to right, rgba(96,255,204,0.22) 0%, rgba(0,0,0,0) 80%);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section-title {
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+}
+
+.hint {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-weight: 400;
+  font-family: var(--font-body);
+}
+
+.chevron {
+  color: var(--accent);
+  font-size: 0.8rem;
+  transition: transform 0.2s;
+  margin-left: 12px;
+}
+
+.section-card.open .chevron {
+  transform: rotate(90deg);
+}
+
+.section-body {
+  display: none;
+  padding: 16px 18px 18px;
+  font-size: 0.85rem;
+  line-height: 1.65;
+  background: radial-gradient(circle at 10% 0%, rgba(96,255,204,0.05) 0%, transparent 70%);
+}
+
+.section-card.open .section-body {
+  display: block;
+}
+
+.section-body ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.section-body li {
+  margin-bottom: 12px;
+  position: relative;
+  padding-left: 8px;
+}
+
+.section-body li:before {
+  content: "▸";
+  position: absolute;
+  left: -12px;
+  color: var(--accent);
+  font-size: 0.7rem;
+}
+
+.section-body li strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  body {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .topic-list {
+    max-height: calc(40vh - 120px);
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV BAR -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">BLOOD & SOIL</div>
+    
+    <div class="nav-links">
+      <a class="nav-link active" href="index.html">Overview</a>
+      <a class="nav-link" href="terroir-chemistry.html">Terroir & Chemistry</a>
+      <a class="nav-link" href="strategy.html">Strategic Payoff</a>
+      <a class="nav-link" href="fieldsigns.html">Field Signs</a>
+      <a class="nav-link" href="logistics.html">Logistics</a>
+      <a class="nav-link" href="faq.html">FAQ & Glossary</a>
+    </div>
+
+    <div style="margin-left: auto; display: flex; gap: 12px;">
+      <a class="nav-link" href="#" onclick="if(history.length>1){history.back();}else{location.href='/apps/archive-gate.html'};return false;">← Back</a>
+      <a class="nav-link" href="/apps/archive-gate.html">Archive</a>
+      <a class="nav-link" href="/">Home</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title">AGRIVAMPIRISM VAULT</div>
+    <div class="app-sub">Portable homeland via blood, bone, and rhizosphere. Cannabis makes it scale.</div>
+    <div class="search-wrap">
+      <span class="search-icon">🔎</span>
+      <input id="searchInput" placeholder="Filter topics..." />
+    </div>
+  </div>
+  <div id="topicList" class="topic-list"></div>
+</aside>
+
+<!-- MAIN PANEL -->
+<main id="main">
+  <div class="main-inner">
+    
+    <section id="topicHeader">
+      <div class="topic-title-row">
+        <h1 id="topicName">How Vampires Turned Gardens Into Travel Coffins</h1>
+        <div id="topicTagline">Field Guide</div>
+      </div>
+      <div id="topicProfile">
+        Old vampires run on <strong>terroir</strong>—a precise microbial and mineral signature from the dirt where they first died. 
+        Blood and bone meal spiked with a <strong>homeland pinch</strong> clones that signature in any grow bed. The rhizosphere 
+        delivers the goods. Cannabis accelerates the whole system: fast cycles, trichome resins for UV buffering, cannabinoids to 
+        smooth frenzy. Result: <em>home-field advantage everywhere</em>, stealth feeding, and crews who drift into quiet thrall.
+      </div>
+    </section>
+
+    <div id="topicSections"></div>
+
+  </div>
+</main>
+
+<script>
+// DATA
+const topics = [
+  {
+    id: 'what-this-is',
+    name: 'What This Is',
+    shortDesc: 'The system at a glance.',
+    tagline: 'Big Picture',
+    profile: 'This isn\'t folklore. It\'s logistics. Old vampires discovered that blood meal, bone meal, and a pinch of homeland soil can clone their "home signature" into any grow bed. Cannabis makes it practical: fast cycles, terpene chemistry, and cannabinoid regulation. The result is a covert network of safe rest nodes that look like legal gardens.',
+    mechanics: [
+      '<strong>Terroir dependency:</strong> Vampires carry a microbial/mineral "fingerprint" from where they first died. Without it, their body chemistry fails.',
+      '<strong>Blood & bone meal:</strong> Standard ag inputs become the solvent. Mix in homeland soil and you\'ve got portable graveyard.',
+      '<strong>Rhizosphere bridge:</strong> Plant roots + fungi shuttle the signature through aerosols and contact pads.',
+      '<strong>Cannabis advantage:</strong> Trichomes provide UV-buffering resin; cannabinoids smooth daytime torpor and blood frenzy.',
+      '<strong>Scale:</strong> Black-market clone routes double as signature distribution networks. Every drop seeds a new rest node.'
+    ],
+    Why: [
+      '<strong>No coffin logistics:</strong> Soil travels in sachets and amendment drums, not boxes.',
+      '<strong>Stealth feeding:</strong> Micro-sips through pads and aerosols. No bodies, no headlines.',
+      '<strong>Thrall effect:</strong> Handlers exposed to terpene-blood aerosols become calm, loyal, protective.',
+      '<strong>Range extension:</strong> Full power far from the original grave as long as the signature is maintained.',
+      '<strong>Plausible deniability:</strong> Everything looks like normal horticulture until you know what to look for.'
+    ],
+    risks: [
+      '<strong>Wrong pinch:</strong> Tether tries to sync to the wrong bed; glamour timing collapses.',
+      '<strong>Boiled tea:</strong> Volatile carriers die; regeneration lags, frenzy spikes.',
+      '<strong>Stale pads:</strong> "Sleep-salt" buildup causes paralysis followed by violent rebound.',
+      '<strong>Detection:</strong> Hunters can spot the tells—dark saucers, fabric pots, twilight rituals, calm crews.',
+      '<strong>Interdiction:</strong> Swap sachets with sterile soil, mandate boiling for "safety," salt the wake pads.'
+    ]
+  },
+
+  {
+    id: 'terroir-dependency',
+    name: 'Terroir Dependency',
+    shortDesc: 'Why soil binds them.',
+    tagline: 'Homeland Lock',
+    profile: 'Old vampires aren\'t just sentimental about their birthplace—they\'re chemically tethered to it. The soil where they first died carries a unique microbial and mineral signature that their undead biology treats like a two-factor authentication system. Without it, they degrade fast.',
+    signature: [
+      '<strong>Mineral fingerprint:</strong> Trace ratios of iron, manganese, calcium, and phosphorus unique to the original soil horizons.',
+      '<strong>Microbial quorum:</strong> Specific balance of fungi and bacteria that "feels like home" to their biochemistry.',
+      '<strong>Heme iron binding:</strong> Blood iron interfaces cleanly with both mineral and microbial layers.',
+      '<strong>Metabolic match:</strong> When the signature aligns, their ATP cycles, hemoglobin synthesis, and neural repair run smoothly.',
+      '<strong>Mismatch tax:</strong> Wrong soil means sluggish regen, sensory dulling, glamour lag, and dangerous torpor drops.'
+    ],
+    why_it_matters: [
+      '<strong>Homeland as SIM card:</strong> Think of the signature as a cellular network key. Wrong tower = no service.',
+      '<strong>Travel problem:</strong> Traditional vampires were stuck near their graves or had to haul coffins filled with homeland dirt.',
+      '<strong>Solution:</strong> Clone the signature remotely using blood/bone tea + homeland pinch.',
+      '<strong>Mobility unlocked:</strong> Once cloned, any seeded bed becomes "home" for rest and feeding purposes.',
+      '<strong>Hunter exploit:</strong> Break the signature and you break the vampire. Swap the pinch, salt the pads, force a boil.'
+    ]
+  },
+
+  {
+    id: 'cannabis-advantage',
+    name: 'The Cannabis Advantage',
+    shortDesc: 'Why this plant works.',
+    tagline: 'Chemistry',
+    profile: 'They could use tomatoes or roses. They don\'t. Cannabis offers three things simultaneously: rapid grow cycles for frequent signature refresh, terpene resin chemistry for UV protection and wound sealing, and cannabinoid neuro-modulation for behavioral stability. It\'s not aesthetic—it\'s tactical.',
+    terpenes: [
+      '<strong>Myrcene:</strong> Softens tissue barriers, helps other compounds penetrate skin and membranes.',
+      '<strong>Pinene and limonene:</strong> Polymerize into a thin varnish under body heat—minor UV buffer and leak control.',
+      '<strong>Resin on cuts:</strong> Acts as bio-sealant for wounds and abrasions; also masks scent.',
+      '<strong>Aerosol delivery:</strong> Trichomes volatilize during watering and trimming; handlers breathe it in.',
+      '<strong>Overuse risk:</strong> Too much resin on skin creates a detectable smell. Hunters follow the scent trail.'
+    ],
+    cannabinoids: [
+      '<strong>Endocannabinoid system:</strong> Vampires retain functional CB1/CB2 receptors for pain, appetite, and stress regulation.',
+      '<strong>Microdose aerosols:</strong> Smooth daytime stupor and post-feeding frenzy without sedation.',
+      '<strong>Appetite control:</strong> Better feeding discipline means fewer panic attacks and public messes.',
+      '<strong>Handler exposure:</strong> Chronic low-level exposure makes crews calm, loyal, and weirdly protective of "their" garden.',
+      '<strong>Thrall drift:</strong> Not full mind control, but enough influence to keep humans from asking hard questions.'
+    ],
+    grow_cadence: [
+      '<strong>Fast cycles:</strong> 8-12 week harvests mean frequent Wake Pad refresh—tether stays crisp.',
+      '<strong>Fabric pots:</strong> More airflow favors mycorrhizal fungi; roots run cool; pest pressure mysteriously low.',
+      '<strong>Clone logistics:</strong> Black-market cutting trades piggyback signature distribution.',
+      '<strong>Stealth harvest:</strong> "Personal grow" laws provide legal cover for small-scale operations.',
+      '<strong>Plausible chemistry:</strong> All inputs look normal on paper: bone meal, blood meal, mycorrhizae powder.'
+    ]
+  },
+
+  {
+    id: 'strategic-benefits',
+    name: 'Strategic Benefits',
+    shortDesc: 'What they gain.',
+    tagline: 'Payoff',
+    profile: 'Blood & Soil isn\'t just clever—it\'s a force multiplier. Vampires who adopt this system gain mobility, stealth, regeneration boosts, and a loyal human network. It turns greenhouses into safe houses and grow ops into rest stops.',
+    mobility: [
+      '<strong>No coffin hauling:</strong> Homeland signature travels in sealed sachets, not heavy boxes.',
+      '<strong>Rest nodes everywhere:</strong> Every seeded site becomes a viable safe house.',
+      '<strong>Wake Pads mirror beds:</strong> Sleep timing stays synchronized across the city or country.',
+      '<strong>Clone routes = travel routes:</strong> Follow the black market and you\'re following safe harbors.',
+      '<strong>Range extension:</strong> Full power hundreds of miles from the original grave site.'
+    ],
+    stealth: [
+      '<strong>No bodies:</strong> Micro-sips via pads and aerosols eliminate the need for violent feeding.',
+      '<strong>No headlines:</strong> "The plants are thriving" is perfect cover. Inspectors see horticulture, not homicide.',
+      '<strong>Waste disposal:</strong> Spent pads and tea go to compost or trash, not evidence bags.',
+      '<strong>Legal protection:</strong> Personal grow laws and medical cannabis permits provide legitimate fronts.',
+      '<strong>Community trust:</strong> Gardens are seen as positive, healing spaces. Nobody suspects them.'
+    ],
+    enhancement: [
+      '<strong>Faster regeneration:</strong> Iron and phosphorus from blood/bone meal jumpstart hemoglobin and ATP synthesis.',
+      '<strong>Day-stability:</strong> Cannabinoids blunt torpor edges—fewer accidental collapses in public.',
+      '<strong>Damage buffering:</strong> Terpene resin acts as bio-sealant on cuts, burns, and abrasions.',
+      '<strong>Sensory sharpness:</strong> Properly matched terroir keeps all senses at peak function.',
+      '<strong>Glamour precision:</strong> Mental influence and illusion powers stay crisp and reliable.'
+    ],
+    human_network: [
+      '<strong>Thrall drift:</strong> Chronic terpene exposure nudges sleep, mood, and loyalty without breaking will.',
+      '<strong>Protective instinct:</strong> Handlers defend "their" garden like it\'s sacred ground.',
+      '<strong>Superstition cover:</strong> "Lucky pinch" rituals and folklore mask the real chemistry.',
+      '<strong>Recruitment pool:</strong> Calm, loyal growers make excellent long-term collaborators.',
+      '<strong>Witness immunity:</strong> Thrall-drifted humans rationalize away inconsistencies and red flags.'
+    ]
+  },
+
+  {
+    id: 'field-recognition',
+    name: 'How To Spot It',
+    shortDesc: 'Recognition cues.',
+    tagline: 'Field Signs',
+    profile: 'Rooms under agrivamp influence have a vibe. If you walk into a grow and it feels "calm and lucky," pay attention. The chemistry leaves tells—visual, olfactory, and behavioral. Here\'s what hunters actually look for in the field.',
+    visual: [
+      '<strong>Dark saucers:</strong> Shallow trays of very dark, fine soil under benches, couches, or sleep areas.',
+      '<strong>Fabric pots preferred:</strong> More airflow for mycorrhizae; roots oddly cool to the touch.',
+      '<strong>Tidy edge mulch:</strong> Top dressing looks carefully arranged, not random.',
+      '<strong>Named rows:</strong> Labels like "Sill," "Attic," "Gravel Room"—old house parts, not strain names.',
+      '<strong>Minimal pest damage:</strong> Plants thrive with less intervention than neighbors. Suspiciously healthy.'
+    ],
+    olfactory: [
+      '<strong>Wet-iron note:</strong> Metallic smell under terpenes during twilight waterings.',
+      '<strong>Steeped-tea air:</strong> Warm, organic scent right after fans cut off.',
+      '<strong>Ozone around intakes:</strong> Faint electric smell near ducts after nutrient flush.',
+      '<strong>Resin + rust:</strong> Combination of cannabis trichomes and blood meal creates a unique signature.',
+      '<strong>Morning musk:</strong> Faint animal-den smell in early hours that dissipates by noon.'
+    ],
+    behavioral: [
+      '<strong>Ritualized first feed:</strong> Doors closed, phones away, specific timing for twilight watering.',
+      '<strong>Thrall drift in handlers:</strong> Serene crews, slow to anger, protective about "their" garden.',
+      '<strong>Lucky pinch:</strong> Small tins of soil carried like talismans, treated with religious care.',
+      '<strong>Sleep scheduling:</strong> Handlers nap at odd hours but always wake at similar times.',
+      '<strong>Defensive reactions:</strong> Mention "soil testing" or "amendment audits" and watch them panic.'
+    ],
+    red_flags: [
+      '<strong>Midnight deliveries:</strong> Nutrient shipments arrive during graveyard shift, handled by specific "consultants."',
+      '<strong>Broker presence:</strong> A "calibration tech" who knows too much about your personal life.',
+      '<strong>Wake Pad orders:</strong> Absorbent mats ordered in sync with harvest cycles, disposed in salted bins.',
+      '<strong>Fabric over plastic:</strong> Insistence on fabric pots even when plastic would be cheaper.',
+      '<strong>No lab tests:</strong> Growers refuse third-party soil or tissue analysis despite legal requirements.'
+    ]
+  },
+
+  {
+    id: 'breaking-system',
+    name: 'Breaking The System',
+    shortDesc: 'Hunter tactics.',
+    tagline: 'Interdiction',
+    profile: 'You don\'t burn the garden. You break the chemistry. The plants aren\'t the enemy—they\'re the infrastructure. Hit the ritual and the vampire loses home-field advantage. Here\'s how hunters disrupt Blood & Soil operations.',
+    signature_disruption: [
+      '<strong>Swap the pinch:</strong> Replace homeland sachets with sterilized soil from elsewhere. Tether tries to sync to wrong location.',
+      '<strong>Wrong lot contamination:</strong> Introduce soil from a different region. Creates "metabolic mismatch tax."',
+      '<strong>Dilution attack:</strong> Water down amendment ratios so signature never reaches critical concentration.',
+      '<strong>Microbial kill:</strong> Introduce competing fungi or bacteria that outcompete the homeland quorum.',
+      '<strong>Trace element imbalance:</strong> Spike calcium or manganese to throw off the mineral fingerprint.'
+    ],
+    ritual_sabotage: [
+      '<strong>Mandate boiling:</strong> Policy-level requirement to boil all "tea" for safety. Kills volatile carriers.',
+      '<strong>Fan-on enforcement:</strong> Require continuous ventilation during feeding. Aerosols never settle.',
+      '<strong>Timing disruption:</strong> Force watering schedules during full daylight, not twilight windows.',
+      '<strong>Pad salting:</strong> Introduce iron filings or sea salt to Wake Pads—creates micro-shocks.',
+      '<strong>Fabric ban:</strong> Push for plastic-only pots in commercial facilities. Blocks mycorrhizal networks.'
+    ],
+    evidence_collection: [
+      '<strong>Glove everything:</strong> Soil samples, pads, and liners carry more story than you want on your skin.',
+      '<strong>Document timing:</strong> Photo timestamps of when fans cut, when handlers enter, when they leave.',
+      '<strong>Track shipments:</strong> Follow amendment deliveries back to distributor. Map the network.',
+      '<strong>Chemical signature:</strong> Lab-test spent pads for heme iron, specific terpene profiles, trace minerals.',
+      '<strong>Witness patterns:</strong> Interview neighbors about handler behavior, sleep schedules, delivery times.'
+    ],
+    legal_pressure: [
+      '<strong>Third-party testing:</strong> Require independent soil and tissue analysis for all commercial grows.',
+      '<strong>Amendment manifests:</strong> Track blood meal and bone meal purchases—flag unusual volumes.',
+      '<strong>Surprise inspections:</strong> Unannounced visits during twilight hours when rituals happen.',
+      '<strong>Disposal audits:</strong> Check why some operations salt their waste before composting.',
+      '<strong>Broker background checks:</strong> "Nutrient consultants" who travel too much and know too much.'
+    ],
+    community_approach: [
+      '<strong>Don\'t solo:</strong> Never investigate alone. Document and loop in trusted allies.',
+      '<strong>Garden stewards matter:</strong> You need the neighborhood, not a headline. Work with community leaders.',
+      '<strong>Protect the innocent:</strong> Thrall-drifted handlers are victims. Separate them from the operation safely.',
+      '<strong>Burn the network, not the plants:</strong> Interdiction targets chemistry and logistics, not horticulture.',
+      '<strong>Long game:</strong> A single bust means nothing if the distribution network stays intact.'
+    ]
+  }
+];
+
+// DOM REFS
+const topicListEl = document.getElementById('topicList');
+const searchInputEl = document.getElementById('searchInput');
+const topicNameEl = document.getElementById('topicName');
+const topicTaglineEl = document.getElementById('topicTagline');
+const topicProfileEl = document.getElementById('topicProfile');
+const topicSectionsEl = document.getElementById('topicSections');
+
+let openCards = [];
+let currentTopicId = null;
+
+// RENDER LIST
+function renderTopicList(filterText = '') {
+  const f = filterText.trim().toLowerCase();
+  topicListEl.innerHTML = '';
+
+  topics
+    .filter(t => {
+      if (!f) return true;
+      const haystack = [
+        t.name,
+        t.shortDesc,
+        t.tagline
+      ].join(' ').toLowerCase();
+      return haystack.includes(f);
+    })
+    .forEach(topic => {
+      const item = document.createElement('div');
+      item.className = 'topic-item';
+      item.setAttribute('data-id', topic.id);
+
+      const line1 = document.createElement('div');
+      line1.className = 'topic-line1';
+
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'topic-name';
+      nameSpan.textContent = topic.name;
+
+      const tagSpan = document.createElement('div');
+      tagSpan.className = 'topic-tag';
+      tagSpan.textContent = topic.tagline;
+
+      line1.appendChild(nameSpan);
+      line1.appendChild(tagSpan);
+
+      const descDiv = document.createElement('div');
+      descDiv.className = 'topic-desc';
+      descDiv.textContent = topic.shortDesc;
+
+      item.appendChild(line1);
+      item.appendChild(descDiv);
+
+      item.addEventListener('click', () => {
+        showTopic(topic.id);
+      });
+
+      topicListEl.appendChild(item);
+    });
+
+  highlightActive(currentTopicId);
+}
+
+function registerOpen(card) {
+  if (!openCards.includes(card)) {
+    openCards.push(card);
+  }
+  if (openCards.length > 2) {
+    const toClose = openCards.shift();
+    if (toClose && toClose !== card) {
+      toClose.classList.remove('open');
+    }
+  }
+}
+
+function unregister(card) {
+  openCards = openCards.filter(c => c !== card);
+}
+
+// BUILD SECTION CARD
+function buildSectionCard(title, hint, bullets, open=false) {
+  const card = document.createElement('div');
+  card.className = 'section-card' + (open ? ' open' : '');
+
+  const headerBtn = document.createElement('button');
+  headerBtn.className = 'section-header';
+
+  const labelWrap = document.createElement('div');
+  labelWrap.className = 'label';
+
+  const titleSpan = document.createElement('div');
+  titleSpan.className = 'section-title';
+  titleSpan.textContent = title;
+
+  const hintSpan = document.createElement('div');
+  hintSpan.className = 'hint';
+  hintSpan.textContent = hint;
+
+  labelWrap.appendChild(titleSpan);
+  labelWrap.appendChild(hintSpan);
+
+  const chev = document.createElement('div');
+  chev.className = 'chevron';
+  chev.textContent = '▶';
+
+  headerBtn.appendChild(labelWrap);
+  headerBtn.appendChild(chev);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'section-body';
+
+  const ul = document.createElement('ul');
+  bullets.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = b;
+    ul.appendChild(li);
+  });
+  bodyDiv.appendChild(ul);
+
+  headerBtn.addEventListener('click', () => {
+    const isOpen = card.classList.contains('open');
+    if (isOpen) {
+      card.classList.remove('open');
+      unregister(card);
+    } else {
+      card.classList.add('open');
+      registerOpen(card);
+    }
+  });
+
+  card.appendChild(headerBtn);
+  card.appendChild(bodyDiv);
+
+  if (open) {
+    registerOpen(card);
+  }
+
+  return card;
+}
+
+// SHOW TOPIC DETAILS
+function showTopic(id) {
+  const topic = topics.find(t => t.id === id);
+  if (!topic) return;
+
+  currentTopicId = id;
+
+  topicNameEl.textContent = topic.name;
+  topicTaglineEl.textContent = topic.tagline;
+  topicProfileEl.textContent = topic.profile;
+
+  topicSectionsEl.innerHTML = '';
+  openCards = [];
+
+  // Build sections dynamically from topic properties
+  const sections = [];
+  for (let key in topic) {
+    if (key === 'id' || key === 'name' || key === 'shortDesc' || key === 'tagline' || key === 'profile') continue;
+    if (Array.isArray(topic[key]) && topic[key].length > 0) {
+      // Convert key to title
+      const title = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      sections.push({
+        title: title,
+        hint: '',
+        arr: topic[key]
+      });
+    }
+  }
+
+  sections.forEach((sec, idx) => {
+    const card = buildSectionCard(
+      sec.title,
+      sec.hint,
+      sec.arr,
+      idx === 0 || idx === 1
+    );
+    topicSectionsEl.appendChild(card);
+  });
+
+  highlightActive(id);
+
+  document.getElementById('main').scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+function highlightActive(id) {
+  const items = topicListEl.querySelectorAll('.topic-item');
+  items.forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+// SEARCH
+searchInputEl.addEventListener('input', (e) => {
+  renderTopicList(e.target.value);
+});
+
+// INIT
+renderTopicList('');
+if (topics.length > 0) {
+  showTopic(topics[0].id);
+}
+</script>
+
+</body>
+</html
