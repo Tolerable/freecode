@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>BLOOD & SOIL DOSSIERS // Agrivampirism Archive</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+:root{
+  --bg:#07080b; --panel:#10131a; --panel-light:#161b25;
+  --text:#f0f4ff; --muted:#8a93a8; --line:#232a39;
+  --accent-red:#c70a4c; --accent-green:#29e07c;
+  --glow-red:0 0 12px rgba(199,10,76,.7);
+  --glow-green:0 0 12px rgba(41,224,124,.6);
+  --radius-lg:18px; --radius-md:10px; --radius-sm:6px;
+  --font-head:'Cinzel',serif; --font-body:'Inter',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+body{
+  margin:0; color:var(--text); font-family:var(--font-body);
+  background:
+    radial-gradient(circle at 20% 15%, rgba(199,10,76,.14) 0%, rgba(0,0,0,0) 55%),
+    radial-gradient(circle at 80% 25%, rgba(41,224,124,.12) 0%, rgba(0,0,0,0) 60%),
+    #07080b;
+  display:flex; flex-direction:row; min-height:100vh; overflow-x:hidden; padding-top:58px;
+}
+
+/* TOP NAV */
+.top-nav{position:fixed;top:0;left:0;right:0;background:rgba(8,10,14,.9);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  border-bottom:1px solid rgba(255,255,255,.07); z-index:9999; box-shadow:0 20px 30px rgba(0,0,0,.9); font-family:var(--font-head);}
+.nav-inner{max-width:1400px;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px}
+.nav-brand{color:var(--accent-red);font-weight:600;font-size:.9rem;letter-spacing:.05em;text-shadow:var(--glow-red)}
+.nav-links{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;font-size:.7rem;letter-spacing:.04em}
+.nav-link{color:var(--text);text-decoration:none;padding-bottom:2px;border-bottom:2px solid transparent}
+.nav-link:hover{color:var(--accent-red);text-shadow:var(--glow-red)}
+.nav-link.active{color:var(--accent-red);border-bottom-color:var(--accent-red)}
+.nav-right{margin-left:auto;display:flex;gap:12px}
+
+/* LAYOUT */
+#sidebar{width:290px;background:
+  radial-gradient(circle at 0% 0%, rgba(199,10,76,.18) 0%, rgba(0,0,0,0) 60%),
+  radial-gradient(circle at 100% 0%, rgba(41,224,124,.16) 0%, rgba(0,0,0,0) 60%),
+  #0a0d12;
+  border-right:1px solid var(--line);display:flex;flex-direction:column;box-shadow:8px 0 24px rgba(0,0,0,.8)}
+.sidebar-header{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.05);
+  background:linear-gradient(to right, rgba(199,10,76,.18) 0%, rgba(0,0,0,0) 60%)}
+.app-title{font-family:var(--font-head);font-size:1rem;font-weight:600;letter-spacing:.05em;display:flex;gap:8px;align-items:baseline}
+.app-title .red{color:var(--accent-red);text-shadow:var(--glow-red)}
+.app-title .green{color:var(--accent-green);text-shadow:var(--glow-green)}
+.app-sub{font-size:.7rem;color:var(--muted);margin-top:4px;line-height:1.4}
+.search-wrap{margin-top:16px;position:relative}
+.search-wrap input{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:var(--radius-md);
+  color:var(--text);font-size:.8rem;padding:9px 10px 9px 30px;outline:none;box-shadow:inset 0 0 10px rgba(199,10,76,.20)}
+.search-wrap input:focus{border-color:var(--accent-green);box-shadow:0 0 8px rgba(41,224,124,.5), inset 0 0 10px rgba(199,10,76,.25)}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:.7rem;color:var(--accent-green);text-shadow:var(--glow-green);pointer-events:none}
+.entry-list{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 0 80px;scrollbar-width:thin;scrollbar-color:var(--accent-red) #000}
+.entry-list::-webkit-scrollbar{width:6px}
+.entry-item{padding:10px 16px 12px;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer;transition:background .12s}
+.entry-item:hover{background:rgba(41,224,124,.08)}
+.entry-item.active{background:rgba(199,10,76,.12);box-shadow:inset 0 0 12px rgba(199,10,76,.45)}
+.entry-line1{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.entry-name{font-family:var(--font-head);font-size:.92rem;font-weight:600}
+.entry-tag{display:inline-block;background:linear-gradient(90deg, var(--accent-red), var(--accent-green));color:#000;
+  font-size:.6rem;font-weight:700;line-height:1.2;padding:2px 6px;border-radius:var(--radius-sm);margin-bottom:6px}
+.entry-desc{font-size:.7rem;color:var(--muted);line-height:1.3;margin-top:4px}
+
+/* MAIN */
+#main{flex:1;position:relative;overflow-y:auto;overflow-x:hidden;background:
+  radial-gradient(circle at 80% 20%, rgba(41,224,124,.08) 0%, rgba(0,0,0,0) 70%),
+  radial-gradient(circle at 10% 90%, rgba(199,10,76,.08) 0%, rgba(0,0,0,0) 70%),
+  #07080b}
+.main-inner{max-width:900px;padding:24px clamp(16px,2vw,24px) 120px;margin:0 auto}
+.header-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);
+  box-shadow:0 30px 60px rgba(0,0,0,.9), 0 0 60px rgba(41,224,124,.25);padding:20px}
+.title-row{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px}
+#entryName{font-family:var(--font-head);font-size:1.28rem;font-weight:600;letter-spacing:.05em;text-shadow:var(--glow-green)}
+#entryTagline{font-size:.75rem;color:#000;background:linear-gradient(90deg,var(--accent-red),var(--accent-green));
+  padding:4px 8px;border-radius:var(--radius-sm);font-weight:700;box-shadow:0 0 20px rgba(41,224,124,.35)}
+#entryContext{font-size:.7rem;color:var(--muted);font-style:italic}
+#entryProfile{margin-top:16px;font-size:.85rem;line-height:1.6}
+
+/* Sections */
+.section-card{margin-top:20px;background:var(--panel-light);border:1px solid var(--line);border-radius:var(--radius-md);
+  overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.8), 0 0 40px rgba(199,10,76,.15)}
+.section-header{width:100%;background:linear-gradient(to right, rgba(41,224,124,.14) 0%, rgba(0,0,0,0) 80%);
+  color:var(--text);border:0;border-bottom:1px solid rgba(255,255,255,.05);
+  font-family:var(--font-head);font-weight:600;font-size:.8rem;text-align:left;line-height:1.4;letter-spacing:.05em;
+  padding:14px 16px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between}
+.section-header .chev{color:var(--accent-green);text-shadow:var(--glow-green);transition:transform .15s}
+.section-card.open .section-header .chev{transform:rotate(90deg)}
+.section-body{display:none;padding:16px;font-size:.83rem;line-height:1.55}
+.section-card.open .section-body{display:block;background:radial-gradient(circle at 10% 0%, rgba(199,10,76,.08) 0%, transparent 70%)}
+.section-body ul{margin:0;padding-left:18px}
+.section-body li{margin-bottom:10px}
+.section-body li strong{color:var(--accent-green);text-shadow:var(--glow-green)}
+
+/* Footer */
+.footer-note{margin-top:32px;font-size:.65rem;color:var(--muted);text-align:center;padding-bottom:60px;
+  max-width:640px;margin-left:auto;margin-right:auto;border-top:1px solid rgba(255,255,255,.05);padding-top:20px;font-style:italic}
+
+/* Responsive */
+@media (max-width:760px){#sidebar{width:230px} #entryName{font-size:1.08rem}}
+@media (max-width:600px){
+  body{flex-direction:column}
+  #sidebar{width:100%;max-height:40vh;border-right:0;border-bottom:1px solid var(--line)}
+  .entry-list{max-height:calc(40vh - 110px)}
+  .title-row{flex-direction:column;align-items:flex-start}
+  #entryTagline{white-space:normal}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-brand">BLOOD &amp; SOIL DOSSIERS</div>
+    <div class="nav-links">
+      <a class="nav-link active" href="bloodsoil.html">Overview</a>
+    </div>
+    <div class="nav-right">
+      <a class="nav-link" href="#" onclick="if(history.length>1){history.back();}else{location.href='/apps/archive-gate.html'};return false;">← Back</a>
+      <a class="nav-link" href="/apps/archive-gate.html">Archive</a>
+      <a class="nav-link" href="/">Home</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title"><span class="red">BLOOD</span><span class="green">&amp; SOIL</span> <span>DOSSIERS</span></div>
+    <div class="app-sub">Agrivampirism patterns: homeland-soil tethers, rhizosphere tapping, and cannabis-based logistics.</div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="Search entries…">
+    </div>
+  </div>
+  <div id="entryList" class="entry-list"></div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <div class="main-inner">
+    <section class="header-card">
+      <div class="title-row">
+        <h1 id="entryName">Loading…</h1>
+        <div id="entryTagline"></div>
+      </div>
+      <div id="entryContext"></div>
+      <div id="entryProfile"></div>
+    </section>
+    <div id="entrySections"></div>
+
+    <div class="footer-note">
+      Treat every garden as contested ground until proven otherwise. If the soil remembers a dead king, do not sleep near it.
+    </div>
+  </div>
+</main>
+
+<script>
+/*
+  Data-driven like your Black Book pages: a deep sidebar with many dossiers.
+  Every entry has multiple sections (accordion). No placeholders.
+*/
+
+let currentId = null;
+
+/** MASTER DOSSIERS **/
+const entries = [
+  {
+    id: 'primer',
+    name: 'Agrivampirism Primer',
+    tagline: 'Blood · Soil · Myco-Bridge',
+    shortDesc: 'How vamps clone “homeland” terroir in hostile cities.',
+    context: 'Field Doctrine // Circulation redacted',
+    profile:
+      'Elder bloodlines require a mineral–microbial signature from their origin soil to reach full capability. By spiking blood & bone amendments with a pinch of homeland soil and routing it through mycorrhizal networks, they manufacture portable home ground inside modern grow ops. Cannabis is a preferred carrier: rapid cycles, terpene resin that buffers UV damage, and cannabinoids that tame frenzy.',
+    sections: [
+      { title:'Terroir Law', hint:'Why the dirt matters', bullets:[
+        '“Terroir Key”: the minimum soil signature needed for full uptime.',
+        'Without it: regen lag, dulled senses, unstable torpor.',
+        'Goal is **replication**, not transport: clone the signature locally.'
+      ]},
+      { title:'Myco-Bridge', hint:'Plants run the traffic', bullets:[
+        'Fungi bind heme iron, amino acids, and calcium phosphate from blood/bone.',
+        'Signature rides hyphae; consumption is via vapor, contact, and micro-sips.',
+        'Trichome resins act as bio-sealant on burns and cuts after contact.'
+      ]},
+      { title:'Why Cannabis', hint:'Chemistry & cadence', bullets:[
+        'Fast harvests = many recharging “wake pads.”',
+        'Terpenes (myrcene/pinene/limonene) form a temporary UV “varnish.”',
+        'Endocannabinoid cross-talk stabilizes daytime stupor and appetite.'
+      ]},
+    ]
+  },
+
+  {
+    id: 'root-oath',
+    name: 'The Root Oath',
+    tagline: 'Turning Beds Into Coffins',
+    shortDesc: 'Operational rite for anchoring far from home.',
+    context: 'Procedure Book, redacted',
+    profile:
+      'Matching the sleeper’s tray and the garden bed keeps the tether tight. Deviations cause memory fog and light rash at dawn.',
+    sections: [
+      { title:'Protocol', hint:'Exact sequence', bullets:[
+        'Mix **one drop sire blood** + **pinch homeland soil** into blood/bone tea; steep 13 minutes. Do not boil.',
+        'First watering at **civil twilight**; kill fans 3 minutes to let vapors settle.',
+        'Mirror the blend in a **Wake Pad** beneath the sleeper; refresh after each harvest.'
+      ]},
+      { title:'Failure Modes', hint:'How it breaks', bullets:[
+        'Mismatched soil lots desync memory; signatures cancel.',
+        'Skipping steep yields weak imprint; power fades mid-hunt.',
+        'Over-fanning disperses vapors; tether slackens.'
+      ]},
+      { title:'Hunter Exploits', hint:'Use it against them', bullets:[
+        'Swap pad soil with sterilized look-alike; dawn desync.',
+        'Spike tea with chelators that bind iron before fungi can.',
+        'Salt the intake with UV-reactive salts; signature fluoresces and fractures.'
+      ]},
+    ]
+  },
+
+  {
+    id: 'logistics',
+    name: 'Logistics & Supply Chain',
+    tagline: 'Clone Routes as Tether Routes',
+    shortDesc: 'How “home soil” moves without moving.',
+    context: 'Network mapping',
+    profile:
+      'Vamps ride the same lines as cuttings and nutrients. Every clone drop is a chance to seed a new tether bed.',
+    sections: [
+      { title:'On-Ramps', hint:'Where it starts', bullets:[
+        'Hydro shops with private docks / late hours.',
+        'Pop-up nutrient brokers who take cash & no names.',
+        'Community gardens with unusually healthy myco activity.'
+      ]},
+      { title:'Custodians', hint:'Human roles', bullets:[
+        '“Dust Keepers”: carry the homeland pinch in sealed tins.',
+        '“Tea Handlers”: mix the first brew and wipe surfaces.',
+        '“Pad Setters”: maintain trays under couches and benches.'
+      ]},
+      { title:'Hardening', hint:'How they hide it', bullets:[
+        'Homeland soil is cut with inert fines to match local color.',
+        'Amendment sacks re-stenciled with fake lot numbers.',
+        'Clone courier logs rotated every lunar cycle.'
+      ]},
+    ]
+  },
+
+  {
+    id: 'field-signs',
+    name: 'Field Signs',
+    tagline: 'Tells in the Room',
+    shortDesc: 'Visuals, smells, and behaviors that betray an agrivamp site.',
+    context: 'On-scene recognition',
+    profile:
+      'Rooms under agrivamp influence feel “calm and lucky.” The tells below recur across raids.',
+    sections: [
+      { title:'Visual', hint:'What you see', bullets:[
+        'Shallow **saucers of fine, dark soil** under benches & couches.',
+        'Fabric pots favored over plastic; root zones run cool and airy.',
+        'Benign pests elsewhere, strangely low pest pressure here.'
+      ]},
+      { title:'Olfactory', hint:'What you smell', bullets:[
+        'Metallic “wet iron” beneath terpene top notes.',
+        'Steeped-tea warmth at twilight waterings.',
+        'Faint ozone around fan intakes post-flush.'
+      ]},
+      { title:'Behavioral', hint:'What they do', bullets:[
+        'Handlers ritualize the first feed; doors closed, fans off.',
+        'Growers exhibit **thrall drift**: protective, unhurried, oddly serene.',
+        'Persistent “lucky pinch” superstition at mixing stations.'
+      ]},
+    ]
+  },
+
+  {
+    id: 'counter-ops',
+    name: 'Counter-Ops Toolkit',
+    tagline: 'Cut the Circuit, Not the Community',
+    shortDesc: 'Non-catastrophic takedowns of tether beds.',
+    context: 'Hunter Manual cross-ref',
+    profile:
+      'Goal: break the signature with minimal collateral to plants, people, and neighborhood. Public noise > solo heroics.',
+    sections: [
+      { title:'Signature Breakers', hint:'Chemistry', bullets:[
+        '**Chelator spike** during first post-harvest flush to strip iron.',
+        '**pH seesaw** (6.1→7.2→6.0) to shock hyphae without crop death.',
+        '**UV salt mist** under benches to photobleach the trace.'
+      ]},
+      { title:'Network Disruptors', hint:'Myco tactics', bullets:[
+        'Target **dead root mat** with hyphae breakers; avoid live canopy.',
+        'Swap fabric pots for **sterilized plastic** temporarily.',
+        'Rotate in **non-host companion plants** to starve specific fungi.'
+      ]},
+      { title:'Exposure Ops', hint:'Break the cover', bullets:[
+        'Air-sample fan intake vs exhaust; publish the differential.',
+        'Leak courier routes to local forums; handlers scatter.',
+        'Stage a “fire inspection” drill; rituals can’t run under observation.'
+      ]},
+    ]
+  },
+
+  {
+    id: 'handlers',
+    name: 'Handler Roles',
+    tagline: 'Human Assets in the Garden',
+    shortDesc: 'Job taxonomy used by old houses.',
+    context: 'Collaborator index',
+    profile:
+      'Most handlers don’t know their king’s true name. They just keep the tea steeping and the pad fresh.',
+    sections: [
+      { title:'Roster', hint:'Common roles', bullets:[
+        '<strong>Dust Keeper</strong>: maintains tins; verifies “terroir key.”',
+        '<strong>Tea Handler</strong>: steeps and pours first brew.',
+        '<strong>Pad Setter</strong>: swaps the wake tray, changes liners.',
+        '<strong>Courier</strong>: moves clones, tees, and tins between safehouses.'
+      ]},
+      { title:'Motivations', hint:'Why they do it', bullets:[
+        'Debt relief, kinship, and thrall drift.',
+        'Promise of protection from rival crews.',
+        'Belief it’s just a “good-luck ritual” for plants.'
+      ]},
+      { title:'De-Recruit', hint:'Exit methods', bullets:[
+        'Break the ritual publicly; embarrassment severs mystique.',
+        'Offer legit work inside community gardens.',
+        'Witness protection for couriers who flip on route maps.'
+      ]},
+    ]
+  },
+
+  {
+    id: 'casefiles-ember',
+    name: 'Case File: Ember Lot 13',
+    tagline: 'Warehouse, South Docks',
+    shortDesc: 'Seized February — three linked pads.',
+    context: 'After-action summary',
+    profile:
+      'Tri-bay warehouse with tents A/B/C. All three showed matching homeland trace, likely Balkan origin.',
+    sections: [
+      { title:'Sequence', hint:'What happened', bullets:[
+        'Anonymous tip about “tea nights.”',
+        'Air sampling showed iron-rich aerosol spike at twilight.',
+        'UV salt sweep cracked signatures; no injuries.'
+      ]},
+      { title:'Findings', hint:'Evidence', bullets:[
+        'Four tins of dark fines; SEM showed non-local diatom mix.',
+        'Two day-couches on caster trays with pad liners.',
+        'Courier ledger with lunar-cycle marks instead of dates.'
+      ]},
+      { title:'Lessons', hint:'What we keep', bullets:[
+        'Twilight window is real and repeatable.',
+        'Handlers fold if the ritual is mocked publicly.',
+        'Pad liners carry enough trace for source inferences.'
+      ]},
+    ]
+  },
+
+  {
+    id: 'casefiles-lavender',
+    name: 'Case File: Lavender Row',
+    tagline: 'Community Garden, Midtown',
+    shortDesc: 'Soft extraction, zero plant loss.',
+    context: 'Neighborhood-safe playbook',
+    profile:
+      'Shared beds, kids program nearby. Target was a single bench seeded as a rest node.',
+    sections: [
+      { title:'Approach', hint:'Constraints', bullets:[
+        'No raids, no uniforms; only gardeners present.',
+        'Education-first walkthrough with volunteers.',
+        'Swapped fabric pots for plastic at night; liners removed.'
+      ]},
+      { title:'Outcome', hint:'Results', bullets:[
+        'Signature collapsed in 72 hours without crop damage.',
+        'Former “Dust Keeper” now runs soil-testing kiosk.',
+        'Community adopted myco-rotation chart as best practice.'
+      ]},
+      { title:'Template', hint:'Reusable steps', bullets:[
+        'Map pads → neutralize pads → replace liners → rotate companions.',
+        'Publish soil reports; crowdsource vigilance.',
+        'Reward disclosures, not arrests.'
+      ]},
+    ]
+  },
+
+  {
+    id: 'faq',
+    name: 'FAQ & Myths',
+    tagline: 'What’s true, what’s theater',
+    shortDesc: 'Busts common grow-room rumors.',
+    context: 'Public brief',
+    profile:
+      'Street lore mixes truth with flex. Here’s the cut.',
+    sections: [
+      { title:'Myths', hint:'False flags', bullets:[
+        '“Any blood in soil breeds vampires.” — <em>No.</em> The homeland key is specific.',
+        '“Garlic in pots blocks them.” — Only masks olfactory tells.',
+        '“Burn the room.” — Overkill; community pays the price.'
+      ]},
+      { title:'Truths', hint:'Hard facts', bullets:[
+        'Twilight matters for the first brew.',
+        'Pads under couches mirror the beds.',
+        'Clones can ferry signatures indirectly.'
+      ]},
+      { title:'Safety', hint:'If you suspect a site', bullets:[
+        'Don’t solo. Document airflow and timing.',
+        'Do not touch tins or liners bare-handed.',
+        'Share findings with trusted garden stewards.'
+      ]},
+    ]
+  },
+
+  {
+    id: 'glossary',
+    name: 'Glossary',
+    tagline: 'Field Terms',
+    shortDesc: 'Quick decode for ops chatter.',
+    context: 'Index',
+    profile:
+      'Minimal definitions used across reports.',
+    sections: [
+      { title:'Terms', hint:'Standard', bullets:[
+        '<strong>Terroir Key</strong>: Minimum homeland signature enabling full vamp power.',
+        '<strong>Wake Pad</strong>: Shallow tray under day-couch seeded to match the bed.',
+        '<strong>Green Varnish</strong>: Trichome resin used as a UV buffer and sealant.',
+        '<strong>Dust Keeper</strong>: Handler maintaining homeland soil tins.'
+      ]},
+      { title:'Materials', hint:'In the kit', bullets:[
+        'Chelator salts, UV-reactive salts, sterile liners.',
+        'Portable SEM access (shared lab nights).',
+        'pH seesaw chart; myco-rotation card.'
+      ]},
+    ]
+  },
+
+  {
+    id: 'timeline-agrivamp',
+    name: 'Timeline: Agrivamp Activity',
+    tagline: 'How it spread',
+    shortDesc: 'Key inflection points in garden capture tactics.',
+    context: 'Cross-ref: Timeline of the War',
+    profile:
+      'From isolated coffin-pads to city-wide route maps.',
+    sections: [
+      { title:'Eras', hint:'Roll-up', bullets:[
+        'Early experiments in herbal varnish (pre-prohibition).',
+        'Hydroponic adoption and fabric-pot boom.',
+        'Post-legalization: clone logistics scale routes and safehouses.'
+      ]},
+      { title:'Signals', hint:'What changed when', bullets:[
+        'Twilight aerosol sampling became reliable.',
+        'Handlers specialized; roles formalized.',
+        'Community gardens emerged as both target and cure.'
+      ]},
+    ]
+  },
+];
+
+/* --------- Sidebar & Main Render ---------- */
+const listEl = document.getElementById('entryList');
+const searchEl = document.getElementById('searchInput');
+
+function renderList(filter=''){
+  const q = filter.trim().toLowerCase();
+  const html = entries
+    .filter(e => !q || e.name.toLowerCase().includes(q) || (e.shortDesc||'').toLowerCase().includes(q))
+    .map(e => `
+      <div class="entry-item ${e.id===currentId?'active':''}" data-id="${e.id}">
+        <div class="entry-line1">
+          <span class="entry-name">${e.name}</span>
+          <span class="entry-tag">BLOOD • SOIL</span>
+        </div>
+        <div class="entry-desc">${e.shortDesc||''}</div>
+      </div>`).join('');
+  listEl.innerHTML = html;
+}
+
+listEl.addEventListener('click', (ev)=>{
+  const item = ev.target.closest('.entry-item'); if(!item) return;
+  loadEntry(item.dataset.id);
+});
+searchEl.addEventListener('input', e => renderList(e.target.value));
+
+function loadEntry(id){
+  const entry = entries.find(x=>x.id===id) || entries[0];
+  currentId = entry.id;
+
+  document.getElementById('entryName').textContent = entry.name;
+  document.getElementById('entryTagline').textContent = entry.tagline || '';
+  document.getElementById('entryContext').textContent = entry.context || '';
+  document.getElementById('entryProfile').innerHTML = entry.profile || '';
+
+  const sectionsHtml = (entry.sections||[]).map((s, i)=>`
+    <article class="section-card ${i===0?'open':''}">
+      <button class="section-header" data-idx="${i}">
+        <span>
+          <div class="section-title">${s.title}</div>
+          <div class="hint" style="font-size:.6rem;color:var(--muted)">${s.hint||''}</div>
+        </span>
+        <span class="chev">▶</span>
+      </button>
+      <div class="section-body">
+        ${Array.isArray(s.bullets) ? `<ul>${s.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>` : s.bullets}
+      </div>
+    </article>
+  `).join('');
+
+  document.getElementById('entrySections').innerHTML = sectionsHtml;
+  document.querySelectorAll('.section-header').forEach(btn=>{
+    btn.addEventListener('click', ()=>btn.parentElement.classList.toggle('open'));
+  });
+
+  renderList(searchEl.value);
+}
+
+/* Boot */
+renderList(); loadEntry(entries[0].id);
+</script>
+</body>
+</html>
