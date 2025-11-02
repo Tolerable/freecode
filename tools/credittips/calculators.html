@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Credit Tips | Calculators</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0e1116; --panel:#121722; --panel-2:#0f1520; --ink:#e9f0ff; --muted:#a8b3cf;
+    --brand:#7c5cff; --brand-2:#2dd4bf; --border:#1d2540; --nav:#0a0f1b; --focus:#2a3457;
+    --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; --shadow:0 10px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:radial-gradient(1200px 800px at 10% -10%, #1a1f33 0, transparent 60%),
+                         radial-gradient(1000px 600px at 100% 0%, #122032 0, transparent 55%),
+                         var(--bg);
+    color:var(--ink); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; line-height:1.45;
+  }
+
+  /* Topbar */
+  .topbar{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
+    background:linear-gradient(180deg,rgba(10,14,24,.9),rgba(10,14,24,.65)); border-bottom:1px solid var(--border)}
+  .topwrap{max-width:1200px;margin:0 auto;padding:12px 16px;display:flex;gap:12px;align-items:center}
+  .logo{font-weight:800;letter-spacing:.3px;color:var(--ink);display:flex;align-items:center;gap:10px}
+  .logo-badge{width:28px;height:28px;display:grid;place-items:center;border-radius:8px;
+    background:radial-gradient(180px 80px at 130% 120%,rgba(124,92,255,.35),transparent 60%),
+               radial-gradient(120px 90px at -30% -40%,rgba(45,212,191,.35),transparent 60%),
+               linear-gradient(135deg,#1b1f2f,#171b2b);
+    box-shadow:var(--shadow);border:1px solid var(--border);font-size:14px;font-weight:800;color:#eaeaff}
+  .crumbs{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .crumb{border:1px solid var(--border);background:var(--nav);border-radius:10px;padding:6px 10px;color:var(--muted);font-size:12px}
+  .home{color:var(--ink);text-decoration:none}
+
+  /* Layout */
+  .wrap{max-width:1200px;margin:22px auto;padding:0 16px;display:grid;grid-template-columns:320px 1fr;gap:18px}
+  @media (max-width: 980px){ .wrap{grid-template-columns:1fr}.sidebar{order:2}.main{order:1} }
+
+  /* Sidebar */
+  .sidebar{background:linear-gradient(180deg,rgba(18,23,34,.9),rgba(18,23,34,.7));
+    border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:var(--shadow)}
+  .side-title{margin:6px 8px 12px;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+  .acc{display:flex;flex-direction:column;gap:10px}
+  .acc button{width:100%;text-align:left;padding:12px;background:linear-gradient(135deg,#0e1422,#0d1320);
+    border:1px solid var(--border);border-radius:12px;color:var(--ink);font-weight:600;cursor:pointer;position:relative;transition:transform .05s}
+  .acc button:hover{transform:translateY(-1px)}
+  .acc button:focus-visible{outline:2px solid var(--focus)}
+  .acc button.active{background:linear-gradient(135deg,rgba(124,92,255,.22),rgba(45,212,191,.18));border-color:#2f3764}
+  .badge{position:absolute;right:10px;top:9px;padding:2px 8px;font-size:12px;border:1px solid var(--border);border-radius:999px;color:var(--muted);background:#0c1222}
+
+  /* Main */
+  .main{display:flex;flex-direction:column;gap:16px}
+  .card{background:linear-gradient(180deg,rgba(17,22,34,.95),rgba(16,21,33,.85));
+    border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+  .eyebrow{color:var(--muted);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+  .card h2{margin:2px 0 8px}
+  .muted{color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width: 980px){.grid{grid-template-columns:1fr}}
+  .panel{background:linear-gradient(180deg,#0f1526,#0d1422);border:1px solid var(--border);border-radius:14px;padding:14px}
+  .panel h3{margin:0 0 8px}
+
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:820px){.row{grid-template-columns:1fr}}
+
+  label{display:block;font-size:13px;color:var(--muted);margin:8px 0 6px}
+  input[type="text"], input[type="number"], input[type="date"], select, textarea{
+    width:100%;background:#0c1324;border:1px solid var(--border);border-radius:10px;color:var(--ink);
+    padding:8px 10px;font-size:14px
+  }
+  table{width:100%;border-collapse:collapse}
+  th,td{border:1px solid var(--border);padding:8px;text-align:right}
+  th{text-align:center;background:#0c1324;color:var(--muted)}
+  td:first-child, th:first-child{text-align:left}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .btn{appearance:none;border:1px solid var(--border);background:#0c1324;color:var(--ink);
+    padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+  .btn.primary{background:linear-gradient(135deg,rgba(124,92,255,.25),rgba(45,212,191,.2));border-color:#2f3764}
+  .btn.ok{border-color:#1f3d2a;background:#11241a}
+  .btn.warn{border-color:#3b2b10;background:#22180a}
+  .btn.bad{border-color:#3a1a1a;background:#1e0c0c}
+
+  .pill{border:1px solid var(--border);border-radius:999px;padding:6px 10px;color:var(--muted);font-size:12px;background:#0e1424}
+  .mini{display:flex;flex-wrap:wrap;gap:8px}
+
+  .preview{white-space:pre-wrap;background:#0b1120;border:1px solid var(--border);border-radius:12px;padding:12px;min-height:220px}
+
+  @media print{
+    .topbar,.sidebar,.toolbar{display:none}
+    .wrap{grid-template-columns:1fr}
+    .card{page-break-inside:avoid}
+    body{background:#fff;color:#111}
+    .preview{background:#fff;border-color:#ddd}
+  }
+
+  .foot{max-width:1200px;margin:20px auto 40px;padding:0 16px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topwrap">
+    <div class="logo">
+      <span class="logo-badge">CR</span>
+      Credit Tips — Calculators
+    </div>
+    <div class="crumbs">
+      <span class="crumb">Utilization • Payoff • Settlement</span>
+      <a class="crumb home" href="./index.html">← Back to Guide</a>
+      <a class="crumb home" href="./printables.html">Letters</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <aside class="sidebar">
+    <div class="side-title">Tools</div>
+    <div class="acc" id="sideNav"></div>
+  </aside>
+
+  <section class="main" id="main"></section>
+</main>
+
+<footer class="foot">
+  Educational content only; not financial or legal advice. Numbers are estimates; confirm with your creditor.
+</footer>
+
+<script>
+/* =========================
+   ROUTES / PANELS
+   ========================= */
+const PANELS = [
+  { id:"util", title:"Utilization Planner", badge:"Revolving" },
+  { id:"payoff", title:"Debt Payoff Planner", badge:"Amortization" },
+  { id:"settle", title:"Settlement Negotiator", badge:"Collections" },
+];
+
+const STORE = {
+  util: "credittips_calc_util_v1",
+  payoff: "credittips_calc_payoff_v1",
+  settle: "credittips_calc_settle_v1"
+};
+
+const sideNav = document.getElementById("sideNav");
+const main = document.getElementById("main");
+let current = PANELS[0].id;
+
+function renderSide(){
+  sideNav.innerHTML="";
+  PANELS.forEach(p=>{
+    const b = document.createElement("button");
+    b.type="button"; b.textContent=p.title; if(p.id===current) b.classList.add("active");
+    const tag = document.createElement("span"); tag.className="badge"; tag.textContent=p.badge; b.appendChild(tag);
+    b.addEventListener("click", ()=>{ current=p.id; renderMain(); renderSide(); });
+    sideNav.appendChild(b);
+  });
+}
+
+/* =========================
+   UTILIZATION PLANNER
+   ========================= */
+function UtilizationPlanner(){
+  const wrap = document.createElement("article");
+  wrap.className="card";
+  wrap.innerHTML = `
+    <div class="eyebrow">Revolving • Statement Timing</div>
+    <h2>Utilization Planner</h2>
+    <p class="muted">Track each card’s limit, balance, and statement date. Pick a goal utilization and get the <em>before-statement</em> payment targets to hit it on time.</p>
+  `;
+
+  const grid = document.createElement("div");
+  grid.className="grid";
+
+  const left = document.createElement("div"); left.className="panel";
+  const right = document.createElement("div"); right.className="panel";
+
+  // State
+  const saved = load(STORE.util) || { goal: 9, cards: [] };
+
+  // LEFT: form
+  left.innerHTML = `
+    <h3>Cards</h3>
+    <div class="row">
+      <div>
+        <label>Nickname</label>
+        <input id="u_name" type="text" placeholder="e.g., Visa Blue" />
+      </div>
+      <div>
+        <label>Limit ($)</label>
+        <input id="u_limit" type="number" min="0" step="1" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Current Balance ($)</label>
+        <input id="u_bal" type="number" min="0" step="1" />
+      </div>
+      <div>
+        <label>Statement Date</label>
+        <input id="u_stmt" type="date" />
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn ok" id="u_add">Add Card</button>
+      <button class="btn warn" id="u_clear">Clear All</button>
+    </div>
+    <hr style="border:0;border-top:1px solid var(--border);margin:12px 0">
+    <div class="row">
+      <div>
+        <label>Goal Utilization % (total)</label>
+        <input id="u_goal" type="number" min="1" max="30" step="1" value="${saved.goal||9}" />
+      </div>
+      <div style="align-self:end">
+        <div class="mini">
+          <span class="pill">Tip: 1–9% → strong scoring snapshots</span>
+          <span class="pill">Leave a small balance on ≤1 card</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // RIGHT: results
+  right.innerHTML = `
+    <h3>Plan & Totals</h3>
+    <div id="u_totals" class="mini" style="margin-bottom:8px"></div>
+    <div style="overflow:auto">
+      <table id="u_table">
+        <thead>
+          <tr>
+            <th>Card</th><th>Limit</th><th>Balance</th><th>Util %</th><th>Stmt</th><th>Target Bal</th><th>Pay Before Stmt</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" id="u_save">Save</button>
+      <button class="btn" id="u_print">Print</button>
+    </div>
+  `;
+
+  grid.appendChild(left); grid.appendChild(right); wrap.appendChild(grid);
+
+  // DOM refs
+  const nameI = left.querySelector("#u_name");
+  const limitI = left.querySelector("#u_limit");
+  const balI = left.querySelector("#u_bal");
+  const stmtI = left.querySelector("#u_stmt");
+  const addB = left.querySelector("#u_add");
+  const clearB = left.querySelector("#u_clear");
+  const goalI = left.querySelector("#u_goal");
+
+  const tableBody = right.querySelector("tbody");
+  const totalsEl = right.querySelector("#u_totals");
+  const saveB = right.querySelector("#u_save");
+  const printB = right.querySelector("#u_print");
+
+  let cards = Array.isArray(saved.cards) ? saved.cards : [];
+
+  function fmt(n){ return Number(n||0).toLocaleString(undefined,{maximumFractionDigits:0}); }
+  function pct(a,b){ return b>0 ? Math.round((a*100)/b) : 0; }
+  function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+  function recalc(){
+    tableBody.innerHTML="";
+    const goal = Math.max(1, Math.min(30, Number(goalI.value||9)));
+    const totalLimit = cards.reduce((s,c)=> s + Number(c.limit||0), 0);
+    const totalBal = cards.reduce((s,c)=> s + Number(c.balance||0), 0);
+    const totalUtil = pct(totalBal, totalLimit);
+
+    // How much to pay overall to hit goal
+    const goalBal = Math.ceil((goal/100) * totalLimit);
+    const needPayTotal = Math.max(0, totalBal - goalBal);
+
+    totalsEl.innerHTML = `
+      <span class="pill">Total Limit: $${fmt(totalLimit)}</span>
+      <span class="pill">Total Balance: $${fmt(totalBal)}</span>
+      <span class="pill">Total Util: ${totalUtil}%</span>
+      <span class="pill">Goal: ${goal}% ⇒ Target Bal: $${fmt(goalBal)}</span>
+      <span class="pill">Pay Before Statements: $${fmt(needPayTotal)}</span>
+    `;
+
+    // Distribute pay suggestions: prioritize cards with highest util and earliest statements
+    const sorted = [...cards].sort((a,b)=>{
+      const utilA = (a.balance||0)/(a.limit||1);
+      const utilB = (b.balance||0)/(b.limit||1);
+      const da = a.stmt || "9999-12-31";
+      const db = b.stmt || "9999-12-31";
+      return utilB - utilA || da.localeCompare(db);
+    });
+
+    let remaining = needPayTotal;
+
+    const plan = cards.map(c=>({ ...c, targetBalance: c.balance, pay: 0 }));
+
+    for (const card of sorted){
+      if (remaining<=0) break;
+      const curUtilGoal = Math.min(0.29, goal/100); // keep each under 30% / align to total goal
+      const perTarget = Math.ceil((curUtilGoal) * (card.limit||0));
+      const need = Math.max(0, (card.balance||0) - perTarget);
+      const pay = Math.min(need, remaining);
+      const pRef = plan.find(p=>p.id===card.id);
+      pRef.pay = pay;
+      pRef.targetBalance = Math.max(0, (card.balance||0) - pay);
+      remaining -= pay;
+    }
+
+    plan.forEach(p=>{
+      const tr = document.createElement("tr");
+      const util = pct(p.balance||0, p.limit||0);
+      const stmt = p.stmt || "—";
+      tr.innerHTML = `
+        <td>${p.name||"Card"}</td>
+        <td>$${fmt(p.limit)}</td>
+        <td>$${fmt(p.balance)}</td>
+        <td>${util}%</td>
+        <td>${stmt}</td>
+        <td>$${fmt(p.targetBalance)}</td>
+        <td>$${fmt(p.pay)}</td>
+        <td><button class="btn bad" data-del="${p.id}">Remove</button></td>
+      `;
+      tableBody.appendChild(tr);
+    });
+
+    // Remove handlers
+    tableBody.querySelectorAll("[data-del]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const id = b.getAttribute("data-del");
+        cards = cards.filter(c=>c.id!==id);
+        recalc();
+      });
+    });
+  }
+
+  function addCard(){
+    const id = cryptoRandom();
+    const item = {
+      id,
+      name: (nameI.value||"").trim() || "Card",
+      limit: Number(limitI.value||0),
+      balance: Number(balI.value||0),
+      stmt: stmtI.value || ""
+    };
+    if (item.limit<=0) return alert("Enter a valid limit.");
+    if (item.balance<0) return alert("Enter a valid balance.");
+    cards.push(item);
+    [nameI, limitI, balI, stmtI].forEach(i=>i.value="");
+    recalc();
+  }
+
+  function saveAll(){
+    const payload = { goal: Number(goalI.value||9), cards };
+    store(STORE.util, payload);
+    tip(saveB, "Saved");
+  }
+
+  function tip(btn, msg){
+    const old = btn.textContent; btn.textContent = msg; setTimeout(()=>btn.textContent=old, 1200);
+  }
+
+  function cryptoRandom(){
+    // simple unique id
+    return "id-"+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(4);
+  }
+
+  addB.addEventListener("click", addCard);
+  clearB.addEventListener("click", ()=>{
+    if (!confirm("Clear all cards?")) return;
+    cards = []; recalc();
+  });
+  goalI.addEventListener("input", recalc);
+  saveB.addEventListener("click", saveAll);
+  printB.addEventListener("click", ()=>window.print());
+
+  recalc();
+  return wrap;
+}
+
+/* =========================
+   DEBT PAYOFF PLANNER
+   ========================= */
+function DebtPayoffPlanner(){
+  const wrap = document.createElement("article");
+  wrap.className="card";
+  wrap.innerHTML = `
+    <div class="eyebrow">Installments • Revolving</div>
+    <h2>Debt Payoff Planner</h2>
+    <p class="muted">Compare Snowball vs Avalanche (and Hybrid). Enter balances, APRs, and minimums; set an extra monthly amount; see months to payoff and total interest. Local autosave included.</p>
+  `;
+
+  const grid = document.createElement("div"); grid.className="grid";
+  const left = document.createElement("div"); left.className="panel";
+  const right = document.createElement("div"); right.className="panel";
+
+  const saved = load(STORE.payoff) || {
+    method:"snowball", extra:100,
+    debts:[]
+  };
+
+  left.innerHTML = `
+    <h3>Debts</h3>
+    <div class="row">
+      <div>
+        <label>Name</label>
+        <input id="d_name" type="text" placeholder="e.g., Card A" />
+      </div>
+      <div>
+        <label>Balance ($)</label>
+        <input id="d_bal" type="number" min="0" step="0.01" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>APR (%)</label>
+        <input id="d_apr" type="number" min="0" step="0.01" />
+      </div>
+      <div>
+        <label>Minimum Payment</label>
+        <input id="d_min" type="number" min="0" step="0.01" placeholder="amount or % if % selected" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Min Type</label>
+        <select id="d_minType">
+          <option value="amount">Fixed $</option>
+          <option value="percent">% of balance</option>
+        </select>
+      </div>
+      <div>
+        <label>Min Floor ($)</label>
+        <input id="d_floor" type="number" min="0" step="0.01" value="25" />
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn ok" id="d_add">Add Debt</button>
+      <button class="btn warn" id="d_clear">Clear All</button>
+    </div>
+    <hr style="border:0;border-top:1px solid var(--border);margin:12px 0">
+    <div class="row">
+      <div>
+        <label>Method</label>
+        <select id="d_method">
+          <option value="snowball">Snowball (smallest balance first)</option>
+          <option value="avalanche">Avalanche (highest APR first)</option>
+          <option value="hybrid">Hybrid (one small win, then APR)</option>
+        </select>
+      </div>
+      <div>
+        <label>Extra Monthly ($)</label>
+        <input id="d_extra" type="number" min="0" step="1" value="${saved.extra||0}" />
+      </div>
+    </div>
+    <div class="mini" style="margin-top:8px">
+      <span class="pill">Snowball = motivation</span>
+      <span class="pill">Avalanche = lowest interest</span>
+      <span class="pill">Hybrid = quick win → APR</span>
+    </div>
+  `;
+
+  right.innerHTML = `
+    <h3>Results</h3>
+    <div id="d_stats" class="mini" style="margin-bottom:8px"></div>
+    <div style="overflow:auto;max-height:380px">
+      <table id="d_table">
+        <thead>
+          <tr><th>Month</th><th>Payment</th><th>Interest</th><th>Principal</th><th>Remaining</th><th>Target</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" id="d_save">Save</button>
+      <button class="btn" id="d_print">Print</button>
+    </div>
+  `;
+
+  grid.appendChild(left); grid.appendChild(right); wrap.appendChild(grid);
+
+  // Refs
+  const nameI=left.querySelector("#d_name"), balI=left.querySelector("#d_bal"),
+        aprI=left.querySelector("#d_apr"), minI=left.querySelector("#d_min"),
+        typeI=left.querySelector("#d_minType"), floorI=left.querySelector("#d_floor"),
+        addB=left.querySelector("#d_add"), clearB=left.querySelector("#d_clear"),
+        methodI=left.querySelector("#d_method"), extraI=left.querySelector("#d_extra"),
+        statsEl=right.querySelector("#d_stats"), tbody=right.querySelector("#d_table tbody"),
+        saveB=right.querySelector("#d_save"), printB=right.querySelector("#d_print");
+
+  methodI.value = saved.method || "snowball";
+
+  let debts = Array.isArray(saved.debts) ? saved.debts : [];
+
+  function fmt(n, d=2){ return Number(n||0).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); }
+
+  function addDebt(){
+    const bal = Number(balI.value||0), apr=Number(aprI.value||0), min=Number(minI.value||0), floor=Number(floorI.value||0);
+    if (bal<=0) return alert("Enter a valid balance.");
+    const debt = {
+      id: uid(), name: (nameI.value||"").trim()||"Debt",
+      bal, apr, min, minType:typeI.value, floor
+    };
+    debts.push(debt);
+    [nameI,balI,aprI,minI].forEach(i=>i.value="");
+    recalc();
+  }
+
+  function uid(){ return "d-"+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(4); }
+
+  function monthlyRate(apr){ return Number(apr||0)/100/12; }
+
+  function minPaymentFor(debt, bal){
+    if (debt.minType==="percent"){
+      const amt = Math.max(debt.floor||0, (Number(debt.min||0)/100)*bal);
+      return Math.min(amt, bal); // avoid overpay beyond remaining
+    }
+    return Math.min(Number(debt.min||0), bal);
+  }
+
+  function chooseOrder(list, method, monthIndex){
+    const arr = [...list];
+    if (method==="snowball"){
+      arr.sort((a,b)=> a.bal-b.bal || b.apr-a.apr);
+    } else if (method==="avalanche"){
+      arr.sort((a,b)=> b.apr-a.apr || a.bal-b.bal);
+    } else { // hybrid: first month like snowball, then avalanche
+      if (monthIndex===0) arr.sort((a,b)=> a.bal-b.bal || b.apr-a.apr);
+      else arr.sort((a,b)=> b.apr-a.apr || a.bal-b.bal);
+    }
+    return arr;
+  }
+
+  function simulate(){
+    const method = methodI.value;
+    const extra = Number(extraI.value||0);
+    const items = debts.map(d=>({ ...d, bal:Number(d.bal) }));
+    const schedule = [];
+    let month = 0, totalInterest=0, totalPayment=0;
+
+    // guard
+    if (items.length===0) return {schedule, totalInterest, totalPayment, months:0};
+
+    // cap to 400 months to avoid infinite loops on tiny payments
+    for (; month<400; month++){
+      // remove paid off
+      const open = items.filter(x=>x.bal>0.005);
+      if (open.length===0) break;
+
+      const order = chooseOrder(open, method, month);
+
+      // Compute minimums
+      let mins = 0;
+      order.forEach(d=>{
+        const mp = minPaymentFor(d, d.bal);
+        d._minPay = Math.max(0, Number(mp));
+        mins += d._minPay;
+      });
+
+      let pool = mins + extra;
+
+      let monthPayment=0, monthInterest=0, monthPrincipal=0;
+      let targetName = order[0]?.name || "";
+
+      // First pay interest then apply payments per order
+      order.forEach(d=>{
+        const i = d.bal * monthlyRate(d.apr);
+        d._interest = i;
+      });
+
+      // Apply minimums
+      order.forEach(d=>{
+        const i = d._interest;
+        const mp = Math.min(pool, d._minPay);
+        pool -= mp;
+        // Interest first, then principal
+        const principal = Math.max(0, mp - i);
+        d.bal = Math.max(0, d.bal + i - mp);
+        monthPayment += mp; monthInterest += i; monthPrincipal += principal;
+      });
+
+      // Roll snowball extra to target, then next, etc.
+      for (const d of order){
+        if (pool<=0) break;
+        const need = d.bal; // pay off entirely if possible
+        if (need<=0) continue;
+        const pay = Math.min(pool, need);
+        // Here interest for this month already added; paying now is all principal
+        d.bal = Math.max(0, d.bal - pay);
+        pool -= pay;
+        monthPayment += pay; monthPrincipal += pay;
+      }
+
+      totalPayment += monthPayment;
+      totalInterest += monthInterest;
+
+      const remaining = items.reduce((s,x)=> s + x.bal, 0);
+      schedule.push({ m:month+1, pay:monthPayment, interest:monthInterest, principal:monthPrincipal, remaining, target:targetName });
+
+      if (remaining<=0.005) break;
+    }
+    return { schedule, totalInterest, totalPayment, months:month };
+  }
+
+  function recalc(){
+    // Render small table of debts with remove buttons above results
+    // (Keep inputs on left; results on right)
+    renderDebtList();
+
+    const r = simulate();
+    statsEl.innerHTML = `
+      <span class="pill">Debts: ${debts.length}</span>
+      <span class="pill">Months to Payoff: ${r.months}</span>
+      <span class="pill">Total Interest: $${fmt(r.totalInterest)}</span>
+      <span class="pill">Total Paid: $${fmt(r.totalPayment)}</span>
+    `;
+
+    tbody.innerHTML="";
+    r.schedule.slice(0, 24).forEach(row=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${row.m}</td>
+        <td>$${fmt(row.pay)}</td>
+        <td>$${fmt(row.interest)}</td>
+        <td>$${fmt(row.principal)}</td>
+        <td>$${fmt(row.remaining)}</td>
+        <td>${row.target}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    if (r.schedule.length>24){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="6" style="text-align:center;color:var(--muted)">… ${r.schedule.length-24} more months not shown</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderDebtList(){
+    // Create or update a mini table in the left panel bottom
+    let holder = left.querySelector("#d_list");
+    if (!holder){
+      holder = document.createElement("div");
+      holder.id="d_list";
+      holder.style.marginTop="10px";
+      holder.innerHTML = `
+        <div style="overflow:auto;max-height:220px">
+          <table>
+            <thead><tr><th>Name</th><th>Bal</th><th>APR</th><th>Min</th><th>Type</th><th>Floor</th><th>Actions</th></tr></thead>
+            <tbody id="d_list_body"></tbody>
+          </table>
+        </div>
+      `;
+      left.appendChild(holder);
+    }
+    const body = holder.querySelector("#d_list_body");
+    body.innerHTML = "";
+    debts.forEach(d=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${d.name}</td>
+        <td>$${fmt(d.bal)}</td>
+        <td>${fmt(d.apr,2)}%</td>
+        <td>${d.minType==="percent"? fmt(d.min,2)+"%":"$"+fmt(d.min)}</td>
+        <td>${d.minType}</td>
+        <td>$${fmt(d.floor)}</td>
+        <td><button class="btn bad" data-del="${d.id}">Remove</button></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll("[data-del]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const id=b.getAttribute("data-del");
+        debts = debts.filter(x=>x.id!==id);
+        recalc();
+      });
+    });
+  }
+
+  addB.addEventListener("click", addDebt);
+  clearB.addEventListener("click", ()=>{ if(confirm("Clear all debts?")){ debts=[]; recalc(); }});
+  [methodI, extraI].forEach(el=>el.addEventListener("input", recalc));
+
+  saveB.addEventListener("click", ()=>{
+    store(STORE.payoff, { method:methodI.value, extra:Number(extraI.value||0), debts });
+    tip(saveB,"Saved");
+  });
+  printB.addEventListener("click", ()=>window.print());
+
+  function tip(btn,msg){ const old=btn.textContent; btn.textContent=msg; setTimeout(()=>btn.textContent=old,1200); }
+
+  recalc();
+  return wrap;
+}
+
+/* =========================
+   SETTLEMENT NEGOTIATOR
+   ========================= */
+function SettlementNegotiator(){
+  const wrap = document.createElement("article");
+  wrap.className="card";
+  wrap.innerHTML = `
+    <div class="eyebrow">Collections • Negotiation</div>
+    <h2>Settlement Negotiator</h2>
+    <p class="muted">Estimate a reasonable offer range based on debt age and status, then generate a Pay-For-Delete (or paid-update) letter. Always get acceptance in writing before paying.</p>
+  `;
+
+  const grid = document.createElement("div"); grid.className="grid";
+  const left = document.createElement("div"); left.className="panel";
+  const right = document.createElement("div"); right.className="panel";
+
+  const saved = load(STORE.settle) || {
+    consumer:{ name:"", address:"", cityzip:"" },
+    debt:{ collector:"", addr:"", acct:"", face:1000, ageMonths:36, status:"collection" },
+    prefs:{ strategy:"pfd", deadline: new Date().toISOString().slice(0,10), lump:true }
+  };
+
+  left.innerHTML = `
+    <h3>Case</h3>
+    <div class="row">
+      <div>
+        <label>Your Name</label>
+        <input id="s_name" type="text" value="${saved.consumer.name||""}">
+      </div>
+      <div>
+        <label>Your Address</label>
+        <input id="s_addr" type="text" value="${saved.consumer.address||""}">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>City, State ZIP</label>
+        <input id="s_cityzip" type="text" value="${saved.consumer.cityzip||""}">
+      </div>
+      <div>
+        <label>Collector Name</label>
+        <input id="s_coll" type="text" value="${saved.debt.collector||""}">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Collector Address</label>
+        <input id="s_caddr" type="text" value="${saved.debt.addr||""}">
+      </div>
+      <div>
+        <label>Account/File #</label>
+        <input id="s_acct" type="text" value="${saved.debt.acct||""}">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Face Amount ($)</label>
+        <input id="s_face" type="number" min="0" step="1" value="${saved.debt.face||0}">
+      </div>
+      <div>
+        <label>Age (months since DoFD)</label>
+        <input id="s_age" type="number" min="0" step="1" value="${saved.debt.ageMonths||0}">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Status</label>
+        <select id="s_status">
+          <option value="collection">Collection</option>
+          <option value="chargeoff">Charge-off (OC)</option>
+          <option value="judgment">Judgment</option>
+        </select>
+      </div>
+      <div>
+        <label>Strategy</label>
+        <select id="s_strategy">
+          <option value="pfd">Pay-For-Delete</option>
+          <option value="paid-update">Pay as Paid/Settled (no delete)</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Offer Deadline</label>
+        <input id="s_deadline" type="date" value="${saved.prefs.deadline||new Date().toISOString().slice(0,10)}">
+      </div>
+      <div>
+        <label>Lump Sum?</label>
+        <select id="s_lump">
+          <option value="yes">Yes (best discount)</option>
+          <option value="no">No (payment plan)</option>
+        </select>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn ok" id="s_calc">Suggest Offer</button>
+      <button class="btn primary" id="s_save">Save</button>
+      <button class="btn warn" id="s_clear">Clear</button>
+    </div>
+  `;
+
+  right.innerHTML = `
+    <h3>Suggestion & Letter</h3>
+    <div class="mini" id="s_badges" style="margin-bottom:8px"></div>
+    <div class="panel">
+      <h4 style="margin:0 0 6px">Offer Guidance</h4>
+      <div id="s_guidance" class="muted" style="margin-bottom:8px"></div>
+      <div class="toolbar">
+        <button class="btn" id="s_copy">Copy Letter</button>
+        <button class="btn ok" id="s_dl">Download .txt</button>
+        <button class="btn" id="s_print">Print</button>
+      </div>
+      <div id="s_letter" class="preview"></div>
+    </div>
+  `;
+
+  grid.appendChild(left); grid.appendChild(right); wrap.appendChild(grid);
+
+  // Refs
+  const nameI = left.querySelector("#s_name"), addrI = left.querySelector("#s_addr"), cityzipI = left.querySelector("#s_cityzip");
+  const collI = left.querySelector("#s_coll"), caddrI = left.querySelector("#s_caddr"), acctI = left.querySelector("#s_acct");
+  const faceI = left.querySelector("#s_face"), ageI = left.querySelector("#s_age"), statusI = left.querySelector("#s_status");
+  const stratI = left.querySelector("#s_strategy"), deadlineI = left.querySelector("#s_deadline"), lumpI = left.querySelector("#s_lump");
+  const calcB = left.querySelector("#s_calc"), saveB = left.querySelector("#s_save"), clearB = left.querySelector("#s_clear");
+
+  const badges = right.querySelector("#s_badges"), guidance = right.querySelector("#s_guidance"), letterEl = right.querySelector("#s_letter");
+  const copyB = right.querySelector("#s_copy"), dlB = right.querySelector("#s_dl"), printB = right.querySelector("#s_print");
+
+  statusI.value = saved.debt.status || "collection";
+  stratI.value = saved.prefs.strategy || "pfd";
+  lumpI.value = saved.prefs.lump ? "yes":"no";
+
+  function suggest(){
+    const face = Number(faceI.value||0);
+    const age = Number(ageI.value||0);
+    const status = statusI.value;
+    const lump = (lumpI.value==="yes");
+    const strategy = stratI.value;
+
+    // crude ranges
+    // older debts / sold multiple times tend to accept 20–40%; newer/primary 40–70%;
+    // judgments often 60–90% (power to collect).
+    let low=0.2, high=0.4, note="Older/lower collectability.";
+    if (age<18) { low=0.4; high=0.7; note="Newer account; higher expectations."; }
+    if (status==="chargeoff"){ low-=0.05; high-=0.05; note+=" OC charge-off.";
+      if (low<0.2) low=0.2; }
+    if (status==="judgment"){ low=0.6; high=0.9; note="Judgment entered; leverage reduced."; }
+
+    if (!lump){ // plans reduce discount
+      low += 0.05; high += 0.1;
+      note += " Payment plan reduces discount.";
+    }
+
+    const offerLow = Math.round(face*low);
+    const offerHigh = Math.round(face*high);
+
+    badges.innerHTML = `
+      <span class="pill">Face: $${num(face)}</span>
+      <span class="pill">Age: ${age} mo</span>
+      <span class="pill">Status: ${status}</span>
+      <span class="pill">${lump?"Lump Sum":"Payment Plan"}</span>
+      <span class="pill">Strategy: ${strategy==="pfd"?"Pay-For-Delete":"Paid Update"}</span>
+    `;
+    guidance.innerHTML = `
+      Suggested range: <b>$${num(offerLow)}–$${num(offerHigh)}</b> (${Math.round(low*100)}–${Math.round(high*100)}%).
+      <br>${note} Always get terms in writing on company letterhead before paying.
+    `;
+
+    const letter = buildLetter({
+      name:nameI.value, addr:addrI.value, cityzip:cityzipI.value,
+      coll:collI.value, caddr:caddrI.value, acct:acctI.value,
+      offer:`$${num(offerLow)} to $${num(offerHigh)}${lump? " lump sum": " via plan"}`,
+      deadline:deadlineI.value || new Date().toISOString().slice(0,10),
+      pfd: strategy==="pfd"
+    });
+    letterEl.textContent = letter;
+  }
+
+  function buildLetter(v){
+    const today = new Date().toISOString().slice(0,10);
+    const terms = v.pfd
+      ? `on the condition that you agree, in writing, to request deletion of the collection tradeline from Experian, Equifax, and TransUnion within 30 days of cleared payment`
+      : `with the understanding that you will update the tradeline to “Paid in Full” (or “Settled for Less,” if applicable) with all credit bureaus within 30 days of cleared payment`;
+    return `${today}
+
+${v.coll}
+${v.caddr}
+
+Re: Settlement Offer — ${v.acct}
+
+${v.name}
+${v.addr}
+${v.cityzip}
+
+To Whom It May Concern,
+
+Without admitting liability, I am willing to settle the above-referenced account for ${v.offer} ${terms}.
+
+Please provide a signed letter on company letterhead confirming:
+• The agreed settlement amount and payment method;
+• The reporting action (${v.pfd? "deletion of the tradeline":"update to paid/settled"});
+• That no further collection will occur on any remaining balance.
+
+This offer is valid until ${v.deadline}. Upon receipt of your written acceptance, I will remit payment accordingly.
+
+Sincerely,
+
+${v.name}
+`;
+  }
+
+  function num(n){ return Number(n||0).toLocaleString(undefined,{maximumFractionDigits:0}); }
+
+  calcB.addEventListener("click", suggest);
+  saveB.addEventListener("click", ()=>{
+    store(STORE.settle, {
+      consumer:{ name:nameI.value, address:addrI.value, cityzip:cityzipI.value },
+      debt:{ collector:collI.value, addr:caddrI.value, acct:acctI.value, face:Number(faceI.value||0), ageMonths:Number(ageI.value||0), status:statusI.value },
+      prefs:{ strategy:stratI.value, deadline:deadlineI.value, lump:(lumpI.value==="yes") }
+    });
+    tip(saveB,"Saved");
+  });
+  clearB.addEventListener("click", ()=>{
+    if(!confirm("Clear settlement fields?")) return;
+    [nameI,addrI,cityzipI,collI,caddrI,acctI,faceI,ageI].forEach(i=>i.value="");
+    statusI.value="collection"; stratI.value="pfd"; lumpI.value="yes";
+    deadlineI.value = new Date().toISOString().slice(0,10);
+    badges.innerHTML=""; guidance.innerHTML=""; letterEl.textContent="";
+  });
+
+  copyB.addEventListener("click", async ()=>{
+    try{ await navigator.clipboard.writeText(letterEl.textContent||""); tip(copyB,"Copied"); }
+    catch{ alert("Copy failed. Select text and press Ctrl+C."); }
+  });
+  dlB.addEventListener("click", ()=>{
+    const blob = new Blob([letterEl.textContent||""], {type:"text/plain;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `settlement-letter-${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+  });
+  printB.addEventListener("click", ()=>window.print());
+
+  function tip(btn,msg){ const old=btn.textContent; btn.textContent=msg; setTimeout(()=>btn.textContent=old,1200); }
+
+  return wrap;
+}
+
+/* =========================
+   RENDER HOST
+   ========================= */
+function renderMain(){
+  main.innerHTML="";
+  const head = document.createElement("article");
+  head.className="card";
+  const title = PANELS.find(p=>p.id===current)?.title || "";
+  head.innerHTML = `
+    <div class="eyebrow">Credit Tools</div>
+    <h2>${title}</h2>
+    <div class="mini">
+      <span class="pill">Local autosave</span>
+      <span class="pill">Print-friendly</span>
+      <span class="pill">No external libraries</span>
+    </div>
+  `;
+  main.appendChild(head);
+
+  if (current==="util") main.appendChild(UtilizationPlanner());
+  if (current==="payoff") main.appendChild(DebtPayoffPlanner());
+  if (current==="settle") main.appendChild(SettlementNegotiator());
+}
+
+/* =========================
+   NAV INIT
+   ========================= */
+function init(){
+  renderSide();
+  renderMain();
+}
+init();
+
+/* =========================
+   STORAGE HELPERS
+   ========================= */
+function load(key){
+  try{ return JSON.parse(localStorage.getItem(key)); }catch{ return null; }
+}
+function store(key,val){
+  localStorage.setItem(key, JSON.stringify(val));
+}
+</script>
+</body>
+</html>
