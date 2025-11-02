@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Credit Tips | Rebuild & Recover</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    /* THEME — tweak freely */
+    --bg: #0e1116;
+    --panel: #121722;
+    --panel-2: #0f1520;
+    --ink: #e9f0ff;
+    --muted: #a8b3cf;
+    --brand: #7c5cff;
+    --brand-2: #2dd4bf;
+    --ok: #22c55e;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+    --border: #1d2540;
+    --nav: #0a0f1b;
+    --focus: #2a3457;
+    --shadow: 0 10px 30px rgba(0,0,0,.45);
+  }
+
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
+  body{
+    margin:0; background: radial-gradient(1200px 800px at 10% -10%, #1a1f33 0, transparent 60%),
+                       radial-gradient(1000px 600px at 100% 0%, #122032 0, transparent 55%),
+                       var(--bg);
+    color:var(--ink); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    line-height:1.45;
+  }
+
+  /* Top bar */
+  .topbar{
+    position:sticky; top:0; z-index:50; backdrop-filter: blur(10px);
+    background: linear-gradient(180deg, rgba(10,14,24,.9), rgba(10,14,24,.65));
+    border-bottom:1px solid var(--border);
+  }
+  .topwrap{ max-width:1200px; margin:0 auto; padding:12px 16px; display:flex; gap:12px; align-items:center; }
+  .logo{ font-weight:800; letter-spacing:.3px; color:var(--ink); display:flex; align-items:center; gap:10px; }
+  .logo-badge{
+    width:28px; height:28px; display:grid; place-items:center;
+    border-radius:8px; background:
+      radial-gradient(180px 80px at 130% 120%, rgba(124,92,255,.35), transparent 60%),
+      radial-gradient(120px 90px at -30% -40%, rgba(45,212,191,.35), transparent 60%),
+      linear-gradient(135deg, #1b1f2f, #171b2b);
+    box-shadow: var(--shadow);
+    border:1px solid var(--border);
+    font-size:14px; font-weight:800; color:#eaeaff;
+  }
+  .crumbs{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .crumb{border:1px solid var(--border);background:var(--nav);border-radius:10px;padding:6px 10px;color:var(--muted);font-size:12px}
+  .home{color:var(--ink);text-decoration:none}  
+  .tabs{ display:flex; flex-wrap:wrap; gap:8px; margin-left:auto; }
+  .tab{
+    appearance:none; border:1px solid var(--border); background:var(--nav);
+    color:var(--ink); padding:8px 12px; border-radius:10px; cursor:pointer;
+    font-weight:600;
+  }
+  .tab[aria-pressed="true"]{
+    background: linear-gradient(135deg, rgba(124,92,255,.25), rgba(45,212,191,.2));
+    border-color:#2f3764;
+    outline:2px solid rgba(124,92,255,.35);
+  }
+
+  /* Layout */
+  .wrap{ max-width:1200px; margin:22px auto; padding:0 16px; display:grid; grid-template-columns:300px 1fr; gap:18px; }
+  @media (max-width: 980px){
+    .wrap{ grid-template-columns:1fr; }
+    .sidebar{ order:2; }
+    .main{ order:1; }
+  }
+
+  /* Sidebar panels (focus-based; button -> panel) */
+  .sidebar{
+    background: linear-gradient(180deg, rgba(18,23,34,.9), rgba(18,23,34,.7));
+    border:1px solid var(--border); border-radius:16px; padding:12px;
+    box-shadow: var(--shadow);
+  }
+
+  .side-title{ margin:6px 8px 12px; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.12em; }
+
+  .acc{
+    display:flex; flex-direction:column; gap:10px;
+  }
+
+  .acc button{
+    width:100%; text-align:left; padding:12px 12px;
+    background:linear-gradient(135deg, #0e1422, #0d1320);
+    border:1px solid var(--border); border-radius:12px;
+    color:var(--ink); font-weight:600; cursor:pointer; position:relative;
+    transition: transform .05s ease;
+  }
+  .acc button:hover{ transform: translateY(-1px); }
+  .acc button:focus-visible{ outline:2px solid var(--focus); }
+  .acc button.active{
+    background: linear-gradient(135deg, rgba(124,92,255,.22), rgba(45,212,191,.18));
+    border-color:#2f3764;
+  }
+  .acc .badge{
+    position:absolute; right:10px; top:9px; padding:2px 8px; font-size:12px;
+    border:1px solid var(--border); border-radius:999px; color:var(--muted);
+    background:#0c1222;
+  }
+  .acc .progressbar{
+    margin-top:10px; height:8px; background:#0d1430; border:1px solid var(--border);
+    border-radius:999px; overflow:hidden;
+  }
+  .acc .progressbar > i{
+    display:block; height:100%; width:0%;
+    background:linear-gradient(90deg, var(--brand), var(--brand-2));
+  }
+
+  /* Main content cards */
+  .main{
+    display:flex; flex-direction:column; gap:16px;
+  }
+  .card{
+    background: linear-gradient(180deg, rgba(17,22,34,.95), rgba(16,21,33,.85));
+    border:1px solid var(--border);
+    border-radius:16px; padding:20px;
+    box-shadow: var(--shadow);
+  }
+  .card h2{ margin:0 0 4px; }
+  .eyebrow{ color:var(--muted); font-size:13px; letter-spacing:.12em; text-transform:uppercase; }
+  .lead{ color:#eaf2ff; opacity:.95; }
+  .grid{
+    display:grid; gap:12px; grid-template-columns:repeat(2, minmax(0,1fr));
+  }
+  @media (max-width: 820px){ .grid{ grid-template-columns:1fr; } }
+
+  .step{
+    background: linear-gradient(180deg, #0f1526, #0d1422);
+    border:1px solid var(--border); border-radius:14px; padding:14px;
+  }
+  .step h4{ margin:0 0 6px; font-size:15px; }
+  .step p{ margin:0 0 6px; color:var(--muted); }
+  .step label{ display:flex; align-items:flex-start; gap:10px; margin-top:8px; }
+  .step input[type="checkbox"]{ transform: scale(1.2); margin-top:3px; }
+  .hint{ font-size:12px; color:#cbd5f7; opacity:.9; }
+
+  /* Mini stats & helpers */
+  .mini{
+    display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;
+  }
+  .pill{
+    border:1px solid var(--border); border-radius:999px; padding:6px 10px;
+    color:var(--muted); font-size:12px; background:#0e1424;
+  }
+
+  .toolbar{
+    display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;
+  }
+  .btn{
+    appearance:none; border:1px solid var(--border); background:#0c1324;
+    color:var(--ink); padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600;
+  }
+  .btn:focus-visible{ outline:2px solid var(--focus); }
+  .btn.primary{
+    background:linear-gradient(135deg, rgba(124,92,255,.25), rgba(45,212,191,.2));
+    border-color:#2f3764;
+  }
+  .btn.ok{ border-color:#1f3d2a; background:#11241a; }
+  .btn.warn{ border-color:#3b2b10; background:#22180a; }
+  .btn.bad{ border-color:#3a1a1a; background:#1e0c0c; }
+
+  /* Print */
+  @media print{
+    .topbar{ display:none; }
+    .wrap{ grid-template-columns:1fr; }
+    .sidebar{ page-break-after:avoid; }
+    .card{ page-break-inside:avoid; }
+    body{ background:#fff; color:#111; }
+  }
+
+  /* Footer */
+  .foot{ max-width:1200px; margin:20px auto 40px; padding:0 16px; color:var(--muted); text-align:center; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topwrap">
+    <div class="logo">
+      <span class="logo-badge">CR</span>
+      Credit Tips — Rebuild & Recover
+    </div>
+
+    <div class="crumbs">
+      <span class="crumb">Guide</span>
+      <a class="crumb home" href="./printables.html">Printables</a>
+      <a class="crumb home" href="./calculators.html">Calculators</a>
+    </div>
+
+    <nav class="tabs" id="topTabs" aria-label="Sections"></nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <aside class="sidebar">
+    <div class="side-title" id="sideTitle">Topics</div>
+    <div class="acc" id="sideAcc"></div>
+  </aside>
+
+  <section class="main" id="main"></section>
+</main>
+
+<footer class="foot">
+  <div>Educational content only, not financial/legal advice. Always verify with your bank, creditor, or attorney.</div>
+</footer>
+
+<script>
+/* ---------- DATA MODEL (dense, actionable) ---------- */
+const SECTIONS = [
+  {
+    id: "start",
+    title: "Start Here",
+    topics: [
+      {
+        id: "mindset-plan",
+        title: "Mindset & 90-Day Plan",
+        eyebrow: "Orientation",
+        lead: "You can rebuild from almost anywhere. Lock in a 90-day routine that stabilizes your cashflow and starts score movement.",
+        steps: [
+          { id:"mh1", title:"Freeze impulse credit use for 90 days", text:"No new credit applications unless planned below (secured or builder only). Every hard inquiry can ding score and risks denial." },
+          { id:"mh2", title:"Set auto-pay for minimums", text:"Prevent late pays (the worst score killer). Even $5 min on time beats a 30-day late." },
+          { id:"mh3", title:"List debts and sort by status", text:"Buckets: current, late, collections, charged-off, judgments. This drives your sequence." },
+          { id:"mh4", title:"Pull all 3 reports free", text:"AnnualCreditReport.com gives Experian, Equifax, TransUnion weekly for free. Save PDFs for records." },
+          { id:"mh5", title:"Open a “rebuild toolkit” folder", text:"Keep copies of IDs, utility bills, dispute letters, agreements, payment proofs. Organization wins disputes." },
+          { id:"mh6", title:"Budget 1% emergency buffer", text:"Even $20-$50/mo avoids future lates. Micro-buffer prevents a single surprise from derailing you." },
+          { id:"mh7", title:"Set weekly 30-min slot", text:"Credit work is a habit. Same day/time each week to review progress, disputes, and payments." }
+        ],
+        tags:["No new apps","Auto-pay","Pull reports","Organize","Weekly cadence"]
+      },
+      {
+        id: "score-basics",
+        title: "Score Basics (FICO/Vantage)",
+        eyebrow: "Understanding",
+        lead: "Know what moves the needle so you invest effort where it counts.",
+        steps: [
+          { id:"sb1", title:"Payment history (35%)", text:"Never miss due dates. A single 30-day late hurts ~24 months. Set autopay minimums everywhere." },
+          { id:"sb2", title:"Utilization (30%)", text:"Keep total and per-card balances under 10–30% of limits. 1–9% ideal for scoring snapshots." },
+          { id:"sb3", title:"Length & mix (25%)", text:"Oldest account age matters. Keep old $0 fee cards open. Mix of revolving + installment helps." },
+          { id:"sb4", title:"Inquiries & new accounts (10%)", text:"Batches of hard pulls hurt briefly. Be surgical with new accounts (secured/builder)." },
+          { id:"sb5", title:"Derogatories impact", text:"Collections, charge-offs, public records weigh heavily but fade over time with positive data." },
+          { id:"sb6", title:"Data speed", text:"Most furnishers report monthly. Expect 30–60 days for changes to reflect broadly." }
+        ],
+        tags:["On-time","Low util","Keep old","Right mix","Patience"]
+      },
+      {
+        id: "toolkit",
+        title: "Your Rebuild Toolkit",
+        eyebrow: "Setup",
+        lead: "Free tools make this easier. Set them once; revisit weekly.",
+        steps: [
+          { id:"tk1", title:"AnnualCreditReport.com logins", text:"Create/keep logins to pull all 3 bureaus weekly. Save each as PDF." },
+          { id:"tk2", title:"Bank alerts & autopay", text:"Balance threshold and bill-due alerts. Autopay minimums to avoid lates." },
+          { id:"tk3", title:"Secure cloud folder", text:"ID, utility bill, paystubs, dispute letters, agreements, receipts, PDFs." },
+          { id:"tk4", title:"Utilization tracker", text:"Simple sheet: card limit, statement date, target balance, report date." },
+          { id:"tk5", title:"Dispute calendar", text:"30-day CRA response clock; 15-day furnishers; follow-up reminders." },
+          { id:"tk6", title:"Fraud freeze pins stored", text:"Store freeze/unfreeze steps if needed (see Fraud section)." },
+          { id:"tk7", title:"Weekly 30-minute slot", text:"Calendar entry with checklist link to keep momentum." }
+        ],
+        tags:["Free pulls","PDFs","Alerts","Calendar","Tracker"]
+      }
+    ]
+  },
+  {
+    id: "rebuild",
+    title: "Rebuild Credit",
+    topics: [
+      {
+        id: "secured-card",
+        title: "Secured Credit Cards (Why & How)",
+        eyebrow: "Revolving Starter",
+        lead: "Easiest on-ramp after denials, fraud, or convictions. Deposit-backed line lowers risk to bank.",
+        steps: [
+          { id:"sc1", title:"Pick $200–$500 deposit limit", text:"More isn’t necessary. Scoring doesn’t care about the deposit size—utilization and on-time do." },
+          { id:"sc2", title:"Statement date strategy", text:"Pay to 1–9% before statement cuts; leave a small reported balance; pay to $0 by due date." },
+          { id:"sc3", title:"No fees if possible", text:"Prefer $0 annual fee, reports to all 3 bureaus, and path to graduate to unsecured." },
+          { id:"sc4", title:"Autopay minimums", text:"Avoid a single late. Lates on secured hurt the same as any card." },
+          { id:"sc5", title:"After 6–9 months", text:"Ask to graduate/unsecure; keep account open for age. If denied, try again at 12 months." },
+          { id:"sc6", title:"2nd revolving? Maybe", text:"If utilization tricky, a 2nd secured (staggered statement dates) can smooth reporting." },
+          { id:"sc7", title:"Avoid store cards early", text:"High APR and thin value. Focus on clean tradelines first." }
+        ],
+        tags:["Deposit-backed","All-3 bureaus","Low util","Autopay","Graduate"]
+      },
+      {
+        id: "credit-builder-loan",
+        title: "Credit-Builder Loans",
+        eyebrow: "Installment Starter",
+        lead: "Installment mix boosts score and shows pay discipline without upfront cash leaving you long-term.",
+        steps: [
+          { id:"cl1", title:"How it works", text:"Savings-secured: you pay monthly; lender releases funds at the end. Reports as on-time installment." },
+          { id:"cl2", title:"12 months sweet spot", text:"Short enough to stay motivated; long enough to add mix and history." },
+          { id:"cl3", title:"Autopay & small amount", text:"$20–$40/mo keeps it painless. Never miss a payment." },
+          { id:"cl4", title:"Early payoff?", text:"Usually allowed but don’t rush; the reporting history is the value." },
+          { id:"cl5", title:"Open alongside secured", text:"Revolving + installment combo is a classic rebuild foundation." },
+          { id:"cl6", title:"Keep docs", text:"Store agreement and proof of payments for disputes if reporting lags." }
+        ],
+        tags:["Installment mix","Small payment","12 mo","Autopay","Docs"]
+      },
+      {
+        id: "rent-utility-reporting",
+        title: "Add Rent & Utilities",
+        eyebrow: "Alternative Data",
+        lead: "On-time rent and utilities can add positive history if furnished to bureaus.",
+        steps: [
+          { id:"ru1", title:"Rent reporting service", text:"Choose one that reports to all 3 if possible. Backfill 12–24 months if allowed." },
+          { id:"ru2", title:"Utility/phone reporting", text:"Some services report utilities/phone. Verify bureau coverage before paying fees." },
+          { id:"ru3", title:"Verify actually posted", text:"Check reports in 30–60 days. Dispute missing lines with service proof." },
+          { id:"ru4", title:"Maintain on-time", text:"These tradelines are only helpful if always current." },
+          { id:"ru5", title:"Cost vs value", text:"A small fee can be worth it early in a rebuild when every positive line matters." }
+        ],
+        tags:["Rent data","Backfill","Verify","On-time","ROI"]
+      },
+      {
+        id: "authorized-user",
+        title: "Authorized User (AU) Done Right",
+        eyebrow: "Borrowed History",
+        lead: "Piggyback carefully—wrong AU can hurt. Right AU can boost age, limit, and utilization profile.",
+        steps: [
+          { id:"au1", title:"Choose pristine card", text:"No lates—ever, low utilization (<10%), older than your oldest, high limit, reports AUs." },
+          { id:"au2", title:"Trusted person only", text:"You don’t need a card in hand. Ask them not to give you one to avoid risk." },
+          { id:"au3", title:"Watch utilization", text:"If their util spikes, your score may dip. Have them pay down before statement." },
+          { id:"au4", title:"Remove if issues", text:"You can be removed instantly; changes show in ~30–60 days." },
+          { id:"au5", title:"Still build your own", text:"AU is supplement, not substitute. Keep secured/builders active." }
+        ],
+        tags:["Pristine donor","Old line","Low util","No card needed","Safety"]
+      },
+      {
+        id: "utilization-mastery",
+        title: "Utilization Mastery",
+        eyebrow: "Scoring Tactics",
+        lead: "The same dollars can score better with timing and distribution.",
+        steps: [
+          { id:"um1", title:"Know statement dates", text:"Pay to 1–9% *before* statement, then to $0 by due date. That snapshots low util." },
+          { id:"um2", title:"Spread balances", text:"Don’t show all cards at $0. One small balance reporting often scores better than all $0." },
+          { id:"um3", title:"Big payment timing", text:"Paydown 3–5 days before statement for bank processing lag." },
+          { id:"um4", title:"Target card mix", text:"If two cards, show $10–$30 on one; $0 on the other. Rotate periodically." },
+          { id:"um5", title:"New limits help", text:"Ask for soft-pull CLI after 6–12 months of perfect pay; do not if recent lates/derogs." }
+        ],
+        tags:["1–9% wins","Snapshot timing","One small balance","Rotate","Soft-pull CLI"]
+      }
+    ]
+  },
+  {
+    id: "collections",
+    title: "Debt & Collections",
+    topics: [
+      {
+        id: "triage",
+        title: "Triage: What to Pay First",
+        eyebrow: "Priorities",
+        lead: "Protect essentials. Avoid re-aging. Sequence matters.",
+        steps: [
+          { id:"tr1", title:"Keep essentials current", text:"Rent/mortgage, utilities, car (for work), child support, taxes. Credit follows stability." },
+          { id:"tr2", title:"Active accounts next", text:"Prevent fresh lates—cheaper to keep current than fix later." },
+          { id:"tr3", title:"Collections: validate first", text:"Request validation in writing. Pay only verified, correct debts." },
+          { id:"tr4", title:"Statute of limitations (SoL)", text:"Paying can reset the clock in some states. Know your SoL before negotiating." },
+          { id:"tr5", title:"Negotiate in writing", text:"Get settlement terms and reporting promises written before paying." },
+          { id:"tr6", title:"Avoid phone promises", text:"Everything by mail or secure portal. Keep copies." }
+        ],
+        tags:["Essentials","Active first","Validate","SoL","Written terms"]
+      },
+      {
+        id: "settlement",
+        title: "Settlements & Pay-for-Delete",
+        eyebrow: "Negotiation",
+        lead: "Not all collectors will delete. Some will update to paid. Both can help.",
+        steps: [
+          { id:"st1", title:"Start low (20–40%)", text:"Older debts sell cheap. Offer low with hardship letter; expect counter." },
+          { id:"st2", title:"Pay-for-delete ask", text:"Some agree to delete on payment. Get it in writing before paying." },
+          { id:"st3", title:"Lump sum vs plan", text:"Lump sum wins bigger discounts; plans risk re-aging if not careful." },
+          { id:"st4", title:"No access to bank", text:"Use one-time payments (money order or virtual card). Don’t give ACH authority." },
+          { id:"st5", title:"Receipts & follow-up", text:"Keep proof. Check reports after 30–60 days; dispute if not updated per agreement." }
+        ],
+        tags:["20–40% start","PFD if possible","Lump sum","No ACH","Receipts"]
+      },
+      {
+        id: "chargeoffs",
+        title: "Charge-Offs & Re-Aging Risks",
+        eyebrow: "Old Accounts",
+        lead: "Don’t reset clocks by mistake. Fix reports; then decide on pay/settle.",
+        steps: [
+          { id:"co1", title:"Check DoFD", text:"Date of first delinquency drives drop-off (usually 7 years). Ensure it’s accurate." },
+          { id:"co2", title:"Dispute inaccuracies", text:"Amounts, dates, duplicate tradelines—fix first. Wrong data costs points." },
+          { id:"co3", title:"Negotiate language", text:"‘Paid in full’ or ‘Settled’ is fine. ‘Deleted’ is best if offered." },
+          { id:"co4", title:"Tax note", text:"Cancellations of debt may trigger 1099-C. Budget for it." },
+          { id:"co5", title:"Don’t revive zombie debt", text:"A small payment can restart SoL. Know your state rules." }
+        ],
+        tags:["DoFD","7-year drop","Fix data","Word choice","1099-C"]
+      },
+      {
+        id: "medical",
+        title: "Medical Debt Rules",
+        eyebrow: "Special Handling",
+        lead: "Recent changes reduce scoring impact. Verify before paying.",
+        steps: [
+          { id:"md1", title:"Underwriting changes", text:"Paid medical collections often no longer affect scores in newer models." },
+          { id:"md2", title:"$500+ rules (varies)", text:"Many small medical collections excluded; confirm current bureau policies." },
+          { id:"md3", title:"Request itemized bills", text:"Check coding/insurance errors first. Many vanish after insurer reprocessing." },
+          { id:"md4", title:"Dispute + goodwill", text:"Hospitals sometimes remove on paid plans or charity approvals." },
+          { id:"md5", title:"HIPAA myths", text:"Stick to official dispute/validation routes; ignore internet ‘HIPAA letter’ hacks." }
+        ],
+        tags:["Less impact","Insurance first","Itemize","Charity care","Legit process"]
+      }
+    ]
+  },
+  {
+    id: "reports",
+    title: "Credit Reports & Disputes",
+    topics: [
+      {
+        id: "pull-3",
+        title: "Pull All 3 Bureaus Weekly",
+        eyebrow: "Monitoring",
+        lead: "Catching errors early saves months.",
+        steps: [
+          { id:"p31", title:"AnnualCreditReport.com", text:"Download Experian, Equifax, TransUnion as PDFs. Name them YYYY-MM-DD-bureau.pdf" },
+          { id:"p32", title:"Scan for mismatches", text:"Names, addresses, SSN digits, duplicate tradelines, wrong balances/dates." },
+          { id:"p33", title:"Note statement dates", text:"Add to your utilization tracker for timing payments." },
+          { id:"p34", title:"Track disputes", text:"Create a log: item, bureau, date sent, response due, result." },
+          { id:"p35", title:"Freeze if needed", text:"If fraud ongoing, freeze bureaus until resolved (see Fraud section)." }
+        ],
+        tags:["Weekly PDFs","Mismatches","Util dates","Dispute log","Freeze"]
+      },
+      {
+        id: "direct-dispute",
+        title: "Dispute Templates (CRAs & Furnishers)",
+        eyebrow: "Fix Errors",
+        lead: "Provide evidence. Be specific. Keep receipts.",
+        steps: [
+          { id:"dd1", title:"Identify exact error", text:"Account #, date, amount, status. Quote what is wrong." },
+          { id:"dd2", title:"Attach proof", text:"ID, utility bill, receipts, letters, court docs. Highlight matching fields." },
+          { id:"dd3", title:"Send via certified mail", text:"Keep tracking & copies. 30-day CRA clock starts at receipt." },
+          { id:"dd4", title:"Escalate to furnisher", text:"If CRA returns ‘verified’ but wrong, dispute directly with the furnisher too." },
+          { id:"dd5", title:"CFPB complaint if stuck", text:"If gross errors persist, file a detailed CFPB complaint attaching your evidence." }
+        ],
+        tags:["Specific error","Proof","Certified mail","Furnisher","CFPB"]
+      },
+      {
+        id: "personal-info",
+        title: "Clean Personal Information",
+        eyebrow: "File Hygiene",
+        lead: "Wrong addresses or mixed files can tank automated verifications.",
+        steps: [
+          { id:"pi1", title:"Remove old addresses", text:"Ask CRAs to delete outdated addresses and misspellings to reduce mixed file risk." },
+          { id:"pi2", title:"One name format", text:"Use the same full legal name everywhere. Avoid nicknames on credit apps." },
+          { id:"pi3", title:"Correct DOB/SSN", text:"Fix any digit errors with solid ID scans." },
+          { id:"pi4", title:"Fraud victims", text:"Add fraud alert or freeze; store PINs in your toolkit." },
+          { id:"pi5", title:"Re-pull after fixes", text:"Confirm updates stuck across all 3." }
+        ],
+        tags:["Address scrub","Name consistency","DOB/SSN","Alerts","Verify"]
+      }
+    ]
+  },
+  {
+    id: "budget",
+    title: "Cashflow & Budgeting",
+    topics: [
+      {
+        id: "survival-budget",
+        title: "Survival Budget (90 Days)",
+        eyebrow: "Stability First",
+        lead: "Protect housing, work, food, meds. Credit grows from stability.",
+        steps: [
+          { id:"sbj1", title:"Four walls first", text:"Rent/mortgage, utilities, groceries, transport. Everything else follows." },
+          { id:"sbj2", title:"Automate bills", text:"Due-date alignment + autopay min to avoid lates." },
+          { id:"sbj3", title:"Track variable leaks", text:"Subscriptions, fees, delivery, impulse. Trim ruthlessly for 90 days." },
+          { id:"sbj4", title:"1% emergency buffer", text:"Seed a tiny cushion to prevent cascading lates." },
+          { id:"sbj5", title:"Income mini-boosts", text:"Gig/OT, selling extras, temp work. Small surges pay down util fast." }
+        ],
+        tags:["Four walls","Automation","Trim leaks","1% buffer","Mini-boosts"]
+      },
+      {
+        id: "paydown-strategy",
+        title: "Snowball vs Avalanche",
+        eyebrow: "Debt Methods",
+        lead: "Pick one, commit for 90 days, reassess. Momentum beats perfect math when motivation is low.",
+        steps: [
+          { id:"ps1", title:"Snowball", text:"Pay smallest balances first for quick wins; minimums on others. Great for morale." },
+          { id:"ps2", title:"Avalanche", text:"Target highest APR first; cheapest overall. Requires discipline for slower visible wins." },
+          { id:"ps3", title:"Hybrid", text:"Knock one small, then pivot to highest APR. Best of both worlds for many." },
+          { id:"ps4", title:"Automate extras", text:"Autosend surplus on payday to target account. Set and forget." },
+          { id:"ps5", title:"Celebrate milestones", text:"Each account to $0 is a scoreboard moment. Mark it in your log." }
+        ],
+        tags:["Snowball","Avalanche","Hybrid","Automation","Wins"]
+      }
+    ]
+  },
+  {
+    id: "justice",
+    title: "Life After Convictions",
+    topics: [
+      {
+        id: "banking-access",
+        title: "Banking Access",
+        eyebrow: "Reentry",
+        lead: "Second-chance checking & secured products exist. Paperwork readiness matters.",
+        steps: [
+          { id:"ba1", title:"Second-chance accounts", text:"Search local CUs/banks with reentry programs; lower fees; path to standard accounts." },
+          { id:"ba2", title:"ID package ready", text:"Government ID, SSN/ITIN, proof of address, release paperwork if relevant." },
+          { id:"ba3", title:"Secured card next", text:"Once checking active, add secured card with autopay to build history." },
+          { id:"ba4", title:"Explain gaps plainly", text:"Simple reentry letter for landlords/employers can help. Keep professional." },
+          { id:"ba5", title:"Leverage CDFIs", text:"Community lenders often offer builder loans and coaching." }
+        ],
+        tags:["Second-chance","Docs","Secured card","Reentry letter","CDFI"]
+      },
+      {
+        id: "housing-entry",
+        title: "Housing With Records",
+        eyebrow: "Landlord Tactics",
+        lead: "Package your application to offset risk for small landlords.",
+        steps: [
+          { id:"he1", title:"Clean reports first", text:"Fix errors, add rent reporting, show steady income." },
+          { id:"he2", title:"References & letters", text:"Employer letter + personal references; offer higher deposit if possible." },
+          { id:"he3", title:"Upfront honesty", text:"Brief, direct explanation with proof of current stability." },
+          { id:"he4", title:"Consider private rentals", text:"Small landlords may be more flexible than big complexes." },
+          { id:"he5", title:"Co-signer wisely", text:"If available, ensure they understand obligations." }
+        ],
+        tags:["Report hygiene","References","Honesty","Private rentals","Co-signer"]
+      }
+    ]
+  },
+  {
+    id: "fraud",
+    title: "Identity & Fraud Recovery",
+    topics: [
+      {
+        id: "freezes-alerts",
+        title: "Freezes, Alerts, & PINs",
+        eyebrow: "Lock Down",
+        lead: "Stop new abuse first; then clean. Document everything.",
+        steps: [
+          { id:"fa1", title:"Place credit freeze", text:"Experian, Equifax, TransUnion. Store PINs securely. Freeze is reversible." },
+          { id:"fa2", title:"Initial fraud alert", text:"Requests extra verification for new credit for 1 year; extended alerts last 7 years." },
+          { id:"fa3", title:"ChexSystems freeze", text:"Prevents new bank accounts being opened in your name." },
+          { id:"fa4", title:"Police/FTC report", text:"FTC IdentityTheft.gov case # helps with stubborn furnishers." },
+          { id:"fa5", title:"Roll disputes in waves", text:"After locks, dispute fraudulent lines with your case # attached." }
+        ],
+        tags:["Freeze","Fraud alert","ChexSystems","FTC case","Wave disputes"]
+      },
+      {
+        id: "clean-up",
+        title: "Clean-Up Sequence",
+        eyebrow: "Aftermath",
+        lead: "Freeze → document → batch disputes → verify deletions.",
+        steps: [
+          { id:"cu1", title:"Audit all reports", text:"List every fraudulent item, dates, and bureaus." },
+          { id:"cu2", title:"Batch disputes", text:"Send certified letters with ID, address, FTC report, police report if available." },
+          { id:"cu3", title:"Close fake accounts", text:"Contact furnishers’ fraud departments; demand closure & deletion." },
+          { id:"cu4", title:"Replace credentials", text:"New cards, online banking passwords, 2FA everywhere." },
+          { id:"cu5", title:"Monitor monthly", text:"Keep freeze on; pull reports; confirm no re-appearance." }
+        ],
+        tags:["Audit","Batch letters","Close fakes","2FA","Monitor"]
+      }
+    ]
+  }
+];
+
+/* ---------- STATE / STORAGE ---------- */
+const STORE_KEY = "credittips_progress_v1";
+
+function loadProgress(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
+  catch{ return {}; }
+}
+function saveProgress(data){
+  localStorage.setItem(STORE_KEY, JSON.stringify(data));
+}
+const progress = loadProgress(); // { [topicId]: { [stepId]: true/false } }
+
+/* ---------- RENDER ---------- */
+const tabsEl   = document.getElementById("topTabs");
+const sideEl   = document.getElementById("sideAcc");
+const sideTitleEl = document.getElementById("sideTitle");
+const mainEl   = document.getElementById("main");
+
+let currentSection = SECTIONS[0].id;
+let currentTopic = SECTIONS[0].topics[0].id;
+
+function renderTabs(){
+  tabsEl.innerHTML = "";
+  SECTIONS.forEach(sec=>{
+    const b = document.createElement("button");
+    b.className = "tab";
+    b.type = "button";
+    b.textContent = sec.title;
+    b.setAttribute("aria-pressed", sec.id === currentSection ? "true" : "false");
+    b.addEventListener("click", ()=>{
+      currentSection = sec.id;
+      currentTopic = sec.topics[0].id;
+      renderTabs();
+      renderSidebar();
+      renderMain();
+    });
+    tabsEl.appendChild(b);
+  });
+}
+
+function topicCompletion(topic){
+  const p = progress[topic.id] || {};
+  const total = topic.steps.length;
+  const done = topic.steps.filter(s => p[s.id]).length;
+  return { done, total, pct: total ? Math.round(done*100/total) : 0 };
+}
+
+function renderSidebar(){
+  sideEl.innerHTML = "";
+  const sec = SECTIONS.find(s=>s.id===currentSection);
+  sideTitleEl.textContent = sec.title + " Topics";
+  sec.topics.forEach(t=>{
+    const {pct, done, total} = topicCompletion(t);
+    const btn = document.createElement("button");
+    btn.textContent = t.title;
+    btn.className = "topic-btn";
+    btn.setAttribute("data-id", t.id);
+    btn.classList.add("acc-item");
+    if (t.id === currentTopic) btn.classList.add("active");
+
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = `${done}/${total}`;
+    btn.appendChild(badge);
+
+    const wrap = document.createElement("div");
+    wrap.appendChild(btn);
+
+    const bar = document.createElement("div");
+    bar.className = "progressbar";
+    const fill = document.createElement("i");
+    fill.style.width = `${pct}%`;
+    bar.appendChild(fill);
+    wrap.appendChild(bar);
+
+    btn.addEventListener("click", ()=>{
+      currentTopic = t.id;
+      renderSidebar();
+      renderMain();
+    });
+
+    sideEl.appendChild(wrap);
+  });
+
+  // Focus-based: move focus to active for keyboard users
+  const activeBtn = sideEl.querySelector("button.active");
+  if (activeBtn) activeBtn.focus({preventScroll:true});
+}
+
+function checkbox(topicId, step){
+  const p = progress[topicId] || {};
+  const checked = !!p[step.id];
+
+  const label = document.createElement("label");
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.checked = checked;
+  cb.addEventListener("change", ()=>{
+    progress[topicId] = progress[topicId] || {};
+    progress[topicId][step.id] = cb.checked;
+    saveProgress(progress);
+    renderSidebar(); // update progress bars
+  });
+  const span = document.createElement("span");
+  span.className = "hint";
+  span.textContent = "Mark complete";
+
+  label.appendChild(cb);
+  label.appendChild(span);
+  return label;
+}
+
+function renderMain(){
+  mainEl.innerHTML = "";
+
+  const sec = SECTIONS.find(s=>s.id===currentSection);
+  const topic = sec.topics.find(t=>t.id===currentTopic);
+
+  const intro = document.createElement("article");
+  intro.className = "card";
+  intro.innerHTML = `
+    <div class="eyebrow">${topic.eyebrow}</div>
+    <h2>${topic.title}</h2>
+    <p class="lead">${topic.lead}</p>
+    <div class="mini">
+      ${topic.tags.map(t=>`<span class="pill">${t}</span>`).join("")}
+    </div>
+    <div class="toolbar">
+      <button class="btn" id="expandAll">Expand All</button>
+      <button class="btn" id="collapseAll">Collapse All</button>
+      <button class="btn primary" id="printBtn">Print Page</button>
+      <button class="btn ok" id="markAll">Mark All Complete</button>
+      <button class="btn bad" id="clearAll">Clear Checks</button>
+    </div>
+  `;
+  mainEl.appendChild(intro);
+
+  const grid = document.createElement("section");
+  grid.className = "grid";
+
+  topic.steps.forEach((s, idx)=>{
+    const card = document.createElement("div");
+    card.className = "step";
+    const detailsId = `d-${topic.id}-${s.id}`;
+
+    card.innerHTML = `
+      <h4>${idx+1}. ${s.title}</h4>
+      <p>${s.text}</p>
+      <details id="${detailsId}">
+        <summary>More context & tips</summary>
+        <p class="hint">
+          Keep documentation for every action—PDF statements, letters, emails.
+          If something reports wrong, your paper trail is your superpower.
+        </p>
+      </details>
+    `;
+    card.appendChild(checkbox(topic.id, s));
+    grid.appendChild(card);
+  });
+
+  mainEl.appendChild(grid);
+
+  // Toolbar actions
+  document.getElementById("expandAll").onclick = ()=>{
+    grid.querySelectorAll("details").forEach(d=>d.open=true);
+  };
+  document.getElementById("collapseAll").onclick = ()=>{
+    grid.querySelectorAll("details").forEach(d=>d.open=false);
+  };
+  document.getElementById("printBtn").onclick = ()=> window.print();
+  document.getElementById("markAll").onclick = ()=>{
+    progress[topic.id] = progress[topic.id] || {};
+    topic.steps.forEach(s=> progress[topic.id][s.id] = true);
+    saveProgress(progress); renderSidebar(); renderMain();
+  };
+  document.getElementById("clearAll").onclick = ()=>{
+    progress[topic.id] = {};
+    saveProgress(progress); renderSidebar(); renderMain();
+  };
+}
+
+/* ---------- INIT ---------- */
+renderTabs();
+renderSidebar();
+renderMain();
+</script>
+</body>
+</html>
