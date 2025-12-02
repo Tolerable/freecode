@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>3D Printing: When a Passion Becomes Too Much</title>
+<style>
+  :root{
+    --bg:#0f1724; --card:#0b1220; --muted:#9aa6b2; --accent:#00d1b2; --danger:#ff6b6b;
+    --glass: rgba(255,255,255,0.03);
+    --maxwidth:1100px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{height:100%;margin:0;background:
+    linear-gradient(180deg,#071021 0%, #0d1320 60%); color:#e6eef6; }
+  .wrap{max-width:var(--maxwidth);margin:26px auto;padding:20px;display:grid;gap:18px;
+    grid-template-columns: 1fr 380px; align-items:start;}
+  header{grid-column:1/-1; display:flex; gap:16px; align-items:center;}
+  .logo{
+    width:64px;height:64px;border-radius:12px;background:
+    conic-gradient(from 180deg at 50% 50%, #09202a, #0b2b2d 40%, #00393b 100%);
+    display:flex;align-items:center;justify-content:center; font-weight:800;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6); color:var(--accent);
+  }
+  h1{margin:0;font-size:20px;letter-spacing:0.2px}
+  p.lead{margin:4px 0 0;color:var(--muted);font-size:13px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:18px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.02);}
+  .main{min-height:400px}
+  .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  small.hint{color:var(--muted);font-size:12px}
+  .two-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .quiz .q{margin-bottom:10px;padding:10px;background:var(--glass);border-radius:8px}
+  .btn{display:inline-block;background:var(--accent);color:#032423;padding:8px 12px;border-radius:10px;font-weight:600;text-decoration:none;cursor:pointer;border:none}
+  .btn-alt{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--accent);padding:6px 10px;border-radius:10px;cursor:pointer}
+  .danger{background:var(--danger);color:#2b0000}
+  .muted{color:var(--muted)}
+  input[type="number"], input[type="text"], textarea, select{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .stat{padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);text-align:center}
+  .small{font-size:12px;color:var(--muted)}
+  .inner-voice{font-family:monospace;background:#061018;padding:12px;border-radius:8px;white-space:pre-line}
+  footer{grid-column:1/-1;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .right-col{position:sticky;top:26px}
+  .help-list{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+  .help-list li{background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));padding:10px;border-radius:8px}
+  .chip{display:inline-block;padding:6px 8px;border-radius:999px;background:rgba(255,255,255,0.02);color:var(--muted);font-size:12px;margin-right:6px;margin-bottom:6px}
+  .result{padding:12px;border-radius:8px;margin-top:8px}
+  .low{background:rgba(0,255,160,0.06);color:var(--accent)}
+  .med{background:rgba(255,200,60,0.06);color:#ffd27a}
+  .high{background:rgba(255,100,100,0.06);color:var(--danger)}
+  .download{margin-top:8px}
+  @media (max-width:1000px){
+    .wrap{grid-template-columns:1fr; padding:14px}
+    .right-col{position:static}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">3D</div>
+      <div>
+        <h1>3D Printing: When a Passion Becomes Too Much</h1>
+        <p class="lead">A short, practical interactive page for makers and friends who worry the hobby is taking over.</p>
+      </div>
+    </header>
+
+    <main class="main card">
+      <div class="section-title">
+        <strong>Quick framing</strong>
+        <small class="hint">This page uses tools, a quiz, and plain talk — not therapy. If things feel serious, seek a professional.</small>
+      </div>
+
+      <p>Being into 3D printing is awesome — design, Cura tweaks, watching the nozzle lay down filament, and the joy of a perfect first-layer. But sometimes “awesome” becomes all-consuming: constant printer shopping, buying filament by the spool, hoarding upgrade parts, monitoring OctoPrint 24/7, and thinking in G-code. If that sounds familiar, this page helps you (or a friend) recognize patterns and take straightforward steps.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:12px;margin-top:12px">
+        <div>
+          <div class="card" style="padding:12px">
+            <div class="section-title"><strong>Self-check: Are you spending too much?</strong><small class="hint">Answer honestly — there are no trick questions.</small></div>
+            <div class="quiz" id="quiz">
+              <div class="q">
+                <label>1) How often do you check printer webcams/octoprint in a day?</label><br/>
+                <select id="q1">
+                  <option value="0">Never</option>
+                  <option value="1">1–3 times</option>
+                  <option value="2">4–10 times</option>
+                  <option value="3">Constantly / multiple times per hour</option>
+                </select>
+              </div>
+              <div class="q">
+                <label>2) How much of your spare money went into printers, spools, upgrades in the last 6 months?</label><br/>
+                <select id="q2">
+                  <option value="0">Almost none</option>
+                  <option value="1">A few purchases</option>
+                  <option value="2">Significant portion</option>
+                  <option value="3">Most or all spare money</option>
+                </select>
+              </div>
+              <div class="q">
+                <label>3) Do you buy filament "just in case" even when you have unopened spools?</label><br/>
+                <select id="q3">
+                  <option value="0">No</option>
+                  <option value="1">Sometimes</option>
+                  <option value="2">Often</option>
+                  <option value="3">Always — multiple spools stacked</option>
+                </select>
+              </div>
+              <div class="q">
+                <label>4) When someone wants to talk about something else, do you redirect to printers, mods, or prints?</label><br/>
+                <select id="q4">
+                  <option value="0">No</option>
+                  <option value="1">Occasionally</option>
+                  <option value="2">Often</option>
+                  <option value="3">Always</option>
+                </select>
+              </div>
+              <div class="q">
+                <label>5) Do you make decisions (trip, food, social plans) around when you'll be home to watch prints?</label><br/>
+                <select id="q5">
+                  <option value="0">No</option>
+                  <option value="1">Sometimes</option>
+                  <option value="2">Often</option>
+                  <option value="3">Yes, frequently</option>
+                </select>
+              </div>
+
+              <div style="margin-top:10px">
+                <button class="btn" id="scoreBtn">Check my score</button>
+                <button class="btn-alt" id="resetBtn">Reset</button>
+              </div>
+
+              <div id="scoreResult" class="result" style="display:none"></div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:12px;margin-top:12px">
+            <div class="section-title"><strong>Time & Cost Tracker</strong><small class="hint">Estimate past 6 months — realistic numbers help reveal the truth.</small></div>
+            <div class="two-cols">
+              <div>
+                <label>How many printers bought or upgraded?</label>
+                <input id="printers" type="number" min="0" value="1" />
+              </div>
+              <div>
+                <label>Average cost per printer / upgrade ($)</label>
+                <input id="printerCost" type="number" min="0" value="400" />
+              </div>
+              <div>
+                <label>How many filament spools bought?</label>
+                <input id="spools" type="number" min="0" value="12" />
+              </div>
+              <div>
+                <label>Average spool cost ($)</label>
+                <input id="spoolCost" type="number" min="0" value="25" />
+              </div>
+              <div>
+                <label>Hours spent watching/printing per week</label>
+                <input id="hoursWeek" type="number" min="0" value="12" />
+              </div>
+              <div>
+                <label>Hourly value of your time ($)</label>
+                <input id="hourly" type="number" min="0" value="20" />
+              </div>
+            </div>
+            <div style="margin-top:10px">
+              <button class="btn" id="calcBtn">Calculate cost & time</button>
+              <button class="btn-alt" id="clearCalc">Clear</button>
+            </div>
+            <div id="calcResult" class="result" style="display:none"></div>
+          </div>
+
+          <div class="card" style="padding:12px;margin-top:12px">
+            <div class="section-title"><strong>Signs you're crossing from hobby to problem</strong><small class="hint">Short checklist</small></div>
+            <ul style="margin:0 0 0 18px;color:var(--muted)">
+              <li>Printer webcams dictate your schedule or travel plans.</li>
+              <li>Money set aside for things you need is spent on filament or upgrades.</li>
+              <li>You avoid social events because a print might fail while you're gone.</li>
+              <li>You feel shame, but keep buying because of FOMO on a new hotend or resin formula.</li>
+              <li>You're hoarding parts, spools, models; your living space is disrupted.</li>
+            </ul>
+            <div style="margin-top:8px">
+              <button class="btn-alt" id="innerBtn">See the "inner voice" playbook</button>
+            </div>
+            <div id="innerPanel" class="result" style="display:none">
+              <div class="inner-voice" id="innerText"></div>
+              <div style="margin-top:8px">
+                <button class="btn" id="downloadScript">Download inner-dialog</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <aside class="right-col">
+          <div class="card" style="padding:12px;margin-bottom:12px">
+            <div class="section-title"><strong>Fast facts (for credibility)</strong><small class="hint">Terms to get their attention</small></div>
+            <div style="display:flex;flex-wrap:wrap;margin-top:6px">
+              <span class="chip">Cura</span><span class="chip">PrusaSlicer</span><span class="chip">OctoPrint</span>
+              <span class="chip">PLA</span><span class="chip">ABS</span><span class="chip">TPU</span>
+              <span class="chip">Retraction</span><span class="chip">Layer height</span><span class="chip">First layer</span>
+              <span class="chip">Marlin</span><span class="chip">BLTouch</span><span class="chip">Vref</span>
+              <span class="chip">Resin cure</span><span class="chip">Supports</span><span class="chip">Overhangs</span>
+            </div>
+            <hr style="border:none;height:1px;background:rgba(255,255,255,0.02);margin:12px 0" />
+            <strong>Quick actions</strong>
+            <ul class="help-list" style="margin-top:8px">
+              <li><strong>Pause buying for 30 days</strong> — no purchases, no exceptions.</li>
+              <li><strong>Inventory the stash</strong> — count spools, parts, printers.</li>
+              <li><strong>Schedule social time</strong> that conflicts with prints — force a test.</li>
+              <li><strong>Talk to a friend</strong> — tell them "If I buy a printer you can stop me."</li>
+            </ul>
+          </div>
+
+          <div class="card" style="padding:12px">
+            <div class="section-title"><strong>Resource quick-links</strong><small class="hint">Share with the person — practical next steps</small></div>
+            <ol style="margin:8px 0 0 18px;color:var(--muted)">
+              <li>Set a 30-day no-buy challenge and log urges.</li>
+              <li>Turn off unattended prints unless someone is present.</li>
+              <li>Join one local meetup and commit to one non-print social day.</li>
+              <li>Speak with a counselor if finances or relationships are hurt.</li>
+            </ol>
+            <div style="margin-top:10px">
+              <button class="btn" id="planBtn">Generate 7-day action plan</button>
+            </div>
+            <div id="planResult" class="result" style="display:none"></div>
+          </div>
+
+        </aside>
+      </div>
+
+    </main>
+
+    <footer>
+      <div>Made to nudge, not diagnose. If real harm is happening, seek professional help.</div>
+      <div class="muted">v1 • no trackers • offline</div>
+    </footer>
+  </div>
+
+<script>
+  // Quiz scoring
+  function scoreQuiz(){
+    const s = ['q1','q2','q3','q4','q5'].reduce((acc,id)=>{
+      acc += Number(document.getElementById(id).value);
+      return acc;
+    },0);
+    return s;
+  }
+
+  function showScore(){
+    const s = scoreQuiz();
+    const el = document.getElementById('scoreResult');
+    el.style.display = 'block';
+    let level, text, cls;
+    if(s <= 3){ level='Low'; text="Your answers suggest print-hobby is healthy and under control. Keep balance: schedule real-world time and watch for creep."; cls='low'; }
+    else if(s <= 8){ level='Moderate'; text="You're enthusiastic and it's taking more attention than before. Try limits: a 30-day no-buy challenge and logging urges."; cls='med'; }
+    else { level='High'; text="Risky. The hobby is shaping your choices and money. Consider cutting spending, inventorying gear, and talking to a friend or counselor."; cls='high'; }
+    el.innerHTML = `<strong>Score: ${s} — ${level}</strong><div class="${cls}" style="padding:8px;border-radius:6px;margin-top:8px">${text}</div>`;
+  }
+
+  document.getElementById('scoreBtn').addEventListener('click', showScore);
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    ['q1','q2','q3','q4','q5'].forEach(id=>document.getElementById(id).value='0');
+    const el = document.getElementById('scoreResult'); el.style.display='none'; el.innerHTML='';
+  });
+
+  // Cost & time calc
+  function calc(){
+    const printers = Number(document.getElementById('printers').value)||0;
+    const printerCost = Number(document.getElementById('printerCost').value)||0;
+    const spools = Number(document.getElementById('spools').value)||0;
+    const spoolCost = Number(document.getElementById('spoolCost').value)||0;
+    const hoursWeek = Number(document.getElementById('hoursWeek').value)||0;
+    const hourly = Number(document.getElementById('hourly').value)||0;
+
+    const money = printers * printerCost + spools * spoolCost;
+    const hours6mo = hoursWeek * 26; // 6 months ~ 26 weeks
+    const timeValue = hours6mo * hourly;
+    const total = money + timeValue;
+
+    const el = document.getElementById('calcResult');
+    el.style.display = 'block';
+    el.innerHTML = `<strong>Estimated 6-month cost</strong>
+      <div style="margin-top:8px;">
+        <div class="stat-grid">
+          <div class="stat"><div class="small">Equipment</div><div style="font-weight:700">$${money.toLocaleString()}</div></div>
+          <div class="stat"><div class="small">Time value (approx)</div><div style="font-weight:700">$${timeValue.toLocaleString()}</div></div>
+          <div class="stat"><div class="small">Total (money + time)</div><div style="font-weight:700">$${total.toLocaleString()}</div></div>
+        </div>
+      </div>
+      <div style="margin-top:8px" class="muted">If total is surprising, that’s the point — passion has hidden costs.</div>
+    `;
+  }
+
+  document.getElementById('calcBtn').addEventListener('click', calc);
+  document.getElementById('clearCalc').addEventListener('click', ()=>{
+    ['printers','printerCost','spools','spoolCost','hoursWeek','hourly'].forEach(id=>document.getElementById(id).value='0');
+    document.getElementById('calcResult').style.display='none';
+  });
+
+  // Inner voice playbook
+  const innerLines = [
+`"Just one more spool — this color is rare."`,
+`"If I upgrade the hotend I'll fix all the stringing problems."`,
+`"Selling prints will pay for the new printer soon."`,
+`"I can handle late-night prints — I'll just watch the webcam."`,
+`"I need another printer to multi-material that project."`,
+`"This CR-10 mod will change everything, I just know it."`,
+`"If I don't buy this filament now it'll be out of stock."`,
+`"Who cares about social events when my Benchy is perfect?"`,
+`"I can stop any time... but maybe after I get the BLTouch mounted."`,
+`"I earned this — I deserve another spool."`
+  ];
+
+  function showInner(){
+    const el = document.getElementById('innerPanel');
+    const txt = document.getElementById('innerText');
+    el.style.display = 'block';
+    // Create a simulated inner-dialog with progressive rationalizations and suggested replies
+    let s = "Common inner voice and ways to respond:\n\n";
+    innerLines.forEach((line,i)=>{
+      const reply = [
+        "Try: 'I'll snap a photo of my stash and wait 48 hours before buying.'",
+        "Try: 'I'll schedule one upgrade project per quarter.'",
+        "Try: 'Let's test selling 3 prints and put profit in an 'upgrade' jar.'",
+        "Try: 'I'll set a rule: no unattended prints after 9pm.'",
+        "Try: 'Can I borrow a printer for that specific project before buying?'",
+        "Try: 'Document results from the mod for 30 days before upgrading.'",
+        "Try: 'Add it to a wishlist; review in 30 days.'",
+        "Try: 'Block 1 night a week for friends only; no printing.'",
+        "Try: 'I'll set a 60-day pause before any new purchase.'",
+        "Try: 'I'll wait 72 hours and talk it over with someone I trust.'"
+      ][i];
+      s += `${line}\n  → ${reply}\n\n`;
+    });
+    txt.textContent = s;
+  }
+
+  document.getElementById('innerBtn').addEventListener('click', showInner);
+
+  // Download inner-dialog as text
+  document.getElementById('downloadScript').addEventListener('click', ()=>{
+    const content = document.getElementById('innerText').textContent || "No inner dialog generated.";
+    const blob = new Blob([content], {type:'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'inner-dialog.txt';
+    document.body.appendChild(a); a.click();
+    a.remove(); URL.revokeObjectURL(url);
+  });
+
+  // Generate 7-day action plan
+  function genPlan(){
+    const plan = [
+      "Day 1: Inventory — photograph and list printers, spools, and upgrades. Put prices next to each item.",
+      "Day 2: Pause buying— set a 30-day no-buy rule and uninstall shopping/autobuy apps. Put a big sticky note where you slice models.",
+      "Day 3: Social test — plan one evening out and disable OctoPrint notifications. Notice urges and write when they happen.",
+      "Day 4: Reclaim a space — choose one surface to keep print-free (dining table).",
+      "Day 5: Sell/test — pick 3 prints to sell or give away. Put money in a labeled jar.",
+      "Day 6: Tech audit — pick one upgrade you want and list measurable goals for it; delay purchase 60 days.",
+      "Day 7: Reflection — review logs, total time, and spend; schedule one non-print hobby each week."
+    ];
+    const el = document.getElementById('planResult');
+    el.style.display = 'block';
+    el.innerHTML = `<strong>Your 7-day plan</strong><ol style="margin:8px 0 0 18px;color:var(--muted)">${plan.map(p=>`<li>${p}</li>`).join('')}</ol>
+      <div style="margin-top:8px">
+        <button class="btn" id="downloadPlan">Download plan</button>
+        <button class="btn-alt" id="emailPlan">Copy to clipboard</button>
+      </div>`;
+    document.getElementById('downloadPlan').addEventListener('click', ()=>{
+      const blob = new Blob([plan.join("\n")], {type:'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='7-day-plan.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+    document.getElementById('emailPlan').addEventListener('click', async ()=>{
+      try{
+        await navigator.clipboard.writeText(plan.join("\n"));
+        alert('Plan copied to clipboard. Paste into an email or note.');
+      }catch(e){ alert('Clipboard not available.'); }
+    });
+  }
+  document.getElementById('planBtn').addEventListener('click', genPlan);
+
+  // Small UX niceties
+  // Pre-fill sample values for convenience
+  document.addEventListener('DOMContentLoaded', ()=>{
+    document.getElementById('printers').value = 1;
+    document.getElementById('printerCost').value = 450;
+    document.getElementById('spools').value = 8;
+    document.getElementById('spoolCost').value = 24;
+    document.getElementById('hoursWeek').value = 10;
+    document.getElementById('hourly').value = 18;
+  });
+
+  // Safety message when score is high and calculator large
+  document.getElementById('scoreBtn').addEventListener('click', ()=>{
+    const s = scoreQuiz();
+    if(s >= 11){
+      setTimeout(()=>{ if(confirm("Your answers show high risk. If finances or relationships are being harmed, consider contacting a counselor or trusted person. Would you like quick tips for starting that conversation?")){
+        alert("Tip: Use 'I' statements: 'I feel overwhelmed by my spending on printing. Can we talk about a plan?' Offer a concrete step like a 30-day pause and ask for support.");
+      }}, 200);
+    }
+  });
+
+</script>
+</body>
+</html>
