@@ -12,12 +12,27 @@ for root, dirs, files in os.walk('.'):
             filepath = os.path.join(root, file).replace(chr(92), '/').replace('./', '')
             html_files.append(filepath)
 
-# Read navigation
+# Read navigation and parody page
 with open('components/nav.html', 'r', encoding='utf-8') as f:
     nav_content = f.read()
 
-# Find all href links in navigation
+parody_content = ''
+if os.path.exists('parody.html'):
+    with open('parody.html', 'r', encoding='utf-8') as f:
+        parody_content = f.read()
+
+# Find all href links
 nav_links = set(re.findall(r'href=["\']([^"\']*\.html)["\']', nav_content))
+parody_links = set(re.findall(r'href=["\']([^"\']*\.html)["\']', parody_content))
+all_links = nav_links | parody_links
+
+# Files we've already documented/dealt with
+dealt_with = {
+    '404.html', 'fibgen.html', 'ftplanner.html', 'cameras.html', 'chatbot.html',
+    'for_other_projects/growroom.html', 'archive/deepseek.html', 'archive/deepthink.html',
+    'archive/evil.html', 'archive/gpt.html', 'archive/grok.html', 'aichat.html',
+    'components/nav.html', 'backups/mistral2.html'
+}
 
 # Categorize files
 linked = []
@@ -26,10 +41,11 @@ unlinked = []
 for filepath in sorted(html_files):
     filename = os.path.basename(filepath)
 
-    # Check if linked
-    is_linked = any(link.endswith(filename) or filename in link for link in nav_links)
+    # Check if linked or dealt with
+    is_linked = any(link.endswith(filename) or filename in link for link in all_links)
+    is_dealt_with = filepath in dealt_with
 
-    if is_linked:
+    if is_linked or is_dealt_with:
         linked.append(filepath)
     else:
         unlinked.append(filepath)
@@ -85,16 +101,20 @@ html_output = f'''<!DOCTYPE html>
         }}
         ul {{
             list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
         }}
         li {{
-            padding: 10px;
-            margin: 5px 0;
+            display: inline-block;
+            padding: 8px 15px;
             background: #1a1a1a;
             border-radius: 5px;
         }}
         a {{
             color: #4a9eff;
             text-decoration: none;
+            white-space: nowrap;
         }}
         a:hover {{
             text-decoration: underline;
@@ -122,24 +142,13 @@ html_output = f'''<!DOCTYPE html>
         <div class="stats">
             <h2>Statistics</h2>
             <p><strong>Total HTML Files:</strong> {len(html_files)}</p>
-            <p><strong>Linked in Navigation:</strong> {len(linked)}</p>
-            <p><strong>Unlinked:</strong> {len(unlinked)}</p>
-            <p><strong>Percentage Unlinked:</strong> {(len(unlinked)/len(html_files)*100):.1f}%</p>
+            <p><strong>Linked/Dealt With:</strong> {len(linked)}</p>
+            <p><strong>Still Need Review:</strong> {len(unlinked)}</p>
+            <p><strong>Percentage Remaining:</strong> {(len(unlinked)/len(html_files)*100):.1f}%</p>
         </div>
 
         <div class="section">
-            <h2>Linked Pages ({len(linked)})</h2>
-            <ul>
-'''
-
-for filepath in linked:
-    html_output += f'                <li><a href="{filepath}" target="_blank">{filepath}</a></li>\n'
-
-html_output += f'''            </ul>
-        </div>
-
-        <div class="section">
-            <h2>Unlinked Pages ({len(unlinked)})</h2>
+            <h2>Pages Needing Review ({len(unlinked)})</h2>
             <ul>
 '''
 
@@ -158,4 +167,4 @@ with open('unlinked.html', 'w', encoding='utf-8') as f:
     f.write(html_output)
 
 print(f'[OK] Generated unlinked.html')
-print(f'Total: {len(html_files)} | Linked: {len(linked)} | Unlinked: {len(unlinked)}')
+print(f'Total: {len(html_files)} | Dealt with: {len(linked)} | Need review: {len(unlinked)}')

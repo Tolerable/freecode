@@ -5,6 +5,7 @@
 ### Working/Legitimate Pages
 - **ai.html** - Already in nav as "MODELS" ✓
 - **AIsmash.html** - Parody site with AI TTS/STT (Zira etc) - Keep as parody
+- **AISpeaks.html** - TTS/STT with Zira and other voices - Keep
 - **CanadianIntel.html** - Parody site - Keep
 - **EchoAIChat.html** - Alexa for browser (working, good version, Firefox not supported) - **ADD TO NAV**
 - **Evil_AI.html** - Parody but potential $ site - Keep (consider monetization)
@@ -26,6 +27,9 @@
 - lifecreature version files
 - mistral2.html
 
+## Pages for Other Projects
+- **growroom.html** - Works, has AI chat. Cannabis grow tent builder tool. Should be moved to strainnavigator.com at some point.
+
 ## Pages Needing Fixes (Keep for Future)
 - **aichat2.html** - Good proof of concept for session-based AI chat with sidebar. Uses Google OAuth but needs proper client ID configured for ai-ministries.com domain. Currently deleted - fix OAuth and restore when ready.
 - **chatbot.html** - Works but needs work as AI chat page, super simple
@@ -37,13 +41,17 @@
 - **cameras.html** - Webcam test page (1 camera)
 - **composer.html** - IS linked and in use, works! ✓
 
-## Archive Candidates (Old model pages replaced by ai.html)
-These were individual model pages, now replaced by ai.html multi-model interface:
+## Archive Candidates (Old/Redundant Pages)
+**Old model pages** - Individual model pages replaced by ai.html multi-model interface:
 - **deepseek.html** - Old single model page (replaced by ai.html)
 - **deepthink.html** - Old single model page (replaced by ai.html)
 - **evil.html** - Old single model page (replaced by ai.html)
 - **gpt.html** - Old single model page (replaced by ai.html)
 - **grok.html** - Old single model page (replaced by ai.html)
+
+**Early versions** - Older versions of tech already built into main pages:
+- **fibgen.html** - Fibonacci image gen (makes 4 images from Pollinations using fibo seeds). Kinda works but tech already built into main image gen page.
+- **ftplanner.html** - Financial planner/spreadsheet. Not fully functional.
 
 ## Action Items
 1. Add EchoAIChat.html to navigation (working Alexa-like browser tool)
