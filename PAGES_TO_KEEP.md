@@ -24,7 +24,26 @@
 - All *-*.html files (backup naming convention)
 - All WORKING versions
 - lifecreature version files
-- aichat2.html, mistral2.html
+- mistral2.html
+
+## Pages Needing Fixes (Keep for Future)
+- **aichat2.html** - Good proof of concept for session-based AI chat with sidebar. Uses Google OAuth but needs proper client ID configured for ai-ministries.com domain. Currently deleted - fix OAuth and restore when ready.
+- **chatbot.html** - Works but needs work as AI chat page, super simple
+
+## Parody/Fun Pages (Add to parody.html)
+- **animeai.html** - Working parody/fun site with hidden features
+
+## Utility/Test Pages (Keep as-is)
+- **cameras.html** - Webcam test page (1 camera)
+- **composer.html** - IS linked and in use, works! ✓
+
+## Archive Candidates (Old model pages replaced by ai.html)
+These were individual model pages, now replaced by ai.html multi-model interface:
+- **deepseek.html** - Old single model page (replaced by ai.html)
+- **deepthink.html** - Old single model page (replaced by ai.html)
+- **evil.html** - Old single model page (replaced by ai.html)
+- **gpt.html** - Old single model page (replaced by ai.html)
+- **grok.html** - Old single model page (replaced by ai.html)
 
 ## Action Items
 1. Add EchoAIChat.html to navigation (working Alexa-like browser tool)
