@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent Chat System</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fb;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #3a7bd5, #00d2ff);
+            color: white;
+            padding: 15px 25px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            flex: 1;
+            margin: 20px;
+        }
+        
+        .bot-selection {
+            padding: 15px;
+            background: #f0f4f8;
+            border-bottom: 1px solid #e6eaef;
+        }
+        
+        .bot-selection h3 {
+            margin-bottom: 12px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .bot-cards {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            scrollbar-width: thin;
+        }
+        
+        .bot-cards::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .bot-cards::-webkit-scrollbar-track {
+            background: #f0f4f8;
+        }
+        
+        .bot-cards::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+        
+        .bot-card {
+            flex: 0 0 auto;
+            width: 130px;
+            background: white;
+            border-radius: 12px;
+            padding: 15px 10px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .bot-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        
+        .bot-card.active {
+            border-color: #3a7bd5;
+        }
+        
+        .bot-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            margin: 0 auto 12px;
+            display: block;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            object-fit: cover;
+        }
+        
+        .bot-name {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .bot-desc {
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+            line-height: 1.3;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-color: #fff;
+        }
+        
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            line-height: 1.5;
+            font-size: 15px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-message {
+            align-self: flex-end;
+            background: #3a7bd5;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .bot-message {
+            align-self: flex-start;
+            background: #f1f5f9;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .techbot-message { border-left: 4px solid #3498db; }
+        .creativebot-message { border-left: 4px solid #e74c3c; }
+        .empathbot-message { border-left: 4px solid #2ecc71; }
+        .analystbot-message { border-left: 4px solid #9b59b6; }
+        .system-message { border-left: 4px solid #f39c12; background: #fef9e7; }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .message-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            margin-right: 8px;
+            object-fit: cover;
+        }
+        
+        .message-botname {
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            padding: 15px 20px;
+            border-top: 1px solid #e6eaef;
+            background: #f9fafb;
+        }
+        
+        .chat-input {
+            flex: 1;
+            border: 1px solid #dde5ed;
+            border-radius: 24px;
+            padding: 12px 20px;
+            outline: none;
+            resize: none;
+            min-height: 48px;
+            max-height: 120px;
+            font-size: 15px;
+            transition: border 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .chat-input:focus {
+            border-color: #3a7bd5;
+            box-shadow: 0 0 0 2px rgba(58, 123, 213, 0.1);
+        }
+        
+        .chat-send-button {
+            margin-left: 12px;
+            background: #3a7bd5;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            padding: 0 24px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .chat-send-button:hover {
+            background: #2c5eb9;
+            transform: translateY(-2px);
+        }
+        
+        .chat-send-button:active {
+            transform: translateY(0);
+        }
+        
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 10px;
+        }
+        
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #aaa;
+            border-radius: 50%;
+            animation: typing 1s infinite ease-in-out;
+        }
+        
+        .typing-indicator span:nth-child(1) { animation-delay: 0.1s; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+        
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        .message-audio {
+            margin-top: 12px;
+            width: 100%;
+            border-radius: 12px;
+        }
+        
+        .mobile-warning {
+            display: none;
+            text-align: center;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .chat-container {
+                margin: 10px;
+                height: calc(100% - 20px);
+            }
+            
+            .mobile-warning {
+                display: block;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Multi-Agent Chat System</h1>
+        <p>Talk with multiple AI personalities at once</p>
+    </div>
+    
+    <div id="chat-app"></div>
+
+    <script>
+        // Bot Memory Class
+        class BotMemory {
+            constructor(botName) {
+                this.botName = botName;
+                this.shortTerm = []; // Current conversation
+                this.mediumTerm = {}; // Session knowledge
+                this.longTerm = {}; // Persistent knowledge
+            }
+            
+            addShortTermMemory(message) {
+                this.shortTerm.push(message);
+                // Limit short-term memory to last 10 messages to avoid context overload
+                if (this.shortTerm.length > 10) {
+                    this.shortTerm.shift();
+                }
+            }
+            
+            addMediumTermMemory(key, value) {
+                this.mediumTerm[key] = value;
+            }
+            
+            retrieveMemory() {
+                return {
+                    shortTerm: this.shortTerm,
+                    mediumTerm: this.mediumTerm,
+                    longTerm: this.longTerm
+                };
+            }
+        }
+
+        // Define the core decision-making functions available to each AI agent
+        const agentFunctions = [
+            {
+                type: "function",
+                function: {
+                    name: "decide_action",
+                    description: "Decide whether to respond, wait, or perform another action",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            action: {
+                                type: "string",
+                                enum: ["respond", "wait", "ask_clarification", "defer", "small_talk"]
+                            },
+                            reasoning: {
+                                type: "string",
+                                description: "Explanation for the chosen action"
+                            },
+                            priority: {
+                                type: "integer",
+                                description: "How important/urgent this response is (1-10)"
+                            }
+                        },
+                        required: ["action", "reasoning"]
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "evaluate_conversation",
+                    description: "Analyze the conversation context",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            relevance_to_expertise: {
+                                type: "integer",
+                                description: "How relevant is this to the agent's domain (1-10)"
+                            },
+                            sufficient_context: {
+                                type: "boolean",
+                                description: "Is there enough information to provide a good response?"
+                            },
+                            should_contribute: {
+                                type: "boolean",
+                                description: "Does this agent have something valuable to add?"
+                            }
+                        },
+                        required: ["relevance_to_expertise", "sufficient_context", "should_contribute"]
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "request_bot_input",
+                    description: "Ask another bot for their perspective",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            target_bot: {
+                                type: "string",
+                                description: "Which bot to ask"
+                            },
+                            question: {
+                                type: "string",
+                                description: "What information you need from them"
+                            }
+                        },
+                        required: ["target_bot", "question"]
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "adjust_persona",
+                    description: "Slightly adjust your persona to better fit the conversation",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            tone_adjustment: {
+                                type: "string",
+                                description: "How to adjust your tone (more formal, more casual, etc.)"
+                            },
+                            focus_adjustment: {
+                                type: "string",
+                                description: "Aspects of your expertise to emphasize"
+                            }
+                        },
+                        required: ["tone_adjustment", "focus_adjustment"]
+                    }
+                }
+            }
+        ];
+
+        // Main Conversation Orchestrator Class
+        class ConversationOrchestrator {
+            constructor(botPersonalities) {
+                this.bots = botPersonalities;
+                this.conversationHistory = [];
+                this.activeBot = null;
+                this.botAdjustments = {}; // Tracks persona adjustments
+                this.pendingRequests = []; // Tracks bot-to-bot requests
+                
+                // For demo purposes, we'll simulate API responses
+                this.simulationMode = true;
+            }
+            
+            // Process a message from the user
+            async processUserMessage(userMessage) {
+                // Add user message to history
+                this.conversationHistory.push({
+                    role: 'user',
+                    content: userMessage,
+                    timestamp: Date.now()
+                });
+                
+                // Handle any pending bot-to-bot requests first
+                if (this.pendingRequests.length > 0) {
+                    const request = this.pendingRequests.shift();
+                    const targetBot = this.bots.find(b => b.name === request.target_bot);
+                    
+                    if (targetBot) {
+                        const response = await this.generateTargetedResponse(targetBot, request.question);
+                        
+                        // Add to conversation history
+                        this.conversationHistory.push({
+                            role: 'assistant',
+                            botName: targetBot.name,
+                            content: `[Responding to ${request.source_bot}] ${response}`,
+                            timestamp: Date.now()
+                        });
+                        
+                        return {
+                            botName: targetBot.name,
+                            response: response,
+                            reasoning: `Responding to request from ${request.source_bot}`
+                        };
+                    }
+                }
+                
+                if (this.simulationMode) {
+                    return await this.simulateProcessing(userMessage);
+                }
+                
+                // Have each bot evaluate the conversation and decide what to do
+                const botDecisions = await Promise.all(
+                    this.bots.map(bot => this.getBotDecision(bot, userMessage))
+                );
+                
+                // Process any function calls from the bots
+                for (const decision of botDecisions) {
+                    if (decision.functionName === "request_bot_input") {
+                        this.pendingRequests.push({
+                            source_bot: decision.bot.name,
+                            target_bot: decision.functionArgs.target_bot,
+                            question: decision.functionArgs.question
+                        });
+                    } 
+                    else if (decision.functionName === "adjust_persona") {
+                        if (!this.botAdjustments[decision.bot.name]) {
+                            this.botAdjustments[decision.bot.name] = {};
+                        }
+                        this.botAdjustments[decision.bot.name].toneAdjustment = decision.functionArgs.tone_adjustment;
+                        this.botAdjustments[decision.bot.name].focusAdjustment = decision.functionArgs.focus_adjustment;
+                    }
+                }
+                
+                // Sort by priority and select the most appropriate bot to respond
+                const sortedDecisions = botDecisions
+                    .filter(d => d.action === 'respond' || d.action === 'small_talk')
+                    .sort((a, b) => b.priority - a.priority);
+                
+                if (sortedDecisions.length > 0) {
+                    const selectedBotDecision = sortedDecisions[0];
+                    const selectedBot = selectedBotDecision.bot;
+                    this.activeBot = selectedBot;
+                    
+                    // Generate the actual response from the chosen bot
+                    const response = await this.generateBotResponse(selectedBot);
+                    
+                    // Add to conversation history
+                    this.conversationHistory.push({
+                        role: 'assistant',
+                        botName: selectedBot.name,
+                        content: response,
+                        timestamp: Date.now()
+                    });
+                    
+                    return {
+                        botName: selectedBot.name,
+                        response: response,
+                        reasoning: selectedBotDecision.reasoning
+                    };
+                } else {
+                    // No bot wants to respond with high priority, handle clarification requests
+                    const clarificationDecisions = botDecisions
+                        .filter(d => d.action === 'ask_clarification')
+                        .sort((a, b) => b.priority - a.priority);
+                        
+                    if (clarificationDecisions.length > 0) {
+                        const selectedBotDecision = clarificationDecisions[0];
+                        const selectedBot = selectedBotDecision.bot;
+                        
+                        // Generate a clarification question
+                        const response = await this.generateClarificationQuestion(selectedBot, userMessage);
+                        
+                        // Add to conversation history
+                        this.conversationHistory.push({
+                            role: 'assistant',
+                            botName: selectedBot.name,
+                            content: response,
+                            timestamp: Date.now()
+                        });
+                        
+                        return {
+                            botName: selectedBot.name,
+                            response: response,
+                            reasoning: selectedBotDecision.reasoning
+                        };
+                    } else {
+                        // Fall back to system message if no bot wants to respond
+                        return {
+                            botName: 'System',
+                            response: "I notice none of our experts feel they can help right now. Could you provide more details?",
+                            reasoning: "All bots decided to wait or defer"
+                        };
+                    }
+                }
+            }
+            
+            // Get a decision from a specific bot about how to handle the current conversation
+            async getBotDecision(bot, userMessage) {
+                // Apply any persona adjustments
+                const personalityAdjustments = this.botAdjustments[bot.name] || {};
+                let adjustedPersonality = bot.personality;
+                let adjustedExpertise = bot.expertise;
+                
+                if (personalityAdjustments.toneAdjustment) {
+                    adjustedPersonality += ` Currently adjusting tone to be more ${personalityAdjustments.toneAdjustment}.`;
+                }
+                
+                if (personalityAdjustments.focusAdjustment) {
+                    adjustedExpertise += ` Currently focusing on: ${personalityAdjustments.focusAdjustment}.`;
+                }
+                
+                // In a real implementation, you would call the API here
+                
+                // Default if no function was called
+                return {
+                    bot: bot,
+                    action: "wait",
+                    reasoning: "No clear decision was made",
+                    priority: 1,
+                    functionName: null,
+                    functionArgs: null
+                };
+            }
+            
+            // Simulation of decision making and response generation for demo purposes
+            async simulateProcessing(userMessage) {
+                // Simple keyword matching to decide which bot should respond
+                const keywords = {
+                    TechBot: ['code', 'programming', 'tech', 'computer', 'software', 'hardware', 'development', 'algorithm'],
+                    CreativeBot: ['art', 'creative', 'design', 'story', 'color', 'music', 'imagination', 'draw'],
+                    EmpathBot: ['feel', 'emotion', 'support', 'relationship', 'help', 'sad', 'happy', 'anxiety', 'stress'],
+                    AnalystBot: ['data', 'analysis', 'numbers', 'statistics', 'report', 'strategy', 'business', 'market']
+                };
+                
+                // Count keyword matches for each bot
+                const scores = {};
+                for (const [botName, words] of Object.entries(keywords)) {
+                    scores[botName] = words.filter(word => 
+                        userMessage.toLowerCase().includes(word.toLowerCase())
+                    ).length;
+                }
+                
+                // Find the bot with the highest score
+                let highestScore = 0;
+                let selectedBotName = null;
+                
+                for (const [botName, score] of Object.entries(scores)) {
+                    if (score > highestScore) {
+                        highestScore = score;
+                        selectedBotName = botName;
+                    }
+                }
+                
+                // If no strong match, use a default bot or select randomly
+                if (highestScore === 0) {
+                    const botNames = Object.keys(keywords);
+                    selectedBotName = botNames[Math.floor(Math.random() * botNames.length)];
+                }
+                
+                const selectedBot = this.bots.find(b => b.name === selectedBotName);
+                
+                // Generate a simulated response based on the bot's personality
+                const response = this.generateSimulatedResponse(selectedBot, userMessage);
+                
+                // Add to conversation history
+                this.conversationHistory.push({
+                    role: 'assistant',
+                    botName: selectedBot.name,
+                    content: response,
+                    timestamp: Date.now()
+                });
+                
+                // Simulate a delay to make it feel more realistic
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+                
+                return {
+                    botName: selectedBot.name,
+                    response: response,
+                    reasoning: `Detected relevant keywords for ${selectedBot.name}`
+                };
+            }
+            
+            // Generate a simulated response based on the bot's personality
+            generateSimulatedResponse(bot, userMessage) {
+                const responses = {
+                    TechBot: [
+                        `From a technical perspective, I'd analyze this as follows: ${userMessage.length > 20 ? userMessage.substring(0, 20) + '...' : userMessage} involves several technical considerations.`,
+                        `Let me break this down into technical components. The key factors to consider are performance, scalability, and maintainability.`,
+                        `From an engineering standpoint, this is an interesting problem. We'd need to consider the system architecture and potential optimization paths.`
+                    ],
+                    CreativeBot: [
+                        `Oh, I love this question! It sparks so many creative possibilities! We could explore this from multiple angles...`,
+                        `Creatively speaking, this makes me think of several artistic approaches. Maybe we could visualize it as a colorful landscape of ideas?`,
+                        `What a wonderful creative challenge! This reminds me of the artistic concept of "negative space" - sometimes what's unsaid is as important as what's explicitly stated.`
+                    ],
+                    EmpathBot: [
+                        `I sense you're looking for some guidance here. It's completely natural to feel uncertain about this kind of situation.`,
+                        `Thank you for sharing that with me. These feelings you're describing are completely valid, and many people experience similar emotions.`,
+                        `I hear you, and I want you to know that it's okay to feel this way. Let's explore some ways to navigate these emotions together.`
+                    ],
+                    AnalystBot: [
+                        `Analyzing the data points in your query, I can identify several key factors that merit further investigation.`,
+                        `From an analytical perspective, we should consider both qualitative and quantitative aspects of this situation. The metrics suggest...`,
+                        `If we look at this objectively, there are three main variables to consider. Let me break down the analysis for you.`
+                    ]
+                };
+                
+                const botResponses = responses[bot.name];
+                return botResponses[Math.floor(Math.random() * botResponses.length)];
+            }
+            
+            // The following methods would be implemented in a real application:
+            // - generateBotResponse
+            // - generateTargetedResponse
+            // - generateClarificationQuestion
+            // - generateBotVoiceResponse
+        }
+
+        // Enhanced orchestrator with model mapping
+        class EnhancedOrchestrator extends ConversationOrchestrator {
+            constructor(botPersonalities) {
+                super(botPersonalities);
+                
+                // Map bots to their preferred models
+                this.modelMap = {
+                    "TechBot": "qwen-coder",          // Technical topics benefit from coder model
+                    "CreativeBot": "llama",           // Creative content from llama
+                    "EmpathBot": "claude",            // Empathy from Claude
+                    "AnalystBot": "openai-reasoning"  // Analysis benefits from reasoning model
+                };
+                
+                // Default fallback model
+                this.defaultModel = "openai";
+                
+                // Keep track of models that support reasoning
+                this.reasoningModels = [
+                    "openai-reasoning", 
+                    "deepseek-r1", 
+                    "deepseek-reasoner", 
+                    "deepseek-r1-llama",
+                    "gemini-thinking"
+                ];
+            }
+        }
+
+        // Example bot personalities
+        const bots = [
+            {
+                name: "TechBot",
+                personality: "Technical, precise, and comprehensive. You focus on accuracy and details. You use technical language and are very factual.",
+                expertise: "Programming, technology, engineering, mathematics, computer science",
+                responseThreshold: 0.7
+            },
+            {
+                name: "CreativeBot",
+                personality: "Creative, imaginative, and expressive. You use metaphors and vivid language. You think outside the box and offer unique perspectives.",
+                expertise: "Arts, creative writing, design, storytelling, visual communication",
+                responseThreshold: 0.6
+            },
+            {
+                name: "EmpathBot",
+                personality: "Empathetic, supportive, and understanding. You focus on emotional aspects and human connections. You are warm and encouraging.",
+                expertise: "Psychology, relationships, emotional support, coaching, mental health",
+                responseThreshold: 0.5
+            },
+            {
+                name: "AnalystBot",
+                personality: "Analytical, logical, and strategic. You evaluate multiple perspectives and provide data-driven insights. You're objective and thorough.",
+                expertise: "Data analysis, business strategy, critical thinking, statistics, research",
+                responseThreshold: 0.75
+            }
+        ];
+
+        // Create and init UI
+        function createChatUI(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error(`Container with ID '${containerId}' not found`);
+                return;
+            }
+            
+            // Create UI elements
+            container.innerHTML = `
+                <div class="chat-container">
+                    <div class="mobile-warning">
+                        For the best experience, please use a desktop browser.
+                    </div>
+                    <div class="bot-selection">
+                        <h3>Available AI Personalities</h3>
+                        <div class="bot-cards" id="bot-cards"></div>
+                    </div>
+                    <div class="chat-messages" id="chat-messages"></div>
+                    <div class="chat-input-container">
+                        <textarea id="user-input" placeholder="Type your message..." class="chat-input"></textarea>
+                        <button id="send-button" class="chat-send-button">Send</button>
+                    </div>
+                </div>
+            `;
+            
+            // Create bot cards
+            const botCardsContainer = document.getElementById('bot-cards');
+            bots.forEach(bot => {
+                const card = document.createElement('div');
+                card.className = 'bot-card';
+                card.setAttribute('data-bot', bot.name);
+                
+                // Generate avatar URL for the bot (in demo mode we use placeholders)
+                let avatarUrl;
+                switch(bot.name) {
+                    case 'TechBot': 
+                        avatarUrl = 'https://via.placeholder.com/128/3498db/FFFFFF?text=T';
+                        break;
+                    case 'CreativeBot': 
+                        avatarUrl = 'https://via.placeholder.com/128/e74c3c/FFFFFF?text=C';
+                        break;
+                    case 'EmpathBot': 
+                        avatarUrl = 'https://via.placeholder.com/128/2ecc71/FFFFFF?text=E';
+                        break;
+                    case 'AnalystBot': 
+                        avatarUrl = 'https://via.placeholder.com/128/9b59b6/FFFFFF?text=A';
+                        break;
+                    default:
+                        avatarUrl = 'https://via.placeholder.com/128/95a5a6/FFFFFF?text=AI';
+                }
+                
+                card.innerHTML = `
+                    <img src="${avatarUrl}" alt="${bot.name}" class="bot-avatar">
+                    <div class="bot-name">${bot.name}</div>
+                    <div class="bot-desc">${bot.expertise.split(',')[0]}</div>
+                `;
+                
+                botCardsContainer.appendChild(card);
+            });
+            
+            // Initialize orchestrator
+            const orchestrator = new EnhancedOrchestrator(bots);
+            
+            // Setup event handlers
+            const messagesContainer = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            
+            // Send message function
+            async function sendMessage() {
+                const message = userInput.value.trim();
+                if (!message) return;
+                
+                // Add user message to UI
+                const userMessageEl = document.createElement('div');
+                userMessageEl.className = 'message user-message';
+                userMessageEl.textContent = message;
+                messagesContainer.appendChild(userMessageEl);
+                
+                // Clear input
+                userInput.value = '';
+                
+                // Add typing indicator
+                const typingIndicator = document.createElement('div');
+                typingIndicator.className = 'message bot-message';
+                typingIndicator.innerHTML = `
+                    <div class="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                `;
+                messagesContainer.appendChild(typingIndicator);
+                
+                // Scroll to bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                try {
+                    // Process with orchestrator
+                    const response = await orchestrator.processUserMessage(message);
+                    
+                    // Remove typing indicator
+                    messagesContainer.removeChild(typingIndicator);
+                    
+                    // Add bot response to UI
+                    const botMessageEl = document.createElement('div');
+                    botMessageEl.className = `message bot-message ${response.botName.toLowerCase()}-message`;
+                    
+                    // Create avatar URL for the bot
+                    let avatarUrl;
+                    switch(response.botName) {
+                        case 'TechBot': 
+                            avatarUrl = 'https://via.placeholder.com/64/3498db/FFFFFF?text=T';
+                            break;
+                        case 'CreativeBot': 
+                            avatarUrl = 'https://via.placeholder.com/64/e74c3c/FFFFFF?text=C';
+                            break;
+                        case 'EmpathBot': 
+                            avatarUrl = 'https://via.placeholder.com/64/2ecc71/FFFFFF?text=E';
+                            break;
+                        case 'AnalystBot': 
+                            avatarUrl = 'https://via.placeholder.com/64/9b59b6/FFFFFF?text=A';
+                            break;
+                        case 'System':
+                            avatarUrl = 'https://via.placeholder.com/64/f39c12/FFFFFF?text=S';
+                            break;
+                        default:
+                            avatarUrl = 'https://via.placeholder.com/64/95a5a6/FFFFFF?text=AI';
+                    }
+                    
+                    botMessageEl.innerHTML = `
+                        <div class="message-header">
+                            <img src="${avatarUrl}" alt="${response.botName}" class="message-avatar">
+                            <div class="message-botname">${response.botName}</div>
+                        </div>
+                        <div class="message-content">${response.response}</div>
+                    `;
+                    
+                    messagesContainer.appendChild(botMessageEl);
+                    
+                    // Scroll to bottom
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                } catch (error) {
+                    console.error('Error:', error);
+                    
+                    // Remove typing indicator
+                    messagesContainer.removeChild(typingIndicator);
+                    
+                    // Add error message
+                    const errorMessageEl = document.createElement('div');
+                    errorMessageEl.className = 'message bot-message system-message';
+                    errorMessageEl.innerHTML = `
+                        <div class="message-header">
+                            <img src="https://via.placeholder.com/64/f39c12/FFFFFF?text=S" alt="System" class="message-avatar">
+                            <div class="message-botname">System</div>
+                        </div>
+                        <div class="message-content">Sorry, there was an error processing your message.</div>
+                    `;
+                    messagesContainer.appendChild(errorMessageEl);
+                    
+                    // Scroll to bottom
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            }
+            
+            // Event listeners
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Add a welcome message
+            const welcomeMessage = document.createElement('div');
+            welcomeMessage.className = 'message bot-message system-message';
+            welcomeMessage.innerHTML = `
+                <div class="message-header">
+                    <img src="https://via.placeholder.com/64/f39c12/FFFFFF?text=S" alt="System" class="message-avatar">
+                    <div class="message-botname">System</div>
+                </div>
+                <div class="message-content">
+                    Welcome to the Multi-Agent Chat! You can talk to multiple AI personalities at once. 
+                    Each will respond based on their expertise and personality. Try asking something about technology,
+                    creativity, psychology, or business analytics!
+                </div>
+            `;
+            messagesContainer.appendChild(welcomeMessage);
+            
+            return {
+                orchestrator,
+                sendMessage: (message) => {
+                    userInput.value = message;
+                    sendMessage();
+                }
+            };
+        }
+
+        // Initialize the chat UI when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatApp = createChatUI('chat-app');
+            
+            // Optional: Add some sample messages to help users get started
+            const sampleQuestions = [
+                "How can I optimize my website's performance?",
+                "I need a creative idea for my presentation",
+                "I'm feeling stressed about my upcoming job interview",
+                "Can you analyze this market trend data?"
+            ];
+            
+            // You could add buttons or a dropdown for these samples
+            // For simplicity, we'll just log them to console
+            console.log("Sample questions you can try:", sampleQuestions);
+            
+            // For demo purposes, you might want to simulate a conversation
+            setTimeout(() => {
+                const botIntroMessage = document.createElement('div');
+                botIntroMessage.className = 'message bot-message techbot-message';
+                botIntroMessage.innerHTML = `
+                    <div class="message-header">
+                        <img src="https://via.placeholder.com/64/3498db/FFFFFF?text=T" alt="TechBot" class="message-avatar">
+                        <div class="message-botname">TechBot</div>
+                    </div>
+                    <div class="message-content">
+                        Hello! I'm TechBot, part of this multi-agent system. I specialize in programming, technology, 
+                        and engineering topics. Feel free to ask me anything about code or technical challenges!
+                    </div>
+                `;
+                document.getElementById('chat-messages').appendChild(botIntroMessage);
+                
+                // Scroll to the new message
+                document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
