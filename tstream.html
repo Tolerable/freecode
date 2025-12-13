@@ -1128,7 +1128,29 @@
             updateDisplay();
         };
 
+        // Connect to text stream (pollinations-specific feature - no fallback)
+        let feedConnected = false;
         const evtSource = new EventSource('https://text.pollinations.ai/feed');
+
+        evtSource.onopen = function() {
+            feedConnected = true;
+            console.log('Connected to text stream');
+        };
+
+        evtSource.onerror = function(e) {
+            console.error('Text stream connection error');
+            if (!feedConnected) {
+                // Show fallback message if never connected
+                document.querySelector('.container').innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50vh; text-align: center; padding: 20px;">
+                        <h1 style="color: #dc2626;">Text Stream Unavailable</h1>
+                        <p>The live text stream is currently offline.</p>
+                        <p style="color: #888;">This feature requires Pollinations.ai community feed.</p>
+                        <a href="/pimages.html" style="margin-top: 20px; color: #4a9eff;">Try Image Generator Instead</a>
+                    </div>
+                `;
+            }
+        };
 
 		evtSource.onmessage = function(event) {
 			if (isPaused) return;
