@@ -83,32 +83,63 @@ Providers:
 2. Optional user accounts for key storage
 3. Usage metering
 
-## PATTERN FOR REPLACEMENT
+## AI API WRAPPER (js/aiAPI.js)
+
+A universal wrapper that handles multiple AI providers with automatic fallbacks.
+
+### Quick Start
+```html
+<script src="/js/aiAPI.js"></script>
+<script>
+    // Text generation
+    const response = await aiAPI.text.generate("Write a haiku");
+
+    // Image generation
+    const imageUrl = await aiAPI.image.generate("A sunset over mountains");
+
+    // Show settings UI (for users to enter API keys)
+    aiAPI.showSettings();
+</script>
+```
+
+### Providers Supported
+| Type | Provider | Cost | Notes |
+|------|----------|------|-------|
+| Text | Groq | Free tier | Fast, LLaMA/Mixtral |
+| Text | OpenAI | Paid | GPT-4, reliable |
+| Text | Pollinations | Free (for now) | Legacy fallback |
+| Image | HuggingFace | Free tier | SDXL, various models |
+| Image | OpenAI | Paid | DALL-E 3 |
+| Image | Pollinations | Free (for now) | Legacy fallback |
+
+### Fallback Chain
+1. Try user's configured provider
+2. If fails, fall back to pollinations (while it's free)
+3. If all fail, throw error with helpful message
+
+### Configuration
+Users can call `aiAPI.showSettings()` to:
+- Select preferred providers
+- Enter API keys (stored in localStorage)
+- Keys never leave the browser
+
+### Legacy Compatibility
+```javascript
+// Direct pollinations URL generation (for gradual migration)
+const url = aiAPI.legacy.textUrl(prompt, 'openai');
+const imgUrl = aiAPI.legacy.imageUrl(prompt, { width: 512, height: 512 });
+```
+
+---
+
+## OLD PATTERN (for reference)
 
 ```javascript
-// OLD (pollinations)
+// OLD (pollinations direct)
 const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`);
 
-// NEW (user API key)
-async function callAI(prompt) {
-    const apiKey = localStorage.getItem('user_openai_key');
-    if (!apiKey) {
-        showApiKeyModal();
-        return;
-    }
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [{ role: 'user', content: prompt }]
-        })
-    });
-    return response.json();
-}
+// NEW (via wrapper)
+const response = await aiAPI.text.generate(prompt);
 ```
 
 ## TRACKING PROGRESS
