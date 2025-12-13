@@ -115,27 +115,58 @@
                    /https?:\/\/(www\.)?[^\/]*ai-ministries\.com/.test(referrer);
         }
 
-        // Connect to feed
-        const evtSource = new EventSource('https://image.pollinations.ai/feed?past_results=0');
-        
-        evtSource.onmessage = function(event) {
+        // Connect to feed (pollinations-specific feature - no fallback available)
+        let evtSource;
+        let feedConnected = false;
+
+        function connectToFeed() {
             try {
-                const data = JSON.parse(event.data);
-                if (!data.imageURL) return;
-                
-                if (isLocalReferrer(data.referrer)) {
-                    const tile = localTiles[currentLocalPosition];
-                    tile.querySelector('img').src = data.imageURL;
-                    currentLocalPosition = (currentLocalPosition + 1) % TOTAL_TILES;
-                } else {
-                    const tile = remoteTiles[currentRemotePosition];
-                    tile.querySelector('img').src = data.imageURL;
-                    currentRemotePosition = (currentRemotePosition + 1) % TOTAL_TILES;
-                }
+                evtSource = new EventSource('https://image.pollinations.ai/feed?past_results=0');
+
+                evtSource.onopen = function() {
+                    feedConnected = true;
+                    console.log('Connected to image stream');
+                };
+
+                evtSource.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (!data.imageURL) return;
+
+                        if (isLocalReferrer(data.referrer)) {
+                            const tile = localTiles[currentLocalPosition];
+                            tile.querySelector('img').src = data.imageURL;
+                            currentLocalPosition = (currentLocalPosition + 1) % TOTAL_TILES;
+                        } else {
+                            const tile = remoteTiles[currentRemotePosition];
+                            tile.querySelector('img').src = data.imageURL;
+                            currentRemotePosition = (currentRemotePosition + 1) % TOTAL_TILES;
+                        }
+                    } catch (e) {
+                        console.error('Error:', e);
+                    }
+                };
+
+                evtSource.onerror = function(e) {
+                    console.error('Stream connection error');
+                    if (!feedConnected) {
+                        // Show fallback message if never connected
+                        document.body.innerHTML = `
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #000; color: #fff; font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+                                <h1 style="color: #dc2626;">Image Stream Unavailable</h1>
+                                <p>The live image stream is currently offline.</p>
+                                <p style="color: #888;">This feature requires Pollinations.ai community feed.</p>
+                                <a href="/pimages.html" style="margin-top: 20px; color: #4a9eff;">Try Image Generator Instead</a>
+                            </div>
+                        `;
+                    }
+                };
             } catch (e) {
-                console.error('Error:', e);
+                console.error('Failed to connect to stream:', e);
             }
-        };
+        }
+
+        connectToFeed();
     </script>
 </body>
 </html>
