@@ -11,6 +11,7 @@
 	<link rel="manifest" href="/manifest.json">
     <title>AI Image Generation Hub</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.js"></script>
+    <script src="/js/aiAPI.js"></script>
     <style>
 		/* Base styles */
 		body {
@@ -714,6 +715,95 @@
 		
 		let useFibonacciSeeds = false;
 
+		// Fallback text generation - tries pollinations first, then aiAPI
+		async function generateTextWithFallback(prompt, options = {}) {
+			const { system, model } = options;
+
+			// Try pollinations first
+			try {
+				const response = await fetch('https://text.pollinations.ai/', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						messages: [
+							{ role: "system", content: system || "You are a helpful assistant." },
+							{ role: "user", content: prompt }
+						],
+						model: model || 'openai'
+					})
+				});
+
+				if (!response.ok) {
+					throw new Error(`Pollinations text failed: ${response.status}`);
+				}
+
+				return { success: true, text: await response.text(), source: 'pollinations' };
+			} catch (pollinationsError) {
+				console.warn('Pollinations text failed, trying aiAPI fallback:', pollinationsError.message);
+
+				// Fallback to aiAPI
+				try {
+					if (typeof aiAPI !== 'undefined') {
+						const text = await aiAPI.text.generate(prompt, { system });
+						return { success: true, text, source: 'aiAPI' };
+					}
+					throw new Error('aiAPI not available');
+				} catch (fallbackError) {
+					console.error('All text generation failed:', fallbackError);
+					return { success: false, error: fallbackError.message };
+				}
+			}
+		}
+
+		// Fallback image generation - tries pollinations first, then aiAPI
+		async function generateImageWithFallback(prompt, options = {}) {
+			const { width = 512, height = 512, seed, model, enhance, nologo = true } = options;
+
+			// Try pollinations first
+			try {
+				const params = new URLSearchParams({
+					model: model || 'flux',
+					seed: seed || Math.floor(Math.random() * 999999),
+					width: width,
+					height: height,
+					enhance: enhance || false,
+					nologo: nologo,
+					private: true
+				});
+
+				const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params}`;
+				const response = await fetch(url);
+
+				if (!response.ok) {
+					throw new Error(`Pollinations failed: ${response.status}`);
+				}
+
+				const blob = await response.blob();
+				return { success: true, blob, url: URL.createObjectURL(blob), source: 'pollinations' };
+			} catch (pollinationsError) {
+				console.warn('Pollinations failed, trying aiAPI fallback:', pollinationsError.message);
+
+				// Fallback to aiAPI
+				try {
+					if (typeof aiAPI !== 'undefined') {
+						const imageUrl = await aiAPI.image.generate(prompt, { width, height, seed });
+						// If aiAPI returns a URL, fetch it to get blob
+						if (typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
+							const response = await fetch(imageUrl);
+							const blob = await response.blob();
+							return { success: true, blob, url: URL.createObjectURL(blob), source: 'aiAPI' };
+						}
+						// If it's already a blob URL
+						return { success: true, blob: null, url: imageUrl, source: 'aiAPI' };
+					}
+					throw new Error('aiAPI not available');
+				} catch (fallbackError) {
+					console.error('All image generation failed:', fallbackError);
+					return { success: false, error: fallbackError.message };
+				}
+			}
+		}
+
 		class FibonacciSeeder {
 			constructor() {
 				this.currentIndex = 0;
@@ -970,22 +1060,23 @@
 			const systemMessage = `Without remark or commentary enhance this prompt for use as an image prompt by grouping related concepts with underscores, separating distinct elements with commas, adding details about lighting, composition and visual rendering style, specifying important attributes clearly, dynamically increasing descriptive details for image generation, and returning only the enhanced prompt.`;
 
 			try {
-				const response = await fetch('https://text.pollinations.ai/', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						messages: [
-							{ role: "system", content: systemMessage },
-							{ role: "user", content: prompt }
-						],
-						model: model
-					})
+				// Use fallback-enabled text generation
+				const result = await generateTextWithFallback(prompt, {
+					system: systemMessage,
+					model: model
 				});
 
-				const enhancedPrompt = await response.text();
+				if (!result.success) {
+					console.error('Error enhancing prompt:', result.error);
+					return;
+				}
+
+				const enhancedPrompt = result.text;
 				document.getElementById('enhancedPrompt').value = enhancedPrompt;
-				// Remove this line: document.querySelector('[data-tab="enhanced"]').click();
 				updatePromptPreview(enhancedPrompt);
+				if (result.source !== 'pollinations') {
+					console.log(`Prompt enhanced via fallback: ${result.source}`);
+				}
 			} catch (error) {
 				console.error('Error enhancing prompt:', error);
 			}
@@ -1081,45 +1172,26 @@
 
                             const dimensions = getAspectRatioDimensions(activeRatio.dataset.ratio);
 
-                            const params = new URLSearchParams({
-                                model: imageModel,
-                                seed: seed,
+                            // Use fallback-enabled generation
+                            const result = await generateImageWithFallback(finalPrompt, {
                                 width: dimensions.width,
                                 height: dimensions.height,
-                                enhance: document.getElementById('enhance').checked,  
-                                refine: false,
-                                nologo: true,
-                                private: document.getElementById('private').checked,  
-                                safe: document.getElementById('safe').checked
+                                seed: seed,
+                                model: imageModel,
+                                enhance: document.getElementById('enhance').checked
                             });
 
-                            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?${params}`;
-                            console.log(`Generation URL for cell ${i}:`, url);
-
-                            const response = await fetch(url);
-                            if (!response.ok) {
-                                if (response.status === 500) {
-                                    try {
-                                        const errorText = await response.text();
-                                        if (errorText.includes("NSFW content detected")) {
-                                            document.getElementById(`cell-${i}`).innerHTML = 
-                                                `Generation blocked: NSFW content detected`;
-                                        } else {
-                                            document.getElementById(`cell-${i}`).innerHTML = 
-                                                `Server error (500)`;
-                                        }
-                                        continue;
-                                    } catch (parseError) {
-                                        document.getElementById(`cell-${i}`).innerHTML = 
-                                            `Server error (500)`;
-                                        continue;
-                                    }
-                                }
-                                throw new Error(`HTTP error! status: ${response.status}`);
+                            if (!result.success) {
+                                document.getElementById(`cell-${i}`).innerHTML =
+                                    `Generation failed: ${result.error || 'Unknown error'}`;
+                                continue;
                             }
 
-                            const blob = await response.blob();
-                            const imageUrl = URL.createObjectURL(blob);
+                            const blob = result.blob;
+                            const imageUrl = result.url;
+                            if (result.source !== 'pollinations') {
+                                console.log(`Used fallback: ${result.source}`);
+                            }
 
                             document.getElementById(`cell-${i}`).innerHTML = `
                                 <img src="${imageUrl}" alt="Generated Image ${i + 1}" class="blur-transition loaded">
@@ -1163,44 +1235,26 @@
 
                     const dimensions = getAspectRatioDimensions(activeRatio.dataset.ratio);
 
-                    const params = new URLSearchParams({
-                        model: imageModel,
-                        seed: seed,
+                    // Use fallback-enabled generation
+                    const result = await generateImageWithFallback(finalPrompt, {
                         width: dimensions.width,
                         height: dimensions.height,
-                        enhance: document.getElementById('enhance').checked,  
-                        refine: false,
-                        nologo: true,
-                        private: document.getElementById('private').checked,  
-                        safe: document.getElementById('safe').checked
+                        seed: seed,
+                        model: imageModel,
+                        enhance: document.getElementById('enhance').checked
                     });
 
-                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?${params}`;
-                    console.log('Generation URL:', url);
-
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        if (response.status === 500) {
-                            try {
-                                const errorText = await response.text();
-                                if (errorText.includes("NSFW content detected")) {
-                                    document.getElementById('imageOutput').innerHTML = 
-                                        `Generation blocked: NSFW content detected - try adjusting your prompt`;
-                                } else {
-                                    document.getElementById('imageOutput').innerHTML = 
-                                        `Server error (500): Unable to generate image`;
-                                }
-                            } catch (parseError) {
-                                document.getElementById('imageOutput').innerHTML = 
-                                    `Server error (500): Unable to generate image`;
-                            }
-                            return;
-                        }
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!result.success) {
+                        document.getElementById('imageOutput').innerHTML =
+                            `Generation failed: ${result.error || 'Unknown error'} - try adjusting your prompt or <a href="#" onclick="aiAPI.showSettings(); return false;">configure API</a>`;
+                        return;
                     }
 
-                    const blob = await response.blob();
-                    const imageUrl = URL.createObjectURL(blob);
+                    const blob = result.blob;
+                    const imageUrl = result.url;
+                    if (result.source !== 'pollinations') {
+                        console.log(`Used fallback: ${result.source}`);
+                    }
 
 					imageOutput.innerHTML = `
 						<div style="position: relative; width: 100%; height: 100%;">
@@ -2132,14 +2186,25 @@
 				const userPrompt = document.getElementById('userPrompt');
 				userPrompt.value = "Analyzing image...";
 
-				// Get image description from Vision AI
-				const response = await fetch('https://text.pollinations.ai/', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(requestBody)
-				});
+				// Get image description from Vision AI (pollinations only - vision not in fallback yet)
+				let result;
+				try {
+					const response = await fetch('https://text.pollinations.ai/', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(requestBody)
+					});
 
-				const result = await response.text();
+					if (!response.ok) {
+						throw new Error(`Vision API failed: ${response.status}`);
+					}
+
+					result = await response.text();
+				} catch (visionError) {
+					console.error('Vision analysis failed:', visionError);
+					userPrompt.value = "Vision analysis unavailable - please describe your image manually";
+					return;
+				}
 				
 				// Clean up the response to remove AI conversation elements
 				let cleanedResult = result.trim();
