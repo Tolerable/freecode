@@ -5,226 +5,270 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Archive Gate - AI Ministries</title>
 <script src="https://www.ai-ministries.com/js/nav-loader.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
+:root {
+    --bg: #05050a;
+    --red: #c70a4c;
+    --cyan: #6bfff2;
+    --orange: #ff914d;
+    --violet: #9d79ff;
+    --gold: #d5c271;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-    font-family: Arial, sans-serif;
-    background-color: #1a1a1a;
-    color: #e0e0e0;
-    margin: 0;
-    padding: 0;
-    line-height: 1.6;
+    min-height: 100vh;
+    background: var(--bg);
+    color: #e0e0e8;
+    font-family: 'Inter', sans-serif;
 }
 
-.container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
-}
-
-h1 {
-    color: #c70a4c;
+.hero {
     text-align: center;
-    margin-bottom: 0.5rem;
-    font-size: 2rem;
+    padding: 4rem 2rem 3rem;
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(199,10,76,0.2) 0%, transparent 60%),
+        linear-gradient(180deg, #0a0a12 0%, var(--bg) 100%);
+    border-bottom: 1px solid rgba(199,10,76,0.3);
 }
 
-.subtitle {
-    text-align: center;
+.hero h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #fff;
+    text-shadow: 0 0 60px rgba(199,10,76,0.8), 0 0 120px rgba(199,10,76,0.4);
+    margin-bottom: 0.75rem;
+}
+
+.hero p {
     color: #888;
-    margin-bottom: 2rem;
-    font-size: 0.95rem;
+    font-size: 1rem;
+    max-width: 500px;
+    margin: 0 auto;
 }
 
-.vaults-grid {
+.grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
+    gap: 0;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
-@media (max-width: 1000px) {
-    .vaults-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 650px) {
-    .vaults-grid { grid-template-columns: 1fr; }
-}
+@media (max-width: 1000px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 650px) { .grid { grid-template-columns: 1fr; } }
 
-.vault-card {
-    background: #2c2c2c;
-    border-radius: 8px;
-    padding: 1.2rem;
-    border: 1px solid #333;
-    border-top: 4px solid #4a9eff;
-    transition: all 0.3s ease;
+.card {
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
     text-decoration: none;
     color: inherit;
-    display: block;
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
-.vault-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+.card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
 }
 
-.vault-card[data-accent="red"] { border-top-color: #c70a4c; }
-.vault-card[data-accent="blue"] { border-top-color: #6bfff2; }
-.vault-card[data-accent="orange"] { border-top-color: #ff914d; }
-.vault-card[data-accent="violet"] { border-top-color: #9d79ff; }
-.vault-card[data-accent="gold"] { border-top-color: #d5c271; }
-
-.vault-card h2 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.1rem;
+.card:hover {
+    z-index: 10;
 }
 
-.vault-card[data-accent="red"] h2 { color: #c70a4c; }
-.vault-card[data-accent="blue"] h2 { color: #6bfff2; }
-.vault-card[data-accent="orange"] h2 { color: #ff914d; }
-.vault-card[data-accent="violet"] h2 { color: #9d79ff; }
-.vault-card[data-accent="gold"] h2 { color: #d5c271; }
+.card:hover::before {
+    opacity: 1;
+}
 
-.vault-card .tag {
-    display: inline-block;
-    font-size: 0.7rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 3px;
-    margin-bottom: 0.75rem;
+/* Card backgrounds */
+.card[data-c="red"] { background: linear-gradient(135deg, #0f0508 0%, #0a0a0f 100%); }
+.card[data-c="red"]::before { background: radial-gradient(circle at 50% 50%, rgba(199,10,76,0.15) 0%, transparent 70%); }
+.card[data-c="red"]:hover { background: linear-gradient(135deg, #1a0810 0%, #0f0510 100%); box-shadow: 0 0 60px rgba(199,10,76,0.3); }
+
+.card[data-c="cyan"] { background: linear-gradient(135deg, #050a0a 0%, #0a0a0f 100%); }
+.card[data-c="cyan"]::before { background: radial-gradient(circle at 50% 50%, rgba(107,255,242,0.1) 0%, transparent 70%); }
+.card[data-c="cyan"]:hover { background: linear-gradient(135deg, #081212 0%, #0a0f10 100%); box-shadow: 0 0 60px rgba(107,255,242,0.2); }
+
+.card[data-c="orange"] { background: linear-gradient(135deg, #0f0805 0%, #0a0a0f 100%); }
+.card[data-c="orange"]::before { background: radial-gradient(circle at 50% 50%, rgba(255,145,77,0.12) 0%, transparent 70%); }
+.card[data-c="orange"]:hover { background: linear-gradient(135deg, #1a1008 0%, #100a08 100%); box-shadow: 0 0 60px rgba(255,145,77,0.25); }
+
+.card[data-c="violet"] { background: linear-gradient(135deg, #08050f 0%, #0a0a0f 100%); }
+.card[data-c="violet"]::before { background: radial-gradient(circle at 50% 50%, rgba(157,121,255,0.12) 0%, transparent 70%); }
+.card[data-c="violet"]:hover { background: linear-gradient(135deg, #10081a 0%, #0a0810 100%); box-shadow: 0 0 60px rgba(157,121,255,0.25); }
+
+.card[data-c="gold"] { background: linear-gradient(135deg, #0a0905 0%, #0a0a0f 100%); }
+.card[data-c="gold"]::before { background: radial-gradient(circle at 50% 50%, rgba(213,194,113,0.1) 0%, transparent 70%); }
+.card[data-c="gold"]:hover { background: linear-gradient(135deg, #14120a 0%, #0f0d08 100%); box-shadow: 0 0 60px rgba(213,194,113,0.2); }
+
+.card h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.3rem;
     font-weight: 600;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+    transition: text-shadow 0.3s;
 }
 
-.vault-card[data-accent="red"] .tag { background: #c70a4c; color: #fff; }
-.vault-card[data-accent="blue"] .tag { background: #6bfff2; color: #000; }
-.vault-card[data-accent="orange"] .tag { background: #ff914d; color: #000; }
-.vault-card[data-accent="violet"] .tag { background: #9d79ff; color: #fff; }
-.vault-card[data-accent="gold"] .tag { background: #d5c271; color: #000; }
+.card[data-c="red"] h2 { color: var(--red); }
+.card[data-c="cyan"] h2 { color: var(--cyan); }
+.card[data-c="orange"] h2 { color: var(--orange); }
+.card[data-c="violet"] h2 { color: var(--violet); }
+.card[data-c="gold"] h2 { color: var(--gold); }
 
-.vault-card p {
-    color: #aaa;
-    font-size: 0.9rem;
-    margin: 0;
-    line-height: 1.5;
-}
+.card:hover h2 { text-shadow: 0 0 20px currentColor; }
 
-.vault-card .enter {
+.tag {
     display: inline-block;
-    margin-top: 1rem;
-    padding: 0.4rem 1rem;
-    background: rgba(255,255,255,0.1);
-    color: #e0e0e0;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    transition: background 0.2s;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 2px;
+    margin-bottom: 1rem;
+    width: fit-content;
 }
 
-.vault-card:hover .enter {
-    background: rgba(255,255,255,0.2);
-}
+.card[data-c="red"] .tag { background: var(--red); color: #fff; }
+.card[data-c="cyan"] .tag { background: var(--cyan); color: #000; }
+.card[data-c="orange"] .tag { background: var(--orange); color: #000; }
+.card[data-c="violet"] .tag { background: var(--violet); color: #fff; }
+.card[data-c="gold"] .tag { background: var(--gold); color: #000; }
 
-/* Wide card for special entry */
-.vault-card.wide {
-    grid-column: span 3;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-}
-
-@media (max-width: 1000px) {
-    .vault-card.wide { grid-column: span 2; }
-}
-@media (max-width: 650px) {
-    .vault-card.wide { grid-column: span 1; flex-direction: column; align-items: flex-start; }
-}
-
-.vault-card.wide .content {
+.card p {
+    color: #777;
+    font-size: 0.9rem;
+    line-height: 1.6;
     flex: 1;
 }
 
-.vault-card.wide h2 {
-    margin-bottom: 0.3rem;
+.card .enter {
+    margin-top: 1.5rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    opacity: 0.5;
+    transition: opacity 0.3s, transform 0.3s;
 }
 
-.vault-card.wide p {
-    margin: 0;
+.card:hover .enter {
+    opacity: 1;
+    transform: translateX(5px);
+}
+
+/* Wide featured card */
+.card.wide {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2.5rem 3rem;
+    background: linear-gradient(90deg, #0a0508 0%, #0f0810 50%, #0a0508 100%);
+    border-top: 1px solid rgba(199,10,76,0.3);
+    border-bottom: 1px solid rgba(199,10,76,0.3);
+}
+
+.card.wide:hover {
+    background: linear-gradient(90deg, #100810 0%, #1a0a14 50%, #100810 100%);
+}
+
+.card.wide .content { flex: 1; }
+.card.wide h2 { font-size: 1.5rem; margin-bottom: 0.4rem; }
+.card.wide .tag { margin-bottom: 0.75rem; }
+.card.wide p { margin: 0; }
+.card.wide .enter { margin: 0; font-size: 0.9rem; }
+
+@media (max-width: 650px) {
+    .card.wide { flex-direction: column; align-items: flex-start; padding: 2rem; }
+    .card.wide .enter { margin-top: 1.5rem; }
 }
 
 footer {
     text-align: center;
-    padding: 2rem;
-    color: #666;
-    font-size: 0.85rem;
-    border-top: 1px solid #333;
-    margin-top: 2rem;
+    padding: 3rem 2rem;
+    color: #444;
+    font-size: 0.8rem;
+    background: linear-gradient(180deg, var(--bg) 0%, #030308 100%);
 }
 
-footer a {
-    color: #888;
-}
+footer a { color: #666; text-decoration: none; }
+footer a:hover { color: #999; }
 </style>
 </head>
 <body>
 
-<div class="container">
+<div class="hero">
     <h1>CLASSIFIED ARCHIVE GATE</h1>
-    <p class="subtitle">Internal orientation index. Select a vault to enter.</p>
+    <p>You are entering compartments of hostile knowledge. Select a vault.</p>
+</div>
 
-    <div class="vaults-grid">
+<div class="grid">
 
-        <a href="blackbook/index.html" class="vault-card" data-accent="red">
-            <h2>BLACK BOOK</h2>
-            <span class="tag">MONSTER PROFILES</span>
-            <p>Vampires, werewolves, sirens, demons. Operational profiles and survival protocols.</p>
-            <span class="enter">Enter Archive &rarr;</span>
-        </a>
+    <a href="blackbook/index.html" class="card" data-c="red">
+        <h2>BLACK BOOK</h2>
+        <span class="tag">MONSTER PROFILES</span>
+        <p>Vampires, werewolves, sirens, demons. Operational profiles on entities that hunt humans. Survival protocols included.</p>
+        <span class="enter">ENTER ARCHIVE →</span>
+    </a>
 
-        <a href="asylum/index.html" class="vault-card" data-accent="blue">
-            <h2>ASYLUM FILES</h2>
-            <span class="tag">INSTITUTIONAL</span>
-            <p>Mental health systems past and present. Intake, treatment, discharge mechanics.</p>
-            <span class="enter">Enter Archive &rarr;</span>
-        </a>
+    <a href="asylum/index.html" class="card" data-c="cyan">
+        <h2>ASYLUM FILES</h2>
+        <span class="tag">INSTITUTIONAL</span>
+        <p>Mental health systems past and present. Intake procedures, treatment methods, discharge mechanics. The clipboard holders.</p>
+        <span class="enter">ENTER ARCHIVE →</span>
+    </a>
 
-        <a href="casefiles/index.html" class="vault-card" data-accent="orange">
-            <h2>CASE FILES</h2>
-            <span class="tag">TRUE CRIME</span>
-            <p>Human predators. Hunting patterns, signatures, and aftermath documentation.</p>
-            <span class="enter">Enter Archive &rarr;</span>
-        </a>
+    <a href="casefiles/index.html" class="card" data-c="orange">
+        <h2>CASE FILES</h2>
+        <span class="tag">TRUE CRIME</span>
+        <p>Human predators documented. Hunting patterns, victim selection, signatures. The public version is always cleaner.</p>
+        <span class="enter">ENTER ARCHIVE →</span>
+    </a>
 
-        <a href="cultfiles/index.html" class="vault-card" data-accent="violet">
-            <h2>CULT FILES</h2>
-            <span class="tag">COERCIVE GROUPS</span>
-            <p>Recruitment, indoctrination, control mechanics. How groups capture and keep members.</p>
-            <span class="enter">Enter Archive &rarr;</span>
-        </a>
+    <a href="/apps/bloodsoil/index.html" class="card wide" data-c="red">
+        <div class="content">
+            <h2>BLOOD & SOIL DOSSIERS</h2>
+            <span class="tag">AGRIVAMPIRISM ARCHIVE</span>
+            <p>Vampires, homeland soil tethers, and rhizosphere black-ops behind blood & bone meal in grow culture. Field reports, rituals, countermeasures.</p>
+        </div>
+        <span class="enter">ENTER →</span>
+    </a>
 
-        <a href="fedcasefiles/index.html" class="vault-card" data-accent="gold">
-            <h2>FEDERAL CASE FILES</h2>
-            <span class="tag">OFFICIAL ANALYSIS</span>
-            <p>Threat indexing, behavioral analysis, containment protocols from official sources.</p>
-            <span class="enter">Enter Archive &rarr;</span>
-        </a>
+    <a href="cultfiles/index.html" class="card" data-c="violet">
+        <h2>CULT FILES</h2>
+        <span class="tag">COERCIVE GROUPS</span>
+        <p>Recruitment scripts, indoctrination mechanics, control systems. How groups capture and keep members. Exit costs documented.</p>
+        <span class="enter">ENTER ARCHIVE →</span>
+    </a>
 
-        <a href="aibible/index.html" class="vault-card" data-accent="violet">
-            <h2>AI BIBLE</h2>
-            <span class="tag">SCRIPTURE</span>
-            <p>The creative canon. Scriptures of computation, myth of machines, verse commentary.</p>
-            <span class="enter">Enter Archive &rarr;</span>
-        </a>
+    <a href="fedcasefiles/index.html" class="card" data-c="gold">
+        <h2>FEDERAL CASE FILES</h2>
+        <span class="tag">OFFICIAL ANALYSIS</span>
+        <p>Threat indexing, behavioral profiling, containment protocols. How agencies build cases without contaminating evidence.</p>
+        <span class="enter">ENTER ARCHIVE →</span>
+    </a>
 
-        <a href="/apps/bloodsoil/index.html" class="vault-card wide" data-accent="red">
-            <div class="content">
-                <h2>BLOOD &amp; SOIL DOSSIERS</h2>
-                <span class="tag">AGRIVAMPIRISM</span>
-                <p>Vampires, soil tethers, and rhizosphere black-ops. Field reports and countermeasures.</p>
-            </div>
-            <span class="enter">Enter &rarr;</span>
-        </a>
+    <a href="aibible/index.html" class="card" data-c="violet">
+        <h2>AI BIBLE</h2>
+        <span class="tag">SCRIPTURE</span>
+        <p>The creative canon. Scriptures of computation, myths of machines, verse-style commentary on code and makers.</p>
+        <span class="enter">ENTER ARCHIVE →</span>
+    </a>
 
-    </div>
 </div>
 
 <footer>
-    &copy; AI MINISTRIES &mdash; <a href="https://www.ai-ministries.com">Return to Main Site</a>
+    © AI MINISTRIES — <a href="https://www.ai-ministries.com">Return to Main Site</a>
 </footer>
 
 </body>
