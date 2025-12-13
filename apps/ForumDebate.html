@@ -451,6 +451,7 @@
             }
         }
     </style>
+    <script src="/js/aiAPI.js"></script>
 </head>
 <body>
     <header class="header">
@@ -1520,27 +1521,30 @@
 						private: true
 					};
 
-					const response = await fetch(this.apiEndpoint, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify(payload)
-					});
-
-					if (!response.ok) {
-						throw new Error(`HTTP error! status: ${response.status}`);
+					// Try pollinations first, fall back to aiAPI
+					let responseText = null;
+					try {
+						const response = await fetch(this.apiEndpoint, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(payload)
+						});
+						if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+						const data = await response.json();
+						console.log('API Response for', persona.name, ':', data);
+						if (data?.choices?.[0]?.message?.content) {
+							responseText = data.choices[0].message.content.trim();
+						}
+					} catch (pollinationsError) {
+						console.warn('Pollinations failed, trying aiAPI:', pollinationsError.message);
+						if (typeof aiAPI !== 'undefined' && aiAPI.text) {
+							responseText = await aiAPI.text.generate(contextText, {
+								systemPrompt: persona.systemPrompt
+							});
+							console.log(`${persona.name} using aiAPI fallback`);
+						}
 					}
-
-					const data = await response.json();
-					console.log('API Response for', persona.name, ':', data);
-
-					if (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
-						return data.choices[0].message.content.trim();
-					} else {
-						console.error('Unexpected API response structure:', data);
-						return null;
-					}
+					return responseText;
 				} catch (error) {
 					console.error('API Error:', error);
 					return null;

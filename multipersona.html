@@ -406,11 +406,12 @@
 </head>
 <body>
 <script src="https://www.ai-ministries.com/js/nav-loader.js"></script>
+<script src="/js/aiAPI.js"></script>
 <div id="app-wrapper">
     <button id="menuButton">☰</button>
     <div id="overlay"></div>
     <div id="sidebar">
-      <h3>Personas</h3>
+      <h3>Personas <button onclick="aiAPI.showSettings()" style="font-size: 10px; padding: 3px 6px;">AI</button></h3>
       <div id="personas"></div>
       <button onclick="createPersona()">Add Persona</button>
       <h3>Sessions</h3>
@@ -429,7 +430,39 @@
 </div>
 
 <script>
-  
+    // Text generation with fallback - tries pollinations first, then aiAPI
+    async function generateTextWithFallback(messages, options = {}) {
+        try {
+            const response = await fetch('https://text.pollinations.ai/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: messages,
+                    model: options.model || 'openai',
+                    seed: Math.floor(Math.random() * 100000),
+                    jsonMode: false
+                })
+            });
+            if (!response.ok) throw new Error(`Pollinations failed: ${response.status}`);
+            return { success: true, text: await response.text(), source: 'pollinations' };
+        } catch (pollinationsError) {
+            console.warn('Pollinations failed, trying aiAPI:', pollinationsError.message);
+            try {
+                if (typeof aiAPI !== 'undefined') {
+                    const lastUserMsg = messages.filter(m => m.role === 'user').pop();
+                    const systemMsg = messages.find(m => m.role === 'system');
+                    const text = await aiAPI.text.generate(lastUserMsg?.content || '', {
+                        system: systemMsg?.content
+                    });
+                    return { success: true, text, source: 'aiAPI' };
+                }
+                throw new Error('aiAPI not available');
+            } catch (apiError) {
+                return { success: false, error: `All providers failed: ${apiError.message}` };
+            }
+        }
+    }
+
 	const menuButton = document.getElementById('menuButton');
 	const sidebar = document.getElementById('sidebar');
 	const overlay = document.getElementById('overlay');
@@ -740,19 +773,13 @@
 		  });
 		});
 
-		// Fetch AI response with explicit model parameter
-		const response = await fetch('https://text.pollinations.ai/', {
-		  method: 'POST',
-		  headers: { 'Content-Type': 'application/json' },
-		  body: JSON.stringify({
-			messages: apiMessages,
-			model: "openai", // Explicitly set the model
-			seed: Math.floor(Math.random() * 100000),
-			jsonMode: false
-		  }),
-		});
-
-		const aiResponse = await response.text();
+		// Fetch AI response with fallback
+		const result = await generateTextWithFallback(apiMessages, { model: 'openai' });
+		if (!result.success) {
+		  throw new Error(result.error || 'AI response failed');
+		}
+		if (result.source !== 'pollinations') console.log(`Chat using: ${result.source}`);
+		const aiResponse = result.text;
 		session.messages.push({ role: 'assistant', content: aiResponse });
 		appendMessage('ai', aiResponse);
 		saveData();

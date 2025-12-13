@@ -34,6 +34,7 @@
 
 	<title>AI Song Lyric Composer - Professional Songwriting Tool 🎵✨</title>
 	<script src="https://www.ai-ministries.com/js/nav-loader.js"></script>
+	<script src="/js/aiAPI.js"></script>
     <style>
         /* Navigation spacing */
         body {
@@ -527,7 +528,7 @@
     <div class="container">
         <div class="header">
             <h1>🎵 AI Song Lyric Composer 🎤</h1>
-            <div class="subtitle">Create professional song lyrics with AI magic! 🎼✨</div>
+            <div class="subtitle">Create professional song lyrics with AI magic! 🎼✨ <button onclick="aiAPI.showSettings()" style="font-size: 10px; padding: 3px 6px; margin-left: 10px;">AI</button></div>
         </div>
 
         <!-- Lyric Creation Section -->
@@ -672,7 +673,96 @@
         const TEXT_API = 'https://text.pollinations.ai/';
         const IMAGE_API = 'https://image.pollinations.ai/prompt/';
         const AUDIO_API = 'https://text.pollinations.ai/';
-        
+
+        // Fallback text generation - tries pollinations first, then aiAPI
+        async function generateTextWithFallback(prompt, options = {}) {
+            const randomSeed = Math.floor(Math.random() * 1000000);
+            const encodedPrompt = encodeURIComponent(prompt);
+            const url = `${TEXT_API}${encodedPrompt}?model=${options.model || 'openai'}&seed=${randomSeed}&referrer=songcomposer`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Accept': options.json ? 'application/json' : 'text/plain' }
+                });
+                if (!response.ok) throw new Error(`Pollinations failed: ${response.status}`);
+                return { success: true, text: options.json ? await response.json() : await response.text(), source: 'pollinations' };
+            } catch (pollinationsError) {
+                console.warn('Pollinations failed, trying aiAPI:', pollinationsError.message);
+                try {
+                    if (typeof aiAPI !== 'undefined') {
+                        const text = await aiAPI.text.generate(prompt);
+                        return { success: true, text, source: 'aiAPI' };
+                    }
+                    throw new Error('aiAPI not available');
+                } catch (apiError) {
+                    return { success: false, error: `All providers failed: ${apiError.message}` };
+                }
+            }
+        }
+
+        // Fallback image URL generation - returns URL with fallback
+        function getImageUrlWithFallback(prompt, options = {}) {
+            try {
+                if (typeof aiAPI !== 'undefined' && aiAPI.legacy) {
+                    return aiAPI.legacy.imageUrl(prompt, {
+                        width: options.width || 512,
+                        height: options.height || 512,
+                        nologo: true,
+                        seed: options.seed
+                    });
+                }
+            } catch (e) {
+                console.warn('aiAPI image fallback failed, using pollinations');
+            }
+            const encodedPrompt = encodeURIComponent(prompt);
+            const seed = options.seed || Math.floor(Math.random() * 1000000);
+            return `${IMAGE_API}${encodedPrompt}?width=${options.width || 512}&height=${options.height || 512}&model=flux&enhance=true&nologo=true&seed=${seed}&referrer=songcomposer`;
+        }
+
+        // Fallback audio generation
+        async function generateAudioWithFallback(text, voice) {
+            const instruction = "IMMEDIATELY AND WITHOUT REMARKS OR COMMENTARY TRANSCRIBE EXACTLY THIS TEXT AS IF IT IS SONG LYRICS READ ALOUD AS TONGUE IN CHEEK PERFORMANCE:";
+            const textToSpeak = `${instruction} ${text}`;
+            const encodedText = encodeURIComponent(textToSpeak);
+            const audioSeed = Math.floor(Math.random() * 1000000);
+            const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&seed=${audioSeed}&referrer=songcomposer`;
+
+            try {
+                return await new Promise((resolve, reject) => {
+                    const audio = new Audio();
+                    const timeout = setTimeout(() => {
+                        audio.src = '';
+                        reject(new Error('Audio loading timeout after 45 seconds'));
+                    }, 45000);
+
+                    audio.addEventListener('canplaythrough', () => {
+                        clearTimeout(timeout);
+                        resolve({ success: true, url: audioUrl, source: 'pollinations' });
+                    }, { once: true });
+
+                    audio.addEventListener('error', () => {
+                        clearTimeout(timeout);
+                        reject(new Error('Audio generation/loading failed'));
+                    }, { once: true });
+
+                    audio.src = audioUrl;
+                    audio.load();
+                });
+            } catch (pollinationsError) {
+                console.warn('Pollinations audio failed:', pollinationsError.message);
+                try {
+                    if (typeof aiAPI !== 'undefined' && aiAPI.audio) {
+                        const url = await aiAPI.audio.generate(text, { voice });
+                        return { success: true, url, source: 'aiAPI' };
+                    }
+                    throw new Error('aiAPI audio not available');
+                } catch (apiError) {
+                    return { success: false, error: `Audio generation failed: ${apiError.message}` };
+                }
+            }
+        }
+
         // DOM Elements
         const generateLyricsBtn = document.getElementById('generate-lyrics-btn');
         const regenerateLyricsBtn = document.getElementById('regenerate-lyrics-btn');
@@ -911,40 +1001,31 @@
 			}
 		}
 
-        // Generate lyrics
+        // Generate lyrics with fallback
         async function generateLyrics() {
             const prompt = buildLyricsPrompt();
-            const encodedPrompt = encodeURIComponent(prompt);
-			const randomSeed = Math.floor(Math.random() * 1000000);
-			const lyricsUrl = `${TEXT_API}${encodedPrompt}?model=openai&seed=${randomSeed}&referrer=songcomposer`;
-            
-            const response = await fetch(lyricsUrl, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'text/plain',
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const result = await generateTextWithFallback(prompt, { model: 'openai' });
+
+            if (!result.success) {
+                throw new Error(result.error || 'Lyrics generation failed');
             }
-            
-            const lyrics = await response.text();
-            
+
+            if (result.source !== 'pollinations') console.log(`Lyrics using: ${result.source}`);
+            const lyrics = result.text;
+
             if (!lyrics || lyrics.length < 50) {
                 throw new Error('Lyrics too short or empty');
             }
-            
+
             return lyrics;
         }
 
-        // Generate artwork
+        // Generate artwork with fallback
         async function generateArtwork() {
             const artworkPrompt = buildArtworkPrompt();
-            const encodedPrompt = encodeURIComponent(artworkPrompt);
             const randomSeed = Math.floor(Math.random() * 1000000);
-            const artworkUrl = `${IMAGE_API}${encodedPrompt}?width=512&height=512&model=flux&enhance=true&nologo=true&seed=${randomSeed}&referrer=songcomposer`;
-            
+            const artworkUrl = getImageUrlWithFallback(artworkPrompt, { width: 512, height: 512, seed: randomSeed });
+
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => resolve(artworkUrl);
@@ -953,119 +1034,43 @@
             });
         }
 
-        // Generate vocal demo
-		async function generateVocalDemo(lyrics, voice) {
-			// First, get clean lyrics using JSON mode
-			const cleaningPrompt = `Extract only the singable lyrics from this song, removing all structural labels, titles, and formatting. Return as a single clean text block suitable for vocal performance.
+        // Generate vocal demo with fallback
+        async function generateVocalDemo(lyrics, voice) {
+            // First, try to clean lyrics using text API with fallback
+            let cleanLyrics;
+            const cleaningPrompt = `Extract only the singable lyrics from this song, removing all structural labels, titles, and formatting. Return as a single clean text block suitable for vocal performance.\n\nSong content: ${lyrics}`;
 
-		Song content: ${lyrics}`;
-			
-			const encodedCleaningPrompt = encodeURIComponent(cleaningPrompt);
-			const cleaningSeed = Math.floor(Math.random() * 1000000);
-			const cleaningUrl = `${TEXT_API}${encodedCleaningPrompt}?model=openai&json=true&seed=${cleaningSeed}&referrer=songcomposer`;
-			
-			try {
-				// Get clean lyrics using JSON mode
-				const cleaningResponse = await fetch(cleaningUrl, {
-					method: 'GET',
-					headers: {
-						'Accept': 'application/json',
-					}
-				});
-				
-				if (!cleaningResponse.ok) {
-					throw new Error(`Cleaning failed: ${cleaningResponse.status}`);
-				}
-				
-				const cleanedData = await cleaningResponse.json();
-				const cleanLyrics = cleanedData.lyrics || cleanedData.text || cleanedData.content || Object.values(cleanedData)[0] || lyrics;
-				
-				// Now generate audio with the clean lyrics
-				const instruction = "IMMEDIATELY AND WITHOUT REMARKS OR COMMENTARY TRANSCRIBE EXACTLY THIS TEXT AS IF IT IS SONG LYRICS READ ALOUD AS TONGUE IN CHEEK PERFORMANCE:";
-				const textToSpeak = `${instruction} ${cleanLyrics}`;
-				const encodedText = encodeURIComponent(textToSpeak);
-				const audioSeed = Math.floor(Math.random() * 1000000);
-				const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&seed=${audioSeed}&referrer=songcomposer`;
-				
-				return new Promise((resolve, reject) => {
-					const audio = new Audio();
-					
-					const timeout = setTimeout(() => {
-						audio.src = '';
-						reject(new Error('Audio loading timeout after 45 seconds'));
-					}, 45000);
-					
-					audio.addEventListener('canplaythrough', () => {
-						clearTimeout(timeout);
-						console.log('Audio loaded successfully');
-						resolve(audioUrl);
-					}, { once: true });
-					
-					audio.addEventListener('error', (e) => {
-						clearTimeout(timeout);
-						console.error('Audio loading error:', e);
-						reject(new Error('Audio generation/loading failed'));
-					}, { once: true });
-					
-					audio.addEventListener('loadstart', () => {
-						console.log('Audio loading started...');
-					}, { once: true });
-					
-					try {
-						audio.src = audioUrl;
-						audio.load();
-					} catch (error) {
-						clearTimeout(timeout);
-						reject(new Error('Failed to initiate audio loading'));
-					}
-				});
-				
-			} catch (error) {
-				console.error('Error cleaning lyrics, using original:', error);
-				// Fallback to basic cleaning if JSON mode fails
-				const basicCleanLyrics = lyrics
-					.replace(/\*\*.*?\*\*/g, '')
-					.replace(/\*.*?\*/g, '')
-					.replace(/\[.*?\]/g, '')
-					.replace(/^(Verse|Chorus|Bridge|Intro|Outro|Pre-Chorus|Hook|Refrain).*$/gmi, '')
-					.replace(/\n\s*\n+/g, ' ')
-					.replace(/\s+/g, ' ')
-					.trim();
-				
-				const instruction = "IMMEDIATELY AND WITHOUT REMARKS OR COMMENTARY TRANSCRIBE EXACTLY THIS TEXT AS IF IT IS SONG LYRICS READ ALOUD AS TONGUE IN CHEEK PERFORMANCE:";
-				const textToSpeak = `${instruction} ${basicCleanLyrics}`;
-				const encodedText = encodeURIComponent(textToSpeak);
-				const audioSeed = Math.floor(Math.random() * 1000000);
-				const audioUrl = `${AUDIO_API}${encodedText}?model=openai-audio&voice=${voice}&seed=${audioSeed}&referrer=songcomposer`;
-				
-				return new Promise((resolve, reject) => {
-					const audio = new Audio();
-					
-					const timeout = setTimeout(() => {
-						audio.src = '';
-						reject(new Error('Audio loading timeout after 45 seconds'));
-					}, 45000);
-					
-					audio.addEventListener('canplaythrough', () => {
-						clearTimeout(timeout);
-						resolve(audioUrl);
-					}, { once: true });
-					
-					audio.addEventListener('error', (e) => {
-						clearTimeout(timeout);
-						reject(new Error('Audio generation/loading failed'));
-					}, { once: true });
-					
-					try {
-						audio.src = audioUrl;
-						audio.load();
-					} catch (error) {
-						clearTimeout(timeout);
-						reject(new Error('Failed to initiate audio loading'));
-					}
-				});
-			}
-		}
+            try {
+                const cleanResult = await generateTextWithFallback(cleaningPrompt, { model: 'openai', json: true });
+                if (cleanResult.success && cleanResult.text) {
+                    if (cleanResult.source !== 'pollinations') console.log(`Lyrics cleaning using: ${cleanResult.source}`);
+                    const cleanedData = typeof cleanResult.text === 'string' ? JSON.parse(cleanResult.text) : cleanResult.text;
+                    cleanLyrics = cleanedData.lyrics || cleanedData.text || cleanedData.content || Object.values(cleanedData)[0] || lyrics;
+                } else {
+                    throw new Error('Cleaning failed');
+                }
+            } catch (error) {
+                console.error('Error cleaning lyrics, using basic cleanup:', error);
+                // Fallback to basic regex cleaning
+                cleanLyrics = lyrics
+                    .replace(/\*\*.*?\*\*/g, '')
+                    .replace(/\*.*?\*/g, '')
+                    .replace(/\[.*?\]/g, '')
+                    .replace(/^(Verse|Chorus|Bridge|Intro|Outro|Pre-Chorus|Hook|Refrain).*$/gmi, '')
+                    .replace(/\n\s*\n+/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            }
+
+            // Generate audio with fallback
+            const audioResult = await generateAudioWithFallback(cleanLyrics, voice);
+            if (audioResult.success) {
+                if (audioResult.source !== 'pollinations') console.log(`Audio using: ${audioResult.source}`);
+                return audioResult.url;
+            } else {
+                throw new Error(audioResult.error || 'Audio generation failed');
+            }
+        }
 
         // Display lyrics
         function displayLyrics(lyrics) {

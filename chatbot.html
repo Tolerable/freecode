@@ -73,8 +73,9 @@
     </style>
 </head>
 <body>
+<script src="/js/aiAPI.js"></script>
 	<div class="container">
-		<h1>Chatbot</h1>
+		<h1>Chatbot <button onclick="aiAPI.showSettings()" style="font-size: 0.5em; padding: 5px 10px;">Settings</button></h1>
 		<div id="chat-log"></div>
 		<div class="input-container">
 			<input type="text" id="user-input" placeholder="Type your message..." />
@@ -87,22 +88,44 @@
             { role: 'system', content: 'Respond conversationally as a helpful AI assistant with no more than 3 sentences in a response.' }
         ];
 
-        async function generateText(messages) {
-            const randomSeed = Math.floor(Math.random() * 1000000);
-            
-            const response = await fetch('https://text.pollinations.ai/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: messages,
-                    seed: randomSeed,
-                    jsonMode: false,
-                    model: 'openai',
-                }),
-            });
-            
-            const data = await response.text(); // Get the plain text response
-            return data; // Return the text response
+        // Fallback text generation - tries pollinations first, then aiAPI
+        async function generateTextWithFallback(messages, options = {}) {
+            // Try pollinations first (supports full conversation)
+            try {
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: messages,
+                        seed: Math.floor(Math.random() * 1000000),
+                        jsonMode: false,
+                        model: options.model || 'openai'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Pollinations text failed: ${response.status}`);
+                }
+
+                return { success: true, text: await response.text(), source: 'pollinations' };
+            } catch (pollinationsError) {
+                console.warn('Pollinations failed, trying aiAPI fallback:', pollinationsError.message);
+
+                // Fallback to aiAPI (uses last user message + system)
+                try {
+                    if (typeof aiAPI !== 'undefined') {
+                        const lastUserMsg = messages.filter(m => m.role === 'user').pop();
+                        const systemMsg = messages.find(m => m.role === 'system');
+                        const text = await aiAPI.text.generate(lastUserMsg?.content || '', {
+                            system: systemMsg?.content
+                        });
+                        return { success: true, text, source: 'aiAPI' };
+                    }
+                    throw new Error('aiAPI not available');
+                } catch (apiError) {
+                    return { success: false, error: `All providers failed: ${apiError.message}` };
+                }
+            }
         }
 
         async function sendMessage() {
@@ -110,8 +133,23 @@
             if (userInput.trim() === "") return; // Prevent empty messages
 
             messages.push({ role: 'user', content: userInput }); // Add user's message
-            
-            const aiResponse = await generateText(messages); // Get AI's response
+
+            // Use fallback-enabled text generation
+            const result = await generateTextWithFallback(messages);
+
+            if (!result.success) {
+                console.error('Text generation failed:', result.error);
+                const chatLog = document.getElementById('chat-log');
+                chatLog.innerHTML += `<strong>You:</strong> ${userInput}<br>`;
+                chatLog.innerHTML += `<strong>AI:</strong> <em>Error: ${result.error}</em><br>`;
+                chatLog.scrollTop = chatLog.scrollHeight;
+                return;
+            }
+
+            const aiResponse = result.text;
+            if (result.source !== 'pollinations') {
+                console.log(`Used fallback: ${result.source}`);
+            }
             messages.push({ role: 'assistant', content: aiResponse }); // Add AI's response
 
             // Update chat log

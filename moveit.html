@@ -81,11 +81,12 @@
         }
     </style>
     <script src="js/wobbleEffect.js"></script>
+    <script src="/js/aiAPI.js"></script>
 </head>
 <body>
     <div class="container">
         <div class="generator-form">
-            <h2>AI Image Wobble Generator</h2>
+            <h2>AI Image Wobble Generator <button onclick="aiAPI.showSettings()" style="font-size: 10px; padding: 3px 6px;">AI</button></h2>
             
             <label for="background-prompt">Background Scene:</label>
             <input type="text" 
@@ -109,7 +110,25 @@
     </div>
 
     <script>
-        
+        // Image URL generation with fallback
+        function getImageUrlWithFallback(prompt, options = {}) {
+            try {
+                if (typeof aiAPI !== 'undefined' && aiAPI.legacy) {
+                    return aiAPI.legacy.imageUrl(prompt, {
+                        width: options.width || 1024,
+                        height: options.height || 1024,
+                        nologo: true,
+                        seed: options.seed
+                    });
+                }
+            } catch (e) {
+                console.warn('aiAPI image fallback failed, using pollinations');
+            }
+            const encodedPrompt = encodeURIComponent(prompt);
+            const seed = options.seed || Math.floor(Math.random() * 1000000);
+            return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${options.width || 1024}&height=${options.height || 1024}&nologo=true&seed=${seed}`;
+        }
+
         function setStatus(message, type = 'info') {
             const status = document.getElementById('status');
             status.textContent = message;
@@ -166,20 +185,16 @@
 		async function generateImages() {
 		   try {
 			   setStatus('Generating images...', 'loading');
-			   
+
 			   const userBgPrompt = document.getElementById('background-prompt').value;
 			   const userFigurePrompt = document.getElementById('figure-prompt').value;
-			   
-			   const bgPrompt = encodeURIComponent(
-				   `${userBgPrompt}, wide angle, landscape, 16:9 aspect ratio`
-			   );
-			   
-			   const figurePrompt = encodeURIComponent(
-				   `${userFigurePrompt}, upper body focus, empty pure white background, shoulders and head prominent`
-			   );
-			   
-			   const bgUrl = `https://image.pollinations.ai/prompt/${bgPrompt}?width=1920&height=1080&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
-			   const figureUrl = `https://image.pollinations.ai/prompt/${figurePrompt}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
+
+			   const bgPromptText = `${userBgPrompt}, wide angle, landscape, 16:9 aspect ratio`;
+			   const figurePromptText = `${userFigurePrompt}, upper body focus, empty pure white background, shoulders and head prominent`;
+
+			   // Use fallback for image URLs
+			   const bgUrl = getImageUrlWithFallback(bgPromptText, { width: 1920, height: 1080 });
+			   const figureUrl = getImageUrlWithFallback(figurePromptText, { width: 1024, height: 1024 });
 
 			   const container = document.getElementById('wobble-container');
 			   container.innerHTML = '';

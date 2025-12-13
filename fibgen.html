@@ -96,11 +96,13 @@
 </head>
 <body>
 <script src="js/nav-loader.js"></script>
+<script src="/js/aiAPI.js"></script>
     <h1>Fibonacci Image Generator</h1>
     <input type="text" id="imagePrompt" placeholder="Enter image description here" value="" />
     <div class="button-container">
         <button onclick="generateImages()">Generate Images</button>
         <button id="copyButton" onclick="copyToClipboard()">Copy to Clipboard</button>
+        <button onclick="aiAPI.showSettings()" title="Configure AI Providers">Settings</button>
     </div>
     <div id="imageContainer"></div>
 
@@ -163,7 +165,12 @@
 					const number = selectedSeeds[currentImageIndex];
 					const img = new Image();
 					img.crossOrigin = "anonymous";
-					const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&private=true&enhance=false&seed=${number}&width=1024&height=1024`;
+					// Using aiAPI wrapper - preserves seeds for reproducibility
+					const imageUrl = aiAPI.legacy.imageUrl(prompt, {
+						width: 1024,
+						height: 1024,
+						seed: number
+					});
 					img.src = imageUrl;
 
 					const currentPlaceholder = imageContainer.children[currentImageIndex].querySelector(".image-placeholder");

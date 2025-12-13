@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enhanced Chat</title>
     <script src="https://accounts.google.com/gsi/client"></script>
+    <script src="/js/aiAPI.js"></script>
 <style>
     * {
         margin: 0;
@@ -498,6 +499,7 @@
                 </div>
             </div>
             <div id="not-signed-in"></div>
+            <button onclick="aiAPI.showSettings()" style="margin-top: 10px; padding: 8px 16px; background: #404040; border: none; color: white; border-radius: 4px; cursor: pointer; width: 100%;">AI Settings</button>
         </div>
     </div>
     <div class="main" id="main">
@@ -535,6 +537,79 @@
     <script>
         const API_ENDPOINT = 'https://text.pollinations.ai/';
         const beesknees = "beesknees";
+
+        // Fallback text generation - tries pollinations first, then aiAPI
+        async function generateTextWithFallback(messages, options = {}) {
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: messages,
+                        model: options.model || 'openai-large',
+                        code: beesknees,
+                        jsonMode: false
+                    })
+                });
+                if (!response.ok) throw new Error(`Pollinations failed: ${response.status}`);
+                return { success: true, text: await response.text(), source: 'pollinations' };
+            } catch (pollinationsError) {
+                console.warn('Pollinations failed, trying aiAPI:', pollinationsError.message);
+                try {
+                    if (typeof aiAPI !== 'undefined') {
+                        const lastUserMsg = messages.filter(m => m.role === 'user').pop();
+                        const systemMsg = messages.find(m => m.role === 'system');
+                        const text = await aiAPI.text.generate(lastUserMsg?.content || '', {
+                            system: systemMsg?.content
+                        });
+                        return { success: true, text, source: 'aiAPI' };
+                    }
+                    throw new Error('aiAPI not available');
+                } catch (apiError) {
+                    return { success: false, error: `All providers failed: ${apiError.message}` };
+                }
+            }
+        }
+
+        // Fallback image generation - tries pollinations first, then aiAPI
+        async function generateImageWithFallback(prompt, options = {}) {
+            const seed = options.seed || Math.floor(Math.random() * 1000000);
+            const width = options.width || 1280;
+            const height = options.height || 720;
+            try {
+                const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&enhance=true&seed=${seed}&width=${width}&height=${height}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Pollinations image failed: ${response.status}`);
+                return { success: true, url, source: 'pollinations' };
+            } catch (pollinationsError) {
+                console.warn('Pollinations image failed, trying aiAPI:', pollinationsError.message);
+                try {
+                    if (typeof aiAPI !== 'undefined') {
+                        const url = await aiAPI.image.generate(prompt, { width, height });
+                        return { success: true, url, source: 'aiAPI' };
+                    }
+                    throw new Error('aiAPI not available');
+                } catch (apiError) {
+                    return { success: false, error: `All image providers failed: ${apiError.message}` };
+                }
+            }
+        }
+
+        // Fallback audio generation - tries pollinations first, then browser TTS
+        async function generateAudioWithFallback(text) {
+            try {
+                const instructionPrefix = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE: ";
+                const textToRead = instructionPrefix + text;
+                const url = `https://text.pollinations.ai/${encodeURIComponent(textToRead)}?model=openai-audio&voice=nova`;
+                // Test if URL works
+                const testResponse = await fetch(url, { method: 'HEAD' });
+                if (!testResponse.ok) throw new Error(`Audio failed: ${testResponse.status}`);
+                return { success: true, url, source: 'pollinations' };
+            } catch (pollinationsError) {
+                console.warn('Pollinations audio failed, using browser TTS:', pollinationsError.message);
+                return { success: false, useBrowserTTS: true, source: 'browser' };
+            }
+        }
         let userName = null;
         let userEmail = null;
         let userPicture = null;
@@ -758,18 +833,47 @@
 		    }
 		}
 
-        function regenerateImage(button) {
+        async function regenerateImage(button) {
             const img = button.previousElementSibling;
             const description = img.parentElement.dataset.description;
             if (description) {
-                img.src = generateImageUrl(description);
+                const result = await generateImageUrlWithFallback(description);
+                if (result.success) {
+                    img.src = result.url;
+                }
             }
         }
 
+        // Original sync version for simple URL generation
         function generateImageUrl(description) {
             const seed = Math.floor(Math.random() * 1000000);
             const encodedPrompt = encodeURIComponent(description);
             return `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true&enhance=true&seed=${seed}&width=1280&height=720`;
+        }
+
+        // Async version with fallback
+        async function generateImageUrlWithFallback(description) {
+            // Try pollinations first
+            const pollinationsUrl = generateImageUrl(description);
+            try {
+                const response = await fetch(pollinationsUrl, { method: 'HEAD' });
+                if (response.ok) {
+                    return { success: true, url: pollinationsUrl, source: 'pollinations' };
+                }
+                throw new Error('Pollinations image failed');
+            } catch (e) {
+                // Fallback to aiAPI if available
+                if (typeof aiAPI !== 'undefined') {
+                    try {
+                        const url = aiAPI.legacy.imageUrl(description, { width: 1280, height: 720 });
+                        return { success: true, url, source: 'aiAPI' };
+                    } catch (apiError) {
+                        console.warn('aiAPI fallback failed:', apiError);
+                    }
+                }
+                // Last resort: return pollinations URL anyway (might work on actual load)
+                return { success: true, url: pollinationsUrl, source: 'pollinations-retry' };
+            }
         }
 
 		async function speakText(text) {
@@ -954,12 +1058,19 @@
 
 		async function generateAudio(text) {
 		  try {
-			// Create a direct instruction to read verbatim
-			const instructionPrefix = "READ THIS TEXT VERBATIM WITHOUT ANY COMMENTARY OR RESPONSE: ";
-			const textToRead = instructionPrefix + text;
-			const encodedText = encodeURIComponent(textToRead);
-			const url = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=nova`;
-			return url;
+			// Use fallback-enabled audio generation
+			const result = await generateAudioWithFallback(text);
+			if (result.success) {
+			  if (result.source !== 'pollinations') {
+			    console.log(`Audio using: ${result.source}`);
+			  }
+			  return result.url;
+			}
+			// If fallback indicates browser TTS, return null to trigger fallbackToSynthesis
+			if (result.useBrowserTTS) {
+			  return null;
+			}
+			return null;
 		  } catch (error) {
 			console.error("Audio generation error:", error);
 			return null;
@@ -986,36 +1097,29 @@
                     { role: 'user', content: message }
                 ];
 
-                let response = await fetch(API_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        messages: requestMessages,
-                        model: 'openai-large',
-                        code: beesknees,
-                        jsonMode: false
-                    })
-                });
+                // Use fallback-enabled text generation
+                let result = await generateTextWithFallback(requestMessages, { model: 'openai-large' });
 
-                if (response.status === 500) {
+                if (!result.success) {
+                    // Retry with error recovery prompt
                     requestMessages.push({
                         role: 'system',
                         content: 'There was an error, repair and continue roleplay narrative with understood context.'
                     });
-                    
-                    response = await fetch(API_ENDPOINT, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            messages: requestMessages,
-                            model: 'llama',
-                            code: beesknees,
-                            jsonMode: false
-                        })
-                    });
+                    result = await generateTextWithFallback(requestMessages, { model: 'llama' });
                 }
 
-                const aiMessage = await response.text();
+                if (!result.success) {
+                    console.error('Text generation failed:', result.error);
+                    await addMessageToUI('assistant', `Error: ${result.error}`);
+                    return;
+                }
+
+                if (result.source !== 'pollinations') {
+                    console.log(`Used fallback: ${result.source}`);
+                }
+
+                const aiMessage = result.text;
                 
                 // Add AI message to UI (this already saves it internally since skipSave=false)
                 await addMessageToUI('assistant', aiMessage);

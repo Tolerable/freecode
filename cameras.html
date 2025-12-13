@@ -60,8 +60,9 @@
     </style>
 </head>
 <body>
+<script src="/js/aiAPI.js"></script>
     <div class="container">
-        <h1>Webcam Test</h1>
+        <h1>Webcam Test <button onclick="aiAPI.showSettings()" style="font-size: 12px; padding: 5px;">AI Settings</button></h1>
         <select id="cameraSelect"></select>
         <button id="startBtn">Start Webcam</button>
         <button id="captureBtn">📸 Capture Frame</button>
@@ -127,8 +128,8 @@
             analyzeImage(base64Image.split(',')[1]); // Pass Base64 data only (without `data:image/jpeg;base64,`)
         }
 
-        async function analyzeImage(base64Image) {
-            const prompt = "Describe the image exactly as you see it including any detected gender and fine details and visual styles used.";
+        // Fallback vision analysis - tries pollinations first, then aiAPI if available
+        async function analyzeImageWithFallback(base64Image, prompt) {
             const requestBody = {
                 "messages": [
                     {
@@ -149,17 +150,38 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestBody)
                 });
+                if (!response.ok) throw new Error(`Pollinations failed: ${response.status}`);
+                return { success: true, text: await response.text(), source: 'pollinations' };
+            } catch (pollinationsError) {
+                console.warn('Pollinations vision failed:', pollinationsError.message);
+                // Fallback: aiAPI may support vision in future, or show graceful error
+                try {
+                    if (typeof aiAPI !== 'undefined' && aiAPI.vision) {
+                        const result = await aiAPI.vision.analyze(base64Image, prompt);
+                        return { success: true, text: result, source: 'aiAPI' };
+                    }
+                    throw new Error('No vision fallback available');
+                } catch (apiError) {
+                    return { success: false, error: `Vision analysis failed: ${apiError.message}` };
+                }
+            }
+        }
 
-                const result = await response.text();
-                // Check for empty response
-                if (result.trim()) {
-                    outputDescription.textContent = `AI Description: ${result.trim()}`;
+        async function analyzeImage(base64Image) {
+            const prompt = "Describe the image exactly as you see it including any detected gender and fine details and visual styles used.";
+
+            const result = await analyzeImageWithFallback(base64Image, prompt);
+
+            if (result.success) {
+                if (result.source !== 'pollinations') console.log(`Vision using: ${result.source}`);
+                if (result.text.trim()) {
+                    outputDescription.textContent = `AI Description: ${result.text.trim()}`;
                 } else {
                     outputDescription.textContent = 'No description received.';
                 }
-            } catch (error) {
-                outputDescription.textContent = 'Error analyzing image. Please try again.';
-                console.error('Error:', error);
+            } else {
+                outputDescription.textContent = `Error: ${result.error}`;
+                console.error('Vision error:', result.error);
             }
         }
 

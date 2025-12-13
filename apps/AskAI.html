@@ -369,6 +369,7 @@
             transform: translateY(-1px);
         }
     </style>
+    <script src="/js/aiAPI.js"></script>
 </head>
 <body>
     <div class="header">
@@ -509,33 +510,32 @@
                 // Create the system message
                 const systemMessage = personaInstruction || personaTemplates.default;
                 
-                const response = await fetch('https://text.pollinations.ai/openai', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: 'openai',
-                        messages: [
-                            {
-                                role: "system",
-                                content: systemMessage
-                            },
-                            {
-                                role: "user",
-                                content: question
-                            }
-                        ],
-                        referrer: 'ask-question-ai.com'
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                // Try pollinations first, fall back to aiAPI
+                let aiResponse;
+                try {
+                    const response = await fetch('https://text.pollinations.ai/openai', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: 'openai',
+                            messages: [
+                                { role: "system", content: systemMessage },
+                                { role: "user", content: question }
+                            ],
+                            referrer: 'ask-question-ai.com'
+                        })
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    aiResponse = data.choices[0].message.content;
+                } catch (pollinationsError) {
+                    console.warn('Pollinations failed, trying aiAPI:', pollinationsError.message);
+                    if (typeof aiAPI !== 'undefined' && aiAPI.text) {
+                        aiResponse = await aiAPI.text.generate(question, { systemPrompt: systemMessage });
+                    } else {
+                        throw pollinationsError;
+                    }
                 }
-                
-                const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
                 
                 // Display the response
                 document.getElementById('responseContent').textContent = aiResponse;

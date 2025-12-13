@@ -125,6 +125,7 @@
 		}
 
     </style>
+    <script src="/js/aiAPI.js"></script>
 </head>
 <body>
 <script src="js/nav-loader.js"></script>
@@ -554,13 +555,28 @@
 				}
 			];
 
-			// Make the direct call to Pollinations API
-			fetch('https://text.pollinations.ai/', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ messages: messages })
-			})
-			.then(response => response.text())
+			// Try Pollinations first, fall back to aiAPI
+			async function fetchWithFallback() {
+				try {
+					const response = await fetch('https://text.pollinations.ai/', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ messages: messages })
+					});
+					if (!response.ok) throw new Error('Pollinations failed');
+					return await response.text();
+				} catch (e) {
+					console.warn('Pollinations failed, trying aiAPI:', e.message);
+					if (typeof aiAPI !== 'undefined' && aiAPI.text) {
+						return await aiAPI.text.generate(prompt, {
+							systemPrompt: messages[0].content
+						});
+					}
+					throw e;
+				}
+			}
+			fetchWithFallback()
+			.then(text => text)
 			.then(text => {
 				// Parse the response exactly as before
 				const sections = text.trim().split('\n\n');
@@ -683,12 +699,20 @@
 			const encodedPrompt = encodeURIComponent(fullPrompt);
 			const seed = Math.floor(Math.random() * 1000000);  // Random seed for image uniqueness
 			const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true&nofeed=true&model=flux&seed=${seed}`;
-			
+
 			return fetch(imageUrl)
-				.then(response => response.blob())
+				.then(response => {
+					if (!response.ok) throw new Error('Pollinations image failed');
+					return response.blob();
+				})
 				.then(blob => URL.createObjectURL(blob))
-				.catch(error => {
-					console.error('Error fetching image:', error);
+				.catch(async error => {
+					console.warn('Pollinations image failed, trying aiAPI:', error.message);
+					if (typeof aiAPI !== 'undefined' && aiAPI.image) {
+						try {
+							return await aiAPI.image.generate(fullPrompt);
+						} catch (e) { console.error('aiAPI image failed:', e); }
+					}
 					return null;
 				});
 		}

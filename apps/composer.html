@@ -35,6 +35,7 @@
 
     <title>AI Song Lyric Composer - Professional Songwriting Tool 🎵✨</title>
     <script src="https://www.ai-ministries.com/js/nav-loader.js"></script>
+    <script src="/js/aiAPI.js"></script>
     
     <style>
         /* Navigation spacing */
@@ -678,7 +679,7 @@
     <div class="container">
         <div class="header">
             <h1>🎵 AI Song Lyric Composer 🎤</h1>
-            <div class="subtitle">Create professional song lyrics with AI magic! 🎼✨</div>
+            <div class="subtitle">Create professional song lyrics with AI magic! 🎼✨ <button onclick="aiAPI.showSettings()" style="font-size: 10px; padding: 3px 6px; margin-left: 10px;">AI</button></div>
         </div>
 
         <!-- Lyric Creation Section -->
@@ -833,6 +834,52 @@
         const IMAGE_API = 'https://image.pollinations.ai/prompt/';
         const AUDIO_API = 'https://text.pollinations.ai/';
         const MAX_SONGS = 10;
+
+        // Fallback text generation
+        async function generateTextWithFallback(prompt, options = {}) {
+            const randomSeed = Math.floor(Math.random() * 1000000);
+            const encodedPrompt = encodeURIComponent(prompt);
+            const url = `${TEXT_API}${encodedPrompt}?model=${options.model || 'openai'}&seed=${randomSeed}&referrer=songcomposer`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Accept': 'text/plain' }
+                });
+                if (!response.ok) throw new Error(`Pollinations failed: ${response.status}`);
+                return { success: true, text: await response.text(), source: 'pollinations' };
+            } catch (pollinationsError) {
+                console.warn('Pollinations failed, trying aiAPI:', pollinationsError.message);
+                try {
+                    if (typeof aiAPI !== 'undefined') {
+                        const text = await aiAPI.text.generate(prompt);
+                        return { success: true, text, source: 'aiAPI' };
+                    }
+                    throw new Error('aiAPI not available');
+                } catch (apiError) {
+                    return { success: false, error: `All providers failed: ${apiError.message}` };
+                }
+            }
+        }
+
+        // Fallback image URL generation
+        function getImageUrlWithFallback(prompt, options = {}) {
+            try {
+                if (typeof aiAPI !== 'undefined' && aiAPI.legacy) {
+                    return aiAPI.legacy.imageUrl(prompt, {
+                        width: options.width || 512,
+                        height: options.height || 512,
+                        nologo: true,
+                        seed: options.seed
+                    });
+                }
+            } catch (e) {
+                console.warn('aiAPI image fallback failed, using pollinations');
+            }
+            const encodedPrompt = encodeURIComponent(prompt);
+            const seed = options.seed || Math.floor(Math.random() * 1000000);
+            return `${IMAGE_API}${encodedPrompt}?width=${options.width || 512}&height=${options.height || 512}&model=flux&enhance=true&nologo=true&seed=${seed}&referrer=songcomposer`;
+        }
 
         // DOM Elements
         const generateLyricsBtn = document.getElementById('generate-lyrics-btn');
@@ -1133,27 +1180,18 @@
         async function generateLyrics() {
             const prompt = buildLyricsPrompt();
             const encodedPrompt = encodeURIComponent(prompt);
-            
-            // Try different models in order of preference
-            const models = [
-                'openai',           // GPT-4.1 Mini
-                'openai-fast',      // GPT-4.1 Nano  
-                'grok',            // xAI Grok-3 Mini
-                'mistral',         // Mistral Small 3.1 24B
-                'llamascout',      // Llama 4 Scout 17B
-                'qwen-coder',      // Qwen 2.5 Coder 32B
-                'deepseek'         // DeepSeek V3
-            ];
-            
+
+            // Try different pollinations models first
+            const models = ['openai', 'openai-fast', 'grok', 'mistral', 'llamascout', 'qwen-coder', 'deepseek'];
+
             for (const model of models) {
                 try {
                     const randomSeed = Math.floor(Math.random() * 1000000);
                     const lyricsUrl = `${TEXT_API}${encodedPrompt}?model=${model}&seed=${randomSeed}&referrer=songcomposer`;
-                    
+
                     showStatus(`Trying ${model} model...`, 'info');
-                    
                     const response = await fetch(lyricsUrl);
-                    
+
                     if (response.ok) {
                         const lyrics = await response.text();
                         if (lyrics && lyrics.length > 50) {
@@ -1161,28 +1199,34 @@
                             return lyrics;
                         }
                     }
-                    
                     console.warn(`${model} failed with status: ${response.status}`);
-                    
                 } catch (error) {
                     console.warn(`${model} model failed:`, error);
                 }
-                
-                // Small delay between attempts
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
-            
+
+            // Fallback to aiAPI if all pollinations models fail
+            try {
+                if (typeof aiAPI !== 'undefined') {
+                    showStatus('Trying aiAPI fallback...', 'info');
+                    const lyrics = await aiAPI.text.generate(prompt);
+                    if (lyrics && lyrics.length > 50) {
+                        showStatus('Success with aiAPI!', 'success');
+                        return lyrics;
+                    }
+                }
+            } catch (apiError) {
+                console.warn('aiAPI fallback failed:', apiError);
+            }
+
             throw new Error('All models are currently unavailable. Please try again later.');
         }
 
-        // Generate artwork with unique seed - FIXED to use unique seeds to bypass cache
+        // Generate artwork with unique seed and fallback
         async function generateArtwork() {
             const artworkPrompt = buildArtworkPrompt();
-            const encodedPrompt = encodeURIComponent(artworkPrompt);
-            const randomSeed = Math.floor(Math.random() * 1000000);
-            const artworkUrl = `${IMAGE_API}${encodedPrompt}?width=512&height=512&model=flux&enhance=true&nologo=true&seed=${randomSeed}&referrer=songcomposer`;
-            
-            return artworkUrl;
+            return getImageUrlWithFallback(artworkPrompt, { width: 512, height: 512 });
         }
 
         // Update song info display - FIXED to show actual song title

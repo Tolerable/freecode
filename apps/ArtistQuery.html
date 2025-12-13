@@ -322,7 +322,8 @@
     </style>
 </head>
 <body>
-    <h1>Music Style Analyzer</h1>
+    <script src="/js/aiAPI.js"></script>
+    <h1>Music Style Analyzer <button onclick="aiAPI.showSettings()" style="font-size: 10px; padding: 3px 6px;">AI</button></h1>
     
     <div class="container">
         <div class="tab-container">
@@ -607,54 +608,53 @@
             statusBar.textContent = message;
         }
 
-		// API Call function
+		// API Call function with fallback
 		async function callApi(systemPrompt, userPrompt, useRandomSeed = true) {
+			// Generate random seed if enabled
+			let seed = null;
+			if (useRandomSeed) {
+				seed = Math.floor(Math.random() * 1000000) + 1;
+				console.log(`Using random seed: ${seed}`);
+			}
+
+			// Prepare request data
+			const data = {
+				model: "openai-fast",
+				messages: [
+					{ role: "system", content: systemPrompt },
+					{ role: "user", content: userPrompt }
+				]
+			};
+			if (seed !== null) data.seed = seed;
+
 			try {
-				// Generate random seed if enabled
-				let seed = null;
-				if (useRandomSeed) {
-					seed = Math.floor(Math.random() * 1000000) + 1;
-					console.log(`Using random seed: ${seed}`);
-				}
-				
-				// Prepare request data
-				const data = {
-					model: "openai-fast",
-					messages: [
-						{ role: "system", content: systemPrompt },
-						{ role: "user", content: userPrompt }
-					]
-				};
-				
-				// Add seed if we're using one
-				if (seed !== null) {
-					data.seed = seed;
-				}
-				
-				// Make the API call with explicit referrer parameter
+				// Try pollinations first
 				const response = await fetch("https://text.pollinations.ai/openai?referrer=www.ai-ministries.com", {
 					method: "POST",
-					headers: {
-						"Content-Type": "application/json"
-					},
+					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(data)
 				});
-				
-				if (!response.ok) {
-					throw new Error(`API Error: ${response.status} ${response.statusText}`);
-				}
-				
+
+				if (!response.ok) throw new Error(`API Error: ${response.status}`);
 				const result = await response.json();
-				
-				// Extract the generated text
+
 				if (result.choices && result.choices.length > 0) {
 					return result.choices[0].message.content;
-				} else {
-					throw new Error("Unexpected API response format");
 				}
-			} catch (error) {
-				console.error("API call error:", error);
-				return null;
+				throw new Error("Unexpected API response format");
+			} catch (pollinationsError) {
+				console.warn("Pollinations failed, trying aiAPI:", pollinationsError.message);
+				try {
+					if (typeof aiAPI !== 'undefined') {
+						const text = await aiAPI.text.generate(userPrompt, { system: systemPrompt });
+						console.log("Using aiAPI fallback");
+						return text;
+					}
+					throw new Error("aiAPI not available");
+				} catch (apiError) {
+					console.error("All API providers failed:", apiError);
+					return null;
+				}
 			}
 		}
 

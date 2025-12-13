@@ -409,11 +409,12 @@
             }
         }
     </style>
+    <script src="/js/aiAPI.js"></script>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Mental Health & AI Psychological Assessment</h1>
+            <h1>Mental Health & AI Psychological Assessment <button onclick="aiAPI.showSettings()" style="font-size: 10px; padding: 3px 6px;">AI</button></h1>
             <p>A comprehensive evaluation tool for mental health and AI-related psychological patterns</p>
             <div class="disclaimer">
                 <strong>Important:</strong> This assessment is for informational purposes only and does not constitute professional medical or psychological advice. Please consult with qualified mental health professionals for proper diagnosis and treatment.
@@ -2544,31 +2545,35 @@
 					systemContent += " Be conversational, not clinical. Reference their specific scores when relevant.";
 				}
 				
-				const response = await fetch('https://text.pollinations.ai/openai?referrer=ai-ministries.com', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({
-						model: "openai",
-						messages: [
-							{
-								role: "system",
-								content: systemContent
-							},
-							{
-								role: "user",
-								content: message
-							}
-						]
-					})
-				});
-				
-				const data = await response.json();
+				// Try pollinations first, fall back to aiAPI
+				let aiContent;
+				try {
+					const response = await fetch('https://text.pollinations.ai/openai?referrer=ai-ministries.com', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							model: "openai",
+							messages: [
+								{ role: "system", content: systemContent },
+								{ role: "user", content: message }
+							]
+						})
+					});
+					if (!response.ok) throw new Error('Pollinations failed');
+					const data = await response.json();
+					if (data?.choices?.[0]?.message?.content) {
+						aiContent = data.choices[0].message.content;
+					}
+				} catch (pollinationsError) {
+					console.warn('Pollinations failed, trying aiAPI:', pollinationsError.message);
+					if (typeof aiAPI !== 'undefined' && aiAPI.text) {
+						aiContent = await aiAPI.text.generate(message, { systemPrompt: systemContent });
+					}
+				}
 				typingDiv.remove();
-				
-				if (data.choices && data.choices[0] && data.choices[0].message) {
-					addMessageToChat('ai', data.choices[0].message.content);
+
+				if (aiContent) {
+					addMessageToChat('ai', aiContent);
 					
 					// Show crisis warning again if enough messages have passed
 					if (window.assessmentResults && window.assessmentResults.crisisFlag && 

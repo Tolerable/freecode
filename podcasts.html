@@ -95,8 +95,9 @@
     </style>
 </head>
 <body>
+    <script src="/js/aiAPI.js"></script>
     <div class="container">
-        <h1>The Seth Rogen AI Podcast Experience</h1>
+        <h1>The Seth Rogen AI Podcast Experience <button onclick="aiAPI.showSettings()" style="font-size: 10px; padding: 3px 6px;">AI</button></h1>
         
         <div class="input-section">
             <input type="text" id="topic-input" placeholder="Enter a guest/topic (e.g., 'Aliens are here to announce their invasion plans')">
@@ -109,6 +110,58 @@
     </div>
 
     <script>
+        // Text generation with fallback - tries pollinations first, then aiAPI
+        async function generateTextWithFallback(messages, options = {}) {
+            try {
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: messages,
+                        model: options.model || 'openai',
+                        jsonMode: options.jsonMode || false
+                    })
+                });
+                if (!response.ok) throw new Error(`Pollinations failed: ${response.status}`);
+                const text = await response.text();
+                return { success: true, text: options.jsonMode ? JSON.parse(text) : text, source: 'pollinations' };
+            } catch (pollinationsError) {
+                console.warn('Pollinations failed, trying aiAPI:', pollinationsError.message);
+                try {
+                    if (typeof aiAPI !== 'undefined') {
+                        const lastUserMsg = messages.filter(m => m.role === 'user').pop();
+                        const systemMsg = messages.find(m => m.role === 'system');
+                        const text = await aiAPI.text.generate(lastUserMsg?.content || '', {
+                            system: systemMsg?.content
+                        });
+                        return { success: true, text: options.jsonMode ? JSON.parse(text) : text, source: 'aiAPI' };
+                    }
+                    throw new Error('aiAPI not available');
+                } catch (apiError) {
+                    return { success: false, error: `All providers failed: ${apiError.message}` };
+                }
+            }
+        }
+
+        // Image URL generation with fallback
+        function getImageUrlWithFallback(prompt, options = {}) {
+            try {
+                if (typeof aiAPI !== 'undefined' && aiAPI.legacy) {
+                    return aiAPI.legacy.imageUrl(prompt, {
+                        width: options.width || 800,
+                        height: options.height || 600,
+                        nologo: true,
+                        seed: options.seed
+                    });
+                }
+            } catch (e) {
+                console.warn('aiAPI image fallback failed, using pollinations');
+            }
+            const encodedPrompt = encodeURIComponent(prompt);
+            const seed = options.seed || Math.floor(Math.random() * 999999);
+            return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${options.width || 800}&height=${options.height || 600}&model=flux&nologo=true&seed=${seed}`;
+        }
+
 		const hostPersona = `You are Seth Rogen hosting a podcast. Your characteristics:
 		- Your laugh is iconic and frequent (*laughs*)
 		- You occasionally smoke during interviews (*takes a puff*)
@@ -135,83 +188,53 @@
 		}
 
 		async function extractGuestAndTopic(input) {
-			try {
-				const response = await fetch('https://text.pollinations.ai/', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						messages: [{
-							role: 'system',
-							content: `Analyze the input and extract the guest and topic. IMPORTANT: Take all claims at face value - if someone is claimed to be the antichrist, an alien, a time traveler, etc., that IS who they are. Don't rationalize or reinterpret. Return as JSON: {"guest": "name as claimed", "topic": "situation as claimed"}. Keep it simple and direct.`
-						}, {
-							role: 'user',
-							content: input
-						}],
-						model: 'openai',
-						jsonMode: true
-					})
-				});
-				return await response.json();
-			} catch (error) {
-				console.error('Error extracting guest and topic:', error);
-				throw error;
-			}
+			const result = await generateTextWithFallback([{
+				role: 'system',
+				content: `Analyze the input and extract the guest and topic. IMPORTANT: Take all claims at face value - if someone is claimed to be the antichrist, an alien, a time traveler, etc., that IS who they are. Don't rationalize or reinterpret. Return as JSON: {"guest": "name as claimed", "topic": "situation as claimed"}. Keep it simple and direct.`
+			}, {
+				role: 'user',
+				content: input
+			}], { model: 'openai', jsonMode: true });
+
+			if (!result.success) throw new Error(result.error);
+			if (result.source !== 'pollinations') console.log(`Extract using: ${result.source}`);
+			return result.text;
 		}
 
         async function generateQuestion(guest, topic, previousResponses = []) {
-            try {
-                const response = await fetch('https://text.pollinations.ai/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        messages: [{
-                            role: 'system',
-                            content: hostPersona
-                        }, {
-                            role: 'user',
-                            content: `Generate one engaging question for ${guest} about: ${topic}. 
-                                    Previous exchange context: ${JSON.stringify(previousResponses)}
-                                    Make the question relevant to both the topic and any previous responses.
-                                    Include your laugh and puff markers naturally.`
-                        }],
-                        model: 'openai'
-                    })
-                });
-                return await response.text();
-            } catch (error) {
-                console.error('Error generating question:', error);
-                throw error;
-            }
+            const result = await generateTextWithFallback([{
+                role: 'system',
+                content: hostPersona
+            }, {
+                role: 'user',
+                content: `Generate one engaging question for ${guest} about: ${topic}.
+                        Previous exchange context: ${JSON.stringify(previousResponses)}
+                        Make the question relevant to both the topic and any previous responses.
+                        Include your laugh and puff markers naturally.`
+            }], { model: 'openai' });
+
+            if (!result.success) throw new Error(result.error);
+            if (result.source !== 'pollinations') console.log(`Question using: ${result.source}`);
+            return result.text;
         }
 
         async function generateResponse(guest, topic, question, guestPersona) {
-            try {
-                const response = await fetch('https://text.pollinations.ai/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        messages: [{
-                            role: 'system',
-                            content: guestPersona
-                        }, {
-                            role: 'user',
-                            content: question
-                        }],
-                        model: 'openai'
-                    })
-                });
-                return await response.text();
-            } catch (error) {
-                console.error('Error generating response:', error);
-                throw error;
-            }
+            const result = await generateTextWithFallback([{
+                role: 'system',
+                content: guestPersona
+            }, {
+                role: 'user',
+                content: question
+            }], { model: 'openai' });
+
+            if (!result.success) throw new Error(result.error);
+            if (result.source !== 'pollinations') console.log(`Response using: ${result.source}`);
+            return result.text;
         }
 
         async function generateStudioImage(guest, topic) {
             const prompt = `A comedic podcast studio setting with Seth Rogen interviewing ${guest} about ${topic}, professional photography style, boom microphones visible, recording equipment, studio lighting`;
-            const encodedPrompt = encodeURIComponent(prompt);
-            const seed = Math.floor(Math.random() * 999999);
-            return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=600&model=flux&nologo=true&seed=${seed}`;
+            return getImageUrlWithFallback(prompt, { width: 800, height: 600 });
         }
 
         async function addMessage(container, content, type, guest = '') {
