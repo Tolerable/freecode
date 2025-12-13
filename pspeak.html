@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pollinations AI Chat</title>
+    <script src="/js/aiAPI.js"></script>
     <style>
 
 		body {
@@ -244,6 +245,36 @@ When sharing images, use this format:
             }
         };
 
+        // Fallback text generation - tries pollinations first, then aiAPI
+        async function textWithFallback(messages, model) {
+            // Try pollinations first
+            try {
+                const response = await fetch(CONFIG.API_ENDPOINTS.TEXT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages, model })
+                });
+                if (!response.ok) throw new Error(`Pollinations failed: ${response.status}`);
+                return { success: true, text: await response.text(), source: 'pollinations' };
+            } catch (e) {
+                console.warn('Pollinations text failed, trying aiAPI:', e.message);
+                // Fallback to aiAPI
+                try {
+                    if (typeof aiAPI !== 'undefined') {
+                        const lastMsg = messages[messages.length - 1];
+                        const systemMsg = messages.find(m => m.role === 'system');
+                        const text = await aiAPI.text.generate(lastMsg.content, {
+                            system: systemMsg?.content
+                        });
+                        return { success: true, text, source: 'aiAPI' };
+                    }
+                    throw new Error('aiAPI not available');
+                } catch (fallbackError) {
+                    return { success: false, error: fallbackError.message };
+                }
+            }
+        }
+
         class PollinationsAIChat {
             constructor() {
                 const savedImageSettings = localStorage.getItem('imageSettings');
@@ -434,13 +465,20 @@ When sharing images, use this format:
                         };
                     }
 
-                    const response = await fetch(CONFIG.API_ENDPOINTS.TEXT, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(messageToSend)
-                    });
+                    // Use fallback-enabled text generation
+                    const result = await textWithFallback(
+                        messageToSend.messages,
+                        messageToSend.model || this.state.textModel
+                    );
 
-                    const responseContent = await response.text();
+                    if (!result.success) {
+                        throw new Error(result.error || 'Text generation failed');
+                    }
+                    if (result.source !== 'pollinations') {
+                        console.log(`Used fallback: ${result.source}`);
+                    }
+
+                    const responseContent = result.text;
                     const processedResponse = await this.processResponse(responseContent);
                     this.addMessageToChat(processedResponse, 'ai');
 
