@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Services Status</title>
+    <script src="/js/aiAPI.js"></script>
     <style>
 	:root {
 		--bg-primary: #1a1b1e;
@@ -1271,8 +1272,7 @@
 	async function checkService(service) {
 	  const startTime = performance.now();
 	  try {
-		// Don't use callAPI directly to avoid logging to modal
-		// Make a simpler fetch request
+		// Try pollinations first
 		const response = await fetch('https://text.pollinations.ai/', {
 		  method: 'POST',
 		  headers: {
@@ -1284,23 +1284,25 @@
 			jsonMode: false
 		  })
 		});
-		
+
 		const result = await response.text();
 		const endTime = performance.now();
 		const duration = (endTime - startTime).toFixed(0);
 
 		const status = response.ok ? 'online' : 'offline';
 		updateServiceStatus(service.name, status);
-		
-		// Only add to main log container, not modal logs
-		addLogEntry(service.name, 'POST', 'https://text.pollinations.ai/', 
-				   {messages: [{role: "user", content: "."}]}, 
+
+		addLogEntry(service.name, 'POST', 'https://text.pollinations.ai/',
+				   {messages: [{role: "user", content: "."}]},
 				   result, `${response.status} (${duration}ms)`);
 
 		return status;
 	  } catch (error) {
-		updateServiceStatus(service.name, 'error');
-		return 'error';
+		// Pollinations may be down - show as unavailable
+		updateServiceStatus(service.name, 'offline');
+		addLogEntry(service.name, 'ERROR', 'Pollinations API',
+				   {}, 'Service unavailable - pollinations.ai may be down', 'Network Error');
+		return 'offline';
 	  }
 	}
 
