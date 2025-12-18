@@ -1,6 +1,18 @@
+// Cookie helpers for cross-subdomain age verification
+function setAgeCookie() {
+    // Set cookie for .ai-ministries.com (all subdomains)
+    // Expires in 1 day (session-like behavior but shared across subdomains)
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `ageVerified=true; domain=.ai-ministries.com; path=/; expires=${expires}; SameSite=Lax`;
+}
+
+function getAgeCookie() {
+    return document.cookie.split(';').some(c => c.trim().startsWith('ageVerified=true'));
+}
+
 window.verifyAge = function(isOver21) {
     if (isOver21) {
-        sessionStorage.setItem('ageVerified', 'true');
+        setAgeCookie();
         const modal = document.getElementById('ageModal');
         if (modal) {
             modal.style.opacity = '0';
@@ -31,8 +43,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             menuButton.addEventListener('click', () => menu.classList.toggle('show'));
         }
 
-        // 3. Check age if not verified this session
-        if (!sessionStorage.getItem('ageVerified')) {
+        // 3. Check age if not verified (cookie shared across subdomains)
+        if (!getAgeCookie()) {
             const modalHTML = `
                 <div id="ageModal" class="age-modal-overlay" style="opacity: 0; transition: opacity 0.3s ease;">
                     <div class="age-modal">
