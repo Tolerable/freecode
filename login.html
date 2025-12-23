@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - AI Ministries</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #fff;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .logo span {
+            color: #6c63ff;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #fff;
+            border-bottom: 2px solid #6c63ff;
+            margin-bottom: -1px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #6c63ff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: #6c63ff;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #5a52e0;
+            transform: translateY(-1px);
+        }
+
+        .submit-btn:disabled {
+            background: #444;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-msg {
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid rgba(255, 82, 82, 0.3);
+            color: #ff5252;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-msg {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            color: #4caf50;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .form-panel {
+            display: none;
+        }
+
+        .form-panel.active {
+            display: block;
+        }
+
+        .user-info {
+            text-align: center;
+            display: none;
+        }
+
+        .user-info.active {
+            display: block;
+        }
+
+        .user-info .avatar {
+            width: 80px;
+            height: 80px;
+            background: #6c63ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 32px;
+            color: #fff;
+        }
+
+        .user-info h2 {
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .user-info .email {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .user-info .admin-badge {
+            background: #6c63ff;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .signout-btn {
+            background: rgba(255, 82, 82, 0.2);
+            border: 1px solid rgba(255, 82, 82, 0.3);
+            color: #ff5252;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .signout-btn:hover {
+            background: rgba(255, 82, 82, 0.3);
+        }
+
+        .footer-links {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        .footer-links a:hover {
+            color: #6c63ff;
+        }
+
+        .universe-note {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 11px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="logo">
+            <h1><span>AI</span> Ministries</h1>
+        </div>
+
+        <!-- Error/Success messages -->
+        <div id="errorMsg" class="error-msg"></div>
+        <div id="successMsg" class="success-msg"></div>
+
+        <!-- Auth forms (shown when not logged in) -->
+        <div id="authForms">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('signin')">Sign In</button>
+                <button class="tab" onclick="showTab('signup')">Sign Up</button>
+            </div>
+
+            <!-- Sign In Form -->
+            <div id="signinPanel" class="form-panel active">
+                <form id="signinForm" onsubmit="handleSignIn(event)">
+                    <div class="form-group">
+                        <label for="signinEmail">Email</label>
+                        <input type="email" id="signinEmail" placeholder="you@example.com" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="signinPassword">Password</label>
+                        <input type="password" id="signinPassword" placeholder="Your password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="submit-btn" id="signinBtn">Sign In</button>
+                </form>
+            </div>
+
+            <!-- Sign Up Form -->
+            <div id="signupPanel" class="form-panel">
+                <form id="signupForm" onsubmit="handleSignUp(event)">
+                    <div class="form-group">
+                        <label for="signupName">Display Name</label>
+                        <input type="text" id="signupName" placeholder="Your name" required autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" placeholder="you@example.com" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input type="password" id="signupPassword" placeholder="Choose a password" required minlength="6" autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="submit-btn" id="signupBtn">Create Account</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- User Info (shown when logged in) -->
+        <div id="userInfo" class="user-info">
+            <div class="avatar" id="userAvatar">?</div>
+            <h2 id="userName">User</h2>
+            <div class="email" id="userEmail">user@example.com</div>
+            <div class="admin-badge" id="adminBadge" style="display:none">Admin</div>
+            <button class="signout-btn" onclick="handleSignOut()">Sign Out</button>
+        </div>
+
+        <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="/tools.html">Tools</a>
+            <a href="/faq.html">FAQ</a>
+        </div>
+
+        <div class="universe-note">
+            Part of the AI-Ministries Universe
+        </div>
+    </div>
+
+    <script src="/js/ai_ministries_auth.js"></script>
+    <script>
+        // Tab switching
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+
+            document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+            document.getElementById(tab + 'Panel').classList.add('active');
+
+            hideMessages();
+        }
+
+        // Message handling
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('successMsg').style.display = 'none';
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('successMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('errorMsg').style.display = 'none';
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('successMsg').style.display = 'none';
+        }
+
+        // Sign In
+        async function handleSignIn(e) {
+            e.preventDefault();
+            hideMessages();
+
+            const btn = document.getElementById('signinBtn');
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            try {
+                const email = document.getElementById('signinEmail').value;
+                const password = document.getElementById('signinPassword').value;
+
+                await window.aiAuth.signIn(email, password);
+
+                // Check for redirect
+                const params = new URLSearchParams(window.location.search);
+                const redirect = params.get('redirect');
+                if (redirect) {
+                    window.location.href = redirect;
+                } else {
+                    updateUI();
+                }
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            }
+        }
+
+        // Sign Up
+        async function handleSignUp(e) {
+            e.preventDefault();
+            hideMessages();
+
+            const btn = document.getElementById('signupBtn');
+            btn.disabled = true;
+            btn.textContent = 'Creating account...';
+
+            try {
+                const name = document.getElementById('signupName').value;
+                const email = document.getElementById('signupEmail').value;
+                const password = document.getElementById('signupPassword').value;
+
+                await window.aiAuth.signUp(email, password, name);
+
+                showSuccess('Account created! Check your email to verify, then sign in.');
+                showTab('signin');
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Account';
+            }
+        }
+
+        // Sign Out
+        async function handleSignOut() {
+            await window.aiAuth.signOut();
+            updateUI();
+        }
+
+        // Update UI based on auth state
+        function updateUI() {
+            const isAuth = window.aiAuth.isAuthenticated();
+
+            document.getElementById('authForms').style.display = isAuth ? 'none' : 'block';
+            document.getElementById('userInfo').classList.toggle('active', isAuth);
+
+            if (isAuth) {
+                const user = window.aiAuth.getUser();
+                const name = window.aiAuth.getDisplayName();
+
+                document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+                document.getElementById('userName').textContent = name;
+                document.getElementById('userEmail').textContent = user.email;
+
+                const adminBadge = document.getElementById('adminBadge');
+                adminBadge.style.display = window.aiAuth.isAdmin() ? 'inline-block' : 'none';
+            }
+        }
+
+        // Auth change callback
+        window.onAuthChange = function(user) {
+            updateUI();
+        };
+
+        // Init
+        document.addEventListener('DOMContentLoaded', async () => {
+            await window.aiAuth.init();
+            updateUI();
+        });
+    </script>
+</body>
+</html>
