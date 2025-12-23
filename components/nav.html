@@ -314,9 +314,36 @@
 				display: block;
 			}
 		}
+    
+        .auth-buttons { display: flex; gap: 0.5rem; align-items: center; }
+        .auth-btn { background: none; border: 1px solid #4a9eff; color: #4a9eff; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; text-transform: uppercase; }
+        .auth-btn:hover { background: #4a9eff; color: white; }
+        .auth-btn.primary { background: #4a9eff; color: white; }
+        .user-dropdown { position: relative; display: inline-block; }
+        .user-dropdown > a { color: #4a9eff !important; font-weight: 700 !important; padding: 0.75rem 1rem; cursor: pointer; }
+        .user-dropdown-menu { display: none; position: absolute; top: 100%; right: 0; background: black; border: 1px solid #333; z-index: 9999; min-width: 200px; }
+        .user-dropdown:hover .user-dropdown-menu { display: block; }
+        .user-dropdown-menu a { display: block; padding: 0.75rem 1rem; color: white; font-size: 18px; font-weight: 600; border-bottom: 1px solid #444; text-transform: uppercase; }
+        .user-dropdown-menu a:hover { color: #dc2626; }
+        .auth-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10001; justify-content: center; align-items: center; }
+        .auth-modal-overlay.show { display: flex; }
+        .auth-modal { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 2rem; width: 100%; max-width: 400px; color: white; }
+        .auth-modal h2 { color: #4a9eff; margin-bottom: 1.5rem; text-align: center; }
+        .auth-modal .close-btn { float: right; background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
+        .auth-modal .form-group { margin-bottom: 1rem; }
+        .auth-modal label { display: block; color: #888; font-size: 13px; margin-bottom: 0.5rem; }
+        .auth-modal input { width: 100%; padding: 0.75rem; background: #2c2c2c; border: 1px solid #444; border-radius: 4px; color: white; font-size: 14px; box-sizing: border-box; }
+        .auth-modal input:focus { outline: none; border-color: #4a9eff; }
+        .auth-modal .submit-btn { width: 100%; padding: 0.75rem; background: #4a9eff; border: none; border-radius: 4px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 1rem; }
+        .auth-modal .submit-btn:disabled { background: #444; }
+        .auth-modal .toggle-form { text-align: center; margin-top: 1rem; color: #888; font-size: 13px; }
+        .auth-modal .toggle-form a { color: #4a9eff; cursor: pointer; }
+        .auth-modal .error-msg { background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.3); color: #dc2626; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; display: none; }
+
     </style>
 
 <script src="/js/aiAPI.js"></script>
+<script src="/js/ai_ministries_auth.js"></script>
 </head>
 <body>
     <div class="ai-ministries-nav-only">
@@ -373,7 +400,22 @@
                        </div>
                    </div>
                    
-                   <a href="https://www.ai-ministries.com/login.html" class="no-dropdown-link">SIGN IN</a>
+                   <!-- Auth UI -->
+                   <div id="navAuthUI">
+                       <div class="auth-buttons" id="authButtons">
+                           <button class="auth-btn" onclick="openAuthModal('signin')">SIGN IN</button>
+                           <button class="auth-btn primary" onclick="openAuthModal('signup')">SIGN UP</button>
+                       </div>
+                       <div class="user-dropdown" id="userDropdown" style="display:none;">
+                           <a id="userDisplayName">USER</a>
+                           <div class="user-dropdown-menu">
+                               <a href="https://www.ai-ministries.com/profile.html">PROFILE</a>
+                               <a href="https://www.ai-ministries.com/settings.html">SETTINGS</a>
+                               <a href="https://www.ai-ministries.com/admin.html" id="adminLink" style="display:none;">ADMIN</a>
+                               <a href="#" onclick="handleNavSignOut(); return false;">LOG OUT</a>
+                           </div>
+                       </div>
+                   </div>
                 </div>
 
                 <!-- Mobile menu button -->
@@ -404,10 +446,48 @@
 				<a href='https://www.ai-ministries.com/faq.html'>FAQ</a>
 				<a href='https://www.ai-ministries.com/policy.html'>POLICY</a>
 				<a href='https://www.ai-ministries.com/terms.html'>TERMS</a>
-				<a href='https://www.ai-ministries.com/login.html' class="no-dropdown-link">SIGN IN</a>
+				<a href="#" id="mobileAuthLink" onclick="openAuthModal('signin'); return false;">SIGN IN</a>
 			</div>
         </div>
     </div>
+
+
+    <div class="auth-modal-overlay" id="authModal">
+        <div class="auth-modal">
+            <button class="close-btn" onclick="closeAuthModal()">&times;</button>
+            <div id="signinForm">
+                <h2>Sign In</h2>
+                <div class="error-msg" id="signinError"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="signinEmail" placeholder="you@example.com"></div>
+                <div class="form-group"><label>Password</label><input type="password" id="signinPassword" placeholder="Your password"></div>
+                <button class="submit-btn" id="signinBtn" onclick="handleSignIn()">Sign In</button>
+                <div class="toggle-form">No account? <a onclick="showSignupForm()">Sign Up</a></div>
+            </div>
+            <div id="signupForm" style="display:none;">
+                <h2>Sign Up</h2>
+                <div class="error-msg" id="signupError"></div>
+                <div class="form-group"><label>Display Name</label><input type="text" id="signupName" placeholder="Your nickname"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="signupEmail" placeholder="you@example.com"></div>
+                <div class="form-group"><label>Password</label><input type="password" id="signupPassword" placeholder="6+ characters"></div>
+                <button class="submit-btn" id="signupBtn" onclick="handleSignUp()">Create Account</button>
+                <div class="toggle-form">Have account? <a onclick="showSigninForm()">Sign In</a></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    function openAuthModal(m){document.getElementById('authModal').classList.add('show');m==='signup'?showSignupForm():showSigninForm();}
+    function closeAuthModal(){document.getElementById('authModal').classList.remove('show');}
+    function showSigninForm(){document.getElementById('signinForm').style.display='block';document.getElementById('signupForm').style.display='none';}
+    function showSignupForm(){document.getElementById('signinForm').style.display='none';document.getElementById('signupForm').style.display='block';}
+    async function handleSignIn(){var b=document.getElementById('signinBtn'),e=document.getElementById('signinError');b.disabled=true;b.textContent='Signing in...';e.style.display='none';try{await window.aiAuth.signIn(document.getElementById('signinEmail').value,document.getElementById('signinPassword').value);closeAuthModal();updateNavAuthUI();}catch(x){e.textContent=x.message;e.style.display='block';}finally{b.disabled=false;b.textContent='Sign In';}}
+    async function handleSignUp(){var b=document.getElementById('signupBtn'),e=document.getElementById('signupError');b.disabled=true;b.textContent='Creating...';e.style.display='none';try{await window.aiAuth.signUp(document.getElementById('signupEmail').value,document.getElementById('signupPassword').value,document.getElementById('signupName').value);e.style.cssText='display:block;background:rgba(76,175,80,0.1);border-color:rgba(76,175,80,0.3);color:#4caf50;';e.textContent='Created! Check email to verify.';setTimeout(showSigninForm,2000);}catch(x){e.textContent=x.message;e.style.display='block';}finally{b.disabled=false;b.textContent='Create Account';}}
+    async function handleNavSignOut(){await window.aiAuth.signOut();updateNavAuthUI();}
+    function updateNavAuthUI(){var a=window.aiAuth&&window.aiAuth.isAuthenticated();document.getElementById('authButtons').style.display=a?'none':'flex';document.getElementById('userDropdown').style.display=a?'inline-block':'none';var m=document.getElementById('mobileAuthLink');if(a){document.getElementById('userDisplayName').textContent=window.aiAuth.getDisplayName().toUpperCase();m.textContent='LOG OUT';m.onclick=function(){handleNavSignOut();return false;};var ad=document.getElementById('adminLink');if(ad)ad.style.display=window.aiAuth.isAdmin()?'block':'none';}else{m.textContent='SIGN IN';m.onclick=function(){openAuthModal('signin');return false;};}}
+    window.onAuthChange=updateNavAuthUI;
+    document.addEventListener('DOMContentLoaded',function(){if(window.aiAuth)window.aiAuth.init().then(updateNavAuthUI);});
+    </script>
 
 </body>
 </html>
