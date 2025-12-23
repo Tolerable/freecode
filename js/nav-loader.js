@@ -2,7 +2,10 @@
 function setAgeVerified() {
     try { localStorage.setItem('ageVerified', 'true'); } catch(e) {}
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
-    document.cookie = `ageVerified=true; domain=ai-ministries.com; path=/; expires=${expires}; SameSite=Lax`;
+    // Only set domain if on ai-ministries.com (avoids rejection on localhost/other domains)
+    const isAiMinistries = window.location.hostname.endsWith('ai-ministries.com');
+    const domainPart = isAiMinistries ? '; domain=.ai-ministries.com' : '';
+    document.cookie = `ageVerified=true${domainPart}; path=/; expires=${expires}; SameSite=Lax`;
 }
 
 function isAgeVerified() {
@@ -36,14 +39,26 @@ document.addEventListener('DOMContentLoaded', async function() {
         navContainer.innerHTML = html;
         document.body.insertBefore(navContainer, document.body.firstChild);
 
-        // 2. Setup mobile menu only
+        // 2. Execute scripts from loaded HTML (innerHTML doesn't auto-execute)
+        const scripts = navContainer.querySelectorAll('script');
+        scripts.forEach(oldScript => {
+            const newScript = document.createElement('script');
+            if (oldScript.src) {
+                newScript.src = oldScript.src;
+            } else {
+                newScript.textContent = oldScript.textContent;
+            }
+            document.head.appendChild(newScript);
+        });
+
+        // 3. Setup mobile menu only
         const menuButton = document.getElementById('mobile-menu-button');
         const menu = document.getElementById('mobile-menu');
         if (menuButton && menu) {
             menuButton.addEventListener('click', () => menu.classList.toggle('show'));
         }
 
-        // 3. Check age if not verified (cookie shared across subdomains)
+        // 4. Check age if not verified (cookie shared across subdomains)
         if (!isAgeVerified()) {
             const modalHTML = `
                 <div id="ageModal" class="age-modal-overlay" style="opacity: 0; transition: opacity 0.3s ease;">
