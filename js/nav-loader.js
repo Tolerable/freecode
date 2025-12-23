@@ -40,15 +40,35 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.body.insertBefore(navContainer, document.body.firstChild);
 
         // 2. Execute scripts from loaded HTML (innerHTML doesn't auto-execute)
+        // Must load external scripts first, THEN inline scripts
         const scripts = navContainer.querySelectorAll('script');
+        const externalScripts = [];
+        const inlineScripts = [];
+        
         scripts.forEach(oldScript => {
-            const newScript = document.createElement('script');
             if (oldScript.src) {
-                newScript.src = oldScript.src;
+                externalScripts.push(oldScript.src);
             } else {
-                newScript.textContent = oldScript.textContent;
+                inlineScripts.push(oldScript.textContent);
             }
-            document.head.appendChild(newScript);
+        });
+        
+        // Load external scripts and wait for them
+        await Promise.all(externalScripts.map(src => {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }));
+        
+        // Now run inline scripts (aiAuth is available)
+        inlineScripts.forEach(code => {
+            const script = document.createElement('script');
+            script.textContent = code;
+            document.head.appendChild(script);
         });
 
         // 3. Setup mobile menu only
