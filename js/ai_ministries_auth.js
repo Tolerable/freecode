@@ -16,7 +16,7 @@
  *   }
  *
  *   // Required auth - only for admin pages
- *   if (\!aiAuth.requireAdmin()) return;
+ *   if (!aiAuth.requireAdmin()) return;
  */
 
 // EZTUNES Supabase - shared user pool across the universe
@@ -259,12 +259,12 @@ class AIMinistriesAuth {
 
     // Require admin - redirects to login if not admin
     requireAdmin() {
-        if (\!this.isAuthenticated()) {
+        if (!this.isAuthenticated()) {
             const returnUrl = encodeURIComponent(window.location.href);
             window.location.href = '/login.html?redirect=' + returnUrl;
             return false;
         }
-        if (\!this.isAdmin()) {
+        if (!this.isAdmin()) {
             alert('Admin access required');
             return false;
         }
