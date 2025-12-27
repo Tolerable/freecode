@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     try {
         // Get nav HTML
-        const response = await fetch('https://www.ai-ministries.com/components/nav.html');
+        const response = await fetch('https://www.ai-ministries.com/components/nav.html?v=' + Date.now());
         const html = await response.text();
         navContainer.innerHTML = html;
         document.body.insertBefore(navContainer, document.body.firstChild);
