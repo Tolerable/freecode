@@ -122,8 +122,8 @@ class AIMinistriesAuth {
             password
         });
 
-        if (result.error) {
-            throw new Error(result.error_description || result.error || 'Sign in failed');
+        if (result.error || result.error_code || result.code >= 400) {
+            throw new Error(result.error_description || result.msg || result.error || 'Sign in failed');
         }
 
         this.token = result.access_token;
@@ -155,8 +155,8 @@ class AIMinistriesAuth {
             data: { display_name: displayName }
         });
 
-        if (result.error) {
-            throw new Error(result.error_description || result.error || 'Sign up failed');
+        if (result.error || result.error_code || result.code >= 400) {
+            throw new Error(result.error_description || result.msg || result.error || 'Sign up failed');
         }
 
         // Note: User needs to verify email before they can sign in
