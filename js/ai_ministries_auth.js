@@ -91,7 +91,7 @@ class AIMinistriesAuth {
         this.token = localStorage.getItem(TOKEN_KEY);
         this.refreshToken = localStorage.getItem(REFRESH_KEY);
         const userStr = localStorage.getItem(USER_KEY);
-        this.user = userStr ? JSON.parse(userStr) : null;
+        try { this.user = userStr ? JSON.parse(userStr) : null; } catch (e) { console.warn("Corrupted localStorage, clearing..."); localStorage.removeItem(USER_KEY); localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(REFRESH_KEY); this.user = null; this.token = null; this.refreshToken = null; return false; }
 
         if (!this.token) return false;
 
