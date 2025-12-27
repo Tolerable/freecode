@@ -299,6 +299,7 @@
             <h2 id="userName">User</h2>
             <div class="email" id="userEmail">user@example.com</div>
             <div class="admin-badge" id="adminBadge" style="display:none">Admin</div>
+            <div class="admin-badge" id="passportBadge" style="display:none; background:#238636">Passport</div>
             <button class="signout-btn" onclick="handleSignOut()">Sign Out</button>
         </div>
 
@@ -314,6 +315,7 @@
     </div>
 
     <script src="/js/ai_ministries_auth.js?v=2"></script>
+    <script src="/js/passport.js?v=1"></script>
     <script>
         // Tab switching
         function showTab(tab) {
@@ -361,11 +363,16 @@
 
                 await window.aiAuth.signIn(email, password);
 
+                // Link to PASSPORT (creates if needed)
+                const displayName = window.aiAuth.getDisplayName();
+                await window.passport.signIn(email, displayName);
+
                 // Check for redirect
                 const params = new URLSearchParams(window.location.search);
                 const redirect = params.get('redirect');
                 if (redirect) {
-                    window.location.href = redirect;
+                    // Use passport redirect to carry token
+                    window.passport.redirectTo(redirect);
                 } else {
                     updateUI();
                 }
@@ -406,6 +413,7 @@
         // Sign Out
         async function handleSignOut() {
             await window.aiAuth.signOut();
+            window.passport.signOut();
             updateUI();
         }
 
@@ -426,6 +434,10 @@
 
                 const adminBadge = document.getElementById('adminBadge');
                 adminBadge.style.display = window.aiAuth.isAdmin() ? 'inline-block' : 'none';
+
+                // Show passport badge if linked
+                const passportBadge = document.getElementById('passportBadge');
+                passportBadge.style.display = window.passport.isAuthenticated() ? 'inline-block' : 'none';
             }
         }
 
@@ -437,6 +449,7 @@
         // Init
         document.addEventListener('DOMContentLoaded', async () => {
             await window.aiAuth.init();
+            await window.passport.init();
             updateUI();
         });
     </script>
