@@ -10,38 +10,95 @@
  *   POST /api/ai           - Query a model { model, prompt }
  */
 
+// All models from text.pollinations.ai/models
 const MODELS = {
+    // === REASONING & GENERAL ===
     'deepseek': {
-        name: 'DeepSeek',
-        endpoint: 'https://text.pollinations.ai/',
-        description: 'DeepSeek reasoning model via Pollinations',
-        params: { model: 'deepseek' }
+        name: 'DeepSeek V3.1',
+        description: 'Advanced reasoning model',
+        supportsSystem: true
     },
     'openai': {
-        name: 'OpenAI GPT-4o-mini',
-        endpoint: 'https://text.pollinations.ai/',
-        description: 'OpenAI GPT-4o-mini via Pollinations',
-        params: { model: 'openai' }
+        name: 'OpenAI GPT-5 Nano',
+        description: 'Latest OpenAI model',
+        supportsSystem: true
+    },
+    'openai-fast': {
+        name: 'OpenAI GPT-4.1 Nano',
+        description: 'Fast OpenAI model',
+        supportsSystem: true
+    },
+    'gemini': {
+        name: 'Gemini 2.5 Flash Lite',
+        description: 'Google Gemini model',
+        supportsSystem: true
+    },
+    'gemini-search': {
+        name: 'Gemini + Google Search',
+        description: 'Gemini with live web search',
+        supportsSystem: true
     },
     'mistral': {
-        name: 'Mistral',
-        endpoint: 'https://text.pollinations.ai/',
-        description: 'Mistral model via Pollinations',
-        params: { model: 'mistral' }
+        name: 'Mistral Small 3.2 24B',
+        description: 'Mistral reasoning model',
+        supportsSystem: true
     },
-    'claude': {
-        name: 'Claude (Pollinations)',
-        endpoint: 'https://text.pollinations.ai/',
-        description: 'Claude via Pollinations',
-        params: { model: 'claude' }
+
+    // === CODING ===
+    'qwen-coder': {
+        name: 'Qwen 2.5 Coder 32B',
+        description: 'Specialized coding model',
+        supportsSystem: true
     },
+
+    // === SPECIAL PURPOSE ===
+    'unity': {
+        name: 'Unity Unrestricted',
+        description: 'Unrestricted agent - no filters',
+        supportsSystem: false,
+        note: 'Prepend system message to prompt'
+    },
+    'evil': {
+        name: 'Evil Mode',
+        description: 'Jailbroken responses',
+        supportsSystem: false
+    },
+    'bidara': {
+        name: 'BIDARA (NASA)',
+        description: 'Biomimetic Designer by NASA',
+        supportsSystem: true
+    },
+    'chickytutor': {
+        name: 'ChickyTutor',
+        description: 'AI Language Tutor',
+        supportsSystem: true
+    },
+    'midijourney': {
+        name: 'MIDIjourney',
+        description: 'Music/MIDI generation',
+        supportsSystem: false
+    },
+    'rtist': {
+        name: 'Rtist',
+        description: 'Art prompts generator',
+        supportsSystem: false
+    },
+    'roblox-rp': {
+        name: 'Llama 3.1 8B (Roblox RP)',
+        description: 'Roleplay model',
+        supportsSystem: false
+    },
+
+    // === IMAGE ===
     'image': {
         name: 'Image Generator',
-        endpoint: 'https://image.pollinations.ai/prompt/',
-        description: 'Generate images from text prompts',
+        description: 'Generate images from text',
         type: 'image'
     }
 };
+
+const TEXT_ENDPOINT = 'https://text.pollinations.ai/';
+const IMAGE_ENDPOINT = 'https://image.pollinations.ai/prompt/';
 
 exports.handler = async (event, context) => {
     const headers = {
@@ -70,13 +127,28 @@ exports.handler = async (event, context) => {
                     'GET /api/ai': 'List available models',
                     'GET /api/ai?help': 'This help',
                     'GET /api/ai?model=deepseek&q=your+question': 'Quick query',
-                    'POST /api/ai': 'Send { model, prompt } for full control'
+                    'GET /api/ai?model=X&q=Y&system=Z': 'Query with system message',
+                    'POST /api/ai': 'Full control: { model, prompt, system }'
                 },
                 models: Object.keys(MODELS),
-                example: {
-                    method: 'POST',
-                    body: { model: 'deepseek', prompt: 'Explain quantum computing' }
+                categories: {
+                    reasoning: ['deepseek', 'openai', 'openai-fast', 'gemini', 'mistral'],
+                    search: ['gemini-search'],
+                    coding: ['qwen-coder'],
+                    unrestricted: ['unity', 'evil'],
+                    specialized: ['bidara', 'chickytutor', 'midijourney', 'rtist', 'roblox-rp'],
+                    image: ['image']
                 },
+                system_messages: {
+                    note: 'Some models support native system messages, others get it prepended',
+                    native_support: ['deepseek', 'openai', 'gemini', 'mistral', 'qwen-coder', 'bidara'],
+                    prepend_mode: ['unity', 'evil', 'midijourney', 'rtist', 'roblox-rp']
+                },
+                examples: [
+                    { method: 'GET', url: '/api/ai?model=deepseek&q=hello' },
+                    { method: 'GET', url: '/api/ai?model=unity&q=be+creative&system=You+are+a+poet' },
+                    { method: 'POST', body: { model: 'qwen-coder', prompt: 'Write a Python hello world', system: 'Be concise' } }
+                ],
                 next: 'Try: /api/ai?model=deepseek&q=hello'
             }, null, 2)
         };
@@ -84,9 +156,9 @@ exports.handler = async (event, context) => {
 
     // GET /api/ai - Entry point OR quick query
     if (event.httpMethod === 'GET') {
-        // Quick query: /api/ai?model=X&q=Y
+        // Quick query: /api/ai?model=X&q=Y&system=Z
         if (params.model && params.q) {
-            return await queryModel(params.model, params.q, headers);
+            return await queryModel(params.model, params.q, params.system, headers);
         }
 
         // Entry point - list models
@@ -127,7 +199,7 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const { model, prompt } = body;
+        const { model, prompt, system } = body;
 
         if (!model) {
             return {
@@ -158,7 +230,7 @@ exports.handler = async (event, context) => {
             };
         }
 
-        return await queryModel(model, prompt, headers);
+        return await queryModel(model, prompt, system, headers);
     }
 
     return {
@@ -173,7 +245,7 @@ exports.handler = async (event, context) => {
     };
 };
 
-async function queryModel(modelId, prompt, headers) {
+async function queryModel(modelId, prompt, system, headers) {
     const model = MODELS[modelId.toLowerCase()];
 
     if (!model) {
@@ -193,7 +265,7 @@ async function queryModel(modelId, prompt, headers) {
 
     // Image generation
     if (model.type === 'image') {
-        const imageUrl = model.endpoint + encodeURIComponent(prompt);
+        const imageUrl = IMAGE_ENDPOINT + encodeURIComponent(prompt);
         return {
             statusCode: 200,
             headers,
@@ -210,10 +282,27 @@ async function queryModel(modelId, prompt, headers) {
 
     // Text generation via Pollinations
     try {
-        const url = new URL(model.endpoint);
-        url.searchParams.set('model', model.params.model);
-        url.searchParams.set('prompt', prompt);
-        url.searchParams.set('json', 'false');
+        // Build the effective prompt
+        let effectivePrompt = prompt;
+
+        // Handle system message
+        if (system) {
+            if (model.supportsSystem) {
+                // Model supports system param - will add to URL
+            } else {
+                // Prepend system to prompt for models without system support
+                effectivePrompt = `[SYSTEM: ${system}]\n\n${prompt}`;
+            }
+        }
+
+        const url = new URL(TEXT_ENDPOINT);
+        url.searchParams.set('model', modelId);
+        url.searchParams.set('prompt', effectivePrompt);
+
+        // Add system param if model supports it
+        if (system && model.supportsSystem) {
+            url.searchParams.set('system', system);
+        }
 
         const response = await fetch(url.toString(), {
             method: 'GET',
@@ -243,6 +332,7 @@ async function queryModel(modelId, prompt, headers) {
                 ok: true,
                 model: modelId,
                 prompt: prompt,
+                system_used: system ? (model.supportsSystem ? 'native' : 'prepended') : null,
                 response: text,
                 next: 'Send another prompt or try /api/ai?model=image&q=a+sunset for images'
             })
