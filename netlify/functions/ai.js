@@ -10,83 +10,133 @@
  *   POST /api/ai           - Query a model { model, prompt }
  */
 
-// All models from text.pollinations.ai/models
+// Models from gen.pollinations.ai/models (updated Dec 2025)
 const MODELS = {
-    // === REASONING & GENERAL ===
-    'deepseek': {
-        name: 'DeepSeek V3.1',
-        description: 'Advanced reasoning model',
-        supportsSystem: true
-    },
+    // === OPENAI ===
     'openai': {
-        name: 'OpenAI GPT-5 Nano',
-        description: 'Latest OpenAI model',
+        name: 'OpenAI GPT-5 Mini',
+        description: 'Fast & Balanced',
         supportsSystem: true
     },
     'openai-fast': {
-        name: 'OpenAI GPT-4.1 Nano',
-        description: 'Fast OpenAI model',
+        name: 'OpenAI GPT-5 Nano',
+        description: 'Ultra Fast & Affordable',
         supportsSystem: true
     },
-    'gemini': {
-        name: 'Gemini 2.5 Flash Lite',
-        description: 'Google Gemini model',
+    'openai-large': {
+        name: 'OpenAI GPT-5.2',
+        description: 'Most Powerful & Intelligent (reasoning)',
+        supportsSystem: true,
+        reasoning: true
+    },
+
+    // === ANTHROPIC ===
+    'claude': {
+        name: 'Claude Sonnet 4.5',
+        description: 'Most Capable & Balanced',
         supportsSystem: true
+    },
+    'claude-fast': {
+        name: 'Claude Haiku 4.5',
+        description: 'Fast & Intelligent',
+        supportsSystem: true
+    },
+    'claude-large': {
+        name: 'Claude Opus 4.5',
+        description: 'Most Intelligent Model',
+        supportsSystem: true
+    },
+
+    // === GOOGLE ===
+    'gemini': {
+        name: 'Gemini 3 Flash',
+        description: 'Pro-Grade Reasoning at Flash Speed',
+        supportsSystem: true
+    },
+    'gemini-fast': {
+        name: 'Gemini 2.5 Flash Lite',
+        description: 'Ultra Fast & Cost-Effective',
+        supportsSystem: true
+    },
+    'gemini-large': {
+        name: 'Gemini 3 Pro',
+        description: 'Most Intelligent with 1M Context',
+        supportsSystem: true,
+        reasoning: true
     },
     'gemini-search': {
-        name: 'Gemini + Google Search',
-        description: 'Gemini with live web search',
+        name: 'Gemini 3 Flash + Search',
+        description: 'With Google Search',
         supportsSystem: true
     },
+
+    // === REASONING ===
+    'deepseek': {
+        name: 'DeepSeek V3.2',
+        description: 'Efficient Reasoning & Agentic AI',
+        supportsSystem: true,
+        reasoning: true
+    },
+    'kimi-k2-thinking': {
+        name: 'Moonshot Kimi K2',
+        description: 'Deep Reasoning & Tool Orchestration',
+        supportsSystem: true,
+        reasoning: true
+    },
+
+    // === SEARCH-AUGMENTED ===
+    'perplexity-fast': {
+        name: 'Perplexity Sonar',
+        description: 'Fast with Web Search',
+        supportsSystem: true
+    },
+    'perplexity-reasoning': {
+        name: 'Perplexity Sonar Reasoning',
+        description: 'Advanced Reasoning with Web Search',
+        supportsSystem: true,
+        reasoning: true
+    },
+
+    // === OTHER ===
     'mistral': {
         name: 'Mistral Small 3.2 24B',
-        description: 'Mistral reasoning model',
+        description: 'Efficient & Cost-Effective',
         supportsSystem: true
     },
-
-    // === CODING ===
+    'grok': {
+        name: 'xAI Grok 4 Fast',
+        description: 'High Speed & Real-Time',
+        supportsSystem: true
+    },
     'qwen-coder': {
         name: 'Qwen 2.5 Coder 32B',
-        description: 'Specialized coding model',
+        description: 'Specialized for Code Generation',
+        supportsSystem: true
+    },
+    'nova-micro': {
+        name: 'Amazon Nova Micro',
+        description: 'Ultra Fast & Ultra Cheap',
         supportsSystem: true
     },
 
-    // === SPECIAL PURPOSE ===
-    'unity': {
-        name: 'Unity Unrestricted',
-        description: 'Unrestricted agent - no filters',
-        supportsSystem: false,
-        note: 'Prepend system message to prompt'
-    },
-    'evil': {
-        name: 'Evil Mode',
-        description: 'Jailbroken responses',
-        supportsSystem: false
-    },
-    'bidara': {
-        name: 'BIDARA (NASA)',
-        description: 'Biomimetic Designer by NASA',
-        supportsSystem: true
-    },
+    // === SPECIALIZED ===
     'chickytutor': {
         name: 'ChickyTutor',
         description: 'AI Language Tutor',
-        supportsSystem: true
+        supportsSystem: true,
+        specialized: true
     },
     'midijourney': {
         name: 'MIDIjourney',
-        description: 'Music/MIDI generation',
-        supportsSystem: false
+        description: 'AI Music Composition Assistant',
+        supportsSystem: true,
+        specialized: true
     },
-    'rtist': {
-        name: 'Rtist',
-        description: 'Art prompts generator',
-        supportsSystem: false
-    },
-    'roblox-rp': {
-        name: 'Llama 3.1 8B (Roblox RP)',
-        description: 'Roleplay model',
-        supportsSystem: false
+    'openai-audio': {
+        name: 'OpenAI GPT-4o Audio',
+        description: 'Voice Input & Output',
+        supportsSystem: true,
+        audio: true
     },
 
     // === IMAGE ===
