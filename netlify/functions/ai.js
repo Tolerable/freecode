@@ -295,16 +295,18 @@ async function queryModel(modelId, prompt, system, headers) {
             }
         }
 
-        const url = new URL(TEXT_ENDPOINT);
-        url.searchParams.set('model', modelId);
-        url.searchParams.set('prompt', effectivePrompt);
+        // Build URL with prompt in path (Pollinations format)
+        let url = TEXT_ENDPOINT + encodeURIComponent(effectivePrompt);
 
-        // Add system param if model supports it
+        // Add query params for model and system
+        const params = new URLSearchParams();
+        params.set('model', modelId);
         if (system && model.supportsSystem) {
-            url.searchParams.set('system', system);
+            params.set('system', system);
         }
+        url += '?' + params.toString();
 
-        const response = await fetch(url.toString(), {
+        const response = await fetch(url, {
             method: 'GET',
             headers: { 'Accept': 'text/plain' }
         });
