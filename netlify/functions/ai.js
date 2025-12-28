@@ -97,8 +97,9 @@ const MODELS = {
     }
 };
 
-const TEXT_ENDPOINT = 'https://text.pollinations.ai/';
-const IMAGE_ENDPOINT = 'https://image.pollinations.ai/prompt/';
+// New unified API endpoints (legacy text.pollinations.ai deprecated)
+const TEXT_ENDPOINT = 'https://gen.pollinations.ai/text/';
+const IMAGE_ENDPOINT = 'https://gen.pollinations.ai/image/';
 
 // Pollinations API key for FLOWER tier access
 const POLLINATIONS_KEY = process.env.POLLINATIONS_API_KEY || '';
@@ -268,11 +269,13 @@ async function queryModel(modelId, prompt, system, headers) {
 
     // Image generation
     if (model.type === 'image') {
-        // Build image URL with auth params
+        // Build image URL with auth params (gen.pollinations.ai format)
         let imageUrl = IMAGE_ENDPOINT + encodeURIComponent(prompt);
         const imageParams = new URLSearchParams();
         imageParams.set('nologo', 'true');
-        imageParams.set('referrer', 'ai-ministries.com');
+        if (POLLINATIONS_KEY) {
+            imageParams.set('token', POLLINATIONS_KEY);
+        }
         imageUrl += '?' + imageParams.toString();
 
         return {
