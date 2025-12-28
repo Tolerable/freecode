@@ -1,4 +1,4 @@
-# FREECODE (ai-ministries.com) Migration Project
+# ai-ministries.com
 
 **GOAL:** Replace pollinations.ai with stable alternatives before it goes paid.
 
@@ -8,10 +8,9 @@
 
 | Location | Purpose |
 |----------|---------|
-| `OneDrive/REPOS/FREECODE/` | Working repo (449 files) |
-| `OneDrive/REPOS/FREECODE-FALLBACK/` | Stripped fallback version |
-| `OneDrive/AI/ai-ministries.com/` | Development folder (older) |
-| GitHub: `Tolerable/freecode` | Production repo |
+| `OneDrive/repos/ai-ministries/` | Working repo (449 files) |
+| `OneDrive/repos/ai-ministries-fallback/` | Stripped fallback version |
+| GitHub: `Tolerable/ai-ministries` | Production repo |
 
 ## THE PROBLEM
 
