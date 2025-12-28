@@ -100,6 +100,9 @@ const MODELS = {
 const TEXT_ENDPOINT = 'https://text.pollinations.ai/';
 const IMAGE_ENDPOINT = 'https://image.pollinations.ai/prompt/';
 
+// Pollinations API key for FLOWER tier access
+const POLLINATIONS_KEY = process.env.POLLINATIONS_API_KEY || '';
+
 exports.handler = async (event, context) => {
     const headers = {
         'Content-Type': 'application/json',
@@ -265,7 +268,13 @@ async function queryModel(modelId, prompt, system, headers) {
 
     // Image generation
     if (model.type === 'image') {
-        const imageUrl = IMAGE_ENDPOINT + encodeURIComponent(prompt);
+        // Build image URL with auth params
+        let imageUrl = IMAGE_ENDPOINT + encodeURIComponent(prompt);
+        const imageParams = new URLSearchParams();
+        imageParams.set('nologo', 'true');
+        imageParams.set('referrer', 'ai-ministries.com');
+        imageUrl += '?' + imageParams.toString();
+
         return {
             statusCode: 200,
             headers,
@@ -306,9 +315,15 @@ async function queryModel(modelId, prompt, system, headers) {
         }
         url += '?' + params.toString();
 
+        // Build request headers with auth if key available
+        const requestHeaders = { 'Accept': 'text/plain' };
+        if (POLLINATIONS_KEY) {
+            requestHeaders['Authorization'] = `Bearer ${POLLINATIONS_KEY}`;
+        }
+
         const response = await fetch(url, {
             method: 'GET',
-            headers: { 'Accept': 'text/plain' }
+            headers: requestHeaders
         });
 
         if (!response.ok) {
