@@ -606,7 +606,7 @@ class ComprehensiveMusicQuery:
             
             # Make the API call
             response = requests.post(
-                "https://text.pollinations.ai/openai",
+                "https://gen.pollinations.ai/text/openai",
                 json=data,
                 headers=headers
             )

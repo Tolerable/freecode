@@ -154,7 +154,7 @@ const aiAPI = (function() {
     // Pollinations (legacy fallback)
     async function pollinationsText(prompt, options = {}) {
         const model = options.model || 'openai';
-        const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=${model}`;
+        const url = `https://gen.pollinations.ai/text/${encodeURIComponent(prompt)}?model=${model}`;
 
         const response = await fetch(url);
         if (!response.ok) {
@@ -265,7 +265,7 @@ const aiAPI = (function() {
             nologo: 'true'
         });
 
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params}`;
+        const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?${params}`;
 
         // For pollinations, we return the URL directly (it generates on request)
         return url;
@@ -380,7 +380,7 @@ const aiAPI = (function() {
 
         // Legacy compatibility - drop-in for pollinations
         legacy: {
-            textUrl: (prompt, model) => `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=${model || 'openai'}`,
+            textUrl: (prompt, model) => `https://gen.pollinations.ai/text/${encodeURIComponent(prompt)}?model=${model || 'openai'}`,
             imageUrl: (prompt, opts) => {
                 const params = new URLSearchParams({
                     width: opts?.width || 512,
@@ -388,7 +388,7 @@ const aiAPI = (function() {
                     seed: opts?.seed || Math.floor(Math.random() * 999999),
                     nologo: 'true'
                 });
-                return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params}`;
+                return `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?${params}`;
             }
         }
     };

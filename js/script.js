@@ -30,8 +30,8 @@ setTimeout(() => {
 }, 2000);
 
 // Constants
-const TEXT_API = 'https://text.pollinations.ai/';
-const IMAGE_API = 'https://image.pollinations.ai/prompt/';
+const TEXT_API = 'https://gen.pollinations.ai/text/';
+const IMAGE_API = 'https://gen.pollinations.ai/image/';
 
 // Global variables
 let db = null;
