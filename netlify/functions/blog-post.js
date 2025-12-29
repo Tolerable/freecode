@@ -113,13 +113,13 @@ async function getBlogId(accessToken) {
   return data.id;
 }
 
-// Generate header image with Pollinations (CORRECT endpoint: image.pollinations.ai/prompt/)
+// Generate header image with Pollinations (gen.pollinations.ai - NEW endpoint, needs auth in Netlify env)
 function generateHeaderImage(prompt) {
   const width = 1200;
   const height = 630; // 1200x630 for blog headers (social media optimal)
   const seed = Math.floor(Math.random() * 1000000); // Random seed for variety
   const encodedPrompt = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+  return `https://gen.pollinations.ai/image/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
 }
 
 // Convert markdown to basic HTML if needed

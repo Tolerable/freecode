@@ -149,7 +149,7 @@ const MODELS = {
 
 // API endpoints
 const TEXT_ENDPOINT = 'https://gen.pollinations.ai/text/';
-const IMAGE_ENDPOINT = 'https://image.pollinations.ai/prompt/';  // CORRECT endpoint
+const IMAGE_ENDPOINT = 'https://gen.pollinations.ai/image/';  // NEW correct endpoint
 
 // Pollinations API key for FLOWER tier access
 const POLLINATIONS_KEY = process.env.POLLINATIONS_API_KEY || '';
